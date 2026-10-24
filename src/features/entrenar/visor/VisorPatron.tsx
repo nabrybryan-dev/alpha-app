@@ -21,7 +21,11 @@ import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laborator
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type CifrasDelMuro } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
-import { anunciarSalaDeBlender, PIEZAS_DEL_ATLAS, SALA_GIMNASIO } from './piezas'
+import { anunciarSalaDeBlender, piezasDelAtlas, SALA_GIMNASIO } from './piezas'
+import { AjusteDeDensidad, esCelular } from './densidad'
+import { mallasDelCuerpo } from '../sujeto/cuerpoEnEscena'
+import { paletaDelTema, type CapaDelCuerpo } from '../sujeto/pintura'
+import type { TinteDelCuerpo } from '../sujeto/tinte'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -263,6 +267,16 @@ interface VisorPatronProps {
    */
   atlas?: readonly ('esqueleto' | 'musculos' | 'piel')[]
   /**
+   * LA VISTA DE CUERPO: el sujeto de Blender, quieto, con el tinte de las series anotadas.
+   *
+   * Es la portada de Entrenar (paso 4 del rediseño). Con ella el visor dibuja la sala y el
+   * cuerpo de Blender en la capa elegida (Piel, Músculo o Hueso) y NADA del movimiento: ni el
+   * sujeto procedimental, ni el hierro y el aparato, ni la línea de resistencia, ni el
+   * fantasma. Todo eso sigue entero en la vista de movimiento (sin esta propiedad), que es
+   * como estaba. Opcional: sin ella, el visor hace exactamente lo de siempre.
+   */
+  cuerpo?: { capa: CapaDelCuerpo; tinte: TinteDelCuerpo }
+  /**
    * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
    *
    * Opcional a propósito, y sin él NO PASA NADA: el visor dibuja lo mismo que dibujaba
@@ -410,6 +424,7 @@ export function VisorPatron({
   conSala = false,
   conEscenario = true,
   atlas,
+  cuerpo,
   w,
   momentos,
   nombreEjercicio,
@@ -475,6 +490,7 @@ export function VisorPatron({
     // Qué capas del atlas anatómico se piden. Por referencia como todo lo demás:
     // encender la musculatura no puede recrear el contexto WebGL.
     atlas: undefined as readonly ('esqueleto' | 'musculos' | 'piel')[] | undefined,
+    cuerpo: undefined as VisorPatronProps['cuerpo'],
     // La capa de momentos, por referencia como el resto: encenderla no recrea el contexto WebGL.
     momentos: undefined as CapaDeMomentos | undefined,
     // El escalón de W va por referencia y NO en las dependencias del efecto que monta
@@ -512,6 +528,7 @@ export function VisorPatron({
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
+  const hayCuerpo = cuerpo !== undefined
 
   /**
    * EL ATLAS SE PIDE EN SU PROPIO EFECTO, no en el que monta la escena.
@@ -528,23 +545,24 @@ export function VisorPatron({
    * timbre que usa cualquier cambio de propiedad.
    */
   useEffect(() => {
-    if (!atlas || atlas.length === 0 || atlasCargado.size > 0) return
+    if (((!atlas || atlas.length === 0) && !hayCuerpo) || atlasCargado.size > 0) return
     return cargarPiezas(
       (nombre, mallas) => {
         atlasPorCapa.set(nombre.replace('atlas-', ''), mallas)
         redibujar.current?.()
       },
       undefined,
-      PIEZAS_DEL_ATLAS,
+      piezasDelAtlas(esCelular()),
     )
-  }, [atlas])
+  }, [atlas, hayCuerpo])
 
   // Los controles se copian al ref en un efecto y no durante el render: tocar
   // `ref.current` mientras se renderiza es justo lo que prohíbe `react-hooks/refs`.
   // Y hay que repintar aquí, porque en pausa no corre el bucle: sin esto,
   // cambiar de capa con el modelo parado no se veía hasta volver a darle a play.
   useEffect(() => {
-    estado.current.reproduciendo = reproduciendo && !reducido
+    // En la vista de cuerpo no hay movimiento que reproducir: se pinta a demanda, no de continuo.
+    estado.current.reproduciendo = reproduciendo && !reducido && cuerpo === undefined
     estado.current.girando = girando
     estado.current.capa = capa
     estado.current.cifras = haySala ? cifras : undefined
@@ -557,13 +575,14 @@ export function VisorPatron({
     estado.current.fantasma = fantasma
     estado.current.retirada = retirada
     estado.current.atlas = atlas
+    estado.current.cuerpo = cuerpo
     estado.current.momentos = momentos
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, momentos])
+  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, cuerpo, momentos])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -714,6 +733,8 @@ export function VisorPatron({
         let matrices = conRaiz(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion))
 
         const construir = () => {
+          // LA VISTA DE CUERPO deja fuera todo lo del movimiento (ver `VisorPatronProps.cuerpo`).
+          const enCuerpo = estado.current.cuerpo !== undefined
           const esq = esqueletoEnFase(
             patron,
             estado.current.fase,
@@ -733,7 +754,7 @@ export function VisorPatron({
             conEscenario && !partesOmitidas(lienzo).has('bahia') ? [laboratorio(conSalaDeBlender)] : []
           // La plomada del peso: dónde cae la resultante. Con suelo, porque
           // tumbado no hay equilibrio que enseñar.
-          if (conEscenario && patron.apoyo === 'suelo') partes.push(lineaDePeso(esq))
+          if (conEscenario && !enCuerpo && patron.apoyo === 'suelo') partes.push(lineaDePeso(esq))
           // LA SALA Y EL TRÍPODE, que se quedan JUNTO a la plomada y no en su lugar.
           // En la rama del PR #183 estas dos llamadas sustituían a `lineaDePeso`, y esa
           // era una pérdida encubierta: la plomada dice dónde cae la resultante —el
@@ -746,7 +767,7 @@ export function VisorPatron({
           // vertical de la carga, y el arco del par. Salen del plan de medida del ejercicio
           // —el mismo que manda al encoder qué mirar— y se miden sobre ESTE esqueleto, en
           // esta fase: si el sujeto baja, el brazo crece con él.
-          if (conEscenario && !sin.has('fuerzas')) {
+          if (conEscenario && !enCuerpo && !sin.has('fuerzas')) {
             const plan = planDeMedida(patron.categoria, estado.current.nombreEjercicio ?? '')
             if (plan) {
               // El ojo va porque el arco vive en el plano real del giro: de canto no se ve,
@@ -766,7 +787,7 @@ export function VisorPatron({
               // subidas una vez cuando llegan. Aquí solo va lo que cambia.
               partes.push(sala(estado.current.cifras, patron.camara.azimut, deBlender))
             }
-            if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
+            if (!sin.has('camara') && !enCuerpo) partes.push(tripode(estado.current.colocacion))
           }
           // EL INTERRUPTOR «sala» APAGA TAMBIÉN LO ESTÁTICO. El testigo mide la sala
           // apagándola y contando qué píxeles cambian; con la sala en sus propios búferes
@@ -778,8 +799,14 @@ export function VisorPatron({
           // con su propio interruptor, y obedeciendo al testigo igual que la sala: lo que
           // sale del búfer dinámico tiene que seguir apagándose con `data-sin`.
           const capasDelAtlas = sin.has('atlas') ? [] : (estado.current.atlas ?? [])
-          const delAtlas = capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
-          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}`
+          // En la vista de cuerpo las mallas del sujeto de Blender salen ya pintadas (tinte,
+          // dolor y capa) de `mallasDelCuerpo`, y su firma entra en la de lo estático.
+          const pintado =
+            enCuerpo && !sin.has('atlas') && estado.current.cuerpo
+              ? mallasDelCuerpo(atlasPorCapa, estado.current.cuerpo.capa, estado.current.cuerpo.tinte, paletaDelTema())
+              : undefined
+          const delAtlas = pintado ? pintado.mallas : capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
+          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`
           if (firmaEstaticas !== estaticasSubidas) {
             motor.subirEstaticas([...(quiereSala ? piezasCache : []), ...delAtlas])
             estaticasSubidas = firmaEstaticas
@@ -792,7 +819,7 @@ export function VisorPatron({
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
           // de ESTA fase, así que si el sujeto baja, la barra baja con él. Un implemento
           // que no siguiera al cuerpo sería una calcomanía, y se notaría al primer ciclo.
-          if (conEscenario && !sin.has('implementos')) {
+          if (conEscenario && !enCuerpo && !sin.has('implementos')) {
             const escenaHierro = escenaDeImplementos(patron.categoria, estado.current.nombreEjercicio ?? '')
             // EL HIERRO Y EL APARATO VAN EN DOS MALLAS. Lo que se lleva en las manos —barra,
             // mancuernas, disco— siempre opaco. El aparato —máquina, polea, raíles— se
@@ -816,7 +843,9 @@ export function VisorPatron({
           // exactamente lo que se subía antes —el cuerpo entero, mandado por el
           // selector de tres botones—. Quien ya usa el visor no nota este cambio.
           const nivelW = estado.current.w
-          if (sin.has('sujeto')) {
+          if (enCuerpo) {
+            // La vista de cuerpo: el sujeto es el de Blender, que ya va con lo estático.
+          } else if (sin.has('sujeto')) {
             // El cuerpo fuera: es la única parte cuyo apagado ya sabía hacer el testigo
             // escondiendo un nodo, pero se trata igual que las demás para que las cuatro
             // se midan por el mismo camino y una no pueda salir buena por otra razón.
@@ -836,7 +865,7 @@ export function VisorPatron({
           }
           // LOS MOMENTOS ARTICULARES. Van sobre el cuerpo y solo si el dominio dejó algo que
           // dibujar: una capa vacía (no afirmable, otro ejercicio, un asesorado real) no sube nada.
-          if (estado.current.momentos && !sin.has('momentos')) {
+          if (!enCuerpo && estado.current.momentos && !sin.has('momentos')) {
             for (const m of mallasDeMomentos(estado.current.momentos, esq)) if (m.vertices > 0) partes.push(m)
           }
           // EL FANTASMA: el mismo esqueleto, en la fase que marca la HUELLA de la persona
@@ -849,7 +878,7 @@ export function VisorPatron({
           // dibujo, sus mallas se transforman aquí con las matrices de SU esqueleto y se
           // suben con hueso 0, que es la identidad.
           const huella = estado.current.fantasma
-          if (huella && !sin.has('fantasma')) {
+          if (huella && !enCuerpo && !sin.has('fantasma')) {
             const tFantasma = estado.current.reloj
             const faseF = faseDeHuella(huella, tFantasma)
             if (faseF !== undefined) {
@@ -875,7 +904,7 @@ export function VisorPatron({
               partes.push(hF, mF)
             }
           }
-          partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))
+          if (!enCuerpo) partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))
           // QUE SE ACABA DE CONSTRUIR, dicho en el propio lienzo.
           //
           // Un vértice puede existir en la malla y no llegar nunca a la pantalla, y
@@ -888,7 +917,12 @@ export function VisorPatron({
           motor.subir(partes)
         }
 
+        // FRENAN LOS PIXELES, NO LOS TRIANGULOS: si el aparato va lento, baja la densidad
+        // (nunca sube del tope de 2). Solo mide mientras se pinta de continuo.
+        const ajusteDePixeles = new AjusteDeDensidad(window.devicePixelRatio)
         const pintar = () => {
+          const nuevaDensidad = ajusteDePixeles.alPintar(performance.now())
+          if (nuevaDensidad !== undefined) motor.densidadDePixeles = nuevaDensidad
           const aspecto = motor.ajustarTamano()
           motor.dibujar(
             matrices,

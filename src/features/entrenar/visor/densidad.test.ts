@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AjusteDeDensidad, TOPE_DE_PIXELES, esCelular } from './densidad'
+import { AjusteDeDensidad, TOPE_DE_PIXELES, esCelular, pixelRatioEfectivo } from './densidad'
 
 /** Alimenta `n` cuadros a `fps` desde `t0` y devuelve el ultimo cambio que se pidio. */
 function correr(a: AjusteDeDensidad, t0: number, segundos: number, fps: number): { t: number; cambio?: number } {
@@ -58,4 +58,18 @@ describe('celular o escritorio', () => {
     expect(esCelular(f(1280))).toBe(false)
   })
   it('sin matchMedia es escritorio', () => expect(esCelular(undefined)).toBe(false))
+})
+
+describe('el pixel ratio con que se dibuja', () => {
+  it('sin ajuste es el del aparato con tope de 2 (nunca 3 en un iPhone)', () => {
+    expect(pixelRatioEfectivo(3, null)).toBe(2)
+    expect(pixelRatioEfectivo(1, null)).toBe(1)
+    expect(pixelRatioEfectivo(0, null)).toBe(1)
+  })
+  it('el ajuste solo puede bajarlo, nunca subirlo por encima del aparato ni del tope', () => {
+    expect(pixelRatioEfectivo(3, 1.2)).toBe(1.2)
+    expect(pixelRatioEfectivo(1, 2)).toBe(1)
+    expect(pixelRatioEfectivo(3, 5)).toBe(2)
+    expect(pixelRatioEfectivo(3, 0.1)).toBe(0.6)
+  })
 })

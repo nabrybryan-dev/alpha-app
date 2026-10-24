@@ -73,3 +73,10 @@ export function esCelular(
     return false
   }
 }
+
+/** El pixel ratio real: el del aparato con tope de 2, y el ajuste solo puede bajarlo. */
+export function pixelRatioEfectivo(dprDelDispositivo: number, densidad: number | null): number {
+  const tope = Math.min(dprDelDispositivo || 1, TOPE_DE_PIXELES)
+  if (densidad === null) return tope
+  return Math.min(tope, Math.max(DENSIDAD_MINIMA, densidad))
+}

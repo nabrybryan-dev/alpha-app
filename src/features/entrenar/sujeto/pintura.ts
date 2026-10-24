@@ -117,8 +117,19 @@ const PALETA_OSCURA: Paleta = {
 }
 
 /** La paleta del tema que esta puesto. Sin DOM (pruebas) devuelve la oscura. */
+let paletaGuardada: { cuando: number; paleta: Paleta } | undefined
+
 export function paletaDelTema(): Paleta {
   if (typeof document === 'undefined') return PALETA_OSCURA
+  // `getComputedStyle` en cada cuadro costaria; el tema cambia de a uno por sesion.
+  const ahora = Date.now()
+  if (paletaGuardada && ahora - paletaGuardada.cuando < 500) return paletaGuardada.paleta
+  const paleta = leerPaleta()
+  paletaGuardada = { cuando: ahora, paleta }
+  return paleta
+}
+
+function leerPaleta(): Paleta {
   const css = getComputedStyle(document.documentElement)
   const v = (n: string) => css.getPropertyValue(n)
   return {
