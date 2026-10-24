@@ -57,7 +57,8 @@ export function seriesPorRegion(sesiones: readonly Sesion[]): SeriesPorRegion {
 /** k = 0,3 + 0,7 · series / max. Sin series (o sin maximo) no hay tinte: 0. */
 export function intensidadDeRegion(series: number, maximo: number): number {
   if (series <= 0 || maximo <= 0) return 0
-  return 0.3 + (0.7 * Math.min(series, maximo)) / maximo
+  if (series >= maximo) return 1
+  return 0.3 + (0.7 * series) / maximo
 }
 
 /** Dolor de 0 a 10 a partir del cual la region se pinta en rojo (maqueta 7). */

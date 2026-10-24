@@ -19,6 +19,7 @@ import type {
   SerieRegistrada,
   Sesion,
   SexoDeFicha,
+  CheckinDiario,
 } from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
@@ -57,6 +58,9 @@ import { SalaVacia } from './sinPatron/SalaVacia'
 import { useCapaDelSalon } from './momentos/useCapaDelSalon'
 import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
+import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
+import type { CapaDelCuerpo } from '../sujeto/pintura'
+import { regionesConDolor, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
 
 /**
  * EL SALÓN: la pantalla `/entrenar`, y la primera que se ve al tocar ENTRENAR.
@@ -184,6 +188,11 @@ export interface SalonEntrenarProps {
   estaturaCm?: number
   /** Y sus proporciones, si alguna serie suya trae pista de pose. */
   proporciones?: ProporcionesDelCuerpo
+  /**
+   * El dolor del check-in de hoy, tal cual (0-10 y «dónde»). Con 4 o más, su región se pinta
+   * en rojo en el cuerpo. Sin check-in de hoy no se pasa nada: no se inventa dolor.
+   */
+  dolorDeHoy?: Pick<CheckinDiario, 'dolor' | 'dolorDonde'>
 }
 
 /** El ejercicio del que habla el salón: el primero que queda por terminar. */
@@ -409,6 +418,24 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * hueco (`sinPatron.visibleEnW: [0]`).
    */
   const conEjeW = conSujeto && !!patron
+
+  /**
+   * EL CUERPO ES LA PORTADA (maqueta 7). Se abre en el sujeto de Blender, quieto, con lo
+   * trabajado encendido; «Ver el movimiento» vuelve a la escena de siempre, entera.
+   */
+  const [vista, setVista] = useState<VistaDelSalon>('cuerpo')
+  const [capaDelCuerpo, setCapaDelCuerpo] = useState<CapaDelCuerpo>('musculo')
+  const [rango, setRango] = useState<RangoDeLectura>('hoy')
+  const seriesDelCuerpo = useMemo(
+    () => seriesPorRegion(rango === 'hoy' ? (sesionEnPantalla ? [sesionEnPantalla] : []) : microciclo.sesiones),
+    [rango, sesionEnPantalla, microciclo.sesiones],
+  )
+  const doloridas = useMemo(() => regionesConDolor(props.dolorDeHoy), [props.dolorDeHoy])
+  const enCuerpo = conEjeW && vista === 'cuerpo'
+  const cuerpoParaElVisor = useMemo(
+    () => (enCuerpo ? { capa: capaDelCuerpo, tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas) } : undefined),
+    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas],
+  )
 
   const [w, setW] = useState<NivelW>(0)
   /**
@@ -821,6 +848,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                cuerpo={cuerpoParaElVisor}
                 momentos={capaMomentos}
                 // LOS HUESOS DE ESTA PERSONA: lo que el coach indicó en su ficha. Sin dato
                 // el visor usa su defecto, que es el neutro de siempre.
@@ -1173,6 +1201,20 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             onAbrir={() => setFichaAbierta(true)}
             onCerrar={() => setFichaAbierta(false)}
             onGuardado={alGuardarSerie}
+          />
+        )}
+
+        {/* ------------------------------------------------------------------ cuerpo */}
+        {conEjeW && (
+          <PortadaDelCuerpo
+            vista={vista}
+            capa={capaDelCuerpo}
+            rango={rango}
+            series={seriesDelCuerpo}
+            doloridas={doloridas}
+            alCambiarCapa={setCapaDelCuerpo}
+            alCambiarRango={setRango}
+            alCambiarVista={setVista}
           />
         )}
 
