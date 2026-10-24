@@ -3878,6 +3878,9 @@ body.praxis-sala-abierta { overflow:hidden; }
   outline: 3px solid var(--texto);
   outline-offset: 4px;
 }
+.btn-3d.cta-pulso {
+  overflow: visible;
+}
 .btn-3d-bloque {
   display: flex;
   width: 100%;

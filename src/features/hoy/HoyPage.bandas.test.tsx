@@ -148,6 +148,10 @@ describe('Hoy en tres bandas — «El resto» plegado', () => {
     expect(resto()).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('link', { name: /Contenidos/ })).not.toBeInTheDocument()
     expect(screen.queryByText(/Fatiga por grupo muscular/)).not.toBeVisible()
+    // jsdom no aplica Tailwind: el contenedor tiene que traer la clase que lo oculta de verdad,
+    // porque `hidden` solo lo anula cualquier `display:flex` (visto en la captura del 24-oct).
+    expect(document.getElementById(resto().getAttribute('aria-controls') ?? '')).toHaveClass('hidden')
+    expect(document.getElementById(resto().getAttribute('aria-controls') ?? '')).not.toHaveClass('flex')
   })
 
   it('un toque lo abre y deja ver todo lo que había', () => {

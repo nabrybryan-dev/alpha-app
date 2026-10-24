@@ -2,7 +2,7 @@ import { nombreDelMicrociclo, palabraMicrociclo, siglaDelMicrociclo } from '../.
 import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
-import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
+import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
@@ -61,7 +61,6 @@ export default function HoyPage() {
   // el 28-sep. Lo que ve un asesorado normal no cambia: cada pieza nueva va tras esta marca.
   const esStaff = usuario.rol === 'nutricionista'
   const juego = useGamificacion(usuario.id)
-  const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
   // El VIGENTE por fecha, no «el primer `activo` que aparezca» (Bryan, 19-sep):
   // si la invariante de un único `activo` se rompe, `microcicloVigente` elige el
@@ -194,7 +193,7 @@ export default function HoyPage() {
   // Hoy del staff es el paso 9 de la Fase 3).
   const encabezado = (
     <section className="entrada entrada-1">
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
+      <p className="text-[13px] font-bold text-tenue">
         {[
           microciclo
             ? nombreDelMicrociclo(microciclo.numero, simple)
@@ -207,7 +206,9 @@ export default function HoyPage() {
           .filter(Boolean)
           .join(' · ')}
       </p>
-      <h2 className="mt-1 font-display text-3xl leading-none text-texto">Hola, {primerNombre}</h2>
+      <h2 className="mt-1 font-display text-[30px] font-black leading-[1.05] tracking-[-0.01em] text-texto" style={{ fontStretch: '125%' }}>
+        Hola, {primerNombre}
+      </h2>
     </section>
   )
 
@@ -306,27 +307,23 @@ export default function HoyPage() {
   )
 
   const checkinDelAsesorado = checkinHoy ? (
-    <div className="relieve entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
-      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
-        <CheckDibujado className="h-3.5 w-3.5" />
-      </span>
-      <span className="text-sm font-semibold text-texto">Check-in de hoy registrado</span>
+    <div className="hoy-tarjeta hoy-fila entrada entrada-2">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+          <CheckDibujado className="h-3.5 w-3.5" />
+        </span>
+        <span className="hoy-fila-titulo">Check-in de hoy registrado</span>
+      </div>
     </div>
   ) : (
-    <Link
-      to="/bienestar"
-      className="relieve entrada entrada-2 flex items-center gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
-    >
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline bg-surface-2 text-rojo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-        </svg>
+    <Link to="/bienestar" className="hoy-tarjeta hoy-fila entrada entrada-2">
+      <span className="min-w-0">
+        <span className="hoy-fila-titulo block">Check-in diario pendiente</span>
+        <span className="hoy-fila-sub">Peso, pasos, sueño y sensaciones · 1 min</span>
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold text-texto">Check-in diario pendiente</span>
-        <span className="block text-xs text-tenue">Peso, pasos, sueño y sensaciones · 1 min</span>
+      <span className="tecla-2" aria-hidden="true">
+        Hacerlo
       </span>
-      <span className="text-xs font-bold uppercase tracking-wide text-rojo">Llenar →</span>
     </Link>
   )
 
@@ -350,28 +347,17 @@ export default function HoyPage() {
   // Las tres cifras (racha, peso, adherencia) siguen en la app hasta el paso 7 (Progreso).
   const cifras = (
     <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
-      <Link to="/logros" className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
-        <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
-          {Math.round(rachaAnimada)}
-          <span className="text-sm font-medium text-tenue"> d</span>
-        </p>
+      <Link to="/logros" className="hoy-cifra-hundida">
+        <Cifra3D valor={juego.rachaBienestar.actual} sufijo="d" tamano={28} etiqueta={`Racha de ${juego.rachaBienestar.actual} días`} />
+        <small>Racha</small>
       </Link>
-      <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">
-          Peso{microciclo ? ` ${siglaDelMicrociclo(microciclo.numero, simple)}` : ''}
-        </p>
-        <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
-          {pesoProm ?? '—'}
-          <span className="text-sm font-medium text-tenue"> kg</span>
-        </p>
+      <div className="hoy-cifra-hundida">
+        <Cifra3D valor={pesoProm} decimales={1} sufijo="kg" tamano={28} etiqueta={pesoProm === undefined ? 'Peso sin registrar' : `Peso medio de ${pesoProm} kg`} />
+        <small>Peso{microciclo ? ` ${siglaDelMicrociclo(microciclo.numero, simple)}` : ''}</small>
       </div>
-      <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
-        <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
-          {adherenciaPct ?? '—'}
-          <span className="text-sm font-medium text-tenue"> %</span>
-        </p>
+      <div className="hoy-cifra-hundida">
+        <Cifra3D valor={adherenciaPct} sufijo="%" tamano={28} rojo etiqueta={adherenciaPct === undefined ? 'Adherencia sin registrar' : `Adherencia de ${adherenciaPct} por ciento`} />
+        <small>Adherencia</small>
       </div>
     </section>
   )
@@ -382,7 +368,7 @@ export default function HoyPage() {
   const carteles = (
     <>
       {microciclo && !siguienteSesion && microcicloCompleto && (
-        <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <div className="entrada entrada-3 hoy-tarjeta">
           <p className="text-sm font-bold text-texto">{simple ? 'Semana completa' : 'Microciclo completo'} 💪</p>
           <p className="mt-1 text-sm text-tenue">
             Registraste todas las sesiones. El coach está preparando tu siguiente {palabraMicrociclo(simple)}.
@@ -390,7 +376,7 @@ export default function HoyPage() {
         </div>
       )}
       {microciclo && semanaEsAdelantada(microciclo, hoy) && (
-        <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <div className="entrada entrada-3 hoy-tarjeta">
           <p className="text-sm font-bold text-texto">Tu {palabraMicrociclo(simple)} empieza el {microciclo.fechaInicio}</p>
           <p className="mt-1 text-sm text-tenue">
             El coach ya lo dejó preparado. Hasta entonces, cuida sueño, pasos e hidratación.
@@ -400,7 +386,7 @@ export default function HoyPage() {
       {/* Microciclo VENCIDO (A023): `armarSemana` sigue repartiendo sus sesiones a propósito, y
           sin este aviso la persona vería la sesión de su plan vencido sin saber que ya venció. */}
       {microciclo && semanaEsVencida(microciclo, hoy) && (
-        <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <div className="entrada entrada-3 hoy-tarjeta">
           <p className="text-sm font-bold text-texto">
             {simple
               ? `Tu semana ${microciclo.numero} terminó el ${ultimoDiaDe(microciclo)}`
@@ -439,17 +425,17 @@ export default function HoyPage() {
   const listaPendientes =
     pendientes.length > 0 ? (
       <section className="entrada entrada-5 flex flex-col gap-2">
-        <p className="kicker">Pendientes de hoy</p>
+        <p className="text-[13px] font-bold text-tenue">Pendientes de hoy</p>
         {pendientes.map((p) => (
           <Link
             key={p.ruta}
             to={p.ruta}
-            className="press flex items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
+            className="press hoy-tarjeta hoy-fila !py-3"
           >
-            <span className="text-sm text-texto">{p.texto}</span>
+            <span className="hoy-fila-titulo">{p.texto}</span>
             <span
               aria-hidden="true"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-hairline text-sm text-rojo"
+              className="tecla-2 !min-h-9 !px-3 text-rojo"
             >
               →
             </span>
@@ -460,7 +446,7 @@ export default function HoyPage() {
 
   const contenidos = (
     <section className="entrada entrada-6 grid grid-cols-2 gap-3">
-      <Link to="/contenidos" className="press h-full rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+      <Link to="/contenidos" className="press hoy-tarjeta h-full">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-rojo">
           <circle cx="12" cy="12" r="9" />
           <path d="M10.2 8.8l5 3.2-5 3.2z" />
@@ -468,7 +454,7 @@ export default function HoyPage() {
         <p className="mt-2 font-display text-sm text-texto">Contenidos</p>
         <p className="text-xs text-tenue">Técnica y educación</p>
       </Link>
-      <Link to="/cuestionarios" className="press h-full rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+      <Link to="/cuestionarios" className="press hoy-tarjeta h-full">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-rojo">
           <rect x="5" y="4" width="14" height="17" rx="2.5" />
           <path d="M9 4.5V3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5v1" />
@@ -484,13 +470,13 @@ export default function HoyPage() {
     </section>
   )
 
-  // Hoy es superficie clara (decisión de diseño), como Bienestar.
+  // Sigue el tema de la persona (claro u oscuro), como la maqueta «Diseño final 3».
   const marco = '-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5'
 
   if (esStaff) {
     // «Mi día» del staff (maqueta «Espacios de Alpha», 28-sep): igual que antes de las bandas.
     return (
-      <div data-theme="light" className={marco}>
+      <div className={marco}>
         {encabezado}
         {avisoSync}
         {permiso}
@@ -531,7 +517,7 @@ export default function HoyPage() {
 
   // El asesorado, en tres bandas: 0 (solo si aplica) · Hoy · La semana · El resto.
   return (
-    <div data-theme="light" className={marco}>
+    <div className={marco}>
       {encabezado}
 
       {/* Banda 0: lo que se dice antes que nada. Sin nada que decir, no ocupa sitio. */}
@@ -551,7 +537,7 @@ export default function HoyPage() {
 
       {/* Banda 2: la semana. */}
       <section aria-labelledby="hoy-la-semana" className="flex flex-col gap-4">
-        <h3 id="hoy-la-semana" className="text-[15px] font-extrabold text-texto">
+        <h3 id="hoy-la-semana" className="hoy-banda-titulo !mb-0 !mt-2">
           La semana
         </h3>
         {revision}

@@ -66,7 +66,7 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
         Tu revisión de la semana
       </p>
 
-      <div className="overflow-hidden rounded-2xl border border-linea bg-surface-1">
+      <div className="overflow-hidden rounded-[22px] border border-hairline bg-surface-1 shadow-[var(--brillo),var(--sombra-card)]">
         {cabecera?.tipo === 'video' ? (
           <video
             src={cabecera.url}

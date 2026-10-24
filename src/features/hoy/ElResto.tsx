@@ -11,7 +11,7 @@ export function ElResto({ children }: { children: ReactNode }) {
   const id = useId()
   return (
     <section className="entrada entrada-6 flex flex-col gap-3" aria-labelledby={`${id}-t`}>
-      <h3 id={`${id}-t`} className="text-[15px] font-extrabold text-texto">
+      <h3 id={`${id}-t`} className="hoy-banda-titulo !mb-0 !mt-2">
         El resto
       </h3>
       <button
@@ -19,7 +19,7 @@ export function ElResto({ children }: { children: ReactNode }) {
         aria-expanded={abierto}
         aria-controls={id}
         onClick={() => setAbierto((a) => !a)}
-        className="press flex min-h-11 items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 text-left text-sm text-texto shadow-sm"
+        className="press hoy-resto-cabecera"
       >
         <span>
           <span className="sr-only">El resto: </span>
@@ -38,7 +38,8 @@ export function ElResto({ children }: { children: ReactNode }) {
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      <div id={id} hidden={!abierto} className="flex flex-col gap-4">
+      {/* `hidden` solo no basta: una clase `flex` lo anula (se vio en la captura del 24-oct). */}
+      <div id={id} hidden={!abierto} className={abierto ? 'flex flex-col gap-4' : 'hidden'}>
         {children}
       </div>
     </section>
