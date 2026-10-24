@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useHistoriaInterna } from '../../app/historiaInternaContexto'
+import { buscarRuta, padreDe, tituloDeRuta } from '../../app/rutas'
 import { useSesion } from '../../app/SessionProvider'
 import { useTema } from '../../app/ThemeProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { usePuestoCoach } from '../../features/coach/consola/usePuestoCoach'
 import { MarcaAguila } from './MarcaAguila'
 
 interface TopBarProps {
@@ -26,12 +29,37 @@ function IconoLuna() {
   )
 }
 
+function IconoAtras() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-[26px] w-[26px] shrink-0" aria-hidden="true">
+      <path d="m15 5-7 7 7 7" />
+    </svg>
+  )
+}
+
 export function TopBar({ titulo }: TopBarProps) {
   const { usuario, cambiarUsuario, esNube, cerrarSesion } = useSesion()
   const { tema, alternar } = useTema()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { anterior } = useHistoriaInterna()
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   useDbVersion()
+
+  // El «‹» único (04 §3.5). Hasta saber quién mira no se pinta: «Hoy» o «Mi día», y la cuenta Alpha (`solo_tablero`),
+  // que no tiene a dónde volver, dependen de los permisos. Si la pantalla anterior es de la app (la cuenta la
+  // lleva `HistoriaInterna`) vuelve a ELLA y la etiqueta dice cuál es; si no, al padre declarado en `rutas.ts`,
+  // sustituyendo la entrada, así que nunca saca de la app.
+  const esEquipo = usuario.rol === 'nutricionista' || esCoach
+  const padre = cargando || (esCoach && tiene('solo_tablero')) ? null : padreDe(pathname, esEquipo)
+  const previa = padre && anterior && anterior !== pathname ? buscarRuta(anterior) : undefined
+  const destino = previa ? { titulo: tituloDeRuta(previa.patron, esEquipo) ?? padre?.titulo ?? '', atras: true } : padre ? { titulo: padre.titulo, atras: false } : null
+  const volver = () => {
+    if (!padre || !destino) return
+    if (destino.atras) navigate(-1)
+    else navigate(padre.patron, { replace: true })
+  }
 
   const noLeidos = db.mensajes.noLeidosPara(usuario.id)
 
@@ -45,9 +73,21 @@ export function TopBar({ titulo }: TopBarProps) {
   return (
     <header className="glass-blur sticky top-0 z-40 border-b border-hairline bg-bg/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-2 px-4">
-        <div className="flex items-center gap-2.5">
-          <MarcaAguila className="h-8 w-8 text-texto" />
-          <h1 className="font-display text-base tracking-wide text-texto">{titulo}</h1>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {destino ? (
+            <button
+              type="button"
+              onClick={volver}
+              aria-label={`Volver a ${destino.titulo}`}
+              className="press -ml-2 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-0.5 rounded-full pl-1 pr-3 font-bold text-rojo"
+            >
+              <IconoAtras />
+              <span className="max-w-[5.5rem] truncate text-sm">{destino.titulo}</span>
+            </button>
+          ) : (
+            <MarcaAguila className="h-8 w-8 text-texto" />
+          )}
+          <h1 className="truncate font-display text-base tracking-wide text-texto">{titulo}</h1>
         </div>
         <div className="flex items-center gap-1.5">
           <button

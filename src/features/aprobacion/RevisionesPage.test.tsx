@@ -56,3 +56,11 @@ describe('revisiones conectadas', () => {
     await waitFor(() => expect(decidirRevision).toHaveBeenCalledWith(revision, false, 'Revisar la pronunciación'))
   })
 })
+
+describe('revisiones: la salida', () => {
+  it('no repite un «Volver al panel»: el «‹» de la cabecera (Mi día) ya lo es', async () => {
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    await screen.findByRole('button', { name: 'Aprobar esta versión' })
+    expect(screen.queryByRole('link', { name: /Volver/ })).toBeNull()
+  })
+})

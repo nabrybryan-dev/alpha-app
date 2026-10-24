@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { decidirRevision, reproducirRevision, revisionesPendientes, type RevisionPendiente } from '../../data/nube/revisiones'
 import { db, useDbVersion } from '../../data/dbInstance'
 
@@ -57,7 +56,6 @@ export default function RevisionesPage() {
   }, [recarga])
   function actualizar() { setRevisiones(null); setRecarga(n => n + 1) }
   return <section className="flex flex-col gap-4">
-    <Link to="/coach" className="underline">Volver al panel</Link>
     <h1 className="text-xl font-bold">Revisiones pendientes</h1>
     <p className="text-sm text-tenue">Cada aprobación permite que la persona vea esta versión. Las correcciones esperan un archivo nuevo.</p>
     <button type="button" onClick={actualizar} className="min-h-[44px] underline">Actualizar bandeja</button>
