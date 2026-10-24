@@ -150,11 +150,29 @@ export function cargarPiezas(
  * Cada vértice cuelga de la RAÍZ del sujeto, no del mundo: así el atlas va con él cuando
  * la demostración lo hace flotar o el press lo tumba.
  */
+const nombresDePartes = new WeakMap<Malla, string>()
+
+/**
+ * El nombre anatomico de una parte del atlas («Latissimus dorsi muscle.l»), o `undefined` si
+ * la pieza no lo traia (esqueleto y piel). Las piezas de Blender lo guardan en el campo de
+ * textura; aqui se saca de ahi, porque 522 «texturas» distintas serian 522 tandas de dibujo
+ * y ninguna es una imagen.
+ */
+export function nombreDeParte(malla: Malla): string | undefined {
+  return nombresDePartes.get(malla)
+}
+
 class AlmacenDelAtlas {
   private porCapa = new Map<string, Malla[]>()
 
   set(capa: string, mallas: Malla[]): void {
-    for (const m of mallas) m.colgarDe(INDICE_RAIZ)
+    for (const m of mallas) {
+      if (m.textura) {
+        nombresDePartes.set(m, m.textura)
+        m.textura = null
+      }
+      m.colgarDe(INDICE_RAIZ)
+    }
     atlasCache.push(...mallas)
     this.porCapa.set(capa, mallas)
     // El atlas se da por cargado CUANDO ESTÁN LAS TRES, y no capa a capa. Ver `atlasCargado`.

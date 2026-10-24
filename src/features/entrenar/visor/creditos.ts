@@ -24,7 +24,7 @@ export interface FuenteDelGimnasio {
   /** Cómo firma su autor. Es lo que la licencia obliga a mostrar. */
   autor: string
   /** La etiqueta de la ficha, no una interpretación nuestra. */
-  licencia: 'CC Attribution' | 'CC0'
+  licencia: 'CC Attribution' | 'CC BY-SA' | 'CC0'
   enlace: string
   /** Qué se ve de esto en el salón, para quien lea los créditos sin saber qué es qué. */
   queEs: string
@@ -36,7 +36,7 @@ export interface FuenteDelGimnasio {
  * CC-BY para no tener que enseñarlo.
  */
 export function obligaACitar(f: FuenteDelGimnasio): boolean {
-  return f.licencia === 'CC Attribution'
+  return f.licencia !== 'CC0'
 }
 
 export const CREDITOS_DEL_GIMNASIO: readonly FuenteDelGimnasio[] = [
@@ -67,6 +67,13 @@ export const CREDITOS_DEL_GIMNASIO: readonly FuenteDelGimnasio[] = [
     licencia: 'CC Attribution',
     enlace: 'https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html',
     queEs: 'La anatomía real: 296 huesos y 402 músculos con su nombre, en el estudio del cuerpo.',
+  },
+  {
+    obra: 'Z-Anatomy (musculos y tendones del sujeto, basado en BodyParts3D)',
+    autor: 'Z-Anatomy',
+    licencia: 'CC BY-SA',
+    enlace: 'https://www.z-anatomy.com/',
+    queEs: 'Los 522 musculos y tendones del sujeto de Blender, con sus nombres anatomicos (licencia CC BY-SA 4.0: compartir igual).',
   },
   {
     obra: '3D Reference Organ Set for Female v1.5 (Human Reference Atlas, HuBMAP)',

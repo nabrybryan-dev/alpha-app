@@ -71,13 +71,28 @@ export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
  * Apartarlo se probó primero, con la cámara mirando de perfil, y el atlas quedaba
  * exactamente detrás del sujeto: invisible.
  */
-export const PIEZAS_DEL_ATLAS: Record<string, PiezaDelSalon> = {
-  'atlas-esqueleto': { ruta: '/piezas/atlas-esqueleto.pieza', anguloGrados: 0, radio: 0 },
-  'atlas-musculos': { ruta: '/piezas/atlas-musculos.pieza', anguloGrados: 0, radio: 0 },
-  // La piel es del atlas FEMENINO (Human Reference Atlas). Es lo único que ese atlas trae
-  // de cuerpo: sus músculos son 16 y del ojo, y su esqueleto la columna y dos rodillas.
-  'atlas-piel': { ruta: '/piezas/atlas-piel.pieza', anguloGrados: 0, radio: 0 },
+export function piezasDelAtlas(movil: boolean): Record<string, PiezaDelSalon> {
+  return {
+    // El sujeto de Blender (aprobado el 28/29-sep). Una parte por musculo, con su nombre de
+    // Z-Anatomy; ver `sujeto/regiones.ts`. En celular, los musculos de 200 mil triangulos y el
+    // esqueleto `-movil` (decision de Bryan, 23-oct): ninguno se quita, todos se aligeran igual.
+    'atlas-esqueleto': {
+      ruta: movil ? '/piezas/atlas-esqueleto-alpha-movil.pieza' : '/piezas/atlas-esqueleto-alpha.pieza',
+      anguloGrados: 0,
+      radio: 0,
+    },
+    'atlas-musculos': {
+      ruta: movil ? '/piezas/atlas-musculos-alpha-movil-200k.pieza' : '/piezas/atlas-musculos-alpha.pieza',
+      anguloGrados: 0,
+      radio: 0,
+    },
+    // La piel de la landing (6.710 triangulos), alineada con estos musculos.
+    'atlas-piel': { ruta: '/piezas/atlas-piel-alta.pieza', anguloGrados: 0, radio: 0 },
+  }
 }
+
+/** La version de escritorio, que es la que se usa donde no se pregunta por el aparato. */
+export const PIEZAS_DEL_ATLAS: Record<string, PiezaDelSalon> = piezasDelAtlas(false)
 
 /**
  * SI LA SALA DEL GIMNASIO YA ESTÁ EN PANTALLA, para que la interfaz deje de dibujar la
