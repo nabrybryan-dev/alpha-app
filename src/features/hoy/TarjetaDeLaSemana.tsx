@@ -35,7 +35,7 @@ export function TarjetaDeLaSemana({ nombre, resumen }: TarjetaDeLaSemanaProps) {
   return (
     <section
       aria-label="Tu semana en números"
-      className="rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
+      className="hoy-tarjeta"
     >
       <p className="mb-1 font-display text-sm text-texto">Tu semana, {nombre}</p>
 

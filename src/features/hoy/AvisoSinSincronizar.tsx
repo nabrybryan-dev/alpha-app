@@ -35,7 +35,7 @@ export function AvisoSinSincronizar({ usuarioId }: { usuarioId: string }) {
   }
 
   return (
-    <section className="rounded-tarjeta border border-ambar/40 bg-ambar/10 px-4 py-3.5">
+    <section className="hoy-tarjeta hoy-tarjeta-ambar">
       <p className="text-sm font-bold text-texto">
         Al menos {pendientes} {pendientes === 1 ? 'registro' : 'registros'} no{' '}
         {pendientes === 1 ? 'ha' : 'han'} llegado al servidor
@@ -48,7 +48,7 @@ export function AvisoSinSincronizar({ usuarioId }: { usuarioId: string }) {
         type="button"
         onClick={reintentar}
         disabled={reintentando}
-        className="press min-h-11 mt-2.5 rounded-full bg-ambar px-4 py-2 text-xs font-bold text-bg disabled:opacity-50"
+        className="tecla-2 mt-2.5 disabled:opacity-50"
       >
         {reintentando ? 'Intentando…' : 'Intentar de nuevo'}
       </button>

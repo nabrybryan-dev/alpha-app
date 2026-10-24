@@ -65,7 +65,7 @@ export function BarraCoach({
   }
 
   return (
-    <section className="relieve glass glass-destacada rounded-bloque p-3.5">
+    <section className="hoy-tarjeta">
       {/* Enlace de verdad, no un botón que navega: así funciona el clic central,
           el "abrir en pestaña nueva" y se anuncia como enlace. */}
       <Link to="/chat" className="press flex min-h-[44px] w-full items-center gap-2.5 text-left">
