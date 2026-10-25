@@ -75,6 +75,11 @@ describe('Boton3D — su CSS en tokens.css', () => {
     }
   })
 
+  it('el foco del botón sobre el hero oscuro usa el texto del hero, no --texto (casi negro en claro)', () => {
+    const r = regla('.hoy-hero .btn-3d:focus-visible')
+    expect(r).toContain('outline-color: var(--hero-texto)')
+  })
+
   it('se hunde al pulsar: aplana la inclinación y baja 4 px', () => {
     const r = regla('.btn-3d:active')
     expect(r).toContain('rotateX(0deg) translateY(4px)')
@@ -85,6 +90,9 @@ describe('Boton3D — su CSS en tokens.css', () => {
     expect(inicio, 'falta el bloque de movimiento reducido del botón').toBeGreaterThanOrEqual(0)
     const bloque = css.slice(inicio, css.indexOf('\n}\n', inicio))
     expect(bloque).toContain('.btn-3d:active')
+    // `.btn-3d:hover` (0,2,0) gana a `.btn-3d`: si falta aquí, el botón se inclina con el puntero
+    // aunque la persona pidiera movimiento reducido.
+    expect(bloque).toContain('.btn-3d:hover')
     expect(bloque).toMatch(/transform:\s*none/)
     expect(bloque).toMatch(/transition:\s*none/)
   })
