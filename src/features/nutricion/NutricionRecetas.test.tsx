@@ -86,20 +86,26 @@ describe('recetas que sí encajan', () => {
   })
 
   it('con movimiento reducido no gira: la tarjeta se queda plana', () => {
+    // Asignación directa y configurable, no `vi.stubGlobal`: la prueba de la
+    // escena WebGL asigna `window.matchMedia` y borra la propiedad en su
+    // `afterEach`. Un stub no escribible la dejaba sin efecto y la escena
+    // giraba cuando no tocaba.
     const original = window.matchMedia
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn().mockImplementation((query: string) => ({
-        matches: query.includes('prefers-reduced-motion'),
-        media: query,
-        onchange: null,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    )
+    const falso = ((query: string) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: falso,
+    })
     try {
       const { container } = render(<RecetasCarousel recetas={TRES} />)
       const carrusel = container.querySelector<HTMLElement>('[data-carrusel-recetas]')
@@ -117,8 +123,15 @@ describe('recetas que sí encajan', () => {
 
       expect(tarjetas.every((t) => t.style.transform === '')).toBe(true)
     } finally {
-      if (original) vi.stubGlobal('matchMedia', original)
-      else vi.unstubAllGlobals()
+      if (original) {
+        Object.defineProperty(window, 'matchMedia', {
+          configurable: true,
+          writable: true,
+          value: original,
+        })
+      } else {
+        Reflect.deleteProperty(window, 'matchMedia')
+      }
     }
   })
 })
