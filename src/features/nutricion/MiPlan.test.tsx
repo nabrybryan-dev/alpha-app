@@ -261,6 +261,23 @@ describe('MiPlan', () => {
       expect(screen.queryByText('Lo que comes esta semana')).toBeNull()
     })
 
+    it('en la vista simple, «Anotar» abre el diario SIN los gramos del plan', async () => {
+      // Decisión de la maqueta 5: el diario va en blanco y solo cuenta lo que
+      // la persona anota. La cantidad pautada es una guía, no un dato pesado.
+      conVistaSimple()
+      const usuario = userEvent.setup()
+      pintar()
+
+      await usuario.click(screen.getByRole('button', { name: 'Anotar 70 g avena' }))
+      const fila = screen
+        .getAllByRole('button', { name: /kcal\/100 g/i })
+        .find((b) => /avena/i.test(b.textContent ?? ''))
+      if (!fila) throw new Error('el catálogo no trajo avena')
+      await usuario.click(fila)
+
+      expect(screen.getByLabelText('Cantidad en g')).toHaveValue('100')
+    })
+
     it('«Ver mercado, suplementos y cambios de alimentos» enseña el plan completo, y «Volver a la lista sencilla» regresa', async () => {
       conVistaSimple()
       const usuario = userEvent.setup()
