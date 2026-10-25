@@ -1227,6 +1227,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
             alCambiarVista={setVista}
+            ejercicio={ejercicio}
           />
         )}
 

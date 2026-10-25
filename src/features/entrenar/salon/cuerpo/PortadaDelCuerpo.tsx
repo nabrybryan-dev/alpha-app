@@ -3,6 +3,7 @@ import { Boton3D } from '../../../../components/ui/Boton3D'
 import { Sheet } from '../../../../components/ui/Sheet'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
+import type { EjercicioPrescrito } from '../../../../domain/types'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
 
 /**
@@ -29,6 +30,8 @@ export interface PortadaDelCuerpoProps {
   alCambiarCapa: (capa: CapaDelCuerpo) => void
   alCambiarRango: (rango: RangoDeLectura) => void
   alCambiarVista: (vista: VistaDelSalon) => void
+  /** El ejercicio que toca, para la linea de arriba. Sin ejercicio no hay linea. */
+  ejercicio?: Pick<EjercicioPrescrito, 'nombre' | 'sets' | 'repsDiana' | 'descansoMin' | 'rirObjetivo'>
 }
 
 const CAPAS: readonly { id: CapaDelCuerpo; nombre: string }[] = [
@@ -82,6 +85,13 @@ function Opcion({
   )
 }
 
+/** «3 series · 9 reps · 3 min · RIR 2»: las cuatro cifras de la pared, en una linea. */
+export function cifrasEnUnaLinea(e: NonNullable<PortadaDelCuerpoProps['ejercicio']>): string {
+  const descanso = Number.isInteger(e.descansoMin) ? `${e.descansoMin} min` : `${String(e.descansoMin).replace('.', ',')} min`
+  const rir = e.rirObjetivo === 'FALLO' ? 'fallo' : String(e.rirObjetivo)
+  return `${e.sets} series · ${e.repsDiana} reps · ${descanso} · RIR ${rir}`
+}
+
 function cifra(n: number): string {
   const r = Math.round(n * 10) / 10
   return Number.isInteger(r) ? String(r) : String(r).replace('.', ',')
@@ -95,6 +105,29 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   return (
     <>
       <div data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
+        {/* ARRIBA, EN PEQUENO: que ejercicio toca y sus cifras (decision de Bryan). Los cuadros
+            grandes de la pared y el reloj son de la vista de movimiento. */}
+        {enCuerpo && p.ejercicio && (
+          <div
+            data-testigo="resumen-del-ejercicio"
+            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.4rem)' }}
+          >
+            <p
+              className="max-w-full truncate text-[15px] leading-tight"
+              style={{ color: 'var(--texto)', fontWeight: 800, textShadow: '0 1px 6px rgb(0 0 0 / 0.55)' }}
+            >
+              {p.ejercicio.nombre}
+            </p>
+            <p
+              className="cifras max-w-full truncate text-[12px] leading-tight"
+              style={{ color: 'var(--tenue)', textShadow: '0 1px 6px rgb(0 0 0 / 0.55)' }}
+            >
+              {cifrasEnUnaLinea(p.ejercicio)}
+            </p>
+          </div>
+        )}
+
         {/* A la derecha, las capas: el cuerpo ocupa el centro y los lados quedan libres. */}
         {enCuerpo && (
           <div

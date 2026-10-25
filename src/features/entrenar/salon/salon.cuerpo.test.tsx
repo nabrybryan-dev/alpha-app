@@ -157,4 +157,20 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
     montar({ seriesHechas: 1 })
     expect(document.querySelector('[data-salon="entrenar"]')?.getAttribute('data-theme')).toBe('dark')
   })
+
+  it('arriba, en pequeno, el nombre del ejercicio y sus cifras (series · reps · descanso · RIR), tambien en el cuerpo', () => {
+    montar({ seriesHechas: 1 })
+    const linea = document.querySelector('[data-testigo="resumen-del-ejercicio"]') as HTMLElement
+    expect(linea, 'la portada no dice que ejercicio toca').not.toBeNull()
+    expect(linea.textContent).toContain('Remo con barra')
+    expect(linea.textContent).toMatch(/\d+ series · \d+ reps · .+ · RIR (\d+|fallo)/i)
+    // Esta dentro del hueco del cuerpo (contrato del salon: no hay texto suelto fuera de huecos).
+    expect(linea.closest('[data-hueco="cuerpo"]')).not.toBeNull()
+  })
+
+  it('en la vista de movimiento no se repite: ahi lo dicen los cuadros de la pared', () => {
+    montar({ seriesHechas: 1 })
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toBeNull()
+  })
 })

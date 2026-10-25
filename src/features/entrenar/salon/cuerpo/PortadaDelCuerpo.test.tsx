@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { PortadaDelCuerpo, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
+import { PortadaDelCuerpo, cifrasEnUnaLinea, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
 
 function props(sobre: Partial<PortadaDelCuerpoProps> = {}): PortadaDelCuerpoProps {
   return {
@@ -86,5 +86,11 @@ describe('la portada del cuerpo: capas, lectura y dolor', () => {
   it('pertenece al hueco «cuerpo» del contrato del salon', () => {
     const { container } = render(<PortadaDelCuerpo {...props()} />)
     expect(container.querySelector('[data-hueco="cuerpo"]')).not.toBeNull()
+  })
+
+  it('las cifras en una linea: series, reps, descanso y RIR (o fallo)', () => {
+    const base = { nombre: 'Remo', sets: 3, repsDiana: 9, descansoMin: 3 }
+    expect(cifrasEnUnaLinea({ ...base, rirObjetivo: 2 })).toBe('3 series · 9 reps · 3 min · RIR 2')
+    expect(cifrasEnUnaLinea({ ...base, descansoMin: 1.5, rirObjetivo: 'FALLO' })).toBe('3 series · 9 reps · 1,5 min · RIR fallo')
   })
 })
