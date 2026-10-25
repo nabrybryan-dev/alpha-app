@@ -56,7 +56,7 @@ describe('recetas que sí encajan', () => {
     expect(screen.getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
     expect(
       screen.getByRole('button', {
-        name: /Brownie de avena, de @ejemplo\.cocina\. Te entra 22 g · 180 kcal/i,
+        name: /Brownie de avena, de @ejemplo\.cocina\. Te entra 180 kcal/i,
       }),
     ).toBeInTheDocument()
     expect(screen.getAllByText('0:47').length).toBe(3)
@@ -148,7 +148,7 @@ describe('la hoja de la receta', () => {
     fireEvent.click(screen.getByRole('button', { name: 'La cociné' }))
 
     expect(registro.agregar).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('status')).toHaveTextContent('agregada a tu merienda')
+    expect(screen.getByRole('status')).toHaveTextContent('agregada a tu snack')
     expect(screen.queryByRole('button', { name: 'La cociné' })).toBeNull()
   })
 
@@ -161,7 +161,7 @@ describe('la hoja de la receta', () => {
     expect(screen.getByRole('button', { name: 'La cociné' })).toBeInTheDocument()
   })
 
-  it('el ajuste enseña la porción, los gramos y los macros, con la kcal en relieve', () => {
+  it('el ajuste enseña la porción, los macros y la kcal en relieve, sin sumar gramos', () => {
     const { container } = render(
       <RecetasCarousel
         recetas={TRES}
@@ -171,7 +171,10 @@ describe('la hoja de la receta', () => {
     )
     fireEvent.click(screen.getByText('Brownie de avena'))
 
-    expect(screen.getByText(/1 porción de las 9 que salen del molde · 22 g/)).toBeInTheDocument()
+    // «1 porción» y su nota son la prescripción firmada; los 22 g que se
+    // sumaban aparte no lo estaban y desaparecen.
+    expect(screen.getByText(/1 porción de las 9 que salen del molde/)).toBeInTheDocument()
+    expect(screen.queryByText(/· 22 g/)).toBeNull()
     expect(screen.getByText(/7 g proteína · 24 g carbohidratos · 6 g grasa/)).toBeInTheDocument()
     expect(container.querySelector('.cifra-3d')).toBeInTheDocument()
   })

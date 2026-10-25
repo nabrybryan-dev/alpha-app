@@ -81,7 +81,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             aria-label="Progreso de calorías del día"
           >
             <div
-              className="h-full origin-left rounded-full bg-placa"
+              className="h-full origin-left rounded-full bg-logrado"
               style={{
                 transform: `scaleX(${(pct(kcal, meta.kcal) / 100).toFixed(3)})`,
                 transition: 'transform var(--dur-informativo) var(--muelle-informativo)',

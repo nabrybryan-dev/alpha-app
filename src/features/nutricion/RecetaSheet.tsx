@@ -1,27 +1,14 @@
 import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
-import { gramosDeReceta, type Receta, type RecetaNota } from '../../data/recetas'
+import type { Receta, RecetaNota } from '../../data/recetas'
 import { Boton3D } from '../../components/ui/Boton3D'
 import { Cifra3D } from '../../components/ui/Cifra3D'
-import { motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
+import { comidaDeReceta, motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
 import { ReelPlayer } from './ReelPlayer'
 
 /**
  * La hoja que traduce un viral de Instagram al plan del asesorado: no le
  * prohíbe la receta, le dice la porción que sí entra hoy.
  */
-
-/** A qué comida del día cae una receta, para nombrarla en el aviso. */
-const COMIDA_DE: Record<Receta['categoria'], string> = {
-  Desayuno: 'desayuno',
-  Almuerzo: 'almuerzo',
-  Cena: 'cena',
-  Snack: 'merienda',
-  Postre: 'merienda',
-}
-
-function gramosDe(receta: Receta): number {
-  return gramosDeReceta(receta)
-}
 
 const trazo = {
   fill: 'none',
@@ -101,7 +88,6 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
   }
 
   const { ajuste, media, social } = receta
-  const gramos = gramosDe(receta)
 
   return (
     <div
@@ -141,7 +127,7 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
           </div>
         </div>
 
-        <AjusteAlfa ajuste={ajuste} gramos={gramos} kcalRestantes={kcalRestantes} />
+        <AjusteAlfa ajuste={ajuste} kcalRestantes={kcalRestantes} />
 
         <Ingredientes receta={receta} />
         <Preparacion pasos={receta.preparacion} />
@@ -190,7 +176,7 @@ function PieFijo({
             <span className="font-bold text-texto">{receta.nombre}</span>
             <span className="text-tenue">
               {' '}
-              · {receta.ajuste.porcion} agregada a tu {COMIDA_DE[receta.categoria]}
+              · {receta.ajuste.porcion} agregada a tu {comidaDeReceta(receta)}
             </span>
           </span>
           <button
@@ -271,11 +257,9 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
 
 function AjusteAlfa({
   ajuste,
-  gramos,
   kcalRestantes,
 }: {
   ajuste: Receta['ajuste']
-  gramos: number
   kcalRestantes?: number
 }) {
   const porcion = [ajuste.porcion, ajuste.porcionNota].filter(Boolean).join(' ')
@@ -292,7 +276,6 @@ function AjusteAlfa({
         />
         <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
           {porcion}
-          {gramos > 0 && ` · ${gramos} g`}
           <br />
           {ajuste.prot} g proteína · {ajuste.carb} g carbohidratos · {ajuste.grasa} g grasa
         </span>

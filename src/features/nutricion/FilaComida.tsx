@@ -16,6 +16,8 @@ const NOMBRES: Record<RegistroComida['comida'], string> = {
   snack: 'Snack',
 }
 
+const hora = (momentoIso: string) => momentoIso.slice(11, 16)
+
 interface FilaComidaProps {
   comida: RegistroComida
   kcal: number
@@ -47,8 +49,11 @@ export function FilaComida({ comida, kcal, resumen, verKcal, onAbrir }: FilaComi
       aria-label={`${NOMBRES[comida.comida]}, ${estado}`}
       className="press flex w-full items-center gap-3 rounded-2xl border border-linea bg-surface-1 p-3 text-left transition-colors hover:border-accion/40"
     >
-      {/* La hora por defecto no se pinta: era una promesa de la app, no un
-          dato de lo que pasó. El momento sigue guardado y se ve en el detalle. */}
+      {/* La hora solo se pinta cuando hay algo registrado: la de una comida
+          vacía era una promesa de la app, no un dato de lo que pasó. */}
+      {!vacia && (
+        <span className="cifras w-11 shrink-0 text-xs text-tenue">{hora(comida.momentoIso)}</span>
+      )}
 
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-texto">{NOMBRES[comida.comida]}</span>

@@ -79,6 +79,24 @@ describe('tira de la semana', () => {
     await userEvent.click(screen.getByRole('button', { name: '2026-10-20' }))
     expect(elegir).toHaveBeenCalledWith('2026-10-20')
   })
+
+  /**
+   * `bg-placa` no existía en `tailwind.config.js`: el punto de «día con
+   * registro» se pintaba transparente y el relleno de la barra de kcal también.
+   * Se usa la clase que sí está en el tema.
+   */
+  it('el punto del día con registro usa una clase definida', () => {
+    const { container } = render(
+      <TiraSemana
+        fecha="2026-10-22"
+        conRegistro={new Set(['2026-10-19'])}
+        onElegir={() => {}}
+      />,
+    )
+
+    expect(container.querySelector('.bg-logrado')).toBeInTheDocument()
+    expect(container.querySelector('.bg-placa')).toBeNull()
+  })
 })
 
 describe('la vista de la semana', () => {
@@ -156,6 +174,18 @@ describe('hidratación', () => {
     await userEvent.click(quitar)
     expect(db.nutricion.hidratacionDe(USUARIO, hoyIso())).toBe(0)
     expect(screen.queryByRole('button', { name: 'Quitar 250 mililitros' })).toBeNull()
+  })
+
+  /**
+   * Sin peso la meta no sale de ninguna fórmula: son 2 L fijos. Decir «tu peso
+   * × 30 ml» ahí es enseñar un cálculo que no se hizo.
+   */
+  it('sin peso dice que la meta es fija, no que salió del peso', () => {
+    render(<Hidratacion usuarioId="u-sin-peso" />)
+
+    expect(screen.getByText(/de 2L/)).toBeInTheDocument()
+    expect(screen.getByText(/meta fija de 2 L/i)).toBeInTheDocument()
+    expect(screen.queryByText(/tu peso × 30 ml/i)).toBeNull()
   })
 })
 

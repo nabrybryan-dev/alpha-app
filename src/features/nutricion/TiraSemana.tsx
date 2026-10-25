@@ -64,7 +64,7 @@ export function TiraSemana({ fecha, conRegistro, onElegir, hoy = fecha, onSemana
               <span
                 aria-hidden="true"
                 className={`h-1 w-1 rounded-full ${
-                  conRegistro.has(dia) ? 'bg-placa' : 'bg-transparent'
+                  conRegistro.has(dia) ? 'bg-logrado' : 'bg-transparent'
                 }`}
               />
             </button>

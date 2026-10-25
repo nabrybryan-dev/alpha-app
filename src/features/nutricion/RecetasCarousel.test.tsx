@@ -49,6 +49,16 @@ describe('RecetasCarousel', () => {
     expect(screen.getAllByRole('button', { name: /, de @ejemplo\.cocina\./ })).toHaveLength(3)
   })
 
+  /**
+   * Sumar los gramos de ingredientes distintos no es una porción: mezcla peso
+   * crudo con cocido y no lo firmó nadie. La tarjeta no enseña esa cifra.
+   */
+  it('no enseña la suma de gramos de la porción', () => {
+    render(<RecetasCarousel recetas={TRES} />)
+    expect(screen.queryAllByText('22 g')).toHaveLength(0)
+    expect(screen.queryByText(/Te entra 22 g/)).toBeNull()
+  })
+
   /** Sin recetas la sección entera desaparece: ni estado vacío, ni hueco. */
   it('con cero recetas no renderiza nada', () => {
     const { container } = render(<RecetasCarousel recetas={[]} />)
@@ -94,7 +104,9 @@ describe('RecetasCarousel', () => {
       const aviso = screen.getByRole('status')
       expect(aviso).toHaveTextContent('Brownie de avena')
       expect(aviso).toHaveTextContent('1 porción de 60 g')
-      expect(aviso).toHaveTextContent('agregada a tu merienda')
+      // Un Postre se guarda como «Snack», no como «merienda»: el aviso tiene que
+      // decir la comida real en la que quedó registrado.
+      expect(aviso).toHaveTextContent('agregada a tu snack')
     })
 
     it('«Deshacer» revierte de verdad, no solo esconde el aviso', () => {
@@ -158,6 +170,31 @@ describe('RecetasCarousel', () => {
       render(<RecetasCarousel recetas={TRES} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
       expect(within(screen.getByRole('dialog')).getByText('Según tu plan de hoy')).toBeInTheDocument()
+    })
+
+    /**
+     * El contador de kcal es un interruptor clínico: si la nutricionista lo
+     * apagó, no puede reaparecer ni en la cabecera ni en lo cocinado hoy. La
+     * lista sigue diciendo QUÉ se cocinó y a qué comida fue, sin la cifra.
+     */
+    it('con el contador apagado no sale ninguna cifra de kcal', () => {
+      render(
+        <RecetasCarousel
+          recetas={TRES}
+          kcalRestantes={420}
+          verKcal={false}
+          cocinadasHoy={[
+            { id: 'c1', receta: TRES[0], kcal: 180, comida: 'snack', hora: '16:05' },
+            { id: 'c2', receta: TRES[0], kcal: 180, comida: 'snack', hora: '18:40' },
+          ]}
+        />,
+      )
+
+      expect(screen.queryByText(/Te quedan 420 kcal/)).toBeNull()
+      expect(screen.queryByText(/kcal/)).toBeNull()
+      // Las dos veces que se cocinó se ven, sin cifra.
+      const lista = screen.getByRole('list', { name: /cocinadas hoy/i })
+      expect(within(lista).getAllByText('Brownie de avena')).toHaveLength(2)
     })
   })
 

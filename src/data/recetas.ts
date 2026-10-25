@@ -572,9 +572,10 @@ const FIRMADAS: Receta[] = RECETAS_REALES.filter((r) => r.ajuste.notas.length > 
 /**
  * Lo que suma la porción de esta persona, en gramos.
  *
- * Es la suma de la columna «para ti», no la del reel: la tarjeta y la hoja
- * enseñan lo mismo que luego se registra. Sin `gramosParaTi` devuelve 0 y quien
- * la pinte decide si omite el dato en vez de inventarlo.
+ * Es la suma de la columna «para ti», no la del reel. HOY NO SE PINTA: sumar
+ * gramos de ingredientes crudos y cocidos no es una porción, y esa cifra no la
+ * firmó nadie. Se conserva sin uso por si Bryan decide rescatarla con una regla.
+ * Sin `gramosParaTi` devuelve 0 y quien la pinte decide si omite el dato.
  */
 export function gramosDeReceta(receta: Receta): number {
   return (receta.ingredientes ?? []).reduce((total, ing) => total + (ing.gramosParaTi ?? 0), 0)

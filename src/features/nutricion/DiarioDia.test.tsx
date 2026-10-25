@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import DiarioDia from './DiarioDia'
 import { CompuertaNutricion } from './CompuertaNutricion'
 import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
-import { db } from '../../data/dbInstance'
+import { db, hoyIso } from '../../data/dbInstance'
+import { RECETAS } from '../../data/recetas'
 
 /**
  * El camino crítico entero: tocar una comida, buscar, elegir, poner la cantidad
@@ -235,6 +236,21 @@ describe('DiarioDia', () => {
       expect(screen.queryByText('kcal')).not.toBeInTheDocument()
     })
 
+    it('tampoco reaparece en el carrusel de recetas', () => {
+      // El aviso de «te quedan» y lo cocinado hoy enseñaban kcal por su cuenta,
+      // sin mirar el interruptor. Con el contador apagado no sale ninguna.
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: true,
+        verObjetivoCalorico: true,
+        verContadorKcal: false,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.queryByText(/te quedan/i)).toBeNull()
+      expect(screen.queryByText(/kcal/i)).toBeNull()
+    })
+
     it('y aun así se puede seguir registrando: es lo único que no se toca', () => {
       db.visibilidad.decidir({
         usuarioId: 'u-valentina',
@@ -247,6 +263,46 @@ describe('DiarioDia', () => {
       expect(screen.getByRole('button', { name: /desayuno/i })).toBeInTheDocument()
       // El margen se queda: habla de la calidad del dato, no del cuerpo de nadie.
       expect(screen.getByText(/margen de tu registro/i)).toBeInTheDocument()
+    })
+  })
+
+  /**
+   * «Cocinadas hoy» tiene que salir de las comidas registradas, no de la ficha
+   * de la receta: si se cocina dos veces, son dos comidas y se ven dos veces; si
+   * la comida se borra, deja de estar cocinada.
+   */
+  describe('recetas cocinadas hoy', () => {
+    const receta = RECETAS[0]
+
+    const cocinar = () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: new RegExp(`^${receta.nombre}, de`) }),
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'La cociné' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    }
+
+    it('dos veces la misma receta se ven dos veces', () => {
+      pintar()
+      cocinar()
+      cocinar()
+
+      const lista = screen.getByRole('list', { name: /recetas cocinadas hoy/i })
+      expect(within(lista).getAllByText(receta.nombre)).toHaveLength(2)
+    })
+
+    it('si se borra la comida registrada, deja de aparecer', () => {
+      pintar()
+      cocinar()
+
+      expect(screen.getByRole('list', { name: /recetas cocinadas hoy/i })).toBeInTheDocument()
+      const comida = db.registroComidas
+        .delDia('u-valentina', hoyIso())
+        .find((c) => c.items.length > 0)
+      if (!comida) throw new Error('no se registró ninguna comida')
+      act(() => db.registroComidas.borrarComida('u-valentina', comida.id))
+
+      expect(screen.queryByRole('list', { name: /recetas cocinadas hoy/i })).toBeNull()
     })
   })
 })

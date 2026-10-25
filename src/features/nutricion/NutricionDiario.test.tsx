@@ -82,7 +82,12 @@ describe('el recordatorio quincenal', () => {
     reiniciarDb()
   })
 
-  it('no vive en el diario: se va a «Al día»', () => {
+  /**
+   * El rediseño lo quitó del diario y lo dejó solo en «Al día». Vuelve: el
+   * diario es donde la asesorada entra a diario, y una pregunta que solo se ve
+   * en otra ruta es una pregunta que se pierde.
+   */
+  it('vive en el diario y lleva a «Al día»', () => {
     const perfil = db.perfilNutricion.byUsuario('u-valentina')
     db.perfilNutricion.guardar(
       'u-valentina',
@@ -91,6 +96,8 @@ describe('el recordatorio quincenal', () => {
     )
     pintarDiario()
 
-    expect(screen.queryByText(/cuéntanos qué te dijo tu médico/i)).toBeNull()
+    const aviso = screen.getByText(/cuéntanos qué te dijo tu médico/i)
+    expect(aviso).toBeInTheDocument()
+    expect(aviso.closest('a')).toHaveAttribute('href', '/nutricion/al-dia')
   })
 })

@@ -1,5 +1,5 @@
 import { etiquetaDelTipoDeDia, tipoDiaDeLaFecha } from '../../domain/nutricion/tipoDiaDeLaFecha'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
@@ -18,9 +18,10 @@ import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
 import { estaCalibrado } from '../../domain/nutricion/calibracion'
 import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
+import { preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
-import { gramosDeReceta, RECETAS, type Receta } from '../../data/recetas'
+import { RECETAS, type Receta } from '../../data/recetas'
 import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
 import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from '../../domain/recetasProbadas'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
@@ -101,8 +102,6 @@ export default function DiarioDia() {
   }, [ruta.state])
 
   const [fecha, setFecha] = useState(hoyIso())
-  /** Qué comida creó cada receta, para poder deshacer exactamente esa. */
-  const comidasDeReceta = useRef(new Map<string, string>())
 
   /**
    * Las recetas ya cocinadas, en el teléfono y con la clave del usuario.
@@ -184,23 +183,45 @@ export default function DiarioDia() {
   const respuestasSuyas = db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}
   const condiciones = [...condicionesDeclaradas(respuestasSuyas, fecha)]
 
+  /**
+   * Las quincenales de embarazo y lactancia, si hoy toca alguna.
+   *
+   * Contra `hoyIso()` y no contra `fecha`: abrir el diario del lunes pasado no
+   * es viajar en el tiempo, y una pregunta que toca hoy toca igual. Es un
+   * recordatorio, no una compuerta: el diario entero se puede usar sin tocarlo.
+   */
+  const quincenalesPendientes = preguntasQueVuelven(respuestasSuyas, hoyIso())
+
   const nombresDelDia = delDia.flatMap((comida) =>
     comida.items.map((item) => porId(item.alimentoId)?.nombre ?? ''),
   )
 
   /**
-   * Las recetas que se cocinaron ESTE día, con su porción. Se listan debajo del
-   * carrusel: lo que ya entró al día no se esconde, para que el asesorado vea
-   * que sus kcal están contadas y de dónde salen.
+   * Las recetas que se cocinaron ESTE día, leídas de lo registrado.
+   *
+   * No de la ficha de la receta: los gramos y las kcal salen de la comida que
+   * de verdad quedó en el diario, así que si se borra desaparece de la lista y
+   * si la misma receta se cocina dos veces se ve dos veces.
    */
   const recetasDeHoy = probadas
     .filter((p) => p.fecha === fecha)
-    .map((p) => {
+    .flatMap((p) => {
       const receta = RECETAS.find((r) => r.id === p.recetaId)
-      if (!receta) return null
-      return { receta, gramos: gramosDeReceta(receta), kcal: receta.ajuste.kcal }
+      if (!receta) return []
+      return (p.comidas ?? []).flatMap((comidaId) => {
+        const comida = delDia.find((c) => c.id === comidaId)
+        if (!comida) return []
+        return [
+          {
+            id: comidaId,
+            receta,
+            kcal: kcalDeComida(comida, porId),
+            comida: comida.comida,
+            hora: comida.momentoIso.slice(11, 16),
+          },
+        ]
+      })
     })
-    .filter((r): r is { receta: Receta; gramos: number; kcal: number } => r !== null)
 
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
 
@@ -218,17 +239,21 @@ export default function DiarioDia() {
       if (!plan.puede) return
       const comidaId = db.registroComidas.abrirComida({ ...plan.comida, usuarioId: usuario.id })
       for (const item of plan.items) db.registroComidas.agregarItem(usuario.id, comidaId, item)
-      comidasDeReceta.current.set(receta.id, comidaId)
-      setProbadas(anotar(probadas, receta.id, fecha))
+      setProbadas(anotar(probadas, receta.id, fecha, comidaId))
     },
     deshacer: (receta: Receta) => {
-      const comidaId = comidasDeReceta.current.get(receta.id)
+      // La última comida registrada de esa receta ese día. Se lee de lo
+      // persistido y no de un mapa en memoria: deshacer funciona aunque la
+      // pantalla se haya vuelto a montar.
+      const comidaId = [...probadas]
+        .reverse()
+        .find((p) => p.recetaId === receta.id && p.fecha === fecha)
+        ?.comidas?.at(-1)
       if (!comidaId) return
       db.registroComidas.borrarComida(usuario.id, comidaId)
-      comidasDeReceta.current.delete(receta.id)
       // La racha baja con la comida. Si no, el número seguiría diciendo que
       // cocinó algo que ya no está registrado en ninguna parte.
-      setProbadas(desanotar(probadas, receta.id, fecha))
+      setProbadas(desanotar(probadas, receta.id, fecha, comidaId))
     },
   }
 
@@ -392,6 +417,21 @@ export default function DiarioDia() {
         </p>
       </header>
 
+      {quincenalesPendientes.length > 0 && (
+        // Un recordatorio, no una compuerta: se puede seguir usando el diario
+        // entero sin tocarlo. Ver `AlDiaEmbarazo`.
+        <Link
+          to="/nutricion/al-dia"
+          className="press flex items-center justify-between gap-3 rounded-2xl border border-ambar/40 bg-ambar/15 p-3"
+        >
+          <span className="text-xs leading-snug text-tenue">
+            <b className="text-texto">Cuéntanos qué te dijo tu médico.</b> Lo que él te indique
+            manda sobre lo que calcule la app.
+          </span>
+          <span className="shrink-0 text-xs font-semibold text-texto">Responder</span>
+        </Link>
+      )}
+
       <TiraSemana
         fecha={fecha}
         hoy={hoyIso()}
@@ -404,7 +444,12 @@ export default function DiarioDia() {
 
       <RecetasCarousel
         recetas={RECETAS}
-        kcalRestantes={Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))}
+        kcalRestantes={
+          visibilidad.verContadorKcal
+            ? Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))
+            : undefined
+        }
+        verKcal={visibilidad.verContadorKcal}
         registro={registroDeRecetas}
         cocinadas={distintas(probadas)}
         racha={rachaDeRecetas(probadas, fecha).actual}

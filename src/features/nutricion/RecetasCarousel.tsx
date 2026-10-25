@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { gramosDeReceta, type Receta } from '../../data/recetas'
+import type { Receta } from '../../data/recetas'
+import type { TipoComida } from '../../domain/types'
 import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
 import { RecetaSheet, type RecetaRegistro } from './RecetaSheet'
 
@@ -25,28 +26,26 @@ const COLOR_CATEGORIA: Record<Receta['categoria'], string> = {
   Cena: 'text-logrado',
 }
 
-/** A qué comida del día cae una receta, para nombrarla en el aviso. */
-const COMIDA_DE: Record<Receta['categoria'], string> = {
-  Desayuno: 'desayuno',
-  Almuerzo: 'almuerzo',
-  Cena: 'cena',
-  Snack: 'merienda',
-  Postre: 'merienda',
-}
-
-/** Lo que suma la porción, en gramos: es lo que se ve en la tarjeta y en la hoja. */
-const gramosDe = gramosDeReceta
-
 export interface RecetaCocinada {
+  /** Id de la COMIDA registrada. Dos veces la misma receta son dos ids. */
+  id: string
   receta: Receta
-  gramos: number
   kcal: number
+  /** La comida real donde cayó: la que dice el registro, no la categoría. */
+  comida: TipoComida
+  /** Hora del registro, para distinguir dos veces la misma receta. */
+  hora: string
 }
 
 export interface RecetasCarouselProps {
   recetas: Receta[]
   /** kcal restantes del día. Sin dato la hoja cambia el texto, no lo quita. */
   kcalRestantes?: number
+  /**
+   * Si el contador de kcal del día está encendido. Apagado no se enseña
+   * ninguna cifra de kcal en el carrusel: ni las que quedan, ni las cocinadas.
+   */
+  verKcal?: boolean
   /** Mientras las recetas viajan: reserva el hueco exacto, sin salto. */
   cargando?: boolean
   registro?: RecetaRegistro
@@ -54,13 +53,14 @@ export interface RecetasCarouselProps {
   cocinadas?: number
   /** Días seguidos cocinando alguna. */
   racha?: number
-  /** Las que se cocinaron HOY, con su porción. Se listan debajo del carrusel. */
+  /** Las que se cocinaron HOY, tal como quedaron registradas. Van debajo. */
   cocinadasHoy?: RecetaCocinada[]
 }
 
 export function RecetasCarousel({
   recetas,
   kcalRestantes,
+  verKcal = true,
   cargando,
   registro,
   cocinadas = 0,
@@ -113,11 +113,11 @@ export function RecetasCarousel({
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-bold text-texto">Recetas que sí encajan</h2>
         <span className="cifras shrink-0 text-xs text-tenue">
-          {kcalRestantes === undefined
-            ? 'Según tu plan de hoy'
-            : kcalRestantes > 0
+          {verKcal && kcalRestantes !== undefined
+            ? kcalRestantes > 0
               ? `Te quedan ${kcalRestantes.toLocaleString('es-CO')} kcal hoy`
-              : 'Ya llegaste a tu meta de hoy'}
+              : 'Ya llegaste a tu meta de hoy'
+            : 'Según tu plan de hoy'}
         </span>
       </div>
       <p className="mt-0.5 text-[12.5px] leading-snug text-tenue">
@@ -128,18 +128,18 @@ export function RecetasCarousel({
 
       {cocinadasHoy.length > 0 && (
         <ul className="mt-2 flex flex-col gap-1.5" aria-label="Recetas cocinadas hoy">
-          {cocinadasHoy.map(({ receta, gramos, kcal }) => (
+          {cocinadasHoy.map(({ id, receta, kcal, comida, hora }) => (
             <li
-              key={receta.id}
+              key={id}
               className="flex items-baseline justify-between gap-2 border-b border-linea pb-1.5 text-sm last:border-b-0"
             >
               <span className="min-w-0 text-texto">
                 {receta.nombre}
                 <small className="block text-xs text-tenue">
-                  {COMIDA_DE[receta.categoria]} · {gramos} g en ingredientes
+                  {comida.charAt(0).toUpperCase() + comida.slice(1)} · {hora}
                 </small>
               </span>
-              <b className="cifras shrink-0 text-texto">{kcal} kcal</b>
+              {verKcal && <b className="cifras shrink-0 text-texto">{kcal} kcal</b>}
             </li>
           ))}
         </ul>
@@ -153,7 +153,12 @@ export function RecetasCarousel({
         style={{ margin: '10px -18px 0', padding: '6px 18px 18px', scrollSnapType: 'x mandatory' }}
       >
         {recetas.map((receta) => (
-          <TarjetaReceta key={receta.id} receta={receta} onAbrir={() => setAbierta(receta)} />
+          <TarjetaReceta
+            key={receta.id}
+            receta={receta}
+            verKcal={verKcal}
+            onAbrir={() => setAbierta(receta)}
+          />
         ))}
       </div>
 
@@ -233,16 +238,26 @@ function Cocinadas({ cocinadas, racha }: { cocinadas: number; racha: number }) {
   )
 }
 
-function TarjetaReceta({ receta, onAbrir }: { receta: Receta; onAbrir: () => void }) {
-  const gramos = gramosDe(receta)
-  const porcion = gramos > 0 ? `${gramos} g · ${receta.ajuste.kcal} kcal` : `${receta.ajuste.kcal} kcal`
+function TarjetaReceta({
+  receta,
+  verKcal,
+  onAbrir,
+}: {
+  receta: Receta
+  verKcal: boolean
+  onAbrir: () => void
+}) {
+  const kcal = receta.ajuste.kcal
+  const etiqueta = verKcal
+    ? `${receta.nombre}, de ${receta.handle}. Te entra ${kcal} kcal`
+    : `${receta.nombre}, de ${receta.handle}`
 
   return (
     <button
       data-receta=""
       type="button"
       onClick={onAbrir}
-      aria-label={`${receta.nombre}, de ${receta.handle}. Te entra ${porcion}`}
+      aria-label={etiqueta}
       style={{ scrollSnapAlign: 'center', transformOrigin: '50% 50%' }}
       className="w-[148px] shrink-0 text-left"
     >
@@ -284,13 +299,13 @@ function TarjetaReceta({ receta, onAbrir }: { receta: Receta; onAbrir: () => voi
             {receta.nombre}
           </span>
           <span className="mt-1 block text-xs text-tenue">
-            Te entra{' '}
-            {gramos > 0 && (
+            {verKcal ? (
               <>
-                <b className="text-texto">{gramos} g</b> ·{' '}
+                Te entra <b className="text-texto">{receta.ajuste.kcal} kcal</b>
               </>
+            ) : (
+              'Ajustada a tu plan'
             )}
-            <b className="text-texto">{receta.ajuste.kcal} kcal</b>
           </span>
         </span>
       </span>
