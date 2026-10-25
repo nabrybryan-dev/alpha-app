@@ -65,6 +65,7 @@ function pintar() {
         <Route path="/equipo" element={<EquipoPage />} />
         <Route path="/" element={<p>Portada</p>} />
         <Route path="/coach/consola" element={<p>La consola</p>} />
+        <Route path="/equipo/:usuarioId" element={<p>La ficha única</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -180,16 +181,17 @@ describe('EquipoPage', () => {
     expect(within(tarjeta).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
   })
 
-  it('con leer_entrenamiento, cada fila abre la consola ya puesta en esa persona', async () => {
+  it('con leer_entrenamiento, cada fila abre la FICHA ÚNICA ya puesta en esa persona', async () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     pintar()
     expect(await screen.findByRole('link', { name: 'Abrir la consola completa' })).toHaveAttribute('href', '/coach/consola')
     const cartera = screen.getByRole('region', { name: 'Cartera' })
     const boton = within(cartera).queryByRole('button')
     if (boton) fireEvent.click(boton)
-    const fila = within(cartera).getAllByRole('link')[0]
+    const fila = within(cartera).getAllByRole('link', { name: /^Entrenamiento de / })[0]
+    expect(fila.getAttribute('href')).toMatch(/^\/equipo\/u-/)
     fireEvent.click(fila)
-    expect(screen.getByText('La consola')).toBeInTheDocument()
+    expect(screen.getByText('La ficha única')).toBeInTheDocument()
     const guardado = JSON.parse(sessionStorage.getItem('consola-coach:seleccion') ?? '{}') as { persona?: string }
     expect(db.usuarios.entrenan().map((u) => u.id)).toContain(guardado.persona)
   })
@@ -212,7 +214,7 @@ describe('EquipoPage', () => {
     const boton = within(cartera).queryByRole('button', { name: /al día/ })
     if (boton) fireEvent.click(boton)
     const entrenamiento = within(cartera).getAllByRole('link', { name: /^Entrenamiento de / })[0]
-    expect(entrenamiento.getAttribute('href')).toMatch(/^\/coach\/asesorado\/u-/)
+    expect(entrenamiento.getAttribute('href')).toMatch(/^\/equipo\/u-/)
     expect(within(cartera).getAllByRole('link', { name: /^Nutrición de / })[0].getAttribute('href')).toMatch(/^\/equipo-nutricion\?persona=/)
     expect(screen.queryByRole('tab', { name: 'Bryan' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Mensajes de los asesorados' })).toHaveAttribute('href', '/coach/chat')
