@@ -31,7 +31,9 @@ vi.mock('../visor/VisorPatron', () => ({
   },
 }))
 
-const ultimas = () => recibidas[recibidas.length - 1] as Record<string, any>
+type Tinte = Record<string, { k: number; dolor: boolean }>
+type PropsDelVisor = Record<string, unknown> & { cuerpo?: { capa: string; tinte: Tinte } }
+const ultimas = () => recibidas[recibidas.length - 1] as PropsDelVisor
 
 function montar(opciones: { dolor?: { dolor: number; dolorDonde: string }; seriesHechas?: number } = {}) {
   const usuario = db.usuarios.byId('u-valentina')!
@@ -82,7 +84,7 @@ beforeEach(() => {
 describe('la vista de cuerpo es la portada', () => {
   it('abre en el cuerpo, en la capa Musculo, y el visor recibe el tinte', () => {
     montar({ seriesHechas: 3 })
-    const cuerpo = ultimas().cuerpo
+    const cuerpo = ultimas().cuerpo!
     expect(cuerpo, 'el visor no recibio la vista de cuerpo').toBeDefined()
     expect(cuerpo.capa).toBe('musculo')
     expect(cuerpo.tinte.dors).toEqual({ k: 1, dolor: false })
@@ -94,26 +96,26 @@ describe('la vista de cuerpo es la portada', () => {
   it('las capas Piel y Hueso llegan al visor', () => {
     montar({ seriesHechas: 1 })
     fireEvent.click(screen.getByRole('radio', { name: 'Hueso' }))
-    expect(ultimas().cuerpo.capa).toBe('hueso')
+    expect(ultimas().cuerpo!.capa).toBe('hueso')
     fireEvent.click(screen.getByRole('radio', { name: 'Piel' }))
-    expect(ultimas().cuerpo.capa).toBe('piel')
+    expect(ultimas().cuerpo!.capa).toBe('piel')
   })
 
   it('el dolor del check-in llega al visor en rojo y se lee en su linea', () => {
     montar({ seriesHechas: 1, dolor: { dolor: 7, dolorDonde: 'el hombro' } })
-    expect(ultimas().cuerpo.tinte.delt.dolor).toBe(true)
+    expect(ultimas().cuerpo!.tinte.delt.dolor).toBe(true)
     expect(screen.getByText(/Te duele: Deltoides/)).toBeInTheDocument()
   })
 
   it('un dolor bajo (menos de 4) no pinta nada', () => {
     montar({ seriesHechas: 1, dolor: { dolor: 3, dolorDonde: 'el hombro' } })
-    expect(ultimas().cuerpo.tinte.delt.dolor).toBe(false)
+    expect(ultimas().cuerpo!.tinte.delt.dolor).toBe(false)
     expect(screen.queryByText(/Te duele/)).toBeNull()
   })
 
   it('sin series anotadas no se inventa tinte', () => {
     montar({ seriesHechas: 0 })
-    expect(Object.values(ultimas().cuerpo.tinte).every((t: any) => t.k === 0)).toBe(true)
+    expect(Object.values(ultimas().cuerpo!.tinte).every((t) => t.k === 0)).toBe(true)
     expect(screen.getByText('Aún no hay series anotadas')).toBeInTheDocument()
   })
 })
