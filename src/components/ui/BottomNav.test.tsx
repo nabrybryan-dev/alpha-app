@@ -13,11 +13,11 @@ function etiquetas(espacios?: 'asesorado' | 'staff') {
 }
 
 describe('BottomNav', () => {
-  it('el asesorado conserva sus cinco pestañas de siempre', () => {
+  it('el asesorado cambia Bienestar por Semana y conserva las otras cuatro', () => {
     expect(etiquetas()).toEqual([
       ['Hoy', '/'],
       ['Entrenar', '/entrenar'],
-      ['Bienestar', '/bienestar'],
+      ['Semana', '/semana'],
       ['Nutrición', '/nutricion'],
       ['Progreso', '/progreso'],
     ])

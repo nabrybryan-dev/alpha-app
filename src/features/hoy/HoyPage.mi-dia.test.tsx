@@ -125,13 +125,14 @@ describe('Mi día del staff', () => {
 })
 
 describe('el asesorado normal no cambia', () => {
-  it('no ve ninguna de las piezas de Mi día y conserva su check-in y sus tres cifras', () => {
+  it('no ve las piezas de Mi día, pero sí su propio check-in en línea y sus tres cifras', () => {
     quien.rol = 'asesorado'
     pintar()
-    for (const nombre of ['Resumen de la semana', 'Chequeo de hoy', 'Mi nutrición de hoy', 'Medidas y peso']) {
+    for (const nombre of ['Resumen de la semana', 'Mi nutrición de hoy', 'Medidas y peso']) {
       expect(screen.queryByRole('region', { name: nombre })).not.toBeInTheDocument()
     }
-    expect(screen.getByText('Check-in diario pendiente')).toBeInTheDocument()
+    // El check-in ya no es una pestaña aparte: es su propia región dentro de Hoy.
+    expect(screen.getByRole('region', { name: 'Chequeo de hoy' })).toBeInTheDocument()
     expect(screen.getByText('Racha')).toBeInTheDocument()
   })
 })

@@ -54,6 +54,7 @@ vi.mock('../features/hoy/HoyPage', () => marcador('Hoy'))
 vi.mock('../features/entrenar/RutaPage', () => marcador('Entrenar'))
 vi.mock('../features/entrenar/SesionPage', () => marcador('Sesión'))
 vi.mock('../features/bienestar/BienestarPage', () => marcador('Bienestar'))
+vi.mock('../features/semana/SemanaPage', () => marcador('Semana'))
 vi.mock('../features/progreso/ProgresoPage', () => marcador('Progreso'))
 vi.mock('../features/nutricion/DiarioDia', () => marcador('Diario'))
 vi.mock('../features/nutricion/NutricionLayout', async () => {
