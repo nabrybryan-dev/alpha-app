@@ -65,7 +65,7 @@ describe('iconos de marca', () => {
      * ave, y por debajo de unos 64 px ese texto deja de leerse.
      */
     it('Hoy usa el monograma en la placa de 48 px', () => {
-      const pagina = readFileSync(join(raiz, 'src/features/hoy/HoyPage.tsx'), 'utf8')
+      const pagina = readFileSync(join(raiz, 'src/features/hoy/TarjetaSesionDeHoy.tsx'), 'utf8')
       expect(pagina).toContain('monograma-a.png')
       expect(pagina).not.toContain('logo-aguila')
     })

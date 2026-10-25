@@ -17,7 +17,14 @@ import { descartesPendientes, recuperarDescartes } from '../../data/nube/sync'
  * 3. **Prometer un total.** El montón guarda un máximo de operaciones y tira las
  *    más viejas, así que el número es un mínimo. Por eso dice "al menos".
  */
-export function AvisoSinSincronizar({ usuarioId }: { usuarioId: string }) {
+export function AvisoSinSincronizar({
+  usuarioId,
+  diseno = 'clasico',
+}: {
+  usuarioId: string
+  /** `nuevo` = el aspecto de la maqueta «Diseño final 3» (asesorado); `clasico` = el de main (staff, hasta el paso 9). */
+  diseno?: 'nuevo' | 'clasico'
+}) {
   const [pendientes, setPendientes] = useState(() => descartesPendientes(usuarioId))
   const [reintentando, setReintentando] = useState(false)
 
@@ -35,7 +42,11 @@ export function AvisoSinSincronizar({ usuarioId }: { usuarioId: string }) {
   }
 
   return (
-    <section className="rounded-tarjeta border border-ambar/40 bg-ambar/10 px-4 py-3.5">
+    <section className={
+        diseno === 'nuevo'
+          ? 'hoy-tarjeta hoy-tarjeta-ambar'
+          : 'rounded-tarjeta border border-ambar/40 bg-ambar/10 px-4 py-3.5'
+      }>
       <p className="text-sm font-bold text-texto">
         Al menos {pendientes} {pendientes === 1 ? 'registro' : 'registros'} no{' '}
         {pendientes === 1 ? 'ha' : 'han'} llegado al servidor
@@ -48,7 +59,11 @@ export function AvisoSinSincronizar({ usuarioId }: { usuarioId: string }) {
         type="button"
         onClick={reintentar}
         disabled={reintentando}
-        className="press min-h-11 mt-2.5 rounded-full bg-ambar px-4 py-2 text-xs font-bold text-bg disabled:opacity-50"
+        className={
+          diseno === 'nuevo'
+            ? 'tecla-2 mt-2.5 disabled:opacity-50'
+            : 'press min-h-11 mt-2.5 rounded-full bg-ambar px-4 py-2 text-xs font-bold text-bg disabled:opacity-50'
+        }
       >
         {reintentando ? 'Intentando…' : 'Intentar de nuevo'}
       </button>

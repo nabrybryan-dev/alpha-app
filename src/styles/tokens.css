@@ -3878,6 +3878,13 @@ body.praxis-sala-abierta { overflow:hidden; }
   outline: 3px solid var(--texto);
   outline-offset: 4px;
 }
+.btn-3d.cta-pulso {
+  overflow: visible;
+}
+.hoy-hero .btn-3d:focus-visible {
+  /* El hero es oscuro en los dos temas: el foco usa el texto del hero, no --texto (casi negro en claro). */
+  outline-color: var(--hero-texto);
+}
 .btn-3d-bloque {
   display: flex;
   width: 100%;
