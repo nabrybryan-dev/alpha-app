@@ -155,6 +155,23 @@ const TODO_W: readonly NivelW[] = [0, 1, 2, 3, 4]
  */
 export const HUECOS = {
   /**
+   * EL CUERPO — la lectura del sujeto de Blender y sus capas (maqueta 7, paso 4 del rediseño).
+   *
+   * Piel · Músculo · Hueso a un lado, la lectura corta («Dorsal 2 · Bíceps 1») con el dolor en
+   * rojo en su propia línea, y el paso entre el cuerpo y el movimiento. Es el único sitio
+   * nuevo que admite el salón y existe PORQUE la maqueta aprobada lo pide: el texto de la
+   * lectura es del cuerpo y no cabe en una pared. Sin tope de caracteres propio: son cifras
+   * y nombres de región, y el detalle completo va a la hoja.
+   */
+  cuerpo: {
+    contiene: 'Las capas del cuerpo, la lectura de series por región y el dolor del check-in.',
+    ancla: 'orbita',
+    gesto: 'ninguno',
+    topeDeTexto: 0,
+    visibleEnW: TODO_W,
+  },
+
+  /**
    * LAS PAREDES — lo corto y esencial del ejercicio.
    *
    * Los nueve campos que `contenidoPared()` devuelve, ninguno de más de `TOPE_PARED`

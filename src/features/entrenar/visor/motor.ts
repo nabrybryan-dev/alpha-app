@@ -9,6 +9,7 @@
  * lógica pura.
  */
 
+import { pixelRatioEfectivo } from './densidad'
 import { duenoDelGesto, type DuenoDelGesto, type ModoDeArrastre } from '../capas/gestoHorizontal'
 import { grados, limitar, M4, type Mat4, type Vec3 } from '../../../domain/patrones/algebra'
 import type { Malla } from '../../../domain/patrones/malla'
@@ -176,9 +177,12 @@ export class Motor {
     return this.texturas.has(nombre)
   }
 
+  /** Densidad de pixeles pedida por el ajuste adaptativo (`densidad.ts`); `null` = la del aparato. */
+  densidadDePixeles: number | null = null
+
   ajustarTamano(): number {
     const c = this.lienzo
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const dpr = pixelRatioEfectivo(window.devicePixelRatio, this.densidadDePixeles)
     const ancho = Math.round(c.clientWidth * dpr)
     const alto = Math.round(c.clientHeight * dpr)
     if (c.width !== ancho || c.height !== alto) {

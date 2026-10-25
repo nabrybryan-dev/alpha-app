@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { escribirPieza } from '../escena/piezas3d'
 import { Malla } from '../../../domain/patrones/malla'
 import { INDICE_RAIZ } from '../../../domain/patrones/esqueleto'
-import { atlasCargado, atlasPorCapa, cargarPiezas } from './cargaDelAtlas'
+import { atlasCargado, atlasPorCapa, cargarPiezas, nombreDeParte } from './cargaDelAtlas'
 import { PIEZAS_DEL_ATLAS, type PiezaDelSalon } from './piezas'
 
 /**
@@ -151,5 +151,13 @@ describe('el almacén del atlas', () => {
     const malla = mallaDePrueba()
     atlasPorCapa.set('esqueleto', [malla])
     expect([...malla.hueso].every((h) => h === INDICE_RAIZ)).toBe(true)
+  })
+
+  it('el nombre de cada musculo se guarda aparte y la malla queda sin textura: una sola tanda de dibujo', () => {
+    const malla = mallaDePrueba()
+    malla.textura = 'Latissimus dorsi muscle.l'
+    atlasPorCapa.set('musculos', [malla])
+    expect(nombreDeParte(malla)).toBe('Latissimus dorsi muscle.l')
+    expect(malla.textura).toBeNull()
   })
 })
