@@ -3,6 +3,8 @@ import type { ResumenSemanal } from '../../domain/resumenSemanal/calcular'
 interface TarjetaDeLaSemanaProps {
   nombre: string
   resumen: ResumenSemanal
+  /** `nuevo` = el aspecto de la maqueta «Diseño final 3» (asesorado); `clasico` = el de main (staff, hasta el paso 9). */
+  diseno?: 'nuevo' | 'clasico'
 }
 
 function Fila({ etiqueta, valor, nota }: { etiqueta: string; valor: string; nota?: string }) {
@@ -29,13 +31,17 @@ function Fila({ etiqueta, valor, nota }: { etiqueta: string; valor: string; nota
  * llena tira más que un número que aparece de la nada — y un cero en el sueño
  * se lee como una acusación que nadie ha medido.
  */
-export function TarjetaDeLaSemana({ nombre, resumen }: TarjetaDeLaSemanaProps) {
+export function TarjetaDeLaSemana({ nombre, resumen, diseno = 'clasico' }: TarjetaDeLaSemanaProps) {
   const { regularidad } = resumen
 
   return (
     <section
       aria-label="Tu semana en números"
-      className="hoy-tarjeta"
+      className={
+        diseno === 'nuevo'
+          ? 'hoy-tarjeta'
+          : 'rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm'
+      }
     >
       <p className="mb-1 font-display text-sm text-texto">Tu semana, {nombre}</p>
 

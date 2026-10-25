@@ -187,13 +187,17 @@ export default function HoyPage() {
   const notasDelCoach = esStaff ? notasDelMicrociclo(microciclo) : []
 
   const primerNombre = usuario.nombre.split(' ')[0]
+  // El aspecto de la maqueta «Diseño final 3» es SOLO del asesorado. El Hoy del staff (Manuela)
+  // queda como en main, con su tema claro y sus tarjetas, hasta el paso 9 de la Fase 3.
+  const nuevo = !esStaff
+  const diseno = nuevo ? 'nuevo' : 'clasico'
 
   // ── Las piezas, una vez. Se componen abajo en dos órdenes: el del asesorado, en tres
   // bandas (04 §3.2), y el del staff que también entrena, que no cambia en este paso (el
   // Hoy del staff es el paso 9 de la Fase 3).
   const encabezado = (
     <section className="entrada entrada-1">
-      <p className="text-[13px] font-bold text-tenue">
+      <p className={nuevo ? 'text-[13px] font-bold text-tenue' : 'text-xs font-bold uppercase tracking-[0.16em] text-tenue'}>
         {[
           microciclo
             ? nombreDelMicrociclo(microciclo.numero, simple)
@@ -206,7 +210,14 @@ export default function HoyPage() {
           .filter(Boolean)
           .join(' · ')}
       </p>
-      <h2 className="mt-1 font-display text-[30px] font-black leading-[1.05] tracking-[-0.01em] text-texto" style={{ fontStretch: '125%' }}>
+      <h2
+        className={
+          nuevo
+            ? 'mt-1 font-display text-[30px] font-black leading-[1.05] tracking-[-0.01em] text-texto'
+            : 'mt-1 font-display text-3xl leading-none text-texto'
+        }
+        style={nuevo ? { fontStretch: '125%' } : undefined}
+      >
         Hola, {primerNombre}
       </h2>
     </section>
@@ -216,8 +227,8 @@ export default function HoyPage() {
   // todo está registrado, y esa es justamente la confusión que dejó el registro de comidas
   // roto durante semanas.
   const avisoSync = (
-    <div className="entrada entrada-2 empty:hidden">
-      <AvisoSinSincronizar usuarioId={usuario.id} />
+    <div className={nuevo ? 'entrada entrada-2 empty:hidden' : 'entrada entrada-2'}>
+      <AvisoSinSincronizar usuarioId={usuario.id} diseno={diseno} />
     </div>
   )
 
@@ -233,8 +244,8 @@ export default function HoyPage() {
   // Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`.
   const revision = (
     <div className="entrada entrada-2">
-      <CabeceraSemanal>
-        <TarjetaDeLaSemana nombre={primerNombre} resumen={resumen} />
+      <CabeceraSemanal diseno={diseno}>
+        <TarjetaDeLaSemana nombre={primerNombre} resumen={resumen} diseno={diseno} />
         {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
       </CabeceraSemanal>
     </div>
@@ -297,6 +308,7 @@ export default function HoyPage() {
   const barraCoach = (
     <div className="entrada entrada-2">
       <BarraCoach
+        diseno={diseno}
         titulo={equipo.length > 1 ? 'Escríbele a tu coach o a tu nutricionista' : 'Escríbele a tu coach'}
         iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
         noLeidos={noLeidos}
@@ -330,6 +342,7 @@ export default function HoyPage() {
   const tarjetaSesion =
     microciclo && siguienteSesion ? (
       <TarjetaSesionDeHoy
+        diseno={diseno}
         sesion={siguienteSesion}
         etiqueta={
           sugerida?.esDeHoy
@@ -365,10 +378,11 @@ export default function HoyPage() {
   // Los tres carteles del microciclo. La sesión y el cartel de «empieza el…» CONVIVEN
   // (decisión de Bryan, 11-sep); `semanaEsAdelantada` y `semanaEsVencida` viven en el
   // dominio y son las mismas que usa Entrenar, para que las dos pantallas no discrepen.
+  const cajaDeAviso = nuevo ? 'hoy-tarjeta' : 'rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm'
   const carteles = (
     <>
       {microciclo && !siguienteSesion && microcicloCompleto && (
-        <div className="entrada entrada-3 hoy-tarjeta">
+        <div className={`entrada entrada-3 ${cajaDeAviso}`}>
           <p className="text-sm font-bold text-texto">{simple ? 'Semana completa' : 'Microciclo completo'} 💪</p>
           <p className="mt-1 text-sm text-tenue">
             Registraste todas las sesiones. El coach está preparando tu siguiente {palabraMicrociclo(simple)}.
@@ -376,7 +390,7 @@ export default function HoyPage() {
         </div>
       )}
       {microciclo && semanaEsAdelantada(microciclo, hoy) && (
-        <div className="entrada entrada-3 hoy-tarjeta">
+        <div className={`entrada entrada-3 ${cajaDeAviso}`}>
           <p className="text-sm font-bold text-texto">Tu {palabraMicrociclo(simple)} empieza el {microciclo.fechaInicio}</p>
           <p className="mt-1 text-sm text-tenue">
             El coach ya lo dejó preparado. Hasta entonces, cuida sueño, pasos e hidratación.
@@ -386,7 +400,7 @@ export default function HoyPage() {
       {/* Microciclo VENCIDO (A023): `armarSemana` sigue repartiendo sus sesiones a propósito, y
           sin este aviso la persona vería la sesión de su plan vencido sin saber que ya venció. */}
       {microciclo && semanaEsVencida(microciclo, hoy) && (
-        <div className="entrada entrada-3 hoy-tarjeta">
+        <div className={`entrada entrada-3 ${cajaDeAviso}`}>
           <p className="text-sm font-bold text-texto">
             {simple
               ? `Tu semana ${microciclo.numero} terminó el ${ultimoDiaDe(microciclo)}`
@@ -425,17 +439,25 @@ export default function HoyPage() {
   const listaPendientes =
     pendientes.length > 0 ? (
       <section className="entrada entrada-5 flex flex-col gap-2">
-        <p className="text-[13px] font-bold text-tenue">Pendientes de hoy</p>
+        <p className={nuevo ? 'text-[13px] font-bold text-tenue' : 'kicker'}>Pendientes de hoy</p>
         {pendientes.map((p) => (
           <Link
-            key={p.ruta}
+            key={`${p.ruta}|${p.texto}`}
             to={p.ruta}
-            className="press hoy-tarjeta hoy-fila !py-3"
+            className={
+              nuevo
+                ? 'press hoy-tarjeta hoy-fila !py-3'
+                : 'press flex items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm'
+            }
           >
-            <span className="hoy-fila-titulo">{p.texto}</span>
+            <span className={nuevo ? 'hoy-fila-titulo' : 'text-sm text-texto'}>{p.texto}</span>
             <span
               aria-hidden="true"
-              className="tecla-2 !min-h-9 !px-3 text-rojo"
+              className={
+                nuevo
+                  ? 'tecla-2 !min-h-9 !px-3 text-rojo'
+                  : 'grid h-7 w-7 shrink-0 place-items-center rounded-full border border-hairline text-sm text-rojo'
+              }
             >
               →
             </span>
@@ -444,9 +466,10 @@ export default function HoyPage() {
       </section>
     ) : null
 
+  const cajaDeFila = nuevo ? 'hoy-tarjeta' : 'rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm'
   const contenidos = (
     <section className="entrada entrada-6 grid grid-cols-2 gap-3">
-      <Link to="/contenidos" className="press hoy-tarjeta h-full">
+      <Link to="/contenidos" className={`press h-full ${cajaDeFila}`}>
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-rojo">
           <circle cx="12" cy="12" r="9" />
           <path d="M10.2 8.8l5 3.2-5 3.2z" />
@@ -454,7 +477,7 @@ export default function HoyPage() {
         <p className="mt-2 font-display text-sm text-texto">Contenidos</p>
         <p className="text-xs text-tenue">Técnica y educación</p>
       </Link>
-      <Link to="/cuestionarios" className="press hoy-tarjeta h-full">
+      <Link to="/cuestionarios" className={`press h-full ${cajaDeFila}`}>
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-rojo">
           <rect x="5" y="4" width="14" height="17" rx="2.5" />
           <path d="M9 4.5V3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5v1" />
@@ -470,13 +493,14 @@ export default function HoyPage() {
     </section>
   )
 
-  // Sigue el tema de la persona (claro u oscuro), como la maqueta «Diseño final 3».
+  // El asesorado sigue el tema de la persona (claro u oscuro), como la maqueta «Diseño final 3»; el
+  // staff conserva el tema claro de main (`data-theme="light"`, más abajo) hasta el paso 9.
   const marco = '-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5'
 
   if (esStaff) {
     // «Mi día» del staff (maqueta «Espacios de Alpha», 28-sep): igual que antes de las bandas.
     return (
-      <div className={marco}>
+      <div data-theme="light" className={marco}>
         {encabezado}
         {avisoSync}
         {permiso}
