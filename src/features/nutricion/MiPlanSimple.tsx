@@ -6,9 +6,11 @@ import type { MenuDia, PlanNutricional } from '../../domain/types'
  * botones de texto en vez de iconos — sin pestañas, sin «kcal/P/C/G», sin el
  * botón de intercambios por alimento.
  *
- * Mismo `plan` que `MiPlan`, mismo `onRegistrar` (manda al diario ya
- * escrito). Lo único que cambia es cómo se pinta. Pedida por Bryan el
- * 8-oct-2026 para Karin Better.
+ * Mismo `plan` que `MiPlan`, y una salida al diario con el alimento escrito pero
+ * SIN la cantidad pautada: el diario va en blanco y solo cuenta lo que la
+ * persona anota. Lo único que cambia es cómo se pinta. Pedida por Bryan el
+ * 8-oct-2026 para Karin Better; la cantidad vacía es la decisión de la maqueta 5
+ * (23-oct-2026).
  *
  * Qué trae y qué no:
  * - Cada bloque se titula con lo que el PLAN dice (`menu.nombre`, o la
