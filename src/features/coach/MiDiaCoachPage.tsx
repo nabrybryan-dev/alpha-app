@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
+import { useSesion } from '../../app/SessionProvider'
 import MiPlanPage from '../plan/MiPlanPage'
 import { CLASE_ETIQUETA } from '../plan/comun'
 import { AvisosDeSeguridad } from '../equipo/AvisosDeSeguridad'
 import { useFiltroSombrero } from '../equipo/filtroSombreros'
 import { Sombreros } from '../equipo/Sombreros'
+import { useCapacidadesVigentes } from '../equipo/useCapacidadesVigentes'
 import { BandejaPlanesRenovados } from './consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from './consola/BandejaPrimerosPlanes'
-import { useCapacidades } from './consola/useCapacidades'
+import { ocupaPuestoCoach } from './consola/usePuestoCoach'
 
 /**
  * «Mi día» del equipo (maqueta 7, paso 9): la banda de trabajo de los tres sombreros, con la
@@ -33,7 +35,12 @@ function Entrada({ a, titulo, nota }: { a: string; titulo: string; nota: string 
 }
 
 export default function MiDiaCoachPage() {
-  const { tiene } = useCapacidades()
+  const { usuario } = useSesion()
+  const { cargando, tiene } = useCapacidadesVigentes()
+  const esCoach = ocupaPuestoCoach(usuario.rol, cargando, tiene)
+  // El mismo criterio que la Bandeja y Equipo: los nombres y el dolor de la cartera solo se
+  // enseñan al coach o a quien tenga `leer_entrenamiento` (revisión ciega del 25-oct).
+  const conNombres = esCoach || (!cargando && tiene('leer_entrenamiento'))
   const filtro = useFiltroSombrero()
   const verEntreno = filtro === 'todo' || filtro === 'entreno'
   const verNutricion = filtro === 'todo' || filtro === 'nutricion'
@@ -51,7 +58,7 @@ export default function MiDiaCoachPage() {
 
       <Sombreros />
 
-      <AvisosDeSeguridad conNombres />
+      <AvisosDeSeguridad conNombres={conNombres} />
 
       {verNutricion && (
         <>

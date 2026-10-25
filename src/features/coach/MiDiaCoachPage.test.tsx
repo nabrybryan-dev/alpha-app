@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../data/dbInstance'
+import { reiniciarDb } from '../../data/mockDb'
 import { reiniciarFiltroParaPruebas } from '../equipo/filtroSombreros'
 
 /**
@@ -11,18 +12,21 @@ import { reiniciarFiltroParaPruebas } from '../equipo/filtroSombreros'
  * revisiones, consultas, creadores y el plan) sigue estando y sigue yendo a su pantalla.
  */
 
-const estado = { capacidades: new Set(['leer_entrenamiento', 'revisar_creadores', 'organizar_plan']) }
+const estado = {
+  rol: 'coach',
+  capacidades: new Set(['leer_entrenamiento', 'revisar_creadores', 'organizar_plan']),
+}
 
 vi.mock('../../app/SessionProvider', () => ({
   useSesion: () => ({
-    usuario: { id: 'u-bryan', nombre: 'Bryan', rol: 'coach', avatarIniciales: 'BR' },
+    usuario: { id: estado.rol === 'coach' ? 'u-bryan' : 'u-manuela', nombre: 'Staff', rol: estado.rol, avatarIniciales: 'ST' },
     esNube: false,
     cambiarUsuario: () => {},
     cerrarSesion: () => {},
   }),
 }))
-vi.mock('../coach/consola/useCapacidades', () => ({
-  useCapacidades: () => ({ cargando: false, tiene: (c: string) => estado.capacidades.has(c) }),
+vi.mock('../equipo/useCapacidadesVigentes', () => ({
+  useCapacidadesVigentes: () => ({ cargando: false, tiene: (c: string) => estado.capacidades.has(c) }),
 }))
 vi.mock('../plan/MiPlanPage', () => ({ default: () => <p>Tareas del plan</p> }))
 vi.mock('../coach/consola/BandejaPrimerosPlanes', () => ({
@@ -45,7 +49,9 @@ function montar() {
 describe('el Hoy del equipo', () => {
   beforeEach(() => {
     localStorage.clear()
+    reiniciarDb()
     reiniciarFiltroParaPruebas()
+    estado.rol = 'coach'
     estado.capacidades = new Set(['leer_entrenamiento', 'revisar_creadores', 'organizar_plan'])
   })
 
@@ -53,6 +59,41 @@ describe('el Hoy del equipo', () => {
     montar()
     expect(screen.getByRole('group', { name: 'Ver por sombrero' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Seguridad' })).toHaveTextContent('Sin alertas de dolor')
+  })
+
+  // Revisión ciega del 25-oct (defecto 2): «Mi día» pasaba `conNombres` siempre y la
+  // nutricionista sin `leer_entrenamiento` veía nombres y dolor de toda la cartera desde «/».
+  it('la nutricionista sin leer_entrenamiento no ve nombres ni dolor en la Seguridad', () => {
+    estado.rol = 'nutricionista'
+    estado.capacidades = new Set(['aprobar_primer_plan'])
+    db.bienestar.guardar({
+      id: 'ck-alarma-sin-permiso',
+      usuarioId: 'u-sara',
+      fecha: '2099-01-01',
+      dolor: 5,
+      dolorDonde: 'rodilla',
+      entreno: 'Descanso',
+    })
+    montar()
+    const seguridad = screen.getByRole('region', { name: 'Seguridad' })
+    expect(seguridad).toHaveTextContent(/permiso de leer el entrenamiento/)
+    expect(seguridad).not.toHaveTextContent('Sara Duque')
+    expect(seguridad).not.toHaveTextContent('Dolor 5/10')
+  })
+
+  it('el coach sí ve la alerta con nombre y dolor (la misma que antes)', () => {
+    db.bienestar.guardar({
+      id: 'ck-alarma-con-permiso',
+      usuarioId: 'u-sara',
+      fecha: '2099-01-01',
+      dolor: 5,
+      dolorDonde: 'rodilla',
+      entreno: 'Descanso',
+    })
+    montar()
+    const seguridad = screen.getByRole('region', { name: 'Seguridad' })
+    expect(seguridad).toHaveTextContent('Sara Duque')
+    expect(seguridad).toHaveTextContent('Dolor 5/10 · rodilla')
   })
 
   it('conserva el trabajo de siempre: firmas, revisiones, consultas, creadores y plan', () => {
