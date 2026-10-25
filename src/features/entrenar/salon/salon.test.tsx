@@ -868,4 +868,14 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
     await waitFor(() => expect(document.querySelector('[data-logro]')).not.toBeNull())
     expect(cajon.style.visibility).toBe('hidden')
   })
+
+  it('en la portada del cuerpo (vista por defecto) el cronometro de la sesion sigue ahi', () => {
+    montarConFuerza()
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    expect(salon.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')).not.toBeNull()
+    // Y las cuatro estaciones y la ficha de la serie, que no dependian de las paredes.
+    expect(salon.querySelectorAll('[data-estacion]')).toHaveLength(4)
+    expect(salon.querySelector('[data-cajon="serie"]')).not.toBeNull()
+  })
+
 })

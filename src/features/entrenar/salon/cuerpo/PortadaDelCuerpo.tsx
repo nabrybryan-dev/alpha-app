@@ -3,7 +3,9 @@ import { Boton3D } from '../../../../components/ui/Boton3D'
 import { Sheet } from '../../../../components/ui/Sheet'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
-import type { EjercicioPrescrito } from '../../../../domain/types'
+import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
+import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
+import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
 
 /**
@@ -30,8 +32,23 @@ export interface PortadaDelCuerpoProps {
   alCambiarCapa: (capa: CapaDelCuerpo) => void
   alCambiarRango: (rango: RangoDeLectura) => void
   alCambiarVista: (vista: VistaDelSalon) => void
-  /** El ejercicio que toca, para la linea de arriba. Sin ejercicio no hay linea. */
-  ejercicio?: Pick<EjercicioPrescrito, 'nombre' | 'sets' | 'repsDiana' | 'descansoMin' | 'rirObjetivo'>
+  /** Lo que toca, para la linea de arriba: nombre y cifras. Sin nada que decir no hay linea. */
+  resumen?: { nombre: string; cifras: string }
+  /**
+   * EL RELOJ DE LA PARED, que la portada no puede perder: el cronometro de la sesion, la cuenta
+   * atras del descanso (con su aviso de fin: `alTerminarLaCuenta`) y la carga. Es el mismo
+   * `HuecoDeDatos` del muro, montado aqui porque la portada no monta las paredes.
+   */
+  reloj?: {
+    sesion?: Sesion
+    ejercicio?: EjercicioPrescrito
+    textoDeCarga: string
+    cargaPrevia?: number
+    modo: ModoDelReloj
+    anclas: AnclasDelReloj
+    alTerminarLaCuenta: () => void
+    cargaEnLaPared: boolean
+  }
 }
 
 const CAPAS: readonly { id: CapaDelCuerpo; nombre: string }[] = [
@@ -86,7 +103,9 @@ function Opcion({
 }
 
 /** «3 series · 9 reps · 3 min · RIR 2»: las cuatro cifras de la pared, en una linea. */
-export function cifrasEnUnaLinea(e: NonNullable<PortadaDelCuerpoProps['ejercicio']>): string {
+export function cifrasEnUnaLinea(
+  e: Pick<EjercicioPrescrito, 'sets' | 'repsDiana' | 'descansoMin' | 'rirObjetivo'>,
+): string {
   const descanso = Number.isInteger(e.descansoMin) ? `${e.descansoMin} min` : `${String(e.descansoMin).replace('.', ',')} min`
   const rir = e.rirObjetivo === 'FALLO' ? 'fallo' : String(e.rirObjetivo)
   return `${e.sets} series · ${e.repsDiana} reps · ${descanso} · RIR ${rir}`
@@ -107,7 +126,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
       <div data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
         {/* ARRIBA, EN PEQUENO: que ejercicio toca y sus cifras (decision de Bryan). Los cuadros
             grandes de la pared y el reloj son de la vista de movimiento. */}
-        {enCuerpo && p.ejercicio && (
+        {enCuerpo && p.resumen && (
           <div
             data-testigo="resumen-del-ejercicio"
             className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
@@ -117,14 +136,33 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
               className="max-w-full truncate text-[15px] leading-tight"
               style={{ color: 'var(--texto)', fontWeight: 800, textShadow: '0 1px 6px rgb(0 0 0 / 0.55)' }}
             >
-              {p.ejercicio.nombre}
+              {p.resumen.nombre}
             </p>
             <p
               className="cifras max-w-full truncate text-[12px] leading-tight"
               style={{ color: 'var(--tenue)', textShadow: '0 1px 6px rgb(0 0 0 / 0.55)' }}
             >
-              {cifrasEnUnaLinea(p.ejercicio)}
+              {p.resumen.cifras}
             </p>
+          </div>
+        )}
+
+        {/* EL RELOJ: cronometro de la sesion, cuenta atras del descanso o carga. */}
+        {enCuerpo && p.reloj && (
+          <div
+            className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 11.6rem)', fontSize: '22px' }}
+          >
+            <HuecoDeDatos
+              muestra={p.reloj.cargaEnLaPared ? 'carga' : 'reloj'}
+              sesion={p.reloj.sesion}
+              ejercicio={p.reloj.ejercicio}
+              textoDeCarga={p.reloj.textoDeCarga}
+              cargaPrevia={p.reloj.cargaPrevia}
+              modo={p.reloj.modo}
+              anclas={p.reloj.anclas}
+              alTerminarLaCuenta={p.reloj.alTerminarLaCuenta}
+            />
           </div>
         )}
 

@@ -58,9 +58,10 @@ import { SalaVacia } from './sinPatron/SalaVacia'
 import { useCapaDelSalon } from './momentos/useCapaDelSalon'
 import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
-import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
+import { PortadaDelCuerpo, cifrasEnUnaLinea, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
 import type { CapaDelCuerpo } from '../sujeto/pintura'
-import { ENCUADRE_DEL_CUERPO } from '../sujeto/encuadreDelCuerpo'
+import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
+import { cargaAnterior } from './paredes/cargaAnterior'
 import { regionesConDolor, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
 
 /**
@@ -433,6 +434,16 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   )
   const doloridas = useMemo(() => regionesConDolor(props.dolorDeHoy), [props.dolorDeHoy])
   const enCuerpo = conEjeW && vista === 'cuerpo'
+  // LA LINEA DE ARRIBA («Nombre arriba, en pequeno»): nombre y cifras del ejercicio, o, en un dia de
+  // cardio, el nombre de la ficha y sus cifras (tramos, minutos, intensidad).
+  const resumenDeLaPortada = useMemo(() => {
+    if (ejercicio) return { nombre: ejercicio.nombre, cifras: cifrasEnUnaLinea(ejercicio) }
+    if (!contenido) return undefined
+    const cifras = estacionesDelCardio(sesionEnPantalla?.bloquesCardio)
+      .map((e) => `${e.cifra} ${e.rotulo.toLowerCase()}`)
+      .join(' · ')
+    return { nombre: contenido.nombre, cifras }
+  }, [ejercicio, contenido, sesionEnPantalla])
   const cuerpoParaElVisor = useMemo(
     () => (enCuerpo ? { capa: capaDelCuerpo, tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas) } : undefined),
     [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas],
@@ -1057,8 +1068,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           cargaEnLaPared={cargaEnLaPared}
           camara={camara}
           lienzo={lienzo}
-          // Los cuadros cuelgan respecto de la camara de ENTRADA: en la vista de cuerpo es la suya.
-          azimutDeEntrada={enCuerpo ? ENCUADRE_DEL_CUERPO.azimut : (patron?.camara.azimut ?? 0)}
+          azimutDeEntrada={patron?.camara.azimut ?? 0}
         />
       )}
 
@@ -1227,7 +1237,21 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
             alCambiarVista={setVista}
-            ejercicio={ejercicio}
+            resumen={resumenDeLaPortada}
+            reloj={
+              contenido
+                ? {
+                    sesion: sesionEnPantalla,
+                    ejercicio,
+                    textoDeCarga: contenido.carga,
+                    cargaPrevia: cargaAnterior(props.microcicloPrevio, ejercicio),
+                    modo: modoReloj,
+                    anclas: { abierto, cuenta: cuenta?.desde, duracion: cuenta?.duracion },
+                    alTerminarLaCuenta,
+                    cargaEnLaPared,
+                  }
+                : undefined
+            }
           />
         )}
 

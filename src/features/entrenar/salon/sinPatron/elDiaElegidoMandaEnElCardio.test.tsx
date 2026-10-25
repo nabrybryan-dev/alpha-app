@@ -204,4 +204,17 @@ describe('el día elegido manda también en el cardio', () => {
    * tener prueba. La decisión —cuándo hay encuadre que contar— se comprueba donde vive, en
    * `contenidoPared.test.ts`.
    */
+
+  it('en la portada del cuerpo, el dia metabolico dice arriba su nombre y sus cifras', async () => {
+    const { microciclo } = montarEnUnDiaDeFuerza()
+    const metabolica = microciclo.sesiones.find((s) => s.bloquesCardio?.length)!
+    await viajarA(metabolica.nombre)
+    await waitFor(() => {
+      const linea = document.querySelector('[data-testigo="resumen-del-ejercicio"]')
+      expect(linea, 'la portada no dice que toca').not.toBeNull()
+      expect((linea?.textContent ?? '').toUpperCase()).toContain('CARRERA')
+    })
+    expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')?.textContent).toContain('30')
+  })
+
 })
