@@ -136,3 +136,17 @@ describe('el asesorado normal no cambia', () => {
     expect(screen.getByText('Racha')).toBeInTheDocument()
   })
 })
+
+describe('el Hoy del staff queda como en main hasta el paso 9', () => {
+  it('conserva el tema claro y no lleva nada del aspecto nuevo del asesorado', async () => {
+    const { container } = pintar()
+    await screen.findByRole('region', { name: 'Mi nutrición de hoy' })
+    expect(container.querySelector('[data-theme="light"]')).not.toBeNull()
+    for (const clase of ['hoy-tarjeta', 'hoy-hero', 'hoy-fila', 'hoy-resto-cabecera', 'tecla-2', 'btn-3d']) {
+      expect(container.querySelector(`.${clase}`), clase).toBeNull()
+    }
+    // Sin las tres bandas ni «El resto» plegado.
+    expect(screen.queryByRole('button', { name: /El resto/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Lo de hoy' })).not.toBeInTheDocument()
+  })
+})

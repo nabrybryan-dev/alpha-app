@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
@@ -166,6 +166,8 @@ describe('el día elegido manda también en el cardio', () => {
     const { microciclo } = montarEnUnDiaDeFuerza()
     const metabolica = microciclo.sesiones.find((s) => s.bloquesCardio?.length)!
 
+    // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     await viajarA(metabolica.nombre)
 
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
@@ -202,4 +204,17 @@ describe('el día elegido manda también en el cardio', () => {
    * tener prueba. La decisión —cuándo hay encuadre que contar— se comprueba donde vive, en
    * `contenidoPared.test.ts`.
    */
+
+  it('en la portada del cuerpo, el dia metabolico dice arriba su nombre y sus cifras', async () => {
+    const { microciclo } = montarEnUnDiaDeFuerza()
+    const metabolica = microciclo.sesiones.find((s) => s.bloquesCardio?.length)!
+    await viajarA(metabolica.nombre)
+    await waitFor(() => {
+      const linea = document.querySelector('[data-testigo="resumen-del-ejercicio"]')
+      expect(linea, 'la portada no dice que toca').not.toBeNull()
+      expect((linea?.textContent ?? '').toUpperCase()).toContain('CARRERA')
+    })
+    expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')?.textContent).toContain('30')
+  })
+
 })

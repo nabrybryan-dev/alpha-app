@@ -151,7 +151,7 @@ function montarSalon(sesion: Sesion | undefined) {
     seriesPorGrupo: cargaPorGrupo(microciclo).map((g) => g.seriesPautadas),
   }
   const requisitos = requisitosParaPeldano(2, datos)
-  return render(
+  const montado = render(
     <MemoryRouter>
       <SalonEntrenar
         microciclo={microciclo}
@@ -167,6 +167,10 @@ function montarSalon(sesion: Sesion | undefined) {
       />
     </MemoryRouter>,
   )
+  // El eje W (atravesar con el dedo) es de la vista de MOVIMIENTO: la portada es el cuerpo.
+  const abrir = screen.queryByRole('button', { name: 'Ver el movimiento' })
+  if (abrir) fireEvent.click(abrir)
+  return montado
 }
 
 /** Una sesión de mentira con un solo ejercicio, para elegir qué ocupa el centro. */

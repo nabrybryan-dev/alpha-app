@@ -416,6 +416,13 @@ function montarConFuerza(elegirSesion?: (s: Sesion) => boolean) {
   return { microciclo, sesion }
 }
 
+/** Monta el salon con fuerza y abre la vista de MOVIMIENTO (donde viven el eje W y las paredes). */
+function montarEnMovimiento(...args: Parameters<typeof montarConFuerza>) {
+  const r = montarConFuerza(...args)
+  fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+  return r
+}
+
 describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', () => {
 
   beforeEach(() => {
@@ -429,6 +436,8 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     vi.useFakeTimers()
     try {
     montarConFuerza()
+    // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
     expect(huecos).toContain('paredes')
@@ -503,7 +512,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     // peldaños, sino lo que esos peldaños servían para hacer — que con cuerpo en el centro
     // se puede entrar en él. Si el arreglo de la interfaz se hubiera pasado de frenada y
     // apagado también el gesto, esto se pone rojo.
-    montarConFuerza()
+    montarEnMovimiento()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     // Que hay cuerpo: el visor montado es la condición de la que cuelga el eje.
     expect(salon.querySelector('canvas'), 'no hay sujeto en el centro con la sesión de fuerza').not.toBeNull()
@@ -584,7 +593,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
   })
 
   it('un arrastre vertical NO cambia de ejercicio: ese gesto es del eje W', () => {
-    montarConFuerza((s) => s.ejercicios.length > 1)
+    montarEnMovimiento((s) => s.ejercicios.length > 1)
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     expect(salon.querySelectorAll('[data-punto]').length).toBeGreaterThan(1)
     const indiceDe = () =>
@@ -631,7 +640,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
   it('con el dedo dentro, el sujeto no lleva transform ni filter: el acuse es un halo aparte', () => {
     vi.useFakeTimers()
     try {
-      montarConFuerza()
+      montarEnMovimiento()
       const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
       const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
       const sujeto = salon.querySelector('[data-testigo="sujeto"]') as HTMLElement
@@ -866,4 +875,14 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
     await waitFor(() => expect(document.querySelector('[data-logro]')).not.toBeNull())
     expect(cajon.style.visibility).toBe('hidden')
   })
+
+  it('en la portada del cuerpo (vista por defecto) el cronometro de la sesion sigue ahi', () => {
+    montarConFuerza()
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    expect(salon.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')).not.toBeNull()
+    // Y las cuatro estaciones y la ficha de la serie, que no dependian de las paredes.
+    expect(salon.querySelectorAll('[data-estacion]')).toHaveLength(4)
+    expect(salon.querySelector('[data-cajon="serie"]')).not.toBeNull()
+  })
+
 })
