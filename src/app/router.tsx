@@ -10,6 +10,7 @@ const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
 const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
 const SesionPage = lazy(() => import('../features/entrenar/SesionPage'))
 const BienestarPage = lazy(() => import('../features/bienestar/BienestarPage'))
+const SemanaPage = lazy(() => import('../features/semana/SemanaPage'))
 const ProgresoPage = lazy(() => import('../features/progreso/ProgresoPage'))
 const DiarioDia = lazy(() => import('../features/nutricion/DiarioDia'))
 const NutricionLayout = lazy(() => import('../features/nutricion/NutricionLayout'))
@@ -88,6 +89,7 @@ export function AppRouter() {
             parte de entrenar, no una herramienta de coach. */}
         <Route path="entrenar/encoder" element={envolver(<EncoderPage />)} />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
+        <Route path="semana" element={envolver(<SemanaPage />)} />
         <Route path="progreso" element={envolver(<ProgresoPage />)} />
         {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no
             hay forma de entrar por la URL saltandosela. */}

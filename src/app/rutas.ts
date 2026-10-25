@@ -91,6 +91,7 @@ export const RUTAS: readonly RutaApp[] = [
   { patron: '/entrenar/sesion/:sesionId', ejemplo: '/entrenar/sesion/s-1', padre: '/entrenar', titulo: 'Sesión', guarda: PROPIA },
   { patron: '/entrenar/encoder', ejemplo: '/entrenar/encoder', padre: '/entrenar', titulo: 'Encoder', guarda: PROPIA },
   { patron: '/bienestar', ejemplo: '/bienestar', padre: null, padreEquipo: '/', titulo: 'Bienestar', guarda: ASESORADO },
+  { patron: '/semana', ejemplo: '/semana', padre: null, padreEquipo: '/', titulo: 'Semana', guarda: ASESORADO },
   { patron: '/progreso', ejemplo: '/progreso', padre: null, padreEquipo: '/', titulo: 'Progreso', guarda: ASESORADO },
   { patron: '/nutricion', ejemplo: '/nutricion', padre: null, padreEquipo: '/', titulo: 'Nutrición', guarda: ASESORADO },
   { patron: '/nutricion/plan', ejemplo: '/nutricion/plan', padre: '/nutricion', titulo: 'Mi plan de nutrición', guarda: ASESORADO },

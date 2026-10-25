@@ -14,6 +14,7 @@ const titulos: Record<string, string> = {
   '/': 'Hoy',
   '/entrenar': 'Entrenar',
   '/bienestar': 'Bienestar',
+  '/semana': 'Semana',
   '/nutricion': 'Nutrición',
   '/progreso': 'Progreso',
   '/chat': 'Chat',
