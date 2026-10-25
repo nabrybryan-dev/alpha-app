@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
@@ -205,11 +205,30 @@ export default function MiPlan() {
       </div>
 
       {seccion === 'Mi perfil' && (
-        <PerfilCalculadoVista
-          perfil={calcularPerfil(respuestas, hoyIso())}
-          visibilidad={visibilidad}
-          nombre={usuario.nombre}
-        />
+        <>
+          <PerfilCalculadoVista
+            perfil={calcularPerfil(respuestas, hoyIso())}
+            visibilidad={visibilidad}
+            nombre={usuario.nombre}
+          />
+          {/* La puerta a las preguntas que vuelven cada quince días. Antes se
+              llegaba desde el aviso del diario; al quitarlo de allí, esta es la
+              salida que impide que la ruta quede sin enlace. */}
+          <Link
+            to="/nutricion/al-dia"
+            className="press flex items-center justify-between gap-3 rounded-2xl border border-linea bg-surface-1 p-3"
+          >
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-texto">Al día</span>
+              <span className="block text-xs leading-snug text-tenue">
+                Lo que te dijo tu médico, cada quince días
+              </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-tenue">
+              ›
+            </span>
+          </Link>
+        </>
       )}
 
       {seccion === 'Contexto' && (

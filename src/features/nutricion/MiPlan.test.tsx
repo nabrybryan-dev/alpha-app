@@ -51,6 +51,16 @@ describe('MiPlan', () => {
     expect(screen.getByText(/antes de los números/i)).toBeInTheDocument()
   })
 
+  it('«Al día» sigue teniendo puerta desde Mi perfil', () => {
+    // El aviso quincenal se fue del diario (maqueta 7), pero la ruta no puede
+    // quedarse sin enlace: estas son las preguntas que vuelven cada quince días.
+    pintar()
+    expect(screen.getByRole('link', { name: /al día/i })).toHaveAttribute(
+      'href',
+      '/nutricion/al-dia',
+    )
+  })
+
   it('explica por qué las calorías ondulan', async () => {
     pintar()
     await irA('Ondulación')
