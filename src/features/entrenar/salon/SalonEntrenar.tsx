@@ -58,7 +58,8 @@ import { SalaVacia } from './sinPatron/SalaVacia'
 import { useCapaDelSalon } from './momentos/useCapaDelSalon'
 import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
-import { PortadaDelCuerpo, cifrasEnUnaLinea, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
+import { cifrasEnUnaLinea } from './cuerpo/cifrasEnUnaLinea'
+import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
 import type { CapaDelCuerpo } from '../sujeto/pintura'
 import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
 import { cargaAnterior } from './paredes/cargaAnterior'
@@ -1172,7 +1173,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // LOS DOS MANDOS, UNO SOBRE OTRO Y AL ALCANCE DEL PULGAR. El del reloj y el de
           // la cámara: los dos únicos aparatos que se OPERAN en este salón, con la misma
           // materia y el mismo tamaño. Todo lo demás se lee.
-          <div className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5">
+          // Por encima de las estaciones (z-contenido): un poste del suelo caia sobre la camara y se comia el toque.
+          <div
+            className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5"
+            style={{ zIndex: 'var(--z-elevado)' }}
+          >
             <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />
             <Joystick
               encendido={modoReloj !== 'sesion' || cargaEnLaPared}

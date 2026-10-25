@@ -99,15 +99,6 @@ function Opcion({
   )
 }
 
-/** «3 series · 9 reps · 3 min · RIR 2»: las cuatro cifras de la pared, en una linea. */
-export function cifrasEnUnaLinea(
-  e: Pick<EjercicioPrescrito, 'sets' | 'repsDiana' | 'descansoMin' | 'rirObjetivo'>,
-): string {
-  const descanso = Number.isInteger(e.descansoMin) ? `${e.descansoMin} min` : `${String(e.descansoMin).replace('.', ',')} min`
-  const rir = e.rirObjetivo === 'FALLO' ? 'fallo' : String(e.rirObjetivo)
-  return `${e.sets} series · ${e.repsDiana} reps · ${descanso} · RIR ${rir}`
-}
-
 function cifra(n: number): string {
   const r = Math.round(n * 10) / 10
   return Number.isInteger(r) ? String(r) : String(r).replace('.', ',')
@@ -147,7 +138,9 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         {/* EL RELOJ: cronometro de la sesion, cuenta atras del descanso o carga. */}
         {enCuerpo && p.reloj && (
           <div
-            className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center"
+            // `[&_button]:!text-texto`: el boton del cronometro no trae color y en tema claro el del navegador
+            // (negro) caia sobre la sala oscura; asi lo pone el token del salon (claro).
+            className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center [&_button]:!text-texto"
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 11.6rem)', fontSize: '22px' }}
           >
             <HuecoDeDatos

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { PortadaDelCuerpo, cifrasEnUnaLinea, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
+import { PortadaDelCuerpo, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
+import { cifrasEnUnaLinea } from './cifrasEnUnaLinea'
 
 function props(sobre: Partial<PortadaDelCuerpoProps> = {}): PortadaDelCuerpoProps {
   return {
