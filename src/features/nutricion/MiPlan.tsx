@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
@@ -89,6 +89,30 @@ export default function MiPlan() {
   }
 
   /**
+   * La misma salida, pero SIN los gramos del plan.
+   *
+   * Es la decisión de la maqueta 5 que Bryan firmó: el diario va en blanco y
+   * solo cuenta lo que la persona anota. En la vista simple no se hereda una
+   * cantidad que ella no ha pesado — se abre la hoja con el alimento escrito y
+   * la cantidad vacía (100 g por defecto, el mismo punto de partida que
+   * cualquier otro alimento). El plan completo conserva su «+» con la pauta,
+   * que es la otra pantalla y otro gesto.
+   */
+  const registrarSinGramos = (linea: string, tituloComida: string) => {
+    const [pauta] = leerPauta(linea)
+    if (!pauta) return
+    navegar('/nutricion', {
+      state: {
+        desdeElPlan: {
+          busqueda: pauta.busqueda,
+          gramos: null,
+          comida: comidaDe(tituloComida),
+        },
+      },
+    })
+  }
+
+  /**
    * Cambia entre la lista sencilla y el plan completo. Sube al principio porque las dos
    * pantallas miden distinto: sin subir, quien pulsó el botón del pie de la lista se queda
    * en el fondo del plan completo, sin ver ni sus pestañas ni la vuelta.
@@ -110,7 +134,7 @@ export default function MiPlan() {
     return (
       <MiPlanSimple
         plan={plan}
-        onRegistrar={registrar}
+        onRegistrar={registrarSinGramos}
         onVolver={() => navegar('/nutricion')}
         onVerCompleto={() => cambiarVista(true)}
       />
@@ -181,11 +205,30 @@ export default function MiPlan() {
       </div>
 
       {seccion === 'Mi perfil' && (
-        <PerfilCalculadoVista
-          perfil={calcularPerfil(respuestas, hoyIso())}
-          visibilidad={visibilidad}
-          nombre={usuario.nombre}
-        />
+        <>
+          <PerfilCalculadoVista
+            perfil={calcularPerfil(respuestas, hoyIso())}
+            visibilidad={visibilidad}
+            nombre={usuario.nombre}
+          />
+          {/* La puerta a las preguntas que vuelven cada quince días. Antes se
+              llegaba desde el aviso del diario; al quitarlo de allí, esta es la
+              salida que impide que la ruta quede sin enlace. */}
+          <Link
+            to="/nutricion/al-dia"
+            className="press flex items-center justify-between gap-3 rounded-2xl border border-linea bg-surface-1 p-3"
+          >
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-texto">Al día</span>
+              <span className="block text-xs leading-snug text-tenue">
+                Lo que te dijo tu médico, cada quince días
+              </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-tenue">
+              ›
+            </span>
+          </Link>
+        </>
       )}
 
       {seccion === 'Contexto' && (

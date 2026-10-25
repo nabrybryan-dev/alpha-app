@@ -102,3 +102,34 @@ describe('HoyPage — el aviso cuando el único microciclo no cubre hoy (A023)',
     expect(screen.queryByText(/terminó el/)).not.toBeInTheDocument()
   })
 })
+
+describe('HoyPage — los carteles en vista simple (Karin) no dicen «microciclo»', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    reiniciarDb()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(HOY)
+    const perfil = db.perfiles.byUsuario('u-valentina')
+    if (!perfil) throw new Error('el seed no trae perfil')
+    vi.spyOn(db.perfiles, 'byUsuario').mockReturnValue({ ...perfil, vistaSimple: true })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it('microciclo ADELANTADO: «Tu semana empieza el…»', async () => {
+    conUnSoloMicrociclo({ fechaInicio: '2026-09-14', cadenciaDias: 7 })
+    renderizarHoy()
+    expect(await screen.findByText(/Tu semana empieza el 2026-09-14/)).toBeInTheDocument()
+    expect(screen.queryByText(/Tu microciclo empieza el/)).not.toBeInTheDocument()
+  })
+
+  it('microciclo VENCIDO: «Tu semana N terminó el…»', async () => {
+    conUnSoloMicrociclo({ fechaInicio: '2026-08-10', cadenciaDias: 7 })
+    renderizarHoy()
+    expect(await screen.findByText(/Tu semana \d+ terminó el 2026-08-16/)).toBeInTheDocument()
+    expect(screen.queryByText(/Tu microciclo M\d+ terminó/)).not.toBeInTheDocument()
+  })
+})

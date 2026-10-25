@@ -14,6 +14,23 @@ describe('recetasProbadas', () => {
     expect(anotar(una, 'r1', HOY)).toHaveLength(1)
   })
 
+  /**
+   * La racha no cuenta dos veces, pero cada comida registrada sí es una
+   * cocinada: si se hizo dos veces, la lista las enseña las dos.
+   */
+  it('guarda cada comida registrada de la misma receta', () => {
+    const una = anotar([], 'r1', HOY, 'c1')
+    const dos = anotar(una, 'r1', HOY, 'c2')
+
+    expect(dos).toEqual([{ recetaId: 'r1', fecha: HOY, comidas: ['c1', 'c2'] }])
+    expect(desanotar(dos, 'r1', HOY, 'c2')).toEqual([
+      { recetaId: 'r1', fecha: HOY, comidas: ['c1'] },
+    ])
+    expect(desanotar(dos, 'r1', HOY, 'c1')).toEqual([
+      { recetaId: 'r1', fecha: HOY, comidas: ['c2'] },
+    ])
+  })
+
   it('la misma receta otro día sí cuenta', () => {
     const una = anotar([], 'r1', '2026-08-15')
     expect(anotar(una, 'r1', HOY)).toHaveLength(2)

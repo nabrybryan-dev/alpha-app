@@ -1,89 +1,18 @@
 import { useState } from 'react'
 import { useSesion } from '../../app/SessionProvider'
-import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { IconoCampana } from '../../components/ui/Icono'
-import { Revelar } from '../../components/ui/Revelar'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
-import type { CheckinDiario } from '../../domain/types'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { CheckinForm } from './CheckinForm'
+import { filasCheckin } from './filasCheckin'
+import { HistorialDeCheckins } from './HistorialDeCheckins'
 import { MedidasCard } from './MedidasCard'
 import { MensajesVidaBandeja } from './MensajesVidaBandeja'
 import { TarjetaVidaCard } from './TarjetaVidaCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
-import { tramoDeHambre } from '../../domain/senales/hambre'
-import { tramoDeDolor } from '../../domain/senales/dolor'
-
-function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
-  if (valor === 'BUENA' || valor === 'POCO') return 'verde'
-  if (valor === 'REGULAR') return 'ambar'
-  if (valor === 'MALA' || valor === 'MUCHO') return 'rojo'
-  return 'neutro'
-}
-
-/**
- * Filas [etiqueta, valor] de lo que el asesorado llenó hoy (solo lo diligenciado).
- *
- * `verPeso` viene de la decisión de la nutricionista. Dejar de PEDIR el peso sin
- * dejar de ENSEÑARLO no serviría de nada: los kilos que ya están guardados
- * seguirían apareciéndole cada día en su propio resumen.
- */
-function filasCheckin(c: CheckinDiario, verPeso: boolean): [string, string][] {
-  const filas: [string, string][] = []
-  if (verPeso && c.pesoKg !== undefined) filas.push(['Peso ayunas', `${c.pesoKg} kg`])
-  if (c.pasos !== undefined) filas.push(['Pasos de ayer', c.pasos.toLocaleString('es-CO')])
-  if (c.entreno) filas.push(['Entreno', c.entreno])
-  if (c.rendimiento) filas.push(['Rendimiento', c.rendimiento])
-  if (c.motivacion) filas.push(['Motivación', c.motivacion])
-  // Los dos, y sin mezclarlos: los check-ins viejos guardaron una categoría y
-  // los nuevos guardan un número. Enseñar «MUCHO» como si fuera un 8 diría que
-  // se midió algo que nadie midió.
-  if (c.hambreEscala !== undefined) {
-    filas.push(['Hambre', `${c.hambreEscala} / 10 · ${tramoDeHambre(c.hambreEscala).etiqueta}`])
-  } else if (c.hambre) {
-    filas.push(['Hambre', `${c.hambre} (escala antigua)`])
-  }
-  if (c.cansancio) filas.push(['Cansancio', c.cansancio])
-  if (c.estres) filas.push(['Estrés', c.estres])
-  if (c.horasSueno !== undefined) {
-    filas.push(['Sueño', `${c.horasSueno} h${c.calidadSueno ? ` · ${c.calidadSueno}` : ''}`])
-  }
-  if (c.alimentacion) filas.push(['Alimentación', c.alimentacion])
-  // El cero se enseña: «sin dolor» es un dato que la persona marcó, no un hueco.
-  if (c.dolor !== undefined) {
-    const donde = c.dolorDonde ? ` · ${c.dolorDonde}` : ''
-    filas.push(['Dolor', `${c.dolor} / 10 · ${tramoDeDolor(c.dolor).etiqueta}${donde}`])
-  }
-  return filas
-}
-
-function FilaHistorial({ checkin, verPeso }: { checkin: CheckinDiario; verPeso: boolean }) {
-  return (
-    <Card className="!p-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-texto">{checkin.fecha}</p>
-        <p className="text-xs text-tenue">
-          {verPeso && checkin.pesoKg ? `${checkin.pesoKg} kg` : ''} {checkin.horasSueno ? `· ${checkin.horasSueno} h sueño` : ''}
-        </p>
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {checkin.entreno && <Badge tono="neutro">{checkin.entreno}</Badge>}
-        {checkin.estres && <Badge tono={tonoDe(checkin.estres)}>Estrés {checkin.estres}</Badge>}
-        {checkin.cansancio && <Badge tono={tonoDe(checkin.cansancio)}>Cansancio {checkin.cansancio}</Badge>}
-        {checkin.calidadSueno && <Badge tono={tonoDe(checkin.calidadSueno)}>Sueño {checkin.calidadSueno}</Badge>}
-        {checkin.dolor !== undefined && checkin.dolor > 0 && (
-          <Badge tono={tramoDeDolor(checkin.dolor).etiqueta === 'leve' ? 'ambar' : 'rojo'}>
-            Dolor {checkin.dolor}{checkin.dolorDonde ? ` · ${checkin.dolorDonde}` : ''}
-          </Badge>
-        )}
-      </div>
-      {checkin.comentarios && <p className="mt-1.5 text-xs italic text-tenue">"{checkin.comentarios}"</p>}
-    </Card>
-  )
-}
 
 export default function BienestarPage() {
   const { usuario } = useSesion()
@@ -93,7 +22,6 @@ export default function BienestarPage() {
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
-  const ultimos = [...checkins].reverse().slice(0, 7)
   // Arranca los steppers cerca del último valor real registrado.
   const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
   const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
@@ -186,14 +114,9 @@ export default function BienestarPage() {
         <TarjetaVidaCard usuarioId={usuario.id} />
       </div>
 
-      <section className="entrada entrada-4 flex flex-col gap-2">
-        <p className="kicker">Últimos 7 días</p>
-        {ultimos.map((c, i) => (
-          <Revelar key={c.id} retrasoMs={(i % 5) * 50}>
-            <FilaHistorial checkin={c} verPeso={verPeso} />
-          </Revelar>
-        ))}
-      </section>
+      <div className="entrada entrada-4">
+        <HistorialDeCheckins checkins={checkins} verPeso={verPeso} />
+      </div>
     </div>
   )
 }

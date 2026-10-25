@@ -41,11 +41,15 @@ const pestanasAsesorado = [
     ),
   },
   {
-    ruta: '/bienestar',
-    etiqueta: 'Bienestar',
+    // Bienestar salió de la barra y su contenido se repartió: el check-in está en Hoy,
+    // el historial y las medidas en Progreso, y lo semanal en Semana (paso 6). La ruta
+    // `/bienestar` sigue viva como detalle, pero ya no ocupa una pestaña.
+    ruta: '/semana',
+    etiqueta: 'Semana',
     icono: (
       <Icono>
-        <path d="M12 20.5S4 15 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5c0 5.5-8 11-8 11Z" />
+        <rect x="4" y="5" width="16" height="15" rx="3" />
+        <path d="M4 10h16M9 3v4M15 3v4" />
       </Icono>
     ),
   },

@@ -81,6 +81,19 @@ describe('rutas del asesorado', () => {
     expect(nav.textContent).not.toMatch(/Chat/)
   })
 
+  it('Semana entra en la barra y Bienestar sale de ella', async () => {
+    renderizarEn('/semana')
+    expect(await screen.findByRole('heading', { level: 2, name: 'Semana' })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(nav.textContent).toMatch(/Semana/)
+    expect(nav.textContent).not.toMatch(/Bienestar/)
+  })
+
+  it('la ruta vieja /bienestar sigue viva como detalle (no se borra)', async () => {
+    renderizarEn('/bienestar')
+    expect(await screen.findByRole('heading', { name: 'Check-in diario' })).toBeInTheDocument()
+  })
+
   it('desde Hoy se llega al chat por la barra del coach', async () => {
     renderizarEn('/')
     // Esperar a CONTENIDO de Hoy, no a la navegación: la barra vive en el

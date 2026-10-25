@@ -59,6 +59,10 @@ export default function RutaPage() {
     )
   }
 
+  // El dolor de HOY, del check-in de hoy y de nadie más: el cuerpo lo pinta en rojo. Sin
+  // check-in de hoy no se pasa nada.
+  const dolorDeHoy = db.bienestar.byUsuario(usuario.id).find((c) => c.fecha === hoy)
+
   const calculos = calculosDeLaRuta(usuario.id, microciclo, hoy)
   const perfil = db.perfiles.byUsuario(usuario.id)
 
@@ -105,6 +109,8 @@ export default function RutaPage() {
       // tiene su talla con las proporciones del atlas, que no es una estimación de las
       // suyas: es el cuerpo de siempre, y se sabe.
       proporciones={cuerpo.proporciones}
+      // Y el dolor del check-in de hoy, para pintarlo en rojo en el cuerpo.
+      dolorDeHoy={dolorDeHoy ? { dolor: dolorDeHoy.dolor, dolorDonde: dolorDeHoy.dolorDonde } : undefined}
     />
   )
 }
