@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { Malla, type Color } from '../../../domain/patrones/malla'
-import { INDICE_RAIZ } from '../../../domain/patrones/esqueleto'
 import { CuerpoPintado, colorDeRegion, type Paleta } from './pintura'
 import { tinteDelCuerpo } from './tinte'
 
@@ -82,11 +81,11 @@ describe('el cuerpo pintado', () => {
     expect(cuerpo.musculos).toHaveLength(2)
   })
 
-  it('las copias cuelgan de la raiz del sujeto y no llevan textura (una sola tanda de dibujo)', () => {
+  it('las copias van con el hueso 0 (de pie, no tumbadas por la raiz del patron) y no llevan textura (una sola tanda de dibujo)', () => {
     const { cuerpo } = armar()
     for (const m of cuerpo.musculos) {
       expect(m.textura).toBeNull()
-      expect([...m.hueso].every((h) => h === INDICE_RAIZ)).toBe(true)
+      expect([...m.hueso].every((h) => h === 0)).toBe(true)
     }
   })
 

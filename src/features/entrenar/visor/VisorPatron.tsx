@@ -26,6 +26,7 @@ import { AjusteDeDensidad, esCelular } from './densidad'
 import { mallasDelCuerpo } from '../sujeto/cuerpoEnEscena'
 import { paletaDelTema, type CapaDelCuerpo } from '../sujeto/pintura'
 import type { TinteDelCuerpo } from '../sujeto/tinte'
+import { encuadreDelCuerpo } from '../sujeto/encuadreDelCuerpo'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -528,6 +529,8 @@ export function VisorPatron({
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
+  /** Lleva la camara al encuadre del cuerpo (de pie, de frente) o al del patron. La rellena el montaje. */
+  const reencuadrar = useRef<((aCuerpo: boolean) => void) | null>(null)
   const hayCuerpo = cuerpo !== undefined
 
   /**
@@ -576,6 +579,7 @@ export function VisorPatron({
     estado.current.retirada = retirada
     estado.current.atlas = atlas
     estado.current.cuerpo = cuerpo
+    reencuadrar.current?.(cuerpo !== undefined)
     estado.current.momentos = momentos
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
@@ -710,6 +714,35 @@ export function VisorPatron({
           const topes = topesDeElevacion(orbita.centro, orbita.distancia)
           orbita.elevacionMin = topes.min
           orbita.elevacionMax = topes.max
+        }
+        // LA VISTA DE CUERPO TIENE SU CAMARA: de frente y de pie (`encuadreDelCuerpo`). La del
+        // patron de un press plano mira a un cuerpo tumbado desde arriba, y el sujeto de Blender
+        // no esta tumbado. Se puede pasar de una a otra sin remontar WebGL (viaje suave).
+        const encuadreDelPatron = {
+          azimut: orbita.azimut,
+          elevacion: orbita.elevacion,
+          distancia: orbita.distancia,
+          centro: [...orbita.centro] as [number, number, number],
+          campo: estado.current.campoDelSalon,
+        }
+        let enCuerpoLaCamara = false
+        const llevarLaCamara = (aCuerpo: boolean, conViaje: boolean) => {
+          if (aCuerpo === enCuerpoLaCamara) return
+          enCuerpoLaCamara = aCuerpo
+          const e = aCuerpo ? encuadreDelCuerpo() : { ...encuadreDelPatron, campo: encuadreDelPatron.campo }
+          orbita.centro = [...e.centro] as [number, number, number]
+          estado.current.campoDelSalon = e.campo
+          if (conViaje) orbita.viajarA({ azimut: e.azimut, elevacion: e.elevacion, distancia: e.distancia })
+          else {
+            orbita.azimut = e.azimut
+            orbita.elevacion = e.elevacion
+            orbita.distancia = e.distancia
+          }
+        }
+        if (estado.current.cuerpo) llevarLaCamara(true, false)
+        reencuadrar.current = (aCuerpo) => {
+          llevarLaCamara(aCuerpo, true)
+          pintar()
         }
         // CAMBIAR DE EJERCICIO NO DA UN SALTO. Si había una cámara —la de antes de cambiar,
         // que puede ser la que dejó el dedo—, se parte de ella y se VIAJA a la del patrón
@@ -1159,6 +1192,7 @@ export function VisorPatron({
       if (alPerderContexto) lienzo.removeEventListener('webglcontextlost', alPerderContexto)
       if (alRecuperarContexto) lienzo.removeEventListener('webglcontextrestored', alRecuperarContexto)
       redibujar.current = null
+      reencuadrar.current = null
       orbita?.destruir()
     }
     // `orbitaConUnDedo` entra en las dependencias aunque en la práctica no cambie —el

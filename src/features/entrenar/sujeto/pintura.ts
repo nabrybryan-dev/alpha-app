@@ -1,4 +1,3 @@
-import { INDICE_RAIZ } from '../../../domain/patrones/esqueleto'
 import type { Color, Malla } from '../../../domain/patrones/malla'
 import { colocar } from '../escena/piezas3d'
 import { regionDeMusculo, type IdDeRegion } from './regiones'
@@ -57,7 +56,7 @@ export class CuerpoPintado {
   constructor(partes: readonly ParteDeMusculo[]) {
     this.musculos = partes.map(({ malla }) => {
       const copia = colocar([malla], { x: 0, z: 0, giroY: 0 })[0]
-      copia.colgarDe(INDICE_RAIZ)
+      copia.colgarDe(0) // identidad: quieto y de pie (ver `cuerpoEnEscena`)
       copia.textura = null
       return copia
     })

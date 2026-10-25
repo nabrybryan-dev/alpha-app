@@ -32,10 +32,11 @@ describe('que mallas se suben en cada capa del cuerpo', () => {
     expect(r.mallas[0].alfa).toBe(1)
   })
 
-  it('Hueso: el esqueleto tal cual y los musculos translucidos', () => {
+  it('Hueso: el esqueleto (copia, de pie) y los musculos translucidos', () => {
     const { a, hueso } = almacen()
     const r = mallasDelCuerpo(a, 'hueso', tinte, PALETA)
-    expect(r.mallas).toContain(hueso)
+    expect(r.mallas).not.toContain(hueso)
+    expect(r.mallas.filter((m) => m.alfa === 1)).toHaveLength(1)
     expect(r.mallas.filter((m) => m.alfa === 0.3)).toHaveLength(1)
     expect(r.mallas).toHaveLength(2)
   })
