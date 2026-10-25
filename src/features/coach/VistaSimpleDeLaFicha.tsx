@@ -18,9 +18,30 @@ interface Props {
  * llegar a su rutina y a su comida.
  */
 export function VistaSimpleDeLaFicha({ usuarioId, vistaSimple }: Props) {
-  // El estado local hace que el interruptor responda en el acto; el dato que manda se guarda
-  // en el mismo `db.perfiles` de siempre, y el resto de la ficha se refresca con `useDbVersion`.
-  const [encendido, setEncendido] = useState(Boolean(vistaSimple))
+  const real = Boolean(vistaSimple)
+  // El cambio local solo vale mientras la prop siga siendo la misma con la que se pulsó. Si
+  // cambia la persona (la ficha única reutiliza el componente) o el dato se corrige, manda la
+  // prop: así no se queda el interruptor de la persona anterior ni se enseña un estado falso.
+  const [intento, setIntento] = useState<{ usuarioId: string; real: boolean; valor: boolean } | null>(null)
+  const [error, setError] = useState(false)
+  const vigente =
+    intento !== null && intento.usuarioId === usuarioId && intento.real === real ? intento : null
+  const encendido = vigente ? vigente.valor : real
+
+  const cambiar = (nuevo: boolean) => {
+    setIntento({ usuarioId, real, valor: nuevo })
+    setError(false)
+    try {
+      // El dato que manda se guarda en el mismo `db.perfiles` de siempre; el resto de la ficha
+      // se refresca con `useDbVersion`.
+      db.perfiles.guardarVistaSimple(usuarioId, nuevo ? true : undefined)
+    } catch {
+      // No se guardó: el interruptor vuelve al valor real y la pantalla lo dice.
+      setIntento(null)
+      setError(true)
+    }
+  }
+
   return (
     <Card>
       <div className="flex items-center justify-between gap-3">
@@ -38,15 +59,16 @@ export function VistaSimpleDeLaFicha({ usuarioId, vistaSimple }: Props) {
             role="switch"
             checked={encendido}
             aria-label="Modo simple"
-            onChange={(e) => {
-              const nuevo = e.target.checked
-              setEncendido(nuevo)
-              db.perfiles.guardarVistaSimple(usuarioId, nuevo ? true : undefined)
-            }}
+            onChange={(e) => cambiar(e.target.checked)}
             className="h-6 w-6 cursor-pointer accent-rojo"
           />
         </label>
       </div>
+      {error && (
+        <p role="alert" className="mt-2 text-xs font-semibold text-rojo">
+          No se pudo guardar el modo simple. Sigue como estaba; vuelve a intentarlo.
+        </p>
+      )}
       <p className="mt-2 text-xs text-tenue" aria-live="polite">
         {encendido
           ? 'La persona ve la versión simple: la lista de entrenar y la comida en una pantalla.'
