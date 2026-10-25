@@ -4,7 +4,6 @@ import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
-import { useCapacidades } from '../features/coach/consola/useCapacidades'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import { padreDe } from './rutas'
@@ -22,6 +21,8 @@ const titulos: Record<string, string> = {
   '/cuestionarios': 'Cuestionarios',
   '/marca': 'Marca',
   '/equipo': 'Equipo',
+  '/bandeja': 'Bandeja',
+  '/empresa': 'Empresa',
   '/mi-entreno': 'Mi entreno',
   '/equipo-nutricion': 'Nutrición',
   '/mi-plan': 'Mi plan',
@@ -48,30 +49,19 @@ function esRutaPropiaDelCoach(ruta: string): boolean {
     ruta === '/' ||
     ruta === '/mi-entreno' ||
     ruta === '/equipo' ||
+    ruta.startsWith('/equipo/') ||
+    ruta === '/bandeja' ||
+    ruta === '/empresa' ||
     ruta === '/equipo-nutricion' ||
+    ruta === '/marca' ||
     ruta === '/entrenar' ||
     ruta.startsWith('/entrenar/')
   )
 }
 
-type Tiene = ReturnType<typeof useCapacidades>['tiene']
-
-function puedeEstrategia(tiene: Tiene): boolean {
-  return tiene('revisar_creadores') || tiene('responder_mercadeo') || tiene('decisiones_compartidas')
-}
-
-/** La barra de Bryan es la de Manuela; Estrategias y Administración siguen a SUS capacidades. */
-function BottomNavCoach() {
-  const { cargando, tiene } = useCapacidades()
-  return (
-    <BottomNav
-      espacios="staff"
-      opcionesCoach={{
-        estrategias: !cargando && puedeEstrategia(tiene),
-        administracion: !cargando && tiene('ver_administracion'),
-      }}
-    />
-  )
+/** La barra del equipo es la misma para Manuela y para Bryan (maqueta 7, pasos 9-11). */
+function barraDelStaff() {
+  return <BottomNav espacios="staff" />
 }
 
 /**
@@ -146,7 +136,7 @@ export function AsesoradoLayout() {
       <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
         <Outlet />
       </main>
-      {esCoach ? <BottomNavCoach /> : <BottomNav espacios={espaciosDe(usuario.rol)} />}
+      {esCoach ? barraDelStaff() : <BottomNav espacios={espaciosDe(usuario.rol)} />}
     </div>
   )
 }
@@ -208,7 +198,7 @@ export function CoachLayout() {
             </p>
             <Link to="/coach" className="mt-3 inline-flex min-h-[44px] items-center underline">Volver</Link>
           </main>
-          <BottomNavCoach />
+          {barraDelStaff()}
         </div>
       )
     }
@@ -256,7 +246,7 @@ export function CoachLayout() {
         {esCoach ? (
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/asesorados">Cartera de asesorados</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/equipo">Cartera de asesorados</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/tablero">Tablero</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
@@ -281,7 +271,7 @@ export function CoachLayout() {
       </main>
       {/* Bryan (cuenta personal): la misma barra de cinco espacios que Manuela, en celular y en escritorio. */}
       {esCoach ? (
-        <BottomNavCoach />
+        barraDelStaff()
       ) : (
         <BottomNav espacios={espaciosDe(usuario.rol)} />
       )}

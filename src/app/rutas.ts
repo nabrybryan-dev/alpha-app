@@ -83,13 +83,17 @@ export interface RutaApp {
 const ASESORADO: Guarda = { marco: 'asesorado' }
 const PROPIA: Guarda = { marco: 'asesorado', propiaDelCoach: true }
 const SOLO_EQUIPO_A_RAIZ: Guarda = { marco: 'asesorado', soloEquipo: { destino: '/' } }
+/** Los espacios del equipo que también abren la cuenta con rol coach (Equipo, ficha, Bandeja, Empresa). */
+const EQUIPO: Guarda = { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } }
 
 export const RUTAS: readonly RutaApp[] = [
   // ---- Marco del asesorado (`AsesoradoLayout`) ----
   { patron: '/', ejemplo: '/', padre: null, titulo: 'Hoy', tituloEquipo: 'Mi día', guarda: PROPIA },
   { patron: '/entrenar', ejemplo: '/entrenar', padre: null, padreEquipo: '/mi-entreno', titulo: 'Entrenar', guarda: PROPIA },
   { patron: '/entrenar/sesion/:sesionId', ejemplo: '/entrenar/sesion/s-1', padre: '/entrenar', titulo: 'Sesión', guarda: PROPIA },
-  { patron: '/entrenar/encoder', ejemplo: '/entrenar/encoder', padre: '/entrenar', titulo: 'Encoder', guarda: PROPIA },
+  // La mesa del encoder es una herramienta de laboratorio del equipo (paso 2 del plan 14):
+  // el asesorado mide DENTRO de la serie; esta pantalla no es suya.
+  { patron: '/entrenar/encoder', ejemplo: '/entrenar/encoder', padre: '/entrenar', titulo: 'Encoder', guarda: { ...PROPIA, soloEquipo: { destino: '/entrenar' } } },
   { patron: '/bienestar', ejemplo: '/bienestar', padre: null, padreEquipo: '/', titulo: 'Bienestar', guarda: ASESORADO },
   { patron: '/progreso', ejemplo: '/progreso', padre: null, padreEquipo: '/', titulo: 'Progreso', guarda: ASESORADO },
   { patron: '/nutricion', ejemplo: '/nutricion', padre: null, padreEquipo: '/', titulo: 'Nutrición', guarda: ASESORADO },
@@ -99,10 +103,17 @@ export const RUTAS: readonly RutaApp[] = [
   { patron: '/cuestionarios', ejemplo: '/cuestionarios', padre: '/', titulo: 'Cuestionarios', guarda: ASESORADO },
   { patron: '/contenidos', ejemplo: '/contenidos', padre: '/', titulo: 'Contenidos', guarda: ASESORADO },
   { patron: '/logros', ejemplo: '/logros', padre: '/', titulo: 'Logros', guarda: ASESORADO },
-  { patron: '/marca', ejemplo: '/marca', padre: '/', titulo: 'Marca', guarda: ASESORADO },
+  { patron: '/marca', ejemplo: '/marca', padre: '/', titulo: 'Marca', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   // Espacios del equipo (pestañas de su barra, sin «‹»): la propia pantalla manda al asesorado a su sitio.
   { patron: '/mi-entreno', ejemplo: '/mi-entreno', padre: null, titulo: 'Mi entreno', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/entrenar' } } },
-  { patron: '/equipo', ejemplo: '/equipo', padre: null, titulo: 'Equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
+  { patron: '/equipo', ejemplo: '/equipo', padre: null, titulo: 'Equipo', guarda: EQUIPO },
+  // La FICHA ÚNICA (paso 10): la misma pantalla para el coach y para Manuela. Lleva «‹» a Equipo.
+  { patron: '/equipo/:usuarioId', ejemplo: '/equipo/u-valentina', padre: '/equipo', titulo: 'Ficha', guarda: EQUIPO },
+  // La Bandeja (paso 9): tareas, mensajes y firmas de los tres sombreros. Es una pestaña de la
+  // barra del equipo, así que es raíz y no lleva «‹».
+  { patron: '/bandeja', ejemplo: '/bandeja', padre: null, titulo: 'Bandeja', guarda: EQUIPO },
+  // Empresa (paso 11): las herramientas de los tres sombreros, según los permisos. También raíz.
+  { patron: '/empresa', ejemplo: '/empresa', padre: null, titulo: 'Empresa', guarda: EQUIPO },
   { patron: '/equipo-nutricion', ejemplo: '/equipo-nutricion', padre: '/equipo', titulo: 'Nutrición del equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   { patron: '/equipo-nutricion/cifras', ejemplo: '/equipo-nutricion/cifras', padre: '/equipo-nutricion', titulo: 'Cifras', guarda: SOLO_EQUIPO_A_RAIZ },
   // Mi plan de Manuela. Los avisos push de Manuela abren ESTA ruta: queda para siempre.
@@ -119,7 +130,9 @@ export const RUTAS: readonly RutaApp[] = [
   // ---- Panel del coach (`CoachLayout`) ----
   // «/coach» no pinta nada: manda a «/» (la cuenta Alpha acaba en /tablero).
   { patron: '/coach', ejemplo: '/coach', padre: '/', titulo: 'Panel del coach', guarda: { marco: 'coach', redirigeA: '/' } },
-  { patron: '/coach/asesorados', ejemplo: '/coach/asesorados', padre: '/', titulo: 'Cartera de asesorados', guarda: { marco: 'coach' } },
+  // La cartera vieja se retira como pantalla, no como dirección: `/coach/asesorados` redirige a
+  // la cartera única `/equipo` (relevo-sin-perdidas). Sus avisos de datos y microciclos viven allí.
+  { patron: '/coach/asesorados', ejemplo: '/coach/asesorados', padre: '/', titulo: 'Cartera de asesorados', guarda: { marco: 'coach', redirigeA: '/equipo' } },
   { patron: '/coach/asesorado/:usuarioId', ejemplo: '/coach/asesorado/u-valentina', padre: '/coach/asesorados', titulo: 'Asesorado', guarda: { marco: 'coach' } },
   { patron: '/coach/chat', ejemplo: '/coach/chat', padre: '/', titulo: 'Chat del coach', guarda: { marco: 'coach' } },
   { patron: '/coach/consultas', ejemplo: '/coach/consultas', padre: '/', titulo: 'Consultas', guarda: { marco: 'coach' } },
