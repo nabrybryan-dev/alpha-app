@@ -113,9 +113,10 @@ describe('Hoy del asesorado — lo que se conserva', () => {
     expect(hrefDe(/1 cuestionario por responder/)).toBe('/cuestionarios')
   })
 
-  it('check-in pendiente: sigue llevando a /bienestar (el check-in en línea es el paso 6)', () => {
+  it('check-in pendiente: el formulario está en Hoy y /bienestar sigue a un toque (paso 6)', () => {
     pintar()
-    expect(hrefDe(/Check-in diario pendiente/)).toBe('/bienestar')
+    expect(screen.getByRole('region', { name: 'Chequeo de hoy' })).toBeInTheDocument()
+    expect(hrefDe(/Ver todo y recordatorio/)).toBe('/bienestar')
   })
 
   it('check-in hecho: dice «registrado» y no lo vuelve a pedir', () => {
@@ -139,10 +140,10 @@ describe('Hoy del asesorado — lo que se conserva', () => {
     expect(document.querySelector('a[href="/cuestionarios"]')).not.toBeNull()
   })
 
-  it('bloque actual, álbum, radar y mapa de fatiga siguen en la pantalla', () => {
+  it('bloque actual, álbum y radar siguen en la pantalla; el mapa de fatiga vive en Progreso', () => {
     pintar()
     abrirElResto()
-    expect(screen.getByText(/Fatiga por grupo muscular/)).toBeInTheDocument()
+    expect(screen.queryByText(/Fatiga por grupo muscular/)).not.toBeInTheDocument()
     expect(screen.getByText(/Radar Alfa/)).toBeInTheDocument()
   })
 

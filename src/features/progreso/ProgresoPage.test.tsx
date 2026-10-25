@@ -126,6 +126,62 @@ describe('Progreso · la casa nueva de las competencias y la Escala Alfa', () =>
  * pasa, y de que lo contrario —un microciclo VENCIDO, con datos reales de verdad— sigue
  * mostrando sus competencias como siempre.
  */
+/**
+ * PASO 7 DEL REDISEÑO: Progreso absorbe lo que estaba repartido.
+ *
+ * El historial de check-ins vivía en Bienestar, las medidas en Bienestar y en «Mi día»,
+ * los logros en `/logros` y el mapa de fatiga en Hoy. Mudarse no es perderse: cada bloque
+ * se busca en su casa nueva por su contenido real, no por «monta un componente».
+ */
+describe('Progreso · lo que absorbe (historial, medidas, logros y fatiga)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    reiniciarDb()
+  })
+
+  it('el historial de check-ins enseña el dolor en rojo, no solo el número', () => {
+    const antes = db.bienestar.byUsuario('u-valentina')
+    db.bienestar.guardar({
+      id: 'ck-dolor-progreso',
+      usuarioId: 'u-valentina',
+      fecha: hoyIso(),
+      dolor: 6,
+      dolorDonde: 'hombro derecho',
+      estres: 'POCO',
+    })
+    renderizar()
+    const caja = bloque('checkins')
+    expect(within(caja).getByText('Tus últimos check-ins')).toBeInTheDocument()
+    const fila = within(caja).getByText(/Dolor 6/).closest('[data-checkin]') as HTMLElement
+    expect(fila).not.toBeNull()
+    // El rojo del dolor es una regla de la casa, no un adorno: el badge lo lleva.
+    expect(fila.querySelector('.bg-rojo, .text-rojo, [class*="rojo"]')).not.toBeNull()
+    // Y no se ha perdido ninguno de los que ya había (la tarjeta enseña los últimos 7).
+    expect(within(caja).getAllByText(/^\d{4}-\d{2}-\d{2}$/).length).toBe(Math.min(antes.length + 1, 7))
+  })
+
+  it('las medidas se pueden registrar desde Progreso, con la misma tarjeta de siempre', () => {
+    renderizar()
+    const caja = bloque('medidas')
+    expect(within(caja).getByText('Medidas y peso')).toBeInTheDocument()
+    expect(within(caja).getByRole('button', { name: /Guardar medidas|Registrar/ })).toBeInTheDocument()
+  })
+
+  it('los logros llegan con su nivel, su XP y sus medallas', () => {
+    renderizar()
+    const caja = bloque('logros')
+    expect(within(caja).getByText('Tu nivel')).toBeInTheDocument()
+    expect(within(caja).getByText(/XP/)).toBeInTheDocument()
+    expect(within(caja).getByText('Logros')).toBeInTheDocument()
+  })
+
+  it('el mapa de fatiga del microciclo activo está aquí y ya no en Hoy', () => {
+    renderizar()
+    const caja = bloque('fatiga')
+    expect(within(caja).getByLabelText('Fatiga por grupo muscular')).toBeInTheDocument()
+  })
+})
+
 describe('Progreso — las competencias de un microciclo que no cubre hoy (A023)', () => {
   const HOY = new Date('2026-09-10T08:00:00')
 

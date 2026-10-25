@@ -119,7 +119,8 @@ describe('Hoy en tres bandas — el orden', () => {
     const orden = [
       within(hoy).getByRole('link', { name: /Empezar sesión/ }),
       within(hoy).getByText('¿Cómo sientes el hombro hoy?'),
-      within(hoy).getByText(/Check-in diario pendiente/),
+      // El check-in va EN LÍNEA desde el paso 6 (zona 3): el formulario, no un enlace.
+      within(hoy).getByRole('region', { name: 'Chequeo de hoy' }),
       within(hoy).getByText(/Marcar nutrición de hoy/),
     ]
     for (let i = 1; i < orden.length; i++) expect(antes(orden[i - 1], orden[i])).toBe(true)
@@ -152,11 +153,12 @@ describe('Hoy en tres bandas — el orden', () => {
 })
 
 describe('Hoy en tres bandas — «El resto» plegado', () => {
-  it('arranca plegado: bloque, álbum, radar, fatiga y contenidos no están a la vista', () => {
+  it('arranca plegado: bloque, álbum, radar y contenidos no están a la vista', () => {
     pintar()
     expect(resto()).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('link', { name: /Contenidos/ })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Fatiga por grupo muscular/)).not.toBeVisible()
+    // El mapa de fatiga ya no está en Hoy: se mudó a Progreso (paso 7, zona 3).
+    expect(screen.queryByText(/Fatiga por grupo muscular/)).not.toBeInTheDocument()
     // jsdom no aplica Tailwind: el contenedor tiene que traer la clase que lo oculta de verdad,
     // porque `hidden` solo lo anula cualquier `display:flex` (visto en la captura del 24-oct).
     expect(document.getElementById(resto().getAttribute('aria-controls') ?? '')).toHaveClass('hidden')
@@ -169,7 +171,6 @@ describe('Hoy en tres bandas — «El resto» plegado', () => {
     expect(resto()).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('link', { name: /Contenidos/ })).toBeVisible()
     expect(screen.getByRole('link', { name: /Cuestionarios/ })).toBeVisible()
-    expect(screen.getByText(/Fatiga por grupo muscular/)).toBeVisible()
     expect(screen.getByText('Racha')).toBeVisible()
   })
 })

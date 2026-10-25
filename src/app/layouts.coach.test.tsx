@@ -137,7 +137,7 @@ describe('AsesoradoLayout · la cuenta personal de Bryan (asesorado con puesto_d
     estado.rol = 'asesorado'
     estado.capacidades = new Set(['ver_administracion', 'leer_entrenamiento'])
     en('/')
-    expect(hrefs()).toEqual(['/', '/entrenar', '/bienestar', '/nutricion', '/progreso'])
+    expect(hrefs()).toEqual(['/', '/entrenar', '/semana', '/nutricion', '/progreso'])
   })
 })
 
@@ -152,7 +152,7 @@ describe('AsesoradoLayout · los demás', () => {
     estado.rol = 'asesorado'
     estado.capacidades = new Set(['ver_administracion', 'responder_mercadeo', 'leer_entrenamiento'])
     en('/')
-    expect(hrefs()).toEqual(['/', '/entrenar', '/bienestar', '/nutricion', '/progreso'])
+    expect(hrefs()).toEqual(['/', '/entrenar', '/semana', '/nutricion', '/progreso'])
     expect(screen.queryByText(/Estrategias|Administración|Equipo|Mi entreno/)).not.toBeInTheDocument()
   })
 })

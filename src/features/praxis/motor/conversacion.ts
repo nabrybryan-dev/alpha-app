@@ -311,6 +311,9 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
   // La seguridad va primero: estas dos salidas cancelan el turno (el bucle termina en su próximo vigilar).
   if (turno.paso === 'quieta') { mostrarPersona(frase, 'texto'); entrarQuieta(turno.linea, frase, false); return }
   if (turno.paso === 'cuidado') { preguntarCuidado(frase, 'texto'); subirSiHaceFalta(c, frase, 'cuidado'); return }
+  // Las tarjetas 3D se encienden AQUÍ, después del filtro de riesgo: una crisis o una duda de
+  // cuidado salieron por arriba y no llegan a este punto. Así ninguna tarjeta se adelanta a la Quieta.
+  window.dispatchEvent(new CustomEvent('praxis:frasa', { detail: { texto: frase } }))
   mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
   if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
   if (!eleccion) anotar('persona', frase) // ya pasó el filtro de riesgo; el saneador vuelve a descartar lo marcado

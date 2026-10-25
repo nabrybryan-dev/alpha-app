@@ -1,7 +1,18 @@
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { CifraAnimada } from '../../components/ui/CifraAnimada'
+import { IconoCorazon, IconoCubiertos, IconoPesa } from '../../components/ui/Icono'
+import { Medalla } from '../../components/ui/Medalla'
+import { ProgressBar } from '../../components/ui/ProgressBar'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { microcicloVigente, semanaEsAdelantada } from '../../domain/rutaEntrenamiento'
+import { HistorialDeCheckins } from '../bienestar/HistorialDeCheckins'
+import { MedidasCard } from '../bienestar/MedidasCard'
+import { MapaFatiga } from '../hoy/MapaFatiga'
 import { ProgresoEvolucion } from '../logros/ProgresoEvolucion'
+import { TiraDeRachas } from '../logros/TiraDeRachas'
+import { useGamificacion } from '../logros/useGamificacion'
 import { HistorialDeVelocidad } from '../entrenar/encoder/HistorialDeVelocidad'
 import { CompetenciasEvaluadas } from '../entrenar/ruta/CompetenciasEvaluadas'
 import { EscalaAlfa } from '../entrenar/ruta/EscalaAlfa'
@@ -54,6 +65,15 @@ export default function ProgresoPage() {
     microciclo && !semanaEsAdelantada(microciclo, hoy)
       ? calculosDeLaRuta(usuario.id, microciclo, hoy).competencias
       : []
+  const juego = useGamificacion(usuario.id)
+  const checkins = db.bienestar.byUsuario(usuario.id)
+  const verPeso = visibilidadDelAsesorado(usuario.id).verComposicion
+  const rachas = [
+    // Cada racha con el icono de su dominio, como en Logros.
+    { nombre: 'Bienestar', racha: juego.rachaBienestar, Icono: IconoCorazon },
+    { nombre: 'Entrenamiento', racha: juego.rachaEntrenamiento, Icono: IconoPesa },
+    { nombre: 'Nutrición', racha: juego.rachaNutricion, Icono: IconoCubiertos },
+  ]
 
   return (
     // Superficie oscura, como Entrenar: los gráficos se leen mejor y así lo
@@ -74,6 +94,41 @@ export default function ProgresoPage() {
         <ProgresoEvolucion usuarioId={usuario.id} />
       </div>
 
+      {/* EL HISTORIAL DE CHECK-INS, que antes vivía en Bienestar. */}
+      <div data-bloque="checkins" data-theme="dark" className="entrada entrada-3">
+        <HistorialDeCheckins checkins={checkins} verPeso={verPeso} />
+      </div>
+
+      {/* LAS MEDIDAS: se registran aquí, no en una pestaña aparte. */}
+      <section data-bloque="medidas" data-theme="dark" aria-label="Medidas y peso" className="entrada entrada-3">
+        <p className="kicker mb-2">Medidas y peso</p>
+        <MedidasCard usuarioId={usuario.id} verPeso={verPeso} />
+      </section>
+
+      {/* LOS LOGROS: nivel, XP, rachas y medallas. El ranking y las historias siguen en /logros. */}
+      <section data-bloque="logros" data-theme="dark" aria-label="Tus logros" className="entrada entrada-3 flex flex-col gap-3">
+        <p className="kicker">Tu nivel</p>
+        <div className="rounded-tarjeta border border-ink-500 bg-ink-900 p-4">
+          <p className="font-display text-2xl text-silver-100">{juego.nivel.nombre}</p>
+          <p className="cifras mt-1 text-sm text-silver-400">
+            <CifraAnimada valor={juego.xp} /> XP acumulados
+          </p>
+          <div className="mt-3">
+            <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
+          </div>
+        </div>
+        <TiraDeRachas celdas={rachas} />
+        <p className="kicker mt-1">Logros</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          {juego.logros.map((logro) => (
+            <Medalla key={logro.id} logro={logro} />
+          ))}
+        </div>
+        <Link to="/logros" className="text-xs font-semibold text-silver-300 underline underline-offset-2">
+          Ver el ranking y las historias
+        </Link>
+      </section>
+
       {/* LAS COMPETENCIAS EVALUADAS, en su casa nueva. */}
       {competencias.length > 0 && (
         <section data-bloque="competencias" className="entrada entrada-3">
@@ -85,6 +140,14 @@ export default function ProgresoPage() {
       <section data-bloque="escala-alfa" className="entrada entrada-3">
         <EscalaAlfa niveles={ruta.escala} />
       </section>
+
+      {/* EL MAPA DE FATIGA, que antes vivía en Hoy: es «cómo voy», no «qué toca hoy». */}
+      {microciclo && (
+        <section data-bloque="fatiga" data-theme="dark" aria-label="Fatiga por grupo muscular" className="entrada entrada-3">
+          <p className="kicker mb-2">Fatiga por grupo muscular</p>
+          <MapaFatiga microciclo={microciclo} />
+        </section>
+      )}
 
       {/* El historial del encoder. No pinta nada mientras no haya una sola serie
           medida —hoy casi nadie graba— porque una tarjeta vacía en una pantalla

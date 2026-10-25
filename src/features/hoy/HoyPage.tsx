@@ -25,7 +25,6 @@ import { CribadoForm } from '../cribado/CribadoForm'
 import { necesitaPantallaDeSalud } from '../cribado/necesitaCribado'
 import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
-import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
@@ -39,7 +38,6 @@ import { PreguntaDelCoach } from './PreguntaDelCoach'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { ElResto } from './ElResto'
-import { MapaFatiga } from './MapaFatiga'
 import { TarjetaSesionDeHoy } from './TarjetaSesionDeHoy'
 import { RadarAlfa } from './RadarAlfa'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
@@ -97,7 +95,6 @@ export default function HoyPage() {
   // formulario solo aparece solo la PRIMERA vez —cuando no hay ficha—, así que después
   // hace falta esta puerta.
   const [actualizandoSalud, setActualizandoSalud] = useState(false)
-  const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
   // Las de la cadena NO se cuentan aquí: ya tienen su propia tarjeta arriba
@@ -318,25 +315,12 @@ export default function HoyPage() {
     </div>
   )
 
-  const checkinDelAsesorado = checkinHoy ? (
-    <div className="hoy-tarjeta hoy-fila entrada entrada-2">
-      <div className="flex items-center gap-2.5">
-        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
-          <CheckDibujado className="h-3.5 w-3.5" />
-        </span>
-        <span className="hoy-fila-titulo">Check-in de hoy registrado</span>
-      </div>
+  // Check-in del día, EN LÍNEA también para el asesorado (paso 6 del rediseño). `/bienestar`
+  // sigue viva como detalle: el propio formulario lleva su entrada.
+  const checkinDelAsesorado = (
+    <div className="entrada entrada-2">
+      <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
     </div>
-  ) : (
-    <Link to="/bienestar" className="hoy-tarjeta hoy-fila entrada entrada-2">
-      <span className="min-w-0">
-        <span className="hoy-fila-titulo block">Check-in diario pendiente</span>
-        <span className="hoy-fila-sub">Peso, pasos, sueño y sensaciones · 1 min</span>
-      </span>
-      <span className="tecla-2" aria-hidden="true">
-        Hacerlo
-      </span>
-    </Link>
   )
 
   const tarjetaSesion =
@@ -429,12 +413,7 @@ export default function HoyPage() {
       <RadarAlfa noticias={db.contenidoAlfa.radar()} semana={semanaDelAnio(hoy)} />
     </div>
   )
-  const mapaFatiga = microciclo ? (
-    <section className="entrada entrada-6">
-      <p className="kicker mb-2">Fatiga por grupo muscular</p>
-      <MapaFatiga microciclo={microciclo} />
-    </section>
-  ) : null
+  // El mapa de fatiga se mudó a Progreso (paso 7): es «cómo voy», no «qué toca hoy».
 
   const listaPendientes =
     pendientes.length > 0 ? (
@@ -532,7 +511,6 @@ export default function HoyPage() {
         {bloqueActual}
         {album}
         {radar}
-        {mapaFatiga}
         {listaPendientes}
         {contenidos}
       </div>
@@ -573,7 +551,6 @@ export default function HoyPage() {
       <ElResto>
         {cifras}
         {bloqueActual}
-        {mapaFatiga}
         {album}
         {radar}
         {contenidos}

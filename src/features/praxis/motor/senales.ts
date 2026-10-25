@@ -62,6 +62,9 @@ export function preguntarCuidado(txt: string, fuente: Fuente, yaMostrada = false
   if (!yaMostrada) mostrarPersona(txt, fuente)
   cancelar(); Voz.callar(); Onda.estado('reposo')
   S.cuidado = { txt, fuente }
+  // Una duda de cuidado también manda: las tarjetas de la frase anterior no pueden quedarse
+  // flotando encima de la pregunta, ofreciendo atajos mientras se pregunta por el daño.
+  window.dispatchEvent(new CustomEvent('praxis:cuidado'))
   limpiarControles(); $('#editor').hidden = true; compactar(false)
   fijarFrase(tu('Eso que escribiste me importa. ¿Estás pensando en hacerte daño?', 'Eso que escribió me importa. ¿Está pensando en hacerse daño?'))
   montar(() => h('div', { class: 'grupo' }, chips([['Sí', 'si'], ['No', 'no'], ['Prefiero no decir', 'pn']], (v) => resolverCuidado(v), null, 'cuidado')))
@@ -90,6 +93,8 @@ export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolea
   const leida = porModelo || (cita !== null && S.leidasPorModelo.includes(cita))
   if (!demo && hayDatos()) guardarBorrador() // lo ya marcado queda como borrador
   cancelar()
+  // La Quieta manda: las tarjetas 3D se retiran y no vuelven en esta conversación.
+  window.dispatchEvent(new CustomEvent('praxis:quieta'))
   S.quieta = { tipo, cita, demo }; S.cuidado = null; $('#btnRapido').setAttribute('aria-pressed', 'false')
   if (Mic.activo) detenerMic(false)
   if (Mic.cortarVoz) Mic.cortarVoz() // si estaba hablando por voz, la toma se corta sin enviarse
@@ -165,6 +170,10 @@ export function enviarTexto(t: string, fuente: Fuente): void {
   if (S.cuidado) { aviso(tu('Antes de seguir, respóndeme con un toque.', 'Antes de seguir, respóndame con un toque.')); return }
   // Conectada, el filtro de riesgo lo aplica la conversación (`decidirTurno`) a CADA frase, antes de cualquier otra cosa.
   if (!conectada() && revisarRiesgo(t, fuente)) return // lo grave detiene; lo ambiguo se pregunta
+  // Seam con React: las tarjetas 3D (paso 8) escuchan lo que dice la persona. Sin conexión
+  // el filtro ya pasó aquí; CONECTADA las enciende `atender`, DESPUÉS del filtro, para que
+  // una frase de crisis no saque una tarjeta antes de que llegue la Quieta.
+  if (!conectada()) window.dispatchEvent(new CustomEvent('praxis:frasa', { detail: { texto: t } }))
   cortarDecir()
   emitir({ tipo: 'texto', txt: t, fuente })
 }
