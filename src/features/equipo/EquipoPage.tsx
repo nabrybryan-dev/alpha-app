@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { contarPorSombrero } from '../../domain/equipo/sombreros'
 import { resumenAsesorado, type ResumenAsesorado } from '../coach/resumenAsesorado'
 import { recordarPersonaEnConsola } from '../coach/consola/memoriaConsola'
 import { ocupaPuestoCoach } from '../coach/consola/usePuestoCoach'
@@ -279,12 +280,10 @@ export default function EquipoPage() {
   const firmas =
     (porAprobar?.primeros?.ok ? porAprobar.primeros.n : 0) +
     (porAprobar?.renovados?.ok ? porAprobar.renovados.n : 0)
-  const cuenta = {
-    todo: atencion.length + firmas,
-    entreno: atencion.length,
-    nutricion: firmas,
-    administracion: 0,
-  }
+  const cuenta = contarPorSombrero([
+    ...atencion.map(() => ({ sombrero: 'entreno' as const })),
+    ...Array.from({ length: firmas }, () => ({ sombrero: 'nutricion' as const })),
+  ])
 
   const verEntreno = filtro === 'todo' || filtro === 'entreno'
   const verNutricion = filtro === 'todo' || filtro === 'nutricion'

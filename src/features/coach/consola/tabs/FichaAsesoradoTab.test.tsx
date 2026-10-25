@@ -233,7 +233,7 @@ describe('FichaAsesoradoTab · notas de llamada e interruptor de vista simple', 
     expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
     expect(await screen.findByText('Todavía no hay llamadas anotadas.')).toBeInTheDocument()
     expect(screen.queryByText('Vista de la app')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Vista simple' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Modo simple' })).not.toBeInTheDocument()
     // Sin el interruptor al lado, las notas ocupan las 12 columnas.
     expect(bloqueDe('Notas de llamada')).toHaveClass('xl:col-span-12')
   })
@@ -245,7 +245,7 @@ describe('FichaAsesoradoTab · notas de llamada e interruptor de vista simple', 
 
     expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
     expect(await screen.findByText('Vista de la app')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Vista simple' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Modo simple' })).toBeInTheDocument()
     expect(bloqueDe('Notas de llamada')).toHaveClass('xl:col-span-8')
     expect(bloqueDe('Vista de la app')).toHaveClass('xl:col-span-4')
   })
@@ -287,7 +287,7 @@ describe('FichaAsesoradoTab · notas de llamada e interruptor de vista simple', 
     const user = userEvent.setup()
     render(<FichaAsesoradoTab usuarioId={usuarioId} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Vista simple' }))
+    await user.click(await screen.findByRole('switch', { name: 'Modo simple' }))
     expect(guardar).toHaveBeenCalledWith(usuarioId, true)
   })
 
