@@ -183,6 +183,8 @@ describe('el tiempo de la repetición, desde el disco', () => {
 
   it('un tirón corto sigue cambiando lo que cuenta la pared, y no toca la repetición', async () => {
     renderizarEntrenar()
+    // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     const disco = await esperarAlDisco()
 
     // Sin aguantar: se baja el dedo, se tira a la izquierda y se suelta antes de la espera.
@@ -233,4 +235,44 @@ describe('el tiempo de la repetición, desde el disco', () => {
 
     dedo(disco, 'pointerup', 201, 600)
   })
+
+  // LA PORTADA ES EL CUERPO (vista por defecto): ahi el descanso, su aviso de fin y el
+  // cronometro tienen que funcionar igual que en la vista de movimiento. Antes dependian de
+  // las paredes, que la portada no monta: al guardar una serie no se veia el descanso.
+  it('en la portada del cuerpo, un tirón corto pone el descanso y la cuenta se ve', async () => {
+    renderizarEntrenar()
+    const disco = await esperarAlDisco()
+    expect(document.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]'), 'sin cronometro en la portada').not.toBeNull()
+
+    dedo(disco, 'pointerdown', 200, 600)
+    dedo(disco, 'pointermove', 120, 600)
+    act(() => {
+      vi.advanceTimersByTime(ESPERA_DEL_RECORRIDO + 40)
+    })
+    dedo(disco, 'pointerup', 120, 600)
+
+    await waitFor(() => expect(rotuloDelMuro()).toBe(rotuloDelModo('descanso')))
+    expect(document.querySelector('[data-hueco="cuerpo"] .muro-reloj-vivo')).not.toBeNull()
+  })
+
+  it('en la portada del cuerpo, al llegar la cuenta a cero sale «Descanso terminado» y vuelve el cronometro', async () => {
+    renderizarEntrenar()
+    const disco = await esperarAlDisco()
+    dedo(disco, 'pointerdown', 200, 600)
+    dedo(disco, 'pointermove', 120, 600)
+    act(() => {
+      vi.advanceTimersByTime(ESPERA_DEL_RECORRIDO + 40)
+    })
+    dedo(disco, 'pointerup', 120, 600)
+    await waitFor(() => expect(rotuloDelMuro()).toBe(rotuloDelModo('descanso')))
+
+    // El descanso del seed es de unos minutos: se avanza el reloj de golpe hasta pasarlo.
+    act(() => {
+      vi.advanceTimersByTime(6 * 60 * 1000)
+    })
+    expect(screen.getByText('Descanso terminado')).toBeInTheDocument()
+    expect(screen.getByText(/A la barra/)).toBeInTheDocument()
+    expect(rotuloDelMuro()).toBeNull()
+  })
+
 })

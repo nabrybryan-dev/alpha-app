@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, hoyIso } from '../../../data/dbInstance'
@@ -90,6 +90,10 @@ function montarSalonConSujeto(): HTMLElement {
       />
     </MemoryRouter>,
   )
+
+  // El eje W (atravesar con el dedo) es de la vista de MOVIMIENTO: la portada es el cuerpo.
+  const abrir = screen.queryByRole('button', { name: 'Ver el movimiento' })
+  if (abrir) fireEvent.click(abrir)
   return document.querySelector('[data-salon="entrenar"]') as HTMLElement
 }
 
