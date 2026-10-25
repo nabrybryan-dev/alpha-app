@@ -1,5 +1,11 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import {
+  puedeVerAdministracion,
+  puedeVerConsola,
+  puedeVerCreadores,
+  puedeVerEstrategias,
+} from '../../app/accesoPanel'
 import { useSesion } from '../../app/SessionProvider'
 import { Sheet } from '../../components/ui/Sheet'
 import { CAPACIDADES, type Capacidad } from '../../data/consola/capacidadesStaff'
@@ -84,13 +90,15 @@ export default function EmpresaPage() {
   if (usuario.rol === 'asesorado' && cargando) return null
   if (usuario.rol !== 'nutricionista' && !esCoach) return <Navigate to="/" replace />
 
-  const puedeEstrategia =
-    !cargando && (tiene('responder_mercadeo') || tiene('revisar_creadores') || tiene('decisiones_compartidas'))
-  const puedeAdmin =
-    !cargando && (tiene('ver_administracion') || tiene('organizar_plan') || tiene('decisiones_compartidas'))
+  // Las MISMAS puertas que aplica `CoachLayout` (`accesoPanel.ts`): ningún enlace puede llevar
+  // a una pantalla que después devuelva a la persona a la portada.
+  const puesto = { esCoach, cargando, tiene }
+  const puedeEstrategia = puedeVerEstrategias(puesto)
+  const puedeAdmin = puedeVerAdministracion(puesto)
+  const puedeCreadores = puedeVerCreadores(puesto)
 
   const entrenador: Fila[] = []
-  if (esCoach || (!cargando && tiene('leer_entrenamiento'))) {
+  if (puedeVerConsola(puesto)) {
     entrenador.push({ titulo: 'Consola del coach', nota: 'Siete pestañas por persona; mejor en escritorio.', a: '/coach/consola' })
   }
   if (esCoach) {
@@ -111,9 +119,10 @@ export default function EmpresaPage() {
   }
   if (puedeAdmin) {
     administracion.push({ titulo: 'Administración', nota: 'Finanzas, plataforma, plan, desvíos y riesgos.', a: '/coach/administracion' })
-    administracion.push({ titulo: 'Manual de marca', nota: 'Logos, colores y componentes; material interno del equipo.', a: '/marca' })
   }
-  if (!cargando && tiene('revisar_creadores')) {
+  // `/marca` no pide capacidad: su puerta es `SoloEquipo`, y esta pantalla ya es del equipo.
+  administracion.push({ titulo: 'Manual de marca', nota: 'Logos, colores y componentes; material interno del equipo.', a: '/marca' })
+  if (puedeCreadores) {
     administracion.push({ titulo: 'Creadores', nota: 'El embudo y lo que espera criterio.', a: '/coach/creadores' })
   }
 

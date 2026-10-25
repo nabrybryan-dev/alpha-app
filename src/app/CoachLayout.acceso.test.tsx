@@ -119,6 +119,8 @@ describe('CoachLayout · acceso por capacidad', () => {
     en('/coach/administracion')
     expect(screen.getByRole('alert').textContent).toMatch(/Sin permiso/)
     expect(screen.queryByText('Contenido de administracion')).not.toBeInTheDocument()
+    // La fuerza que tenía esta prueba en main: lo que la puerta devuelve no se ofrece como enlace.
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Empresa' }).length).toBeGreaterThan(0)
   })
 
@@ -244,6 +246,16 @@ describe('CoachLayout · acceso por capacidad', () => {
   it('Estrategias y Administración no se prestan la puerta', () => {
     estado.capacidades = new Set(['responder_mercadeo'])
     en('/coach/administracion')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+  })
+
+  // El caso que se colaba en Empresa: `decisiones_compartidas` abre Administración, no Estrategias.
+  it('decisiones_compartidas abre Administración y NO Estrategias', () => {
+    estado.capacidades = new Set(['decisiones_compartidas'])
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    a.unmount()
+    en('/coach/estrategias')
     expect(screen.getByText('Portada')).toBeInTheDocument()
   })
 })

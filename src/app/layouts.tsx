@@ -6,6 +6,12 @@ import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
+import {
+  puedeVerAdministracion,
+  puedeVerConsola,
+  puedeVerCreadores,
+  puedeVerEstrategias,
+} from './accesoPanel'
 import { padreDe } from './rutas'
 import { useSesion } from './SessionProvider'
 
@@ -175,6 +181,7 @@ export function CoachLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
+  const puesto = { esCoach, cargando, tiene }
   const enConsola = pathname.startsWith('/coach/consola')
   const enCreadores = pathname.startsWith('/coach/creadores')
   const enEstrategias = pathname.startsWith('/coach/estrategias')
@@ -188,7 +195,7 @@ export function CoachLayout() {
   // Administración del COACH también va por capacidad: sin `ver_administracion` no la ve (ni en la
   // barra ni en el marco) y, si llega por la URL, se le dice «sin permiso» en vez de la pantalla.
   if (esCoach && enAdmin) {
-    if (!tiene('ver_administracion')) {
+    if (!puedeVerAdministracion(puesto)) {
       return (
         <div className="min-h-dvh bg-bg">
           <TopBar titulo="Administración" />
@@ -219,17 +226,16 @@ export function CoachLayout() {
         </div>
       )
     }
-    if (enConsola && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
-    if (enCreadores && !tiene('revisar_creadores')) return <Navigate to="/" replace />
+    if (enConsola && !puedeVerConsola(puesto)) return <Navigate to="/" replace />
+    if (enCreadores && !puedeVerCreadores(puesto)) return <Navigate to="/" replace />
     // Cada espacio de Manuela tiene su propia puerta, con capacidades que ya existen en la base
     // (Manuela ya tiene también `ver_administracion`): Estrategias con el buzón de mercadeo o el
     // tablero de creadores; Administración con el plan, las decisiones o `ver_administracion`. El
     // tablero de la 0102 se pide dentro de la pantalla: sin el permiso dice «sin permiso»; con él
-    // pero sin la tabla (0102 sin aplicar), «pendiente de activar».
-    if (enEstrategias && !tiene('responder_mercadeo') && !tiene('revisar_creadores')) return <Navigate to="/" replace />
-    if (enAdmin && !tiene('organizar_plan') && !tiene('decisiones_compartidas') && !tiene('ver_administracion')) {
-      return <Navigate to="/" replace />
-    }
+    // pero sin la tabla (0102 sin aplicar), «pendiente de activar». La condición vive en
+    // `accesoPanel.ts` para que Empresa ofrezca exactamente los mismos enlaces.
+    if (enEstrategias && !puedeVerEstrategias(puesto)) return <Navigate to="/" replace />
+    if (enAdmin && !puedeVerAdministracion(puesto)) return <Navigate to="/" replace />
   }
 
   // La consola necesita más ancho que el resto del panel: cartera lateral +

@@ -96,11 +96,46 @@ describe('la pantalla Empresa', () => {
     expect(screen.getByRole('link', { name: /Praxis del equipo/ })).toHaveAttribute('href', '/praxis')
   })
 
-  it('sin los permisos de administración, ese grupo no se pinta', () => {
+  it('sin los permisos de administración, no ofrece esas herramientas (el manual de marca no lo pide)', () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     montar()
-    expect(screen.queryByRole('heading', { name: 'Administración' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Estrategias/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Administración/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Creadores/ })).not.toBeInTheDocument()
+    // `/marca` solo exige ser del equipo (`SoloEquipo`), y Empresa ya lo exige: el enlace no miente.
+    expect(screen.getByRole('link', { name: /Manual de marca/ })).toHaveAttribute('href', '/marca')
+  })
+
+  // Revisión ciega del 25-oct (defecto 3): cada enlace de Empresa pide EXACTAMENTE lo que pide
+  // la puerta de su pantalla. `decisiones_compartidas` abre Administración, no Estrategias.
+  it('no ofrece Estrategias cuando la puerta de /coach/estrategias devolvería esa ruta', () => {
+    estado.capacidades = new Set(['decisiones_compartidas', 'ver_administracion'])
+    montar()
+    expect(screen.getByRole('link', { name: /Administración/ })).toHaveAttribute('href', '/coach/administracion')
+    expect(screen.queryByRole('link', { name: /Estrategias/ })).not.toBeInTheDocument()
+  })
+
+  it('ofrece Estrategias con responder_mercadeo o con revisar_creadores, cada una por su lado', () => {
+    estado.capacidades = new Set(['responder_mercadeo'])
+    const a = montar()
+    expect(screen.getByRole('link', { name: /Estrategias/ })).toHaveAttribute('href', '/coach/estrategias')
+    a.unmount()
+    estado.capacidades = new Set(['revisar_creadores'])
+    montar()
+    expect(screen.getByRole('link', { name: /Estrategias/ })).toHaveAttribute('href', '/coach/estrategias')
+  })
+
+  it('al coach le ofrece Estrategias y Creadores sin esas capacidades; Administración solo con ver_administracion', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set()
+    const a = montar()
+    expect(screen.getByRole('link', { name: /Estrategias/ })).toHaveAttribute('href', '/coach/estrategias')
+    expect(screen.getByRole('link', { name: /Creadores/ })).toHaveAttribute('href', '/coach/creadores')
+    expect(screen.queryByRole('link', { name: /Administración/ })).not.toBeInTheDocument()
+    a.unmount()
+    estado.capacidades = new Set(['ver_administracion'])
+    montar()
+    expect(screen.getByRole('link', { name: /Administración/ })).toHaveAttribute('href', '/coach/administracion')
   })
 
   it('el filtro de sombrero esconde los otros dos grupos', async () => {
