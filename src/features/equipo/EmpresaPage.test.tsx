@@ -87,6 +87,8 @@ describe('la pantalla Empresa', () => {
     expect(screen.getByRole('link', { name: /Nutrición del equipo/ })).toHaveAttribute('href', '/equipo-nutricion')
     expect(screen.getByRole('link', { name: /Estrategias/ })).toHaveAttribute('href', '/coach/estrategias')
     expect(screen.getByRole('link', { name: /Administración/ })).toHaveAttribute('href', '/coach/administracion')
+    // `/marca` ya no queda huérfano: es interno y se abre desde Empresa.
+    expect(screen.getByRole('link', { name: /Manual de marca/ })).toHaveAttribute('href', '/marca')
   })
 
   it('la mesa del encoder y Praxis quedan del lado del equipo', () => {

@@ -111,6 +111,7 @@ export default function EmpresaPage() {
   }
   if (puedeAdmin) {
     administracion.push({ titulo: 'Administración', nota: 'Finanzas, plataforma, plan, desvíos y riesgos.', a: '/coach/administracion' })
+    administracion.push({ titulo: 'Manual de marca', nota: 'Logos, colores y componentes; material interno del equipo.', a: '/marca' })
   }
   if (!cargando && tiene('revisar_creadores')) {
     administracion.push({ titulo: 'Creadores', nota: 'El embudo y lo que espera criterio.', a: '/coach/creadores' })
