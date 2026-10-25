@@ -256,6 +256,11 @@ export default function EquipoPage() {
 
   // Bryan abre la consola por ser coach (igual que `CoachLayout`); Manuela, por la capacidad.
   const conConsola = esCoach || (!cargando && tiene('leer_entrenamiento'))
+  // Los tres paneles de la cartera vieja eran del PANEL DEL COACH (en main solo se montaban en
+  // `AsesoradosPage`, detrás de su puerta). Sin ella, Manuela los veía y `PanelMicrociclos`
+  // podía escribir con `barrerYActivar` al abrir Equipo. Se exige lo mismo que la puerta de
+  // entonces (`CoachLayout`): ocupar el puesto de coach, sin más capacidades.
+  const conPanelesDelCoach = esCoach
   // La cartera (nombres y semáforos, que salen del entrenamiento) solo se calcula con
   // `leer_entrenamiento` (E-11 de la revisión de Codex del 28-sep): la capacidad no limita
   // solo el enlace a la consola, limita lo que se muestra. Sin ella, la lista queda vacía y
@@ -317,7 +322,7 @@ export default function EquipoPage() {
 
       {verNutricion && porAprobar && <TarjetaPorAprobar cuenta={porAprobar} />}
 
-      {verEntreno && (
+      {verEntreno && conPanelesDelCoach && (
         <>
           <SaludDeDatos />
           <EmbudoDeAvisos />
