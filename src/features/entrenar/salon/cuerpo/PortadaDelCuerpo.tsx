@@ -211,7 +211,9 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         {/* La lectura va corta, encima de la hoja y debajo del cuerpo: no lo tapa. */}
         {enCuerpo && (
           <div
-            className="pointer-events-auto absolute inset-x-0 flex flex-col items-center px-4 text-center"
+            // `pointer-events-none`: la franja es de ancho completo y, si recibiera toques, taparia el
+            // joystick y la camara que viven en las esquinas. Solo el boton de la lectura los recibe.
+            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
             style={{ bottom: 'calc(var(--tope-nav) + 5.4rem)' }}
           >
             {lectura ? (
@@ -219,7 +221,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 type="button"
                 aria-label="Ver series por región"
                 onClick={() => setHojaAbierta(true)}
-                className="press max-w-full truncate text-[15px] leading-tight"
+                className="press pointer-events-auto max-w-full truncate text-[15px] leading-tight"
                 style={{ color: 'var(--texto)', fontWeight: 800 }}
               >
                 {lectura}

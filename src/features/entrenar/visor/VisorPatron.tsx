@@ -836,7 +836,7 @@ export function VisorPatron({
           // dolor y capa) de `mallasDelCuerpo`, y su firma entra en la de lo estático.
           const pintado =
             enCuerpo && !sin.has('atlas') && estado.current.cuerpo
-              ? mallasDelCuerpo(atlasPorCapa, estado.current.cuerpo.capa, estado.current.cuerpo.tinte, paletaDelTema())
+              ? mallasDelCuerpo(atlasPorCapa, estado.current.cuerpo.capa, estado.current.cuerpo.tinte, paletaDelTema(lienzo.closest('[data-theme]')))
               : undefined
           const delAtlas = pintado ? pintado.mallas : capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
           const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`

@@ -57,6 +57,16 @@ describe('el dolor del check-in', () => {
     expect(regionesConDolor({ dolor: 3, dolorDonde: 'hombro' })).toEqual([])
     expect(regionesConDolor({ dolor: 7, dolorDonde: 'espalda baja' })).toEqual(['lumb'])
   })
+  it('«biceps femoral» es de la pierna (isquios) y no pinta el biceps del brazo', () => {
+    expect(regionesConDolor({ dolor: 6, dolorDonde: 'me duele el bíceps femoral' })).toEqual(['isq'])
+    expect(regionesConDolor({ dolor: 6, dolorDonde: 'bíceps' })).toEqual(['bic'])
+    expect(regionesConDolor({ dolor: 6, dolorDonde: 'codo' })).toEqual(['bic'])
+  })
+  it('«la espalda» sin decir donde pinta la espalda alta y la baja; si lo dice, solo la que dice', () => {
+    expect(regionesConDolor({ dolor: 6, dolorDonde: 'me duele la espalda' })).toEqual(['dors', 'lumb'])
+    expect(regionesConDolor({ dolor: 6, dolorDonde: 'espalda alta' })).toEqual(['dors'])
+    expect(regionesConDolor({ dolor: 6, dolorDonde: 'Espalda baja' })).toEqual(['lumb'])
+  })
   it('lo que no se entiende no se inventa', () => {
     expect(regionesConDolor({ dolor: 8, dolorDonde: 'todo raro' })).toEqual([])
     expect(regionesConDolor({ dolor: 8 })).toEqual([])

@@ -78,4 +78,11 @@ describe('que mallas se suben en cada capa del cuerpo', () => {
     expect(f('musculo', tinteDelCuerpo({ dors: 2 }, ['dors']))).not.toBe(f('musculo'))
     expect(mallasDelCuerpo(almacen(false).a, 'musculo', tinte, PALETA).firma).not.toBe(f('musculo'))
   })
+
+  it('la firma incluye el rojo del dolor y el color del tendon: si cambian, se repinta', () => {
+    const { a } = almacen()
+    const con = (p: Paleta) => mallasDelCuerpo(a, 'musculo', tinte, p).firma
+    expect(con({ ...PALETA, rojo: [0.5, 0, 0] })).not.toBe(con(PALETA))
+    expect(con({ ...PALETA, tendon: [0.5, 0.5, 0.5] })).not.toBe(con(PALETA))
+  })
 })

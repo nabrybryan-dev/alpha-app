@@ -837,10 +837,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         // no vuelve a dibujar la escena, reescala la imagen ya pintada —como ampliar una
         // foto— y eso es lo que Bryan veía como «pixelea cuando se dan movimientos». Este
         // nodo ya no lleva transform ni filter, y `salon.test.tsx` lo vigila.
-        onPointerDown={conEjeW ? alBajarDedo : undefined}
-        onPointerMove={conEjeW ? alMoverDedo : undefined}
-        onPointerUp={conEjeW ? alSoltarDedo : undefined}
-        onPointerCancel={conEjeW ? alSoltarDedo : undefined}
+        // EL EJE W ES DE LA VISTA DE MOVIMIENTO: en el cuerpo oscurecia la sala sin cambiar el cuerpo.
+        onPointerDown={conEjeW && !enCuerpo ? alBajarDedo : undefined}
+        onPointerMove={conEjeW && !enCuerpo ? alMoverDedo : undefined}
+        onPointerUp={conEjeW && !enCuerpo ? alSoltarDedo : undefined}
+        onPointerCancel={conEjeW && !enCuerpo ? alSoltarDedo : undefined}
       >
         {conSujeto && patron ? (
           <>
@@ -1022,7 +1023,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 transition-opacity duration-base ease-salida"
               style={{
-                opacity: w * 0.1,
+                opacity: enCuerpo ? 0 : w * 0.1,
                 background: 'radial-gradient(90% 70% at 50% 45%, transparent 0%, #05060700 40%, #050607 100%)',
               }}
             />

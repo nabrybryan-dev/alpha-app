@@ -75,7 +75,7 @@ export function mallasDelCuerpo(
       }
       copiasDeMusculos.set(musculos, entrada)
     }
-    const firma = `${entrada.cuerpo.firma(tinte, capa)}|${paleta.base.join()}|${paleta.luz.join()}`
+    const firma = `${entrada.cuerpo.firma(tinte, capa)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}`
     if (firma !== entrada.pintada) {
       entrada.cuerpo.pintar(tinte, paleta, capa)
       entrada.pintada = firma
@@ -96,6 +96,6 @@ export function mallasDelCuerpo(
     llegadas.push('p')
   }
 
-  const base = musculos ? `${copiasDeMusculos.get(musculos)!.cuerpo.firma(tinte, capa)}|${paleta.base.join()}|${paleta.luz.join()}` : capa
+  const base = musculos ? `${copiasDeMusculos.get(musculos)!.cuerpo.firma(tinte, capa)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}` : capa
   return { mallas, firma: `${base}|${llegadas.join('')}` }
 }

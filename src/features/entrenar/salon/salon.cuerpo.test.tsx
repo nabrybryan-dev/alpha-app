@@ -173,4 +173,31 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
     fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
     expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toBeNull()
   })
+
+  it('el gesto W (atravesar con el dedo) no hace nada en el cuerpo: oscurecia la sala sin cambiar el cuerpo', () => {
+    montar({ seriesHechas: 1 })
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+    const dedo = (tipo: string, y: number) =>
+      fireEvent(centro, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: 200, clientY: y }))
+    dedo('pointerdown', 400)
+    dedo('pointermove', 200)
+    dedo('pointerup', 200)
+    expect(salon.getAttribute('data-w')).toBe('0')
+    // Y en la vista de movimiento el mismo gesto SI atraviesa (la escalera W sigue entera).
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    dedo('pointerdown', 400)
+    dedo('pointermove', 200)
+    dedo('pointerup', 200)
+    expect(salon.getAttribute('data-w')).toBe('1')
+  })
+
+  it('la franja de la lectura no recibe toques fuera de su boton: no tapa el joystick ni la camara', () => {
+    montar({ seriesHechas: 1 })
+    const boton = screen.getByRole('button', { name: 'Ver series por región' })
+    expect(boton.className).toContain('pointer-events-auto')
+    const franja = boton.parentElement as HTMLElement
+    expect(franja.className).toContain('pointer-events-none')
+    expect(franja.className).not.toContain('pointer-events-auto')
+  })
 })

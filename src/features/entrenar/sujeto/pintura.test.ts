@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Malla, type Color } from '../../../domain/patrones/malla'
-import { CuerpoPintado, colorDeRegion, type Paleta } from './pintura'
+import { CuerpoPintado, colorDeRegion, paletaDelTema, type Paleta } from './pintura'
 import { tinteDelCuerpo } from './tinte'
 
 const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 0.8], rojo: [0.9, 0.1, 0.1], tendon: [0.85, 0.85, 0.85] }
@@ -97,5 +97,27 @@ describe('el cuerpo pintado', () => {
     expect(cuerpo.firma(t, 'hueso')).not.toBe(a)
     expect(cuerpo.firma(tinteDelCuerpo({ dors: 3 }, ['dors']), 'musculo')).not.toBe(a)
     expect(cuerpo.firma(tinteDelCuerpo({ dors: 1, bic: 2 }, []), 'musculo')).not.toBe(a)
+  })
+})
+
+describe('la paleta sale del contenedor del salon, no de :root', () => {
+  it('el salon fuerza data-theme=dark: aunque :root este en claro, el tinte usa la luz del salon', () => {
+    // :root en claro: luz oscura. El salon en oscuro: luz clara. Con la paleta de :root el
+    // tinte salia INVERTIDO en tema claro (la region trabajada, mas apagada que la que no).
+    document.documentElement.style.setProperty('--salon-3d-luz', '#262b33')
+    document.documentElement.style.setProperty('--salon-3d-apagada', '#b6bac1')
+    const salon = document.createElement('div')
+    salon.setAttribute('data-theme', 'dark')
+    salon.style.setProperty('--salon-3d-luz', '#e9eef4')
+    salon.style.setProperty('--salon-3d-apagada', '#3b414b')
+    document.body.appendChild(salon)
+    const p = paletaDelTema(salon)
+    expect(p.luz[0]).toBeCloseTo(0xe9 / 255)
+    expect(p.base[0]).toBeCloseTo(0x3b / 255)
+    // y la luz es mas clara que la base: la region trabajada destaca
+    expect(p.luz[0]).toBeGreaterThan(p.base[0])
+    salon.remove()
+    document.documentElement.style.removeProperty('--salon-3d-luz')
+    document.documentElement.style.removeProperty('--salon-3d-apagada')
   })
 })

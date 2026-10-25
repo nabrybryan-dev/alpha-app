@@ -67,14 +67,15 @@ export const DOLOR_MINIMO = 4
 const PALABRAS_DE_DOLOR: readonly { patron: RegExp; regiones: readonly IdDeRegion[] }[] = [
   { patron: /hombro|deltoid/, regiones: ['delt'] },
   { patron: /pecho|pectoral/, regiones: ['pecho'] },
-  { patron: /codo|biceps|bicep/, regiones: ['bic'] },
+  { patron: /codo|bicep(?!s? femoral)/, regiones: ['bic'] },
   { patron: /triceps|tricep/, regiones: ['tri'] },
   { patron: /antebrazo|muneca|mano/, regiones: ['ante'] },
   { patron: /abdomen|abdominal|barriga|estomago/, regiones: ['abd'] },
   { patron: /costado|oblicuo/, regiones: ['obl'] },
   { patron: /cuello|trapecio|cervical/, regiones: ['trap'] },
-  { patron: /dorsal|espalda alta|omoplato/, regiones: ['dors'] },
-  { patron: /lumbar|espalda baja|cintura/, regiones: ['lumb'] },
+  // «la espalda» a secas es las dos; «alta» o «baja» es solo la que dice.
+  { patron: /dorsal|espalda alta|omoplato|espalda(?! (alta|baja))/, regiones: ['dors'] },
+  { patron: /lumbar|espalda baja|cintura|espalda(?! (alta|baja))/, regiones: ['lumb'] },
   { patron: /gluteo|cadera|nalga/, regiones: ['glu'] },
   { patron: /ingle|aductor/, regiones: ['adu'] },
   { patron: /muslo|cuadriceps|rodilla/, regiones: ['cua'] },

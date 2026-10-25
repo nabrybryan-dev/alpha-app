@@ -115,21 +115,29 @@ const PALETA_OSCURA: Paleta = {
   tendon: [0.85, 0.83, 0.78],
 }
 
-/** La paleta del tema que esta puesto. Sin DOM (pruebas) devuelve la oscura. */
-let paletaGuardada: { cuando: number; paleta: Paleta } | undefined
+const paletasGuardadas = new WeakMap<Element, { cuando: number; paleta: Paleta }>()
 
-export function paletaDelTema(): Paleta {
+/**
+ * La paleta del tema, leida del CONTENEDOR que se le pase (el salon) y no de `:root`.
+ *
+ * El salon fuerza `data-theme="dark"` (su sala es oscura en los dos temas); si se leyera de
+ * `:root` en tema claro, la «luz» seria oscura y la «base» clara, y el tinte saldria
+ * INVERTIDO: lo trabajado, mas apagado que lo que no. Sin DOM (pruebas) devuelve la oscura.
+ */
+export function paletaDelTema(contenedor?: Element | null): Paleta {
   if (typeof document === 'undefined') return PALETA_OSCURA
+  const donde = contenedor ?? document.documentElement
   // `getComputedStyle` en cada cuadro costaria; el tema cambia de a uno por sesion.
   const ahora = Date.now()
-  if (paletaGuardada && ahora - paletaGuardada.cuando < 500) return paletaGuardada.paleta
-  const paleta = leerPaleta()
-  paletaGuardada = { cuando: ahora, paleta }
+  const guardada = paletasGuardadas.get(donde)
+  if (guardada && ahora - guardada.cuando < 500) return guardada.paleta
+  const paleta = leerPaleta(donde)
+  paletasGuardadas.set(donde, { cuando: ahora, paleta })
   return paleta
 }
 
-function leerPaleta(): Paleta {
-  const css = getComputedStyle(document.documentElement)
+function leerPaleta(donde: Element): Paleta {
+  const css = getComputedStyle(donde)
   const v = (n: string) => css.getPropertyValue(n)
   return {
     base: leerColor(v('--salon-3d-apagada'), PALETA_OSCURA.base),
