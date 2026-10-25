@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import type { Receta } from '../../data/recetas'
+import { useEffect, useRef, useState } from 'react'
+import { gramosDeReceta, type Receta } from '../../data/recetas'
+import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
 import { RecetaSheet, type RecetaRegistro } from './RecetaSheet'
 
 /**
@@ -24,6 +25,24 @@ const COLOR_CATEGORIA: Record<Receta['categoria'], string> = {
   Cena: 'text-logrado',
 }
 
+/** A qué comida del día cae una receta, para nombrarla en el aviso. */
+const COMIDA_DE: Record<Receta['categoria'], string> = {
+  Desayuno: 'desayuno',
+  Almuerzo: 'almuerzo',
+  Cena: 'cena',
+  Snack: 'merienda',
+  Postre: 'merienda',
+}
+
+/** Lo que suma la porción, en gramos: es lo que se ve en la tarjeta y en la hoja. */
+const gramosDe = gramosDeReceta
+
+export interface RecetaCocinada {
+  receta: Receta
+  gramos: number
+  kcal: number
+}
+
 export interface RecetasCarouselProps {
   recetas: Receta[]
   /** kcal restantes del día. Sin dato la hoja cambia el texto, no lo quita. */
@@ -35,6 +54,8 @@ export interface RecetasCarouselProps {
   cocinadas?: number
   /** Días seguidos cocinando alguna. */
   racha?: number
+  /** Las que se cocinaron HOY, con su porción. Se listan debajo del carrusel. */
+  cocinadasHoy?: RecetaCocinada[]
 }
 
 export function RecetasCarousel({
@@ -44,8 +65,43 @@ export function RecetasCarousel({
   registro,
   cocinadas = 0,
   racha = 0,
+  cocinadasHoy = [],
 }: RecetasCarouselProps) {
   const [abierta, setAbierta] = useState<Receta | null>(null)
+  const carrusel = useRef<HTMLDivElement>(null)
+  const reducido = useMovimientoReducido()
+
+  /**
+   * El relieve del carrusel: cada tarjeta gira en Y según su distancia al
+   * centro (±16°) y se aleja un poco. Solo se toca `transform`, que no obliga
+   * a repintar; con movimiento reducido no se gira nada.
+   */
+  useEffect(() => {
+    const host = carrusel.current
+    if (!host) return
+
+    const aplicar = () => {
+      const ancho = host.clientWidth
+      if (!ancho) return
+      const centro = host.scrollLeft + ancho / 2
+      const tarjetas = Array.from(host.querySelectorAll<HTMLElement>('[data-receta]'))
+      for (const tarjeta of tarjetas) {
+        if (reducido) {
+          tarjeta.style.transform = ''
+          continue
+        }
+        const d = Math.max(
+          -1,
+          Math.min(1, (tarjeta.offsetLeft + tarjeta.offsetWidth / 2 - centro) / ancho),
+        )
+        tarjeta.style.transform = `perspective(700px) rotateY(${(-d * 16).toFixed(1)}deg) translateZ(${(-Math.abs(d) * 26).toFixed(1)}px)`
+      }
+    }
+
+    aplicar()
+    host.addEventListener('scroll', aplicar, { passive: true })
+    return () => host.removeEventListener('scroll', aplicar)
+  }, [recetas, reducido])
 
   if (cargando) return <CarruselFantasma />
 
@@ -56,7 +112,13 @@ export function RecetasCarousel({
     <section className="mt-4">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-bold text-texto">Recetas que sí encajan</h2>
-        <span className="cifras shrink-0 text-xs text-tenue">{recetas.length} nuevas</span>
+        <span className="cifras shrink-0 text-xs text-tenue">
+          {kcalRestantes === undefined
+            ? 'Según tu plan de hoy'
+            : kcalRestantes > 0
+              ? `Te quedan ${kcalRestantes.toLocaleString('es-CO')} kcal hoy`
+              : 'Ya llegaste a tu meta de hoy'}
+        </span>
       </div>
       <p className="mt-0.5 text-[12.5px] leading-snug text-tenue">
         Virales de Instagram, revisadas por tu coach. Toca una y te decimos la porción exacta.
@@ -64,15 +126,40 @@ export function RecetasCarousel({
 
       <Cocinadas cocinadas={cocinadas} racha={racha} />
 
+      {cocinadasHoy.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1.5" aria-label="Recetas cocinadas hoy">
+          {cocinadasHoy.map(({ receta, gramos, kcal }) => (
+            <li
+              key={receta.id}
+              className="flex items-baseline justify-between gap-2 border-b border-linea pb-1.5 text-sm last:border-b-0"
+            >
+              <span className="min-w-0 text-texto">
+                {receta.nombre}
+                <small className="block text-xs text-tenue">
+                  {COMIDA_DE[receta.categoria]} · {gramos} g en ingredientes
+                </small>
+              </span>
+              <b className="cifras shrink-0 text-texto">{kcal} kcal</b>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Sangrado a los bordes para que las tarjetas se asomen fuera del padding. */}
       <div
-        className="mt-2.5 flex gap-[11px] overflow-x-auto"
-        style={{ margin: '10px -18px 0', padding: '0 18px', scrollSnapType: 'x proximity' }}
+        ref={carrusel}
+        data-carrusel-recetas=""
+        className="mt-2.5 flex items-start gap-3 overflow-x-auto"
+        style={{ margin: '10px -18px 0', padding: '6px 18px 18px', scrollSnapType: 'x mandatory' }}
       >
         {recetas.map((receta) => (
           <TarjetaReceta key={receta.id} receta={receta} onAbrir={() => setAbierta(receta)} />
         ))}
       </div>
+
+      <p className="mt-1 text-xs leading-snug text-tenue">
+        El feed es el mismo para todos: no se filtra por objetivo ni por alergias.
+      </p>
 
       {abierta && (
         // La hoja NO se cierra al agregar: el aviso de «Deshacer» tiene que
@@ -91,7 +178,7 @@ export function RecetasCarousel({
 /**
  * El hueco antes de que lleguen las recetas.
  *
- * Mide exactamente lo mismo que las tarjetas de verdad —132 × 176 más el pie de
+ * Mide exactamente lo mismo que las tarjetas de verdad —148 × 150 más el pie de
  * texto— porque un esqueleto que no coincide es peor que ninguno: el contenido
  * salta justo cuando el dedo ya iba a tocar.
  */
@@ -101,14 +188,17 @@ function CarruselFantasma() {
       <div className="h-[19px] w-[186px] rounded-[6px] bg-surface-2 brillo-carga" />
       <div className="mt-1.5 h-[13px] w-full max-w-[280px] rounded-[6px] bg-surface-2 brillo-carga" />
       <div
-        className="mt-2.5 flex gap-[11px] overflow-hidden"
-        style={{ margin: '10px -18px 0', padding: '0 18px' }}
+        className="mt-2.5 flex gap-3 overflow-hidden"
+        style={{ margin: '10px -18px 0', padding: '6px 18px 18px' }}
       >
         {[0, 1, 2].map((i) => (
-          <div key={i} className="w-[132px] shrink-0 overflow-hidden rounded-[15px] border border-linea bg-surface-2">
-            <div className="brillo-carga h-[176px] w-full bg-surface-3" />
-            <div className="px-2 pb-2 pt-1.5">
-              <div className="brillo-carga h-[9px] w-3/5 rounded-[4px] bg-surface-3" />
+          <div
+            key={i}
+            className="w-[148px] shrink-0 overflow-hidden rounded-[18px] border border-linea bg-surface-2"
+          >
+            <div className="brillo-carga h-[150px] w-full bg-surface-3" />
+            <div className="px-2.5 pb-2.5 pt-2">
+              <div className="brillo-carga h-[10px] w-3/5 rounded-[4px] bg-surface-3" />
               <div className="brillo-carga mt-1.5 h-[11px] w-full rounded-[4px] bg-surface-3" />
               <div className="brillo-carga mt-1 h-[11px] w-4/5 rounded-[4px] bg-surface-3" />
             </div>
@@ -144,39 +234,64 @@ function Cocinadas({ cocinadas, racha }: { cocinadas: number; racha: number }) {
 }
 
 function TarjetaReceta({ receta, onAbrir }: { receta: Receta; onAbrir: () => void }) {
+  const gramos = gramosDe(receta)
+  const porcion = gramos > 0 ? `${gramos} g · ${receta.ajuste.kcal} kcal` : `${receta.ajuste.kcal} kcal`
+
   return (
     <button
+      data-receta=""
       type="button"
       onClick={onAbrir}
-      style={{ scrollSnapAlign: 'start' }}
-      className="relieve w-[132px] shrink-0 overflow-hidden rounded-[15px] border border-linea bg-surface-2 text-left"
+      aria-label={`${receta.nombre}, de ${receta.handle}. Te entra ${porcion}`}
+      style={{ scrollSnapAlign: 'center', transformOrigin: '50% 50%' }}
+      className="w-[148px] shrink-0 text-left"
     >
-      <span className="relative block h-[176px] w-full">
-        <img src={receta.media.thumbnail} alt="" className="h-full w-full object-cover" />
-        {/* Protección de tinta: el texto se lee sobre cualquier imagen. */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-1/2"
-          style={{ background: 'linear-gradient(180deg, transparent, rgba(8,9,10,.88))' }}
-        />
-        <span className="cifras absolute left-1.5 top-[32px] rounded-full bg-ink-900/80 px-1.5 py-0.5 text-xs font-bold text-silver-100">
-          {receta.ajuste.kcal} kcal
+      {/* `.relieve` da el canto de los botones 3D; la rotación la pone el
+          carrusel sobre el botón, no sobre el cuerpo, para no pelearse con el
+          hundido del toque. */}
+      <span className="relieve block overflow-hidden rounded-[18px] border border-linea bg-surface-1">
+        <span className="relative block h-[150px] w-full">
+          <img
+            src={receta.media.thumbnail}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Protección de tinta: el texto se lee sobre cualquier imagen. */}
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-3/5"
+            style={{ background: 'linear-gradient(180deg, transparent, rgba(8,9,10,.9))' }}
+          />
+          <span
+            className={`absolute left-1.5 top-1.5 rounded-full bg-ink-900/80 px-1.5 py-0.5 text-xs font-bold uppercase tracking-[0.08em] ${COLOR_CATEGORIA[receta.categoria]}`}
+          >
+            {receta.categoria}
+          </span>
+          <span className="cifras absolute right-1.5 top-1.5 rounded-full bg-ink-900/80 px-1.5 py-0.5 text-xs font-bold text-silver-100">
+            {receta.media.duracion}
+          </span>
+          <span className="cifras absolute bottom-1.5 left-2 right-2 truncate text-xs font-bold text-silver-100">
+            {receta.handle}
+          </span>
+          <span className="absolute bottom-1.5 right-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink-900/70 text-silver-100">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-2.5 w-2.5" aria-hidden="true">
+              <path d="m8 5 11 7-11 7Z" />
+            </svg>
+          </span>
         </span>
-        <span
-          className={`absolute left-1.5 top-1.5 rounded-full bg-ink-900/80 px-1.5 py-0.5 text-xs font-bold uppercase tracking-[0.08em] ${COLOR_CATEGORIA[receta.categoria]}`}
-        >
-          {receta.categoria}
-        </span>
-        <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-ink-900/70 text-silver-100">
-          <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-3 w-3">
-            <path d="m8 5 11 7-11 7Z" />
-          </svg>
-        </span>
-      </span>
-      <span className="block px-2 pb-2 pt-1.5">
-        <span className="cifras block text-xs font-bold tracking-[0.06em] text-accion">{receta.handle}</span>
-        <span className="mt-0.5 line-clamp-2 block text-xs font-bold leading-tight text-texto [text-wrap:pretty]">
-          {receta.nombre}
+        <span className="block px-2.5 pb-2.5 pt-2">
+          <span className="line-clamp-2 block text-sm font-bold leading-tight text-texto [text-wrap:pretty]">
+            {receta.nombre}
+          </span>
+          <span className="mt-1 block text-xs text-tenue">
+            Te entra{' '}
+            {gramos > 0 && (
+              <>
+                <b className="text-texto">{gramos} g</b> ·{' '}
+              </>
+            )}
+            <b className="text-texto">{receta.ajuste.kcal} kcal</b>
+          </span>
         </span>
       </span>
     </button>

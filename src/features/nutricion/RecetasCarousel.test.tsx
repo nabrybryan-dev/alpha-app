@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Receta } from '../../data/recetas'
 import { RecetasCarousel } from './RecetasCarousel'
@@ -46,7 +46,7 @@ describe('RecetasCarousel', () => {
     render(<RecetasCarousel recetas={TRES} />)
     expect(screen.getByText('Brownie de avena')).toBeInTheDocument()
     expect(screen.getByText('Bolitas')).toBeInTheDocument()
-    expect(screen.getByText('3 nuevas')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /, de @ejemplo\.cocina\./ })).toHaveLength(3)
   })
 
   /** Sin recetas la sección entera desaparece: ni estado vacío, ni hueco. */
@@ -60,7 +60,7 @@ describe('RecetasCarousel', () => {
     fireEvent.click(screen.getByText('Brownie de avena'))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Tu ajuste Alfa')).toBeInTheDocument()
-    expect(screen.getByText('1 porción de 60 g')).toBeInTheDocument()
+    expect(screen.getByText(/1 porción de 60 g/)).toBeInTheDocument()
   })
 
   it('Esc cierra la hoja', () => {
@@ -70,11 +70,11 @@ describe('RecetasCarousel', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  describe('agregar al registro', () => {
+  describe('La cociné', () => {
     function abrirCon(registro: RecetaRegistro) {
       render(<RecetasCarousel recetas={TRES} registro={registro} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
-      return screen.getByRole('button', { name: /agregar al registro/i })
+      return screen.getByRole('button', { name: /la cociné/i })
     }
 
     it('agrega en un solo toque, sin diálogo de confirmación', () => {
@@ -93,7 +93,8 @@ describe('RecetasCarousel', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
       const aviso = screen.getByRole('status')
       expect(aviso).toHaveTextContent('Brownie de avena')
-      expect(aviso).toHaveTextContent('1 porción de 60 g agregada')
+      expect(aviso).toHaveTextContent('1 porción de 60 g')
+      expect(aviso).toHaveTextContent('agregada a tu merienda')
     })
 
     it('«Deshacer» revierte de verdad, no solo esconde el aviso', () => {
@@ -104,21 +105,10 @@ describe('RecetasCarousel', () => {
       expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 
-    it('el aviso se va solo a los 4 s', () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true })
-      try {
-        fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
-        act(() => {
-          vi.advanceTimersByTime(3900)
-        })
-        expect(screen.getByRole('status')).toBeInTheDocument()
-        act(() => {
-          vi.advanceTimersByTime(200)
-        })
-        expect(screen.queryByRole('status')).not.toBeInTheDocument()
-      } finally {
-        vi.useRealTimers()
-      }
+    it('el aviso se queda mientras no se deshaga: no se puede registrar dos veces', () => {
+      fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
+      expect(screen.getByRole('status')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /la cociné/i })).toBeNull()
     })
 
     it('«Deshacer» tiene 44px de área táctil', () => {
@@ -134,7 +124,7 @@ describe('RecetasCarousel', () => {
       const registro = { agregar: vi.fn(), deshacer: vi.fn() }
       render(<RecetasCarousel recetas={[recetaSinMedir()]} registro={registro} />)
       fireEvent.click(screen.getByText('Sopa de la abuela'))
-      const boton = screen.getByRole('button', { name: /agregar al registro/i })
+      const boton = screen.getByRole('button', { name: /la cociné/i })
       expect(boton).toBeDisabled()
       expect(screen.getByText(/todavía no trae sus ingredientes medidos/i)).toBeInTheDocument()
       fireEvent.click(boton)
@@ -161,13 +151,13 @@ describe('RecetasCarousel', () => {
     it('con dato, dice cuántas kcal quedan hoy', () => {
       render(<RecetasCarousel recetas={TRES} kcalRestantes={420} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
-      expect(screen.getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
+      expect(within(screen.getByRole('dialog')).getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
     })
 
     it('sin dato NO desaparece: cae al plan del día', () => {
       render(<RecetasCarousel recetas={TRES} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
-      expect(screen.getByText('Según tu plan de hoy')).toBeInTheDocument()
+      expect(within(screen.getByRole('dialog')).getByText('Según tu plan de hoy')).toBeInTheDocument()
     })
   })
 
@@ -175,9 +165,9 @@ describe('RecetasCarousel', () => {
   describe('esqueleto de carga', () => {
     it('reserva tres tarjetas del mismo ancho que las de verdad', () => {
       const { container } = render(<RecetasCarousel recetas={[]} cargando />)
-      const fantasmas = container.querySelectorAll('.w-\\[132px\\]')
+      const fantasmas = container.querySelectorAll('.w-\\[148px\\]')
       expect(fantasmas).toHaveLength(3)
-      expect(container.querySelector('.h-\\[176px\\]')).toBeInTheDocument()
+      expect(container.querySelector('.h-\\[150px\\]')).toBeInTheDocument()
     })
 
     it('no anuncia el hueco a quien navega por voz', () => {

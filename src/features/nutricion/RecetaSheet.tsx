@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
-import type { Receta, RecetaNota } from '../../data/recetas'
+import { gramosDeReceta, type Receta, type RecetaNota } from '../../data/recetas'
+import { Boton3D } from '../../components/ui/Boton3D'
+import { Cifra3D } from '../../components/ui/Cifra3D'
 import { motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
 import { ReelPlayer } from './ReelPlayer'
 
@@ -7,6 +9,19 @@ import { ReelPlayer } from './ReelPlayer'
  * La hoja que traduce un viral de Instagram al plan del asesorado: no le
  * prohíbe la receta, le dice la porción que sí entra hoy.
  */
+
+/** A qué comida del día cae una receta, para nombrarla en el aviso. */
+const COMIDA_DE: Record<Receta['categoria'], string> = {
+  Desayuno: 'desayuno',
+  Almuerzo: 'almuerzo',
+  Cena: 'cena',
+  Snack: 'merienda',
+  Postre: 'merienda',
+}
+
+function gramosDe(receta: Receta): number {
+  return gramosDeReceta(receta)
+}
 
 const trazo = {
   fill: 'none',
@@ -60,13 +75,10 @@ export interface RecetaSheetProps {
   registro?: RecetaRegistro
 }
 
-/** Lo que dura el aviso antes de irse solo. */
-const MS_AVISO = 4000
-
 export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: RecetaSheetProps) {
   const hoja = useRef<HTMLDivElement>(null)
-  const [agregada, setAgregada] = useState(false)
-  const reloj = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  /** La receta ya quedó registrada: el botón se retira y el aviso se queda. */
+  const [hecha, setHecha] = useState(false)
 
   // Esc cierra, y el foco entra en la hoja para no quedarse detrás del scrim.
   useEffect(() => {
@@ -78,24 +90,18 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
     return () => document.removeEventListener('keydown', alTeclear)
   }, [onCerrar])
 
-  // El aviso no puede sobrevivir al desmontaje: dejaría un temporizador
-  // escribiendo estado sobre una hoja que ya no existe.
-  useEffect(() => () => clearTimeout(reloj.current), [])
-
   const agregar = () => {
     registro?.agregar(receta)
-    setAgregada(true)
-    clearTimeout(reloj.current)
-    reloj.current = setTimeout(() => setAgregada(false), MS_AVISO)
+    setHecha(true)
   }
 
   const deshacer = () => {
-    clearTimeout(reloj.current)
-    setAgregada(false)
+    setHecha(false)
     registro?.deshacer(receta)
   }
 
   const { ajuste, media, social } = receta
+  const gramos = gramosDe(receta)
 
   return (
     <div
@@ -135,12 +141,17 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
           </div>
         </div>
 
-        <AjusteAlfa ajuste={ajuste} kcalRestantes={kcalRestantes} />
+        <AjusteAlfa ajuste={ajuste} gramos={gramos} kcalRestantes={kcalRestantes} />
 
         <Ingredientes receta={receta} />
         <Preparacion pasos={receta.preparacion} />
 
-        <PieFijo receta={receta} agregada={agregada} onAgregar={agregar} onDeshacer={deshacer} />
+        <PieFijo
+          receta={receta}
+          hecha={hecha}
+          onAgregar={agregar}
+          onDeshacer={deshacer}
+        />
       </div>
     </div>
   )
@@ -155,12 +166,12 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
  */
 function PieFijo({
   receta,
-  agregada,
+  hecha,
   onAgregar,
   onDeshacer,
 }: {
   receta: Receta
-  agregada: boolean
+  hecha: boolean
   onAgregar: () => void
   onDeshacer: () => void
 }) {
@@ -170,14 +181,17 @@ function PieFijo({
 
   return (
     <div className="sticky bottom-0 z-10 -mx-4 mt-4 px-4">
-      {agregada && (
+      {hecha && (
         <div
           role="status"
           className="aviso-registro mb-2 flex items-center gap-3 rounded-boton border border-linea bg-surface-3 px-3 py-2"
         >
           <span className="min-w-0 flex-1 text-[12px] leading-snug text-silver-200">
             <span className="font-bold text-texto">{receta.nombre}</span>
-            <span className="text-tenue"> · {receta.ajuste.porcion} agregada</span>
+            <span className="text-tenue">
+              {' '}
+              · {receta.ajuste.porcion} agregada a tu {COMIDA_DE[receta.categoria]}
+            </span>
           </span>
           <button
             type="button"
@@ -199,17 +213,26 @@ function PieFijo({
       >
         {/* Filo de tinta: separa el botón del contenido que pasa por detrás. */}
         <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linea" />
-        <button
-          type="button"
-          onClick={onAgregar}
-          disabled={motivo !== null}
-          className={`press w-full rounded-boton text-[13px] font-bold uppercase tracking-wide ${
-            motivo ? 'border border-linea bg-surface-3 text-tenue' : 'bg-accion text-white'
-          }`}
-          style={{ height: 50 }}
-        >
-          Agregar al registro
-        </button>
+        {!hecha &&
+          (motivo ? (
+            <button
+              type="button"
+              disabled
+              className="w-full rounded-boton border border-linea bg-surface-3 text-[13px] font-bold uppercase tracking-wide text-tenue"
+              style={{ height: 50 }}
+            >
+              La cociné
+            </button>
+          ) : (
+            <Boton3D bloque onClick={onAgregar}>
+              La cociné
+            </Boton3D>
+          ))}
+        {!hecha && !motivo && (
+          <p className="mt-1.5 text-center text-xs leading-snug text-tenue">
+            Se agrega a tu día por ingredientes, en gramos.
+          </p>
+        )}
         {motivo && <p className="mt-1.5 text-center text-xs leading-snug text-tenue">{motivo}</p>}
       </div>
     </div>
@@ -246,28 +269,44 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
   )
 }
 
-function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalRestantes?: number }) {
+function AjusteAlfa({
+  ajuste,
+  gramos,
+  kcalRestantes,
+}: {
+  ajuste: Receta['ajuste']
+  gramos: number
+  kcalRestantes?: number
+}) {
+  const porcion = [ajuste.porcion, ajuste.porcionNota].filter(Boolean).join(' ')
   return (
     <section className="mt-4 rounded-[18px] border border-linea bg-ink-800 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Tu ajuste Alfa</p>
-      <p className="cifras mt-1.5 text-[26px] font-bold leading-none text-texto">{ajuste.porcion}</p>
-      <p className="mt-1 text-xs text-tenue">{ajuste.porcionNota}</p>
+
+      <div className="mt-1.5 flex items-center gap-3">
+        <Cifra3D
+          valor={ajuste.kcal}
+          tamano={34}
+          sufijo=" kcal"
+          etiqueta={`${ajuste.kcal} kilocalorías por porción`}
+        />
+        <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
+          {porcion}
+          {gramos > 0 && ` · ${gramos} g`}
+          <br />
+          {ajuste.prot} g proteína · {ajuste.carb} g carbohidratos · {ajuste.grasa} g grasa
+        </span>
+      </div>
+
       {/*
         Esta línea NUNCA se omite. Sin ella la porción es un número más y la
         sección se vuelve un feed de recetas; con ella, la receta está medida
         contra el día concreto de esta persona. Si falta el dato de kcal, se
         dice de dónde sale la porción, no se calla.
       */}
-      <p className="cifras mt-1 text-xs text-tenue">
+      <p className="cifras mt-1.5 text-xs font-semibold text-texto">
         {kcalRestantes === undefined ? 'Según tu plan de hoy' : `Te quedan ${kcalRestantes} kcal hoy`}
       </p>
-
-      <div className="mt-3 flex items-center justify-between gap-2 border-y border-linea py-2.5">
-        <Macro etiqueta="kcal" valor={ajuste.kcal} clase="text-texto" />
-        <Macro etiqueta="prot" valor={ajuste.prot} clase="text-azul" sufijo="g" />
-        <Macro etiqueta="carb" valor={ajuste.carb} clase="text-ambar" sufijo="g" />
-        <Macro etiqueta="grasa" valor={ajuste.grasa} clase="text-oro" sufijo="g" />
-      </div>
 
       {/* Solo se ve en desarrollo: en producción una receta sin notas no se
           sirve. Es lo que le dice al coach cuáles le faltan por escribir. */}
@@ -373,14 +412,4 @@ function Preparacion({ pasos }: { pasos?: string[] }) {
   )
 }
 
-function Macro({ etiqueta, valor, clase, sufijo }: { etiqueta: string; valor: number; clase: string; sufijo?: string }) {
-  return (
-    <span className="text-center">
-      <span className="cifras block text-xs font-bold uppercase tracking-[0.1em] text-tenue">{etiqueta}</span>
-      <span className={`cifras mt-0.5 block text-[15px] font-bold ${clase}`}>
-        {valor}
-        {sufijo}
-      </span>
-    </span>
-  )
-}
+
