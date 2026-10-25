@@ -186,9 +186,12 @@ describe('DiarioDia', () => {
     })
   })
 
-  it('lleva a Mi plan', () => {
+  it('lleva a Tu plan', () => {
     pintar()
-    expect(screen.getByRole('link', { name: /mi plan/i })).toHaveAttribute('href', '/nutricion/plan')
+    expect(screen.getByRole('link', { name: /tu plan/i })).toHaveAttribute(
+      'href',
+      '/nutricion/plan',
+    )
   })
 
   /**

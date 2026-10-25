@@ -1,5 +1,4 @@
-import { AnilloMacro } from '../../components/ui/AnilloMacro'
-import { ProgressBar } from '../../components/ui/ProgressBar'
+import { Cifra3D } from '../../components/ui/Cifra3D'
 import type { Macros } from '../../domain/types'
 import type { TotalDia } from '../../domain/nutricion/dia'
 import type { Visibilidad } from '../../domain/nutricion/visibilidad'
@@ -39,9 +38,9 @@ interface ResumenDiaProps {
 }
 
 const MACROS = [
-  { clave: 'proteina_g', meta: 'proteinaG', etiqueta: 'Proteína', color: 'var(--accion)' },
-  { clave: 'carbos_g', meta: 'carbosG', etiqueta: 'Carbos', color: 'var(--azul)' },
-  { clave: 'grasa_g', meta: 'grasaG', etiqueta: 'Grasas', color: 'var(--ambar)' },
+  { clave: 'proteina_g', meta: 'proteinaG', etiqueta: 'proteína', color: 'text-logrado' },
+  { clave: 'carbos_g', meta: 'carbosG', etiqueta: 'carbohidratos', color: 'text-azul' },
+  { clave: 'grasa_g', meta: 'grasaG', etiqueta: 'grasa', color: 'text-ambar' },
 ] as const
 
 const pct = (valor: number, tope: number) => (tope > 0 ? Math.min(100, (valor / tope) * 100) : 0)
@@ -52,58 +51,84 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
 
   return (
     <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
+      <h2 className="font-display text-sm text-texto">Lo que llevas hoy</h2>
+
       {visibilidad.verContadorKcal && (
-        <div className="flex items-center gap-4">
-          <AnilloMacro
-            etiqueta="del día"
-            gramos={kcal}
-            pct={pct(kcal, meta.kcal)}
-            color="var(--accion)"
-            unidad="kcal"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="cifras text-2xl font-bold leading-none text-texto">
-              {kcal.toLocaleString('es-CO')}
-            </p>
-            <p className="text-xs text-tenue">de {meta.kcal.toLocaleString('es-CO')} kcal</p>
-            <p className="mt-1 text-xs font-semibold text-accion">
-              {restan > 0
-                ? `faltan ${restan.toLocaleString('es-CO')}`
-                : restan === 0
-                  ? 'justo en la meta'
-                  : `${Math.abs(restan).toLocaleString('es-CO')} por encima`}
-            </p>
+        <>
+          <div className="mt-2 flex items-end gap-3">
+            <Cifra3D
+              valor={kcal}
+              tamano={38}
+              etiqueta={`${kcal.toLocaleString('es-CO')} kilocalorías registradas hoy`}
+            />
+            <div className="min-w-0 flex-1 pb-1">
+              <p className="text-xs text-tenue">de {meta.kcal.toLocaleString('es-CO')} kcal</p>
+              <p className="mt-0.5 text-xs font-semibold text-accion">
+                {restan > 0
+                  ? `faltan ${restan.toLocaleString('es-CO')}`
+                  : restan === 0
+                    ? 'justo en la meta'
+                    : `${Math.abs(restan).toLocaleString('es-CO')} por encima`}
+              </p>
+            </div>
           </div>
-        </div>
+          <div
+            className="mt-2 h-2 overflow-hidden rounded-full bg-surface-3"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(pct(kcal, meta.kcal))}
+            aria-label="Progreso de calorías del día"
+          >
+            <div
+              className="h-full origin-left rounded-full bg-placa"
+              style={{
+                transform: `scaleX(${(pct(kcal, meta.kcal) / 100).toFixed(3)})`,
+                transition: 'transform var(--dur-informativo) var(--muelle-informativo)',
+              }}
+            />
+          </div>
+        </>
       )}
 
       {visibilidad.verObjetivoCalorico && (
-        <div className={`flex flex-col gap-2.5 ${visibilidad.verContadorKcal ? 'mt-4' : ''}`}>
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {MACROS.map((macro) => {
             const valor = Math.round(total.porDia[macro.clave] ?? 0)
             const tope = meta[macro.meta]
             return (
-              <div key={macro.clave}>
-                <div className="mb-1 flex items-baseline justify-between text-xs">
-                  <span className="text-tenue">{macro.etiqueta}</span>
-                  <span className="cifras text-tenue">
-                    <b className="text-texto">{valor}</b> / {tope} g
-                  </span>
-                </div>
-                <ProgressBar pct={pct(valor, tope)} />
+              <div
+                key={macro.clave}
+                className="rounded-2xl border border-linea bg-surface-2 px-2 py-2 text-center"
+              >
+                <span className={macro.color}>
+                  <Cifra3D
+                    valor={valor}
+                    tamano={22}
+                    sufijo=" g"
+                    etiqueta={`${valor} gramos de ${macro.etiqueta}, de ${tope}`}
+                  />
+                </span>
+                <p className="mt-0.5 text-xs leading-tight text-tenue">
+                  {macro.etiqueta}
+                  <br />
+                  de {tope}
+                </p>
               </div>
             )
           })}
         </div>
       )}
 
+      <p className="mt-3 text-xs leading-snug text-tenue">
+        Solo suma lo que registras: el plan es la guía, no lo comido.
+      </p>
+
       {/* Sin nada encima, el margen no necesita separador: sería una raya bajo
           un hueco. */}
       <div
-        className={`flex flex-wrap items-center gap-2 ${
-          visibilidad.verContadorKcal || visibilidad.verObjetivoCalorico
-            ? 'mt-4 border-t border-linea pt-3'
-            : ''
+        className={`flex flex-wrap items-center gap-2 border-t border-linea pt-3 ${
+          visibilidad.verContadorKcal || visibilidad.verObjetivoCalorico ? 'mt-3' : ''
         }`}
       >
         <span className="rounded-full border border-linea bg-surface-2 px-2.5 py-1 text-xs font-semibold text-texto">

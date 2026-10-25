@@ -18,10 +18,9 @@ import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
 import { estaCalibrado } from '../../domain/nutricion/calibracion'
 import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
-import { preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
-import { RECETAS, type Receta } from '../../data/recetas'
+import { gramosDeReceta, RECETAS, type Receta } from '../../data/recetas'
 import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
 import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from '../../domain/recetasProbadas'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
@@ -185,16 +184,23 @@ export default function DiarioDia() {
   const respuestasSuyas = db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}
   const condiciones = [...condicionesDeclaradas(respuestasSuyas, fecha)]
 
-  /**
-   * Las quincenales de embarazo y lactancia, si hoy toca alguna.
-   *
-   * Contra `hoyIso()` y no contra `fecha`: abrir el diario del lunes pasado no
-   * es viajar en el tiempo, y una pregunta que toca hoy toca igual.
-   */
-  const quincenalesPendientes = preguntasQueVuelven(respuestasSuyas, hoyIso())
   const nombresDelDia = delDia.flatMap((comida) =>
     comida.items.map((item) => porId(item.alimentoId)?.nombre ?? ''),
   )
+
+  /**
+   * Las recetas que se cocinaron ESTE día, con su porción. Se listan debajo del
+   * carrusel: lo que ya entró al día no se esconde, para que el asesorado vea
+   * que sus kcal están contadas y de dónde salen.
+   */
+  const recetasDeHoy = probadas
+    .filter((p) => p.fecha === fecha)
+    .map((p) => {
+      const receta = RECETAS.find((r) => r.id === p.recetaId)
+      if (!receta) return null
+      return { receta, gramos: gramosDeReceta(receta), kcal: receta.ajuste.kcal }
+    })
+    .filter((r): r is { receta: Receta; gramos: number; kcal: number } => r !== null)
 
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
 
@@ -379,44 +385,20 @@ export default function DiarioDia() {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
-            Diario de comidas · {etiquetaDelTipoDeDia(plan, tipoDia)}
-          </p>
-          <h1 className="font-display text-xl capitalize text-texto">{fechaBonita(fecha)}</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => setVerSemana(true)}
-          className="press flex min-h-11 shrink-0 items-center rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
-        >
-          Semana
-        </button>
-        <Link
-          to="/nutricion/plan"
-          className="press flex min-h-11 shrink-0 items-center rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
-        >
-          Mi plan
-        </Link>
+      <header>
+        <h1 className="font-display text-xl text-texto">Nutrición</h1>
+        <p className="mt-0.5 text-xs capitalize text-tenue">
+          {fechaBonita(fecha)} · {etiquetaDelTipoDeDia(plan, tipoDia)}
+        </p>
       </header>
 
-      {quincenalesPendientes.length > 0 && (
-        // Un recordatorio, no una compuerta: se puede seguir usando el diario
-        // entero sin tocarlo. Ver `AlDiaEmbarazo`.
-        <Link
-          to="/nutricion/al-dia"
-          className="press flex items-center justify-between gap-3 rounded-2xl border border-ambar/40 bg-ambar/15 p-3"
-        >
-          <span className="text-xs leading-snug text-tenue">
-            <b className="text-texto">Cuéntanos qué te dijo tu médico.</b> Lo que él te indique
-            manda sobre lo que calcule la app.
-          </span>
-          <span className="shrink-0 text-xs font-semibold text-texto">Responder</span>
-        </Link>
-      )}
-
-      <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
+      <TiraSemana
+        fecha={fecha}
+        hoy={hoyIso()}
+        conRegistro={conRegistro}
+        onElegir={setFecha}
+        onSemana={() => setVerSemana(true)}
+      />
 
       <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
 
@@ -426,11 +408,12 @@ export default function DiarioDia() {
         registro={registroDeRecetas}
         cocinadas={distintas(probadas)}
         racha={rachaDeRecetas(probadas, fecha).actual}
+        cocinadasHoy={recetasDeHoy}
       />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-display text-sm text-texto">Tus {COMIDAS.length} comidas de hoy</h2>
+          <h2 className="font-display text-sm text-texto">Comidas</h2>
           <span className="cifras text-xs text-tenue">
             {hechas} / {COMIDAS.length}
           </span>
@@ -474,6 +457,24 @@ export default function DiarioDia() {
           el coach pautó -algo que se lee, no donde se registra-. */}
       <Hidratacion usuarioId={usuario.id} />
       <AdherenciaDia usuarioId={usuario.id} />
+
+      {/* El plan completo, a un toque desde donde se registra. En la maqueta es
+          una fila al pie; la ruta de siempre se conserva. */}
+      <Link
+        to="/nutricion/plan"
+        aria-label="Tu plan"
+        className="press flex items-center justify-between gap-3 rounded-2xl border border-linea bg-surface-1 p-3"
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-texto">Tu plan</span>
+          <span className="block text-xs leading-snug text-tenue">
+            Menús, intercambios, mercado, suplementos y tu perfil
+          </span>
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-tenue">
+          ›
+        </span>
+      </Link>
 
       {hojas}
     </div>

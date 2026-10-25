@@ -49,7 +49,9 @@ export function FilaComida({ comida, kcal, resumen, verKcal, onAbrir }: FilaComi
       aria-label={`${NOMBRES[comida.comida]}, ${estado}`}
       className="press flex w-full items-center gap-3 rounded-2xl border border-linea bg-surface-1 p-3 text-left transition-colors hover:border-accion/40"
     >
-      <span className="cifras w-11 shrink-0 text-xs text-tenue">{hora(comida.momentoIso)}</span>
+      {/* La hora solo se pinta cuando hay algo anotado. La de por defecto es
+          una promesa de la app, no un dato de lo que pasó. */}
+      {!vacia && <span className="cifras w-11 shrink-0 text-xs text-tenue">{hora(comida.momentoIso)}</span>}
 
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-texto">{NOMBRES[comida.comida]}</span>
