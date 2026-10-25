@@ -15,6 +15,8 @@ interface BarraCoachProps {
   noLeidos: number
   ultimoTexto: string | undefined
   onEnviar: (envio: EnvioRapido) => void
+  /** `nuevo` = el aspecto de la maqueta «Diseño final 3» (asesorado); `clasico` = el de main (staff, hasta el paso 9). */
+  diseno?: 'nuevo' | 'clasico'
 }
 
 /**
@@ -34,6 +36,7 @@ export function BarraCoach({
   noLeidos,
   ultimoTexto,
   onEnviar,
+  diseno = 'clasico',
 }: BarraCoachProps) {
   const [texto, setTexto] = useState('')
   const [archivo, setArchivo] = useState<File>()
@@ -65,7 +68,7 @@ export function BarraCoach({
   }
 
   return (
-    <section className="relieve glass glass-destacada rounded-bloque p-3.5">
+    <section className={diseno === 'nuevo' ? 'hoy-tarjeta' : 'relieve glass glass-destacada rounded-bloque p-3.5'}>
       {/* Enlace de verdad, no un botón que navega: así funciona el clic central,
           el "abrir en pestaña nueva" y se anuncia como enlace. */}
       <Link to="/chat" className="press flex min-h-[44px] w-full items-center gap-2.5 text-left">

@@ -3781,3 +3781,333 @@ body.praxis-sala-abierta { overflow:hidden; }
     animation: none;
   }
 }
+
+/* =====================================================================================
+   Hoy del asesorado, «Diseño final 3» (maqueta-v7.html, pantalla Hoy · Fase 3 paso 3).
+   Los valores son los de la maqueta; los colores siguen siendo los tokens de arriba.
+   ===================================================================================== */
+
+/* Lo que la maqueta usa y la base no tenía. Fijos en los dos temas. */
+:root,
+[data-theme="dark"] {
+  --rojo-relleno: rgb(213 18 22);
+  --on-rojo: #ffffff;
+  --hero-a: #4a0f14;
+  --hero-b: #161616;
+  --hero-texto: #f2f2f2;
+  --hero-tenue: #c9c9cd;
+  --hero-linea: rgba(255, 255, 255, 0.16);
+  /* Botón con cuerpo (.boton-pago-3d de la maqueta): color y cinco cantos */
+  --btn-a: #ff4a4a;
+  --btn-c: #c40f0f;
+  --btn-luz: rgba(255, 255, 255, 0.45);
+  --btn-luz-2: rgba(255, 255, 255, 0.3);
+  --btn-sombra: rgba(0, 0, 0, 0.35);
+  --btn-sombra-2: rgba(0, 0, 0, 0.3);
+  --btn-texto-sombra: rgba(0, 0, 0, 0.35);
+  --canto-1: #a50f0f;
+  --canto-2: #8c0c0c;
+  --canto-3: #730a0a;
+  --canto-4: #5a0707;
+  --canto-5: #420505;
+  --canto: #3a3a3e;
+  --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --sombra-card: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="light"] {
+  --canto: #c9c6bd;
+  --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --sombra-card: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* ---------- Botón 3D (Boton3D) ---------- */
+.btn-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 14px 26px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--btn-a) 0%, var(--rojo-relleno) 55%, var(--btn-c) 100%);
+  color: var(--on-rojo);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-shadow: 0 1px 0 var(--btn-texto-sombra);
+  transform: perspective(var(--perspectiva)) rotateX(8deg);
+  transform-origin: 50% 100%;
+  box-shadow:
+    inset 0 1px 0 var(--btn-luz),
+    0 1px 0 var(--canto-1),
+    0 2px 0 var(--canto-2),
+    0 3px 0 var(--canto-3),
+    0 4px 0 var(--canto-4),
+    0 5px 0 var(--canto-5),
+    0 12px 20px var(--btn-sombra);
+  transition:
+    transform var(--dur-microinteraccion) var(--muelle-microinteraccion),
+    box-shadow var(--dur-microinteraccion) var(--muelle-microinteraccion);
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+  border: 0;
+}
+@media (hover: hover) {
+  .btn-3d:hover {
+    transform: perspective(var(--perspectiva)) rotateX(5deg) translateY(-1px);
+  }
+}
+.btn-3d:active {
+  transform: perspective(var(--perspectiva)) rotateX(0deg) translateY(4px);
+  box-shadow:
+    inset 0 1px 0 var(--btn-luz-2),
+    0 1px 0 var(--canto-4),
+    0 4px 8px var(--btn-sombra-2);
+  transition:
+    transform var(--dur-toque) var(--ease-salida),
+    box-shadow var(--dur-toque) var(--ease-salida);
+}
+.btn-3d:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 4px;
+}
+.btn-3d.cta-pulso {
+  overflow: visible;
+}
+.hoy-hero .btn-3d:focus-visible {
+  /* El hero es oscuro en los dos temas: el foco usa el texto del hero, no --texto (casi negro en claro). */
+  outline-color: var(--hero-texto);
+}
+.btn-3d-bloque {
+  display: flex;
+  width: 100%;
+}
+.btn-3d-redondo {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 99px;
+}
+.btn-3d svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.btn-3d[aria-disabled="true"],
+.btn-3d:disabled {
+  filter: grayscale(1);
+  opacity: 0.55;
+  transform: none;
+  box-shadow: var(--sombra-alzado);
+  pointer-events: none;
+}
+/* Movimiento reducido: el botón se queda quieto y plano; al pulsar cambia sin hundirse animado. */
+@media (prefers-reduced-motion: reduce) {
+  .btn-3d,
+  .btn-3d:hover,
+  .btn-3d:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------- Tecla secundaria (.btn2): cuerpo alzado que se hunde al pulsar ---------- */
+.tecla-2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background-color: var(--surface-3);
+  background-image: var(--relleno-alzado);
+  box-shadow:
+    0 2px 0 var(--canto),
+    var(--sombra-alzado);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--texto);
+  text-decoration: none;
+  flex: none;
+  transition:
+    transform var(--dur-microinteraccion) var(--muelle-microinteraccion),
+    box-shadow var(--dur-microinteraccion) var(--muelle-microinteraccion);
+}
+.tecla-2:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 var(--canto),
+    var(--sombra-hundido);
+  transition:
+    transform var(--dur-toque) var(--ease-salida),
+    box-shadow var(--dur-toque) var(--ease-salida);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tecla-2,
+  .tecla-2:active {
+    transition: none;
+  }
+}
+
+/* ---------- Tarjetas y bandas de Hoy ---------- */
+.hoy-tarjeta {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  box-shadow: var(--brillo), var(--sombra-card);
+  padding: 16px;
+}
+.hoy-tarjeta-ambar {
+  border: 1.5px solid var(--ambar);
+}
+.hoy-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hoy-fila-titulo {
+  font-size: 15px;
+  font-weight: 700;
+}
+.hoy-fila-sub {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tenue);
+}
+.hoy-banda-titulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 22px 0 -4px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--texto);
+}
+.hoy-hero {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: var(--hero-texto);
+  border-radius: 22px;
+  padding: 16px;
+  background: linear-gradient(160deg, var(--hero-a), var(--hero-b));
+  border: 1px solid var(--hero-linea);
+  box-shadow: var(--brillo), var(--sombra-card);
+}
+.hoy-hero-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  opacity: 0.9;
+}
+.hoy-hero-titulo {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: 38px;
+  line-height: 1;
+  margin: 8px 0 6px;
+  color: var(--hero-texto);
+}
+.hoy-hero-meta {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hero-tenue);
+  margin: 0 0 14px;
+}
+.hoy-hero-chip {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--hero-linea);
+  background: var(--hero-linea);
+  color: var(--hero-texto);
+}
+.hoy-hero-avance {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 28px;
+  margin-bottom: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--hero-tenue);
+}
+.hoy-hero-pista {
+  height: 6px;
+  flex: 1;
+  border-radius: 9px;
+  background: var(--hero-linea);
+  overflow: hidden;
+}
+.hoy-hero-pista > i {
+  display: block;
+  height: 100%;
+  background: var(--on-rojo);
+  transform-origin: left;
+  transition: transform var(--dur-panel) var(--ease-salida);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hoy-hero-pista > i {
+    transition: none;
+  }
+}
+.hoy-resto-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background-color: var(--surface-3);
+  background-image: var(--relleno-alzado);
+  box-shadow:
+    0 2px 0 var(--canto),
+    var(--sombra-alzado);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--texto);
+  text-align: left;
+}
+.hoy-cifra-hundida {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 92px;
+  padding: 14px 6px 10px;
+  border-radius: 18px;
+  background-color: var(--surface-2);
+  background-image: var(--relleno-hundido);
+  box-shadow: var(--sombra-hundido);
+  text-align: center;
+  min-width: 0;
+}
+.hoy-cifra-hundida small {
+  font-size: 12px;
+  color: var(--tenue);
+  font-weight: 700;
+  line-height: 1.15;
+}
