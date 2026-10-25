@@ -3781,3 +3781,111 @@ body.praxis-sala-abierta { overflow:hidden; }
     animation: none;
   }
 }
+
+/* ===========================================================================
+   PRAXIS · LAS TARJETAS 3D (maqueta 7, paso 8 del rediseño)
+
+   Salen del fondo del cosmos cuando la conversación nombra su tema, como mucho tres. El
+   canto es el de los botones 3D aprobados, en neutro: el rojo queda para la atención.
+   Una sola flota; las demás se quedan quietas. Con movimiento reducido, fundido y sin
+   giros. No hay ninguna al abrir: las pinta `TarjetasPraxis` solo al oír una frase.
+   =========================================================================== */
+.praxis .px-tarjetas {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: var(--z-elevado);
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  perspective: 720px;
+  pointer-events: none;
+}
+.praxis .px-t {
+  pointer-events: auto;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--linea), 0.34);
+  background:
+    linear-gradient(180deg, rgba(var(--luz), 0.13), rgba(var(--luz), 0.04)),
+    var(--ink-800);
+  color: var(--s100);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--luz), 0.18),
+    0 1px 0 rgba(var(--luz), 0.14),
+    0 14px 30px rgba(0, 0, 0, 0.42);
+  transform-style: preserve-3d;
+  animation: pxEntra 420ms var(--muelle-protagonista) both;
+  transition:
+    transform 180ms var(--ease-salida),
+    background-color 180ms var(--ease-salida);
+}
+.praxis .px-t:active {
+  transform: scale(1.02) translateZ(10px);
+}
+.praxis .px-t-cara {
+  display: block;
+  transform-style: preserve-3d;
+}
+.praxis .px-t:first-child .px-t-cara {
+  animation: pxFlota 7.2s var(--ease-desliz) infinite;
+}
+.praxis .px-t b {
+  display: block;
+  font: 700 14px/1.2 var(--f-display);
+  font-stretch: 125%;
+  letter-spacing: 0.01em;
+}
+.praxis .px-t small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--s300);
+}
+@keyframes pxEntra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, -260px) rotateX(58deg) rotateY(-16deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pxFlota {
+  0%,
+  100% {
+    transform: rotateY(-4deg);
+  }
+  50% {
+    transform: rotateY(4deg);
+  }
+}
+@keyframes pxFundido {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .praxis .px-t,
+  .praxis .px-t:first-child .px-t-cara {
+    /* Con movimiento reducido no hay viaje desde el fondo, pero sí un fundido corto. */
+    animation: pxFundido 240ms linear both;
+    transition: none;
+    transform: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .praxis .px-t {
+    background: var(--ink-800);
+  }
+}

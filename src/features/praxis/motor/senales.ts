@@ -90,6 +90,8 @@ export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolea
   const leida = porModelo || (cita !== null && S.leidasPorModelo.includes(cita))
   if (!demo && hayDatos()) guardarBorrador() // lo ya marcado queda como borrador
   cancelar()
+  // La Quieta manda: las tarjetas 3D se retiran y no vuelven en esta conversación.
+  window.dispatchEvent(new CustomEvent('praxis:quieta'))
   S.quieta = { tipo, cita, demo }; S.cuidado = null; $('#btnRapido').setAttribute('aria-pressed', 'false')
   if (Mic.activo) detenerMic(false)
   if (Mic.cortarVoz) Mic.cortarVoz() // si estaba hablando por voz, la toma se corta sin enviarse
@@ -165,6 +167,9 @@ export function enviarTexto(t: string, fuente: Fuente): void {
   if (S.cuidado) { aviso(tu('Antes de seguir, respóndeme con un toque.', 'Antes de seguir, respóndame con un toque.')); return }
   // Conectada, el filtro de riesgo lo aplica la conversación (`decidirTurno`) a CADA frase, antes de cualquier otra cosa.
   if (!conectada() && revisarRiesgo(t, fuente)) return // lo grave detiene; lo ambiguo se pregunta
+  // Seam con React: las tarjetas 3D (paso 8) escuchan lo que dice la persona. La Quieta
+  // las retira con su propio evento; esto solo enciende las que la frase nombra.
+  window.dispatchEvent(new CustomEvent('praxis:frasa', { detail: { texto: t } }))
   cortarDecir()
   emitir({ tipo: 'texto', txt: t, fuente })
 }

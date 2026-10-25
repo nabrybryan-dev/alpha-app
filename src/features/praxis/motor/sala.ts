@@ -68,6 +68,8 @@ function finAbrir(): void {
 }
 export function abrirSala(modo?: 'quieta' | 'demo', opt: { sinViaje?: boolean } = {}): void {
   const sala = $('#sala'), app = $('#app')
+  // Conversación nueva: las tarjetas 3D arrancan limpias (y salen del estado de Quieta).
+  window.dispatchEvent(new CustomEvent('praxis:abrir'))
   limpiarAnimsSala(); clearTimeout(Sala.tAbrir); Sala.limpiar = false
   const mini = $('#miniFirma'), rm = miniVisible()
   sala.hidden = false; SinSalto.reiniciar()
