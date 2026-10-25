@@ -1,10 +1,12 @@
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
 import { ThemeProvider } from '../../app/ThemeProvider'
-import { db } from '../../data/dbInstance'
+import { db, hoyIso } from '../../data/dbInstance'
 import { reiniciarDb } from '../../data/mockDb'
+import { resumenSemana, armarSemana, microcicloVigente } from '../../domain/rutaEntrenamiento'
+import { resumirLaSemana } from '../../domain/semana/resumen'
 import type { Microciclo, PartePreparacion } from '../../domain/types'
 import SemanaPage from './SemanaPage'
 
@@ -59,6 +61,10 @@ beforeEach(() => {
   reiniciarDb()
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('Semana · la bandeja', () => {
   it('se abre con su título, su rango de fechas y la cuenta de lo hecho', async () => {
     pintar()
@@ -93,6 +99,42 @@ describe('Semana · la bandeja', () => {
       'href',
       '/cuestionarios',
     )
+  })
+
+  it('la cuenta no arrastra un cuestionario respondido fuera de la semana', async () => {
+    pintar()
+    const resumen = await screen.findByRole('region', { name: 'Resumen de la semana' })
+    const micro = microcicloVigente(db.microciclos.byUsuario('u-valentina'), hoyIso())
+    if (!micro) throw new Error('el seed no trae microciclo vigente')
+    const sesiones = resumenSemana(armarSemana(micro, hoyIso()))
+    // El seed trae dos cuestionarios: uno pendiente y otro respondido hace 12 días.
+    const esperado = resumirLaSemana({
+      sesionesPautadas: sesiones.programadas,
+      sesionesHechas: sesiones.completadas,
+      cuestionariosTotal: 1,
+      cuestionariosRespondidos: 0,
+    })
+    expect(resumen).toHaveTextContent(`${esperado.hechas} / ${esperado.total}`)
+  })
+
+  it('el chat enseña el último mensaje del equipo, también de la nutricionista', async () => {
+    const nutricionista = {
+      id: 'u-nutri-test',
+      nombre: 'Ana Nutrición',
+      rol: 'nutricionista' as const,
+      avatarIniciales: 'AN',
+    }
+    vi.spyOn(db.usuarios, 'list').mockReturnValue([...db.usuarios.list(), nutricionista])
+    db.mensajes.enviar({
+      deId: nutricionista.id,
+      paraId: 'u-valentina',
+      texto: 'Sube la proteína del desayuno.',
+    })
+
+    pintar()
+
+    const chat = await screen.findByRole('region', { name: 'Chat con tu equipo' })
+    expect(within(chat).getByText(/Sube la proteína del desayuno/)).toBeInTheDocument()
   })
 
   it('deja a mano el chat del equipo con su último mensaje', async () => {

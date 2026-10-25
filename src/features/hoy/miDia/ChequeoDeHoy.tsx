@@ -83,6 +83,15 @@ export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
           onGuardar={(c) => db.bienestar.guardar(c)}
         />
       )}
+
+      {/* /bienestar sigue viva como detalle: allí están el resumen del día y el botón del
+          recordatorio de las 6 pm. Sin esta entrada, el asesorado se quedaba sin camino. */}
+      <Link
+        to="/bienestar"
+        className="press inline-flex min-h-[44px] items-center self-start text-xs font-semibold text-tenue underline underline-offset-2"
+      >
+        Ver todo y recordatorio
+      </Link>
     </section>
   )
 }

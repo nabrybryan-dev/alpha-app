@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { tarjetasDe, temasDe, TARJETAS } from './tarjetas'
+import { FRASES_DE_CRISIS, tarjetasDe, temasDe, TARJETAS } from './tarjetas'
 
 /**
  * Las tarjetas de Praxis: qué despierta la conversación y a dónde lleva cada una.
@@ -34,7 +34,7 @@ describe('temas que despiertan tarjetas', () => {
     expect(tarjetasDe('no sé cuánto peso').map((t) => t.id)).toEqual(['progreso'])
   })
 
-  it('nunca enseña más de tres, y la más reciente manda', () => {
+  it('nunca enseña más de tres, y manda el orden de los temas', () => {
     const r = tarjetasDe('me duele la rodilla, quiero ver mi progreso y hablar con mi coach')
     expect(r).toHaveLength(3)
     expect(r.map((t) => t.id)).toEqual(['dolor', 'coach', 'progreso'])
@@ -45,6 +45,29 @@ describe('temas que despiertan tarjetas', () => {
       expect(temasDe(frase), frase).toEqual([])
       expect(tarjetasDe(frase), frase).toEqual([])
     }
+  })
+
+  it('una crisis mezclada con un tema tampoco despierta ninguna tarjeta', () => {
+    for (const frase of [
+      'me duele tanto que ya no quiero vivir',
+      'estoy cansada de vivir',
+      'ya no quiero vivir, me duele la rodilla',
+      'me duele la rodilla y me quiero matar',
+    ]) {
+      expect(tarjetasDe(frase), frase).toEqual([])
+    }
+  })
+
+  it('la lista de crisis nombra «no quiero vivir» y no repite frases', () => {
+    expect(FRASES_DE_CRISIS).toContain('no quiero vivir')
+    expect(new Set(FRASES_DE_CRISIS).size).toBe(FRASES_DE_CRISIS.length)
+  })
+
+  it('«cansada» y «estancado» sí despiertan su tarjeta: son prefijos, no palabras enteras', () => {
+    expect(tarjetasDe('estoy cansada').map((t) => t.id)).toEqual(['checkin'])
+    expect(tarjetasDe('estoy cansado').map((t) => t.id)).toEqual(['checkin'])
+    expect(tarjetasDe('me siento estancado').map((t) => t.id)).toEqual(['grafica', 'progreso'])
+    expect(tarjetasDe('me siento estancada').map((t) => t.id)).toEqual(['grafica', 'progreso'])
   })
 
   it('cada tarjeta lleva su nombre visible y un destino que existe', () => {

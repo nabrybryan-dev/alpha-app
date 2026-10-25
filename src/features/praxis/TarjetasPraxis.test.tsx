@@ -1,7 +1,13 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { buscarRuta, resolverAcceso } from '../../app/rutas'
+import { SessionProvider } from '../../app/SessionProvider'
+import { TARJETAS } from '../../domain/praxis/tarjetas'
+import type { Rol } from '../../domain/types'
 import { TarjetasPraxis } from './TarjetasPraxis'
 
 /**
@@ -11,8 +17,9 @@ import { TarjetasPraxis } from './TarjetasPraxis'
  * y llevan a una pantalla que ya existe. Con una frase de crisis se retiran y no vuelven:
  * la Quieta manda sobre cualquier atajo.
  */
-function pintar() {
-  return render(
+function pintar(usuario?: string) {
+  if (usuario) localStorage.setItem('alpha-usuario', usuario)
+  const arbol = (
     <MemoryRouter initialEntries={['/praxis']}>
       <Routes>
         <Route path="/praxis" element={<TarjetasPraxis />} />
@@ -20,8 +27,23 @@ function pintar() {
         <Route path="/progreso" element={<p>Pantalla Progreso</p>} />
         <Route path="/chat" element={<p>Pantalla Chat</p>} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   )
+  return render(usuario ? <SessionProvider>{arbol}</SessionProvider> : arbol)
+}
+
+const perfil = (rol: Rol) => ({ rol, capacidades: new Set<never>() })
+
+function reglaCss(selector: string): string {
+  const css = readFileSync(join(process.cwd(), 'src', 'styles', 'tokens.css'), 'utf8')
+  const i = css.indexOf(selector)
+  expect(i, selector).toBeGreaterThanOrEqual(0)
+  const abre = css.indexOf('{', i)
+  return css.slice(abre + 1, css.indexOf('}', abre))
+}
+
+function zIndex(selector: string): string {
+  return reglaCss(selector).match(/z-index:\s*([^;]+);/)?.[1].trim() ?? ''
 }
 
 function dice(texto: string) {
@@ -37,6 +59,10 @@ function crisis() {
 }
 
 describe('TarjetasPraxis', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   it('al abrir no hay ninguna tarjeta', () => {
     pintar()
     expect(screen.queryAllByRole('button')).toHaveLength(0)
@@ -75,6 +101,56 @@ describe('TarjetasPraxis', () => {
 
     expect(screen.queryAllByRole('button')).toHaveLength(0)
     dice('me duele la rodilla otra vez')
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('la frase más reciente reemplaza las tarjetas de la anterior', () => {
+    pintar()
+    dice('me duele la rodilla')
+    expect(screen.getByRole('button', { name: /Me duele algo/ })).toBeInTheDocument()
+
+    dice('quiero hacer mi check-in de hoy')
+
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Mi check-in/ })).toBeInTheDocument()
+  })
+
+  it('las tarjetas van por encima de la sala: si no, no se pueden pulsar', () => {
+    expect(zIndex('.praxis .px-tarjetas')).toBe('var(--z-superpuesto)')
+    const css = readFileSync(join(process.cwd(), 'src', 'styles', 'tokens.css'), 'utf8')
+    const valor = (token: string) => Number(css.match(new RegExp(`--${token}:\\s*(\\d+);`))?.[1])
+    expect(valor('z-superpuesto')).toBeGreaterThan(valor('z-hoja'))
+  })
+
+  it('al cerrar la sala no queda ninguna flotando', () => {
+    pintar()
+    dice('me duele la rodilla')
+    expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('praxis:sala-cerrada'))
+    })
+
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('cada destino existe para el asesorado según la guarda real', () => {
+    for (const tarjeta of Object.values(TARJETAS)) {
+      const fila = buscarRuta(tarjeta.destino)
+      expect(fila, tarjeta.destino).toBeDefined()
+      expect(resolverAcceso(fila!, perfil('asesorado')), tarjeta.destino).toEqual({ tipo: 'entra' })
+    }
+  })
+
+  it('al coach no se le pinta ninguna: sus destinos lo devuelven a la portada', () => {
+    for (const tarjeta of Object.values(TARJETAS)) {
+      const fila = buscarRuta(tarjeta.destino)
+      expect(resolverAcceso(fila!, perfil('coach')).tipo, tarjeta.destino).not.toBe('entra')
+    }
+
+    pintar('u-bryan')
+    dice('me duele la rodilla')
+
     expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 })

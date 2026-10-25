@@ -38,12 +38,12 @@ const SENALES: { tema: TemaDeTarjeta; patron: RegExp; tarjetas: TemaDeTarjeta[] 
   },
   {
     tema: 'grafica',
-    patron: /\b(como voy|progresando|evolucion|mejorando|avance|estancad|estoy mejor)\b/,
+    patron: /\b(como voy|progresando|evolucion|mejorando|avance|estoy mejor)\b|\bestancad/,
     tarjetas: ['grafica', 'progreso'],
   },
   {
     tema: 'checkin',
-    patron: /\b(check.?in|chequeo|como amaneci|como estoy|dormi|sueno|estres|ansiedad|animo|hambre|cansad)\b/,
+    patron: /\b(check.?in|chequeo|como amaneci|como estoy|dormi|sueno|estres|ansiedad|animo|hambre)\b|\bcansad/,
     tarjetas: ['checkin'],
   },
   {
@@ -56,8 +56,27 @@ const SENALES: { tema: TemaDeTarjeta; patron: RegExp; tarjetas: TemaDeTarjeta[] 
 /**
  * Una crisis no despierta atajos: la Quieta ocupa la pantalla y estas tarjetas se retiran.
  * Se mira aquí, además de en el motor, para que la regla no dependa de un orden de eventos.
+ *
+ * La lista se exporta porque una frase de crisis se reconoce por partes (`suicid`, `cansad[oa]
+ * de vivir`) y la prueba comprueba que no haya repetidos. «No quiero vivir» es literal y tiene
+ * que estar nombrado: es la frase que más se dice y la que menos se puede dejar pasar.
  */
-const CRISIS = /(quiero morir|quitarme la vida|quitarme la vida|suicid|no aguanto|no quiero vivir|acabar conmigo)/
+export const FRASES_DE_CRISIS: readonly string[] = [
+  'quiero morir',
+  'quitarme la vida',
+  'suicid',
+  'no aguanto',
+  'no quiero vivir',
+  'no quiero seguir viviendo',
+  'acabar conmigo',
+  'acabar con mi vida',
+  'hacerme dano',
+  'me quiero matar',
+  'cansad[oa] de vivir',
+  'mejor no existir',
+]
+
+const CRISIS = new RegExp(FRASES_DE_CRISIS.join('|'))
 
 function normalizar(texto: string): string {
   return texto

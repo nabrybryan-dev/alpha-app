@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
@@ -68,5 +68,14 @@ describe('Hoy · el check-in se hace sin salir de la pantalla', () => {
     })
     pintar()
     expect(await screen.findByRole('link', { name: 'Ver mi historial' })).toHaveAttribute('href', '/progreso')
+  })
+
+  it('deja una entrada visible a Bienestar para el recordatorio y el resumen del día', async () => {
+    pintar()
+    const chequeo = await screen.findByRole('region', { name: 'Chequeo de hoy' })
+    expect(within(chequeo).getByRole('link', { name: /Ver todo y recordatorio/ })).toHaveAttribute(
+      'href',
+      '/bienestar',
+    )
   })
 })

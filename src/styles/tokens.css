@@ -3789,13 +3789,17 @@ body.praxis-sala-abierta { overflow:hidden; }
    canto es el de los botones 3D aprobados, en neutro: el rojo queda para la atención.
    Una sola flota; las demás se quedan quietas. Con movimiento reducido, fundido y sin
    giros. No hay ninguna al abrir: las pinta `TarjetasPraxis` solo al oír una frase.
+
+   VAN POR ENCIMA DE LA SALA (--z-hoja, 210). La sala es un plano fijo que cubre la
+   pantalla; con --z-elevado (20) las tarjetas quedaban detrás y no había manera de
+   pulsarlas. --z-superpuesto es la capa de lo que flota sobre una hoja abierta.
    =========================================================================== */
 .praxis .px-tarjetas {
   position: fixed;
   left: 50%;
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
-  z-index: var(--z-elevado);
+  z-index: var(--z-superpuesto);
   width: min(420px, calc(100vw - 32px));
   display: flex;
   flex-direction: column;

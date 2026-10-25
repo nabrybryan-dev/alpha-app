@@ -14,7 +14,7 @@ import {
   semanaEsAdelantada,
   semanaEsVencida,
 } from '../../domain/rutaEntrenamiento'
-import { rangoDeLaSemana, resumirLaSemana } from '../../domain/semana/resumen'
+import { rangoDeLaSemana, cuestionariosDeLaSemana, resumirLaSemana } from '../../domain/semana/resumen'
 import type { Cuestionario } from '../../domain/types'
 import { MensajesVidaBandeja } from '../bienestar/MensajesVidaBandeja'
 import { TarjetaVidaCard } from '../bienestar/TarjetaVidaCard'
@@ -34,9 +34,10 @@ import { TarjetaDeLaSemana } from '../hoy/TarjetaDeLaSemana'
  * las «tareas de Manuela» no existen en `main` y no se pintan; las notas y la revisión no
  * llevan un contador de «leído» porque nadie lo guarda.
  *
- * El resumen «N de M» cuenta sesiones pautadas y cuestionarios asignados, nada más. Un
- * check-in diario, una nota o una revisión escuchada no tienen estado de hecho; contarlos
- * sería un número que la app no puede sostener.
+ * El resumen «N de M» cuenta sesiones pautadas y cuestionarios, nada más: una respuesta solo
+ * suma si su fecha cae en la semana mostrada (la del mes pasado no infla esta), y lo pendiente
+ * cuenta como de esta. Un check-in diario, una nota o una revisión escuchada no tienen estado
+ * de hecho; contarlos sería un número que la app no puede sostener.
  */
 export default function SemanaPage() {
   const { usuario } = useSesion()
@@ -52,13 +53,14 @@ export default function SemanaPage() {
   const asignados = db.cuestionarios.asignadosA(usuario.id).filter((q) => !esDeLaCadena(q))
   const respuestas = db.cuestionarios.respuestasDe(usuario.id)
   const pendientes = asignados.filter((q) => !respuestas.some((r) => r.cuestionarioId === q.id))
+  const rango = rangoDeLaSemana(hoy)
+  const cuestionarios = cuestionariosDeLaSemana(asignados, respuestas, rango)
   const cuenta = resumirLaSemana({
     sesionesPautadas: cumplimiento.programadas,
     sesionesHechas: cumplimiento.completadas,
-    cuestionariosTotal: asignados.length,
-    cuestionariosRespondidos: asignados.length - pendientes.length,
+    cuestionariosTotal: cuestionarios.total,
+    cuestionariosRespondidos: cuestionarios.respondidos,
   })
-  const rango = rangoDeLaSemana(hoy)
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const adherencias = db.nutricion.adherenciasByUsuario(usuario.id)
@@ -71,7 +73,13 @@ export default function SemanaPage() {
   const preguntaCoach = preguntaPendienteDelCoach(hiloCoach, idCoach())
   const nombreCoach = db.usuarios.byId(idCoach())?.nombre.split(' ')[0] ?? 'Tu coach'
   const remitentes = remitentesDe(db.usuarios.list(), usuario.id)
-  const ultimoDelEquipo = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
+  // El último del EQUIPO, no solo del coach: la nutricionista escribe con su propia firma.
+  const ultimoDelEquipo = remitentes
+    .flatMap((remitente) =>
+      db.mensajes.hilo(usuario.id, remitente.id).filter((m) => m.deId === remitente.id),
+    )
+    .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso))
+    .at(-1)
   const equipo =
     remitentes.length > 1 ? 'Escríbele a tu coach o a tu nutricionista' : 'Escríbele a tu coach'
 

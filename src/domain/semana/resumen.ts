@@ -7,6 +7,7 @@
  * tienen estado en `main`; contarlas sería inventar un «hecho» que nadie marcó.
  */
 import { sumarDias } from '../activacion'
+import type { Cuestionario, Respuesta } from '../types'
 
 const MESES = [
   'enero',
@@ -62,6 +63,35 @@ export interface CuentaDeLaSemana {
   sesionesHechas: number
   cuestionariosTotal: number
   cuestionariosRespondidos: number
+}
+
+/**
+ * Los cuestionarios que la semana mostrada puede contar.
+ *
+ * Una respuesta solo suma si su fecha cae DENTRO del rango: la respuesta del mes pasado no
+ * puede hacer que esta semana parezca más hecha de lo que está. Un cuestionario asignado y
+ * sin responder no tiene fecha con la que situarlo en otra semana, así que cuenta como de
+ * esta —es lo que la app tiene delante—, pero nunca como hecho.
+ */
+export function cuestionariosDeLaSemana(
+  asignados: readonly Cuestionario[],
+  respuestas: readonly Respuesta[],
+  rango: Pick<RangoDeLaSemana, 'inicio' | 'fin'>,
+): { total: number; respondidos: number } {
+  const ids = new Set(asignados.map((q) => q.id))
+  const respondidos = new Set(
+    respuestas
+      .filter((r) => ids.has(r.cuestionarioId))
+      .filter((r) => {
+        const dia = r.fechaIso.slice(0, 10)
+        return dia >= rango.inicio && dia <= rango.fin
+      })
+      .map((r) => r.cuestionarioId),
+  ).size
+  const pendientes = asignados.filter(
+    (q) => !respuestas.some((r) => r.cuestionarioId === q.id),
+  ).length
+  return { total: pendientes + respondidos, respondidos }
 }
 
 export interface ResumenDeLaSemana extends CuentaDeLaSemana {

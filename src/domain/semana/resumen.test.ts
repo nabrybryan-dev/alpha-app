@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { lunesDe, rangoDeLaSemana, resumirLaSemana } from './resumen'
+import type { Cuestionario, Respuesta } from '../types'
+import { cuestionariosDeLaSemana, lunesDe, rangoDeLaSemana, resumirLaSemana } from './resumen'
 
 /**
  * La semana natural (lunes a domingo) y la cuenta de lo hecho.
@@ -39,6 +40,61 @@ describe('la semana natural', () => {
 
   it('si cruza de año, dice los dos años', () => {
     expect(rangoDeLaSemana('2027-01-01').etiqueta).toBe('Del 28 de diciembre de 2026 al 3 de enero de 2027')
+  })
+})
+
+const cuestionario = (id: string): Cuestionario => ({
+  id,
+  titulo: id,
+  descripcion: '',
+  preguntas: [],
+  asignadoA: ['u-valentina'],
+})
+
+const respuesta = (cuestionarioId: string, fechaIso: string): Respuesta => ({
+  id: `r-${cuestionarioId}-${fechaIso}`,
+  cuestionarioId,
+  usuarioId: 'u-valentina',
+  fechaIso,
+  valores: {},
+})
+
+describe('los cuestionarios que caben en la semana', () => {
+  const rango = rangoDeLaSemana('2026-10-22')
+
+  it('una respuesta de otra semana no cuenta, y lo pendiente sí es de esta', () => {
+    const r = cuestionariosDeLaSemana(
+      [cuestionario('q-viejo'), cuestionario('q-pendiente')],
+      [respuesta('q-viejo', '2026-10-13T18:30:00')],
+      rango,
+    )
+    expect(r).toEqual({ total: 1, respondidos: 0 })
+  })
+
+  it('cuenta las respuestas del lunes al domingo, en los dos extremos', () => {
+    const r = cuestionariosDeLaSemana(
+      [cuestionario('q-lunes'), cuestionario('q-domingo'), cuestionario('q-pendiente')],
+      [
+        respuesta('q-lunes', '2026-10-19T00:00:00'),
+        respuesta('q-domingo', '2026-10-25T23:59:00'),
+      ],
+      rango,
+    )
+    expect(r).toEqual({ total: 3, respondidos: 2 })
+  })
+
+  it('la respuesta del día siguiente ya no es de esta semana', () => {
+    const r = cuestionariosDeLaSemana(
+      [cuestionario('q-lunes')],
+      [respuesta('q-lunes', '2026-10-26T00:00:00')],
+      rango,
+    )
+    expect(r).toEqual({ total: 0, respondidos: 0 })
+  })
+
+  it('una respuesta de un cuestionario que no se le asignó no inventa una hecha', () => {
+    const r = cuestionariosDeLaSemana([cuestionario('q-propio')], [respuesta('q-ajeno', '2026-10-22T10:00:00')], rango)
+    expect(r).toEqual({ total: 1, respondidos: 0 })
   })
 })
 
