@@ -42,6 +42,21 @@ describe('alarmasDeDolor', () => {
     expect(alarmas).toEqual([])
   })
 
+  // Borde del umbral (revisión del 25-oct): el 4 avisa y el 3 no. Estaba bien; la prueba lo fija.
+  it('el borde: un dolor de 4 sí sale en las alarmas', () => {
+    const alarmas = alarmasDeDolor(personas, {
+      'u-mateo': [checkin({ usuarioId: 'u-mateo', fecha: '2026-10-21', dolor: 4 })],
+    })
+    expect(alarmas.map((a) => a.dolor)).toEqual([4])
+  })
+
+  it('el borde: un dolor de 3 no sale', () => {
+    const alarmas = alarmasDeDolor(personas, {
+      'u-mateo': [checkin({ usuarioId: 'u-mateo', fecha: '2026-10-21', dolor: 3 })],
+    })
+    expect(alarmas).toEqual([])
+  })
+
   it('ordena de más dolor a menos (lo que pide atención primero)', () => {
     const alarmas = alarmasDeDolor(personas, {
       'u-mateo': [checkin({ usuarioId: 'u-mateo', fecha: '2026-10-21', dolor: 5 })],
