@@ -39,7 +39,6 @@ import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { PreguntaDelCoach } from './PreguntaDelCoach'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
-import { MapaFatiga } from './MapaFatiga'
 import { RadarAlfa } from './RadarAlfa'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import { suenoMedio } from '../../domain/miDia'
@@ -98,7 +97,6 @@ export default function HoyPage() {
   // formulario solo aparece solo la PRIMERA vez —cuando no hay ficha—, así que después
   // hace falta esta puerta.
   const [actualizandoSalud, setActualizandoSalud] = useState(false)
-  const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
   // Las de la cadena NO se cuentan aquí: ya tienen su propia tarjeta arriba
@@ -326,8 +324,9 @@ export default function HoyPage() {
         />
       </div>
 
-      {/* Check-in del día. El staff lo hace aquí mismo (sin pestaña Bienestar en su barra),
-          y debajo van su nutrición de hoy y sus medidas, en el orden de la maqueta. */}
+      {/* Check-in del día, EN LÍNEA para todos (paso 6 del rediseño). Antes el asesorado
+          salía a `/bienestar`; ahora usa el mismo formulario que el staff, dentro de Hoy.
+          `/bienestar` sigue viva como detalle para el historial completo. */}
       {esStaff ? (
         <>
           <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
@@ -342,29 +341,8 @@ export default function HoyPage() {
           </Suspense>
           <MedidasYPeso usuarioId={usuario.id} hoy={hoy} />
         </>
-      ) : checkinHoy ? (
-        <div className="relieve entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
-            <CheckDibujado className="h-3.5 w-3.5" />
-          </span>
-          <span className="text-sm font-semibold text-texto">Check-in de hoy registrado</span>
-        </div>
       ) : (
-        <Link
-          to="/bienestar"
-          className="relieve entrada entrada-2 flex items-center gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline bg-surface-2 text-rojo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-texto">Check-in diario pendiente</span>
-            <span className="block text-xs text-tenue">Peso, pasos, sueño y sensaciones · 1 min</span>
-          </span>
-          <span className="text-xs font-bold uppercase tracking-wide text-rojo">Llenar →</span>
-        </Link>
+        <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
       )}
 
       {/* Sesión de hoy: tarjeta oscura que contrasta con la superficie clara */}
@@ -510,14 +488,8 @@ export default function HoyPage() {
         <RadarAlfa noticias={db.contenidoAlfa.radar()} semana={semanaDelAnio(hoy)} />
       </div>
 
-      {/* De aquí abajo, lo que la app tiene de más sobre el diseño. */}
-      {microciclo && (
-        <section className="entrada entrada-6">
-          <p className="kicker mb-2">Fatiga por grupo muscular</p>
-          <MapaFatiga microciclo={microciclo} />
-        </section>
-      )}
-
+      {/* El mapa de fatiga se mudó a Progreso (paso 7): es «cómo voy», no «qué toca
+          hoy», y ahí convive con la evolución y el historial. */}
       {pendientes.length > 0 && (
         <section className="entrada entrada-5 flex flex-col gap-2">
           <p className="kicker">Pendientes de hoy</p>

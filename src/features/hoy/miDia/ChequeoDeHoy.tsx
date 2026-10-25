@@ -67,10 +67,10 @@ export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
             />
           </div>
           <Link
-            to="/bienestar"
+            to="/progreso"
             className="press inline-flex min-h-[44px] items-center self-start text-xs font-semibold text-texto underline underline-offset-2"
           >
-            Ver mis últimos 7 días
+            Ver mi historial
           </Link>
         </>
       ) : (
