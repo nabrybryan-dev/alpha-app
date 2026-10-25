@@ -2497,5 +2497,34 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
+-- ► BORRADOR: «XXXX» se cambia por el número cuando Bryan elija el de la migración
+--   `XXXX_aprobacion_automatica_revisiones.sql`. Correr ANTES de aplicarla: tiene que decir NO.
+union all
+select 'XXXX - firma automatica de la revision semanal', 'videos_semanales.aprobacion existe y solo admite coach o automatica',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'videos_semanales'
+                                and column_name = 'aprobacion') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.videos_semanales'::regclass
+                                and conname = 'videos_semanales_aprobacion_check'
+                                and pg_get_constraintdef(oid) like '%automatica%') then 'NO'
+            else 'SI' end
+union all
+select 'XXXX - firma automatica de la revision semanal', 'firmar_revisiones_automaticas: security definer con search_path fijo, SOLO service_role (ni anon ni authenticated)',
+       case when to_regprocedure('public.firmar_revisiones_automaticas(date,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.firmar_revisiones_automaticas(date,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.firmar_revisiones_automaticas(date,jsonb)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.firmar_revisiones_automaticas(date,jsonb)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.firmar_revisiones_automaticas(date,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.firmar_revisiones_automaticas(date,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select 'XXXX - firma automatica de la revision semanal', 'el trigger de versiones retira la marca junto con la firma',
+       case when to_regprocedure('public.versionar_revision_semanal()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.versionar_revision_semanal()')) like '%aprobacion%' then 'SI'
+            else 'NO' end
 
 order by migracion, senal;

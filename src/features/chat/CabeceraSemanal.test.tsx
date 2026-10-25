@@ -46,10 +46,22 @@ describe('la cabecera de la revisión semanal', () => {
     expect(region).toContainElement(screen.getByText('Tu semana, Valentina'))
   })
 
-  it('con audio ofrece el reproductor y avisa que la voz es generada', async () => {
+  it('con audio ofrece el reproductor y avisa que el mensaje y la voz son generados', async () => {
     render(<CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/revision.mp3', tipo: 'audio' })} />)
     const audio = await screen.findByLabelText('Audio de tu revisión semanal')
     expect(audio).toHaveAttribute('src', 'https://ejemplo/revision.mp3')
-    expect(screen.getByText(/Voz generada a partir de su voz/)).toBeInTheDocument()
+    expect(
+      screen.getByText('Mensaje automático con voz generada a partir de la voz de Bryan.'),
+    ).toBeInTheDocument()
+  })
+
+  it('no dice que una persona lo revisó: desde la firma automática sería falso', async () => {
+    // Decisión de Bryan del 21-oct: los mensajes semanales salen solos, sin revisión humana. La
+    // cabecera no puede afirmar lo contrario a quien lo oye.
+    const { container } = render(
+      <CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/revision.mp3', tipo: 'audio' })} />,
+    )
+    await screen.findByLabelText('Audio de tu revisión semanal')
+    expect(container.textContent ?? '').not.toMatch(/revisi[oó]n humana|revisad[oa] por|aprobad[oa] por/i)
   })
 })

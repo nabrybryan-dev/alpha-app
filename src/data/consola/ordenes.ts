@@ -61,12 +61,19 @@ function aOrden(fila: FilaOrden): Orden | null {
 }
 
 /**
- * `detener|usuario_id|semana_inicio|actor`. Dos clics del MISMO actor sobre la MISMA
- * persona y semana arman la MISMA clave: el segundo insert choca con el `unique` de
- * `idempotency_key` (23505) y no duplica la orden — ver `insertarOrden`.
+ * `detener|usuario_id|semana_inicio|actor|hora`. LLEVA LA HORA, como `claveReanudar`.
+ *
+ * Hasta el 22-oct la clave era `detener|usuario|semana|actor`, sin hora. Con una persona se
+ * puede detener, reanudar y volver a detener (el mismo actor, la misma semana): el SEGUNDO
+ * detener armaba la misma clave que el primero, chocaba con el `unique` de `idempotency_key`
+ * (23505), `insertarOrden` lo trataba como éxito silencioso y la consola decía «Ya estaba
+ * detenida» cuando NO era cierto — la orden más reciente quedaba en `reanudar`. Con la firma
+ * automática (que solo respeta un `detener` vigente) eso dejaba salir el audio de alguien a
+ * quien Bryan había detenido. Cada clic real es un hecho nuevo; el 23505 queda para lo que sí
+ * es un duplicado: el mismo clic reenviado con la misma clave.
  */
-export function claveDetener(usuarioId: string, semanaInicio: string, actorId: string): string {
-  return `detener|${usuarioId}|${semanaInicio}|${actorId}`
+export function claveDetener(usuarioId: string, semanaInicio: string, actorId: string, ahoraIso: string): string {
+  return `detener|${usuarioId}|${semanaInicio}|${actorId}|${ahoraIso}`
 }
 
 /** Misma forma que `claveDetener`, con `reportar_riesgo` por delante: dos reportes del
@@ -148,9 +155,10 @@ export interface ParametrosOrdenPorPersona {
 }
 
 /** «Detener publicación»: objetivo `{usuario_id, semana_inicio, motivo}`, clave por
- *  persona+semana+actor. */
+ *  persona+semana+actor+hora (ver `claveDetener`: sin la hora se perdía un detener posterior
+ *  a un reanudar). */
 export async function detenerPublicacion(params: ParametrosOrdenPorPersona): Promise<ResultadoOrden> {
-  const clave = claveDetener(params.usuarioId, params.semanaInicio, params.actorId)
+  const clave = claveDetener(params.usuarioId, params.semanaInicio, params.actorId, new Date().toISOString())
   return insertarOrden(
     'detener',
     { usuario_id: params.usuarioId, semana_inicio: params.semanaInicio, motivo: params.motivo },
