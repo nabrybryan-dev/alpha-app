@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { M4 } from '../../../domain/patrones/algebra'
 import { Malla } from '../../../domain/patrones/malla'
-import { CAMPO_VISUAL } from '../../../domain/patrones/escena'
+import { grados } from '../../../domain/patrones/algebra'
+import { topeDeDistanciaEnSala } from '../escena/sala'
+import { SALA_GIMNASIO } from '../visor/piezas'
 import { colocar, leerPieza } from '../escena/piezas3d'
 import { ojoDe } from '../escena/encuadreDelSalon'
 import { mallasDelCuerpo } from './cuerpoEnEscena'
@@ -75,19 +77,22 @@ describe('la camara del cuerpo', () => {
     return { x: ((proy[0] * v[0]) / w) * 0.5 * 390 + 195, y: 422 - ((proy[5] * v[1]) / w) * 0.5 * 844 }
   }
 
-  it('el campo es el del salon y la constante esta a la vista', () => {
-    expect(e.campo).toBe(CAMPO_VISUAL)
+  it('la camara cabe en la sala de Blender: no pide mas distancia de la que el tope deja, y el campo no pasa de 45 grados', () => {
+    const tope = topeDeDistanciaEnSala(SALA_GIMNASIO)(e.centro, e.azimut, e.elevacion)
+    expect(e.distancia).toBeLessThanOrEqual(tope)
+    expect(e.campo).toBeLessThanOrEqual(grados(45))
     expect(ENCUADRE_DEL_CUERPO.azimut).toBe(0)
   })
 
-  it('el cuerpo entero cabe en el cuadro, centrado a lo ancho y por encima de la hoja (no baja del 72 % del alto)', () => {
+  it('el cuerpo entero cabe en el cuadro, centrado a lo ancho y por encima de la lectura y de la hoja (no baja del 74 % del alto)', () => {
     const pies = aPantalla([0, caja2.min[1], 0])
     const cabeza = aPantalla([0, caja2.max[1], 0])
     const izq = aPantalla([caja2.min[0], 1, 0])
     const der = aPantalla([caja2.max[0], 1, 0])
-    expect(cabeza.y).toBeGreaterThan(40)
-    expect(pies.y).toBeLessThan(844 * 0.72)
-    expect(pies.y - cabeza.y).toBeGreaterThan(844 * 0.4)
+    // Debajo de los cuadros de la pared (nombre y cifras llegan a ~205 px de 844).
+    expect(cabeza.y).toBeGreaterThan(205)
+    expect(pies.y).toBeLessThan(844 * 0.74)
+    expect(pies.y - cabeza.y).toBeGreaterThan(844 * 0.38)
     expect(izq.x).toBeGreaterThan(0)
     expect(der.x).toBeLessThan(390)
     expect(Math.abs((izq.x + der.x) / 2 - 195)).toBeLessThan(25)

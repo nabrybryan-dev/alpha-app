@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
@@ -166,6 +166,8 @@ describe('el día elegido manda también en el cardio', () => {
     const { microciclo } = montarEnUnDiaDeFuerza()
     const metabolica = microciclo.sesiones.find((s) => s.bloquesCardio?.length)!
 
+    // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     await viajarA(metabolica.nombre)
 
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement

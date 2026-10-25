@@ -145,4 +145,16 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
     fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
     expect(document.querySelector('[data-hueco="panelInferior"]')).not.toBeNull()
   })
+
+  it('en el cuerpo no se pintan los cuadros de la pared (caerian detras de la cabeza), pero en el movimiento vuelven', () => {
+    montar({ seriesHechas: 1 })
+    expect(document.querySelector('[data-hueco="paredes"]')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    expect(document.querySelector('[data-hueco="paredes"]')).not.toBeNull()
+  })
+
+  it('el salon es una sala oscura en los dos temas: lo que se lee encima usa los tokens oscuros', () => {
+    montar({ seriesHechas: 1 })
+    expect(document.querySelector('[data-salon="entrenar"]')?.getAttribute('data-theme')).toBe('dark')
+  })
 })

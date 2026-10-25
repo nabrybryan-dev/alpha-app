@@ -183,6 +183,8 @@ describe('el tiempo de la repetición, desde el disco', () => {
 
   it('un tirón corto sigue cambiando lo que cuenta la pared, y no toca la repetición', async () => {
     renderizarEntrenar()
+    // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     const disco = await esperarAlDisco()
 
     // Sin aguantar: se baja el dedo, se tira a la izquierda y se suelta antes de la espera.

@@ -429,6 +429,8 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     vi.useFakeTimers()
     try {
     montarConFuerza()
+    // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
     expect(huecos).toContain('paredes')

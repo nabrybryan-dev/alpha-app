@@ -60,6 +60,7 @@ import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
 import type { CapaDelCuerpo } from '../sujeto/pintura'
+import { ENCUADRE_DEL_CUERPO } from '../sujeto/encuadreDelCuerpo'
 import { regionesConDolor, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
 
 /**
@@ -792,6 +793,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // encima: una pantalla que se come la navegación deja al asesorado sin salida.
     <div
       data-salon="entrenar"
+      // EL SALON ES UNA SALA OSCURA EN LOS DOS TEMAS (suelo y muros de Blender). Los tokens de
+      // color de todo lo que se lee encima —sesion, cifras, lectura, botones— salen aqui del
+      // tema oscuro, o en tema claro la tinta oscura caia sobre un muro negro y no se leia.
+      data-theme="dark"
       data-w={w}
       // La cámara, legible desde fuera: el testigo mide si un gesto orbitó o no sin
       // adivinarlo por los píxeles. Solo se escribe cuando cambia (ver `alMirar`).
@@ -1036,7 +1041,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       </div>
 
       {/* ----------------------------------------------------------------- paredes */}
-      <ParedesDelSalon
+      {/* EN LA VISTA DE CUERPO LAS PAREDES NO SE PINTAN: sus cuadros cuelgan de la sala y, vistos
+          desde la camara del cuerpo, caen justo detras de la cabeza y del pecho. Nada se pierde:
+          el nombre y las cifras estan en el panel de abajo (recuadro `ejercicio`) y en la vista
+          de movimiento, que las enseña como siempre. */}
+      {!enCuerpo && (
+        <ParedesDelSalon
         sesion={sesionEnPantalla}
         ejercicio={ejercicio}
         contenido={contenido}
@@ -1047,8 +1057,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           cargaEnLaPared={cargaEnLaPared}
           camara={camara}
           lienzo={lienzo}
-          azimutDeEntrada={patron?.camara.azimut ?? 0}
+          // Los cuadros cuelgan respecto de la camara de ENTRADA: en la vista de cuerpo es la suya.
+          azimutDeEntrada={enCuerpo ? ENCUADRE_DEL_CUERPO.azimut : (patron?.camara.azimut ?? 0)}
         />
+      )}
 
       {/* EL SUELO Y EL BORDE DE ABAJO.
           Aquí había un marco con `padding-bottom` del alto de la barra de navegación, con
