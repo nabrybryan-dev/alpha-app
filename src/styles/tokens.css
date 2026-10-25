@@ -3892,6 +3892,8 @@ body.praxis-sala-abierta { overflow:hidden; }
   .praxis .px-t {
     background: var(--ink-800);
   }
+}
+
 /* =====================================================================================
    Hoy del asesorado, «Diseño final 3» (maqueta-v7.html, pantalla Hoy · Fase 3 paso 3).
    Los valores son los de la maqueta; los colores siguen siendo los tokens de arriba.
