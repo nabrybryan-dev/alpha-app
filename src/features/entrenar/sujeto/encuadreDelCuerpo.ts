@@ -1,9 +1,9 @@
 import { grados } from '../../../domain/patrones/algebra'
 
 /**
- * LA CAMARA DE LA VISTA DE CUERPO: de frente, con el sujeto de pie y entero DEBAJO de los
- * cuadros de la pared (nombre del ejercicio y las cuatro cifras, hasta ~205 px de arriba en
- * 844) y por encima de la lectura y de la hoja.
+ * LA CAMARA DE LA VISTA DE CUERPO: de frente, con el sujeto de pie y entero DEBAJO de la
+ * linea de arriba (nombre, cifras y reloj, hasta ~205 px de 844) y por encima de la lectura
+ * y de la hoja. Los cuadros grandes de la pared no se pintan en la portada.
  *
  * No es la del patron: el patron de un press plano mira a un cuerpo TUMBADO desde arriba, y
  * el sujeto de Blender esta siempre de pie. La sala de Blender no deja alejarse mas de ~5,1 m

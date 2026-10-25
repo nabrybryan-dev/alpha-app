@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from 'react'
-import { Boton3D } from '../../../../components/ui/Boton3D'
 import { Sheet } from '../../../../components/ui/Sheet'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
@@ -64,8 +63,10 @@ const CAPAS: readonly { id: CapaDelCuerpo; nombre: string }[] = [
 const COMPACTO = '!min-h-[44px] !min-w-[58px] !px-2 !py-0 !text-xs'
 
 /**
- * Una opcion de un grupo: la elegida es el boton 3D (`Boton3D`, el del PR #379) y las demas la
- * tecla secundaria `.tecla-2`, las dos de `tokens.css`. Mismo tamano para que no salten.
+ * Una opcion de un grupo, con la tecla secundaria `.tecla-2` de `tokens.css` (la de la maqueta
+ * 7). **El rojo es del dolor**: la elegida NO se pinta de rojo (no es `Boton3D`, que es la
+ * accion principal y es roja); se marca con un aro del color del texto y el texto pleno, y las
+ * demas quedan en tenue. Mismo tamano para que no salten.
  */
 function Opcion({
   activa,
@@ -81,13 +82,6 @@ function Opcion({
   etiqueta?: string
 }) {
   const aria = radio ? { role: 'radio' as const, 'aria-checked': activa } : {}
-  if (activa) {
-    return (
-      <Boton3D {...aria} aria-label={etiqueta} onClick={onClick} className={COMPACTO}>
-        {children}
-      </Boton3D>
-    )
-  }
   return (
     <button
       type="button"
@@ -95,7 +89,10 @@ function Opcion({
       aria-label={etiqueta}
       onClick={onClick}
       className={`press tecla-2 ${COMPACTO}`}
-      style={{ color: 'var(--tenue)' }}
+      style={{
+        color: activa ? 'var(--texto)' : 'var(--tenue)',
+        boxShadow: activa ? '0 2px 0 var(--canto), var(--sombra-alzado), inset 0 0 0 1.5px var(--texto)' : undefined,
+      }}
     >
       {children}
     </button>

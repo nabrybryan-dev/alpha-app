@@ -66,7 +66,7 @@ export const CREDITOS_DEL_GIMNASIO: readonly FuenteDelGimnasio[] = [
     autor: 'The Database Center for Life Science (DBCLS)',
     licencia: 'CC Attribution',
     enlace: 'https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html',
-    queEs: 'La anatomía real: 296 huesos y 402 músculos con su nombre, en el estudio del cuerpo.',
+    queEs: 'Los 296 huesos del sujeto de Blender, con su nombre, en el estudio del cuerpo (los músculos son de Z-Anatomy, que parte de BodyParts3D).',
   },
   {
     obra: 'Z-Anatomy (musculos y tendones del sujeto, basado en BodyParts3D)',

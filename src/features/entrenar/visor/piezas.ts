@@ -40,22 +40,18 @@ export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
 
 
 /**
- * EL ATLAS ANATÓMICO: el cuerpo de verdad, para estudiarlo.
+ * EL ATLAS ANATÓMICO: el sujeto de Blender (aprobado por Bryan el 28/29-sep).
  *
- * Son 698 estructuras de BodyParts3D 4.0 —296 huesos y 402 músculos, con su nombre
- * anatómico real— recortadas a 150.066 triángulos entre las dos. Vienen aparte de la sala
- * y **no se cargan con el salón**: solo cuando alguien abre el estudio del cuerpo. Quien
- * entra a entrenar no paga este megabyte.
+ * 522 músculos y tendones con su nombre de Z-Anatomy, 296 huesos y la piel. Vienen aparte de la
+ * sala y **no se cargan con el salón de movimiento**: solo cuando se abre el estudio del cuerpo
+ * o la portada del cuerpo. En celular van las versiones aligeradas (200 mil triángulos de
+ * músculo); ver `piezasDelAtlas`.
  *
- * Van en dos piezas y no en una porque se miran por separado: el esqueleto solo, la
- * musculatura sola, o las dos superpuestas. Una pieza única obligaría a bajar las dos para
- * ver una.
+ * **No se mueve.** Es una postura fija. El sujeto que sí se contrae —el vientre engorda al
+ * acortarse— es el de `domain/patrones/`, y son cosas distintas: esto es la anatomía cierta,
+ * aquello es el movimiento. Conviven.
  *
- * **No se mueve.** Es una postura fija de un varón adulto de referencia. El sujeto que sí
- * se contrae —el vientre engorda al acortarse— es el de `domain/patrones/`, y son cosas
- * distintas: esto es la anatomía cierta, aquello es el movimiento. Conviven.
- *
- * Licencia CC BY 4.0: obliga a nombrar la fuente, y está en `creditos.ts`.
+ * Licencias: Z-Anatomy CC BY-SA 4.0 y BodyParts3D CC BY 4.0, acreditadas en `creditos.ts`.
  */
 /**
  * ENCIMA DEL SUJETO, A SU MISMA ESCALA. Y esa igualdad hay que hornearla.

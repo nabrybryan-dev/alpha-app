@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { leerPieza } from '../escena/piezas3d'
 import {
+  MUSCULOS_POR_REGION,
   MUSCULOS_SIN_REGION,
   REGIONES,
   claveDeMusculo,
@@ -71,11 +72,24 @@ describe('los anotados como sin región', () => {
     expect(fantasmas).toEqual([])
   })
 
-  it('traen su motivo y ninguno está también en una región', () => {
+  it('traen su motivo y ninguno esta tambien en una region (se mira en las dos tablas, no en el mapa ya resuelto)', () => {
+    const enRegion = new Set(Object.values(MUSCULOS_POR_REGION).flat())
     for (const [motivo, lista] of Object.entries(MUSCULOS_SIN_REGION)) {
       expect(motivo.length).toBeGreaterThan(2)
-      for (const n of lista) expect(regionDeMusculo(n), `${n} está en las dos tablas`).toBe('sin-region')
+      for (const n of lista) expect(enRegion.has(n), `${n} esta en una region Y en «sin region»`).toBe(false)
     }
+  })
+
+  it('ningun musculo esta en dos regiones ni repetido', () => {
+    const vistos = new Map<string, string>()
+    for (const [region, lista] of Object.entries(MUSCULOS_POR_REGION)) {
+      for (const n of lista) {
+        expect(vistos.get(n), `${n} esta en ${vistos.get(n)} y en ${region}`).toBeUndefined()
+        vistos.set(n, region)
+      }
+    }
+    const sin = Object.values(MUSCULOS_SIN_REGION).flat()
+    expect(new Set(sin).size).toBe(sin.length)
   })
 
   it('no se quitan los profundos: el psoas y el iliaco siguen en el sujeto aunque no tengan región', () => {
@@ -85,6 +99,34 @@ describe('los anotados como sin región', () => {
 
   it('un músculo que no existe no se inventa una región', () => {
     expect(regionDeMusculo('Musculus inventado.l')).toBeUndefined()
+  })
+})
+
+describe('la region de los musculos clave, fijada', () => {
+  it.each([
+    ['Vastus lateralis muscle.l', 'cua'],
+    ['Rectus femoris muscle.r', 'cua'],
+    ['Long head of biceps femoris.l', 'isq'],
+    ['Semitendinosus muscle.r', 'isq'],
+    ['Long head of biceps brachii.l', 'bic'],
+    ['Brachialis muscle.l', 'bic'],
+    ['Lateral head of triceps brachii.r', 'tri'],
+    ['Latissimus dorsi muscle.l', 'dors'],
+    ['Descending part of trapezius muscle.r', 'trap'],
+    ['Clavicular head of pectoralis major muscle.l', 'pecho'],
+    ['Acromial part of deltoid muscle.r', 'delt'],
+    ['Gluteus maximus muscle.l', 'glu'],
+    ['Adductor longus.r', 'adu'],
+    ['Lateral head of gastrocnemius.l', 'gem'],
+    ['Soleus muscle.r', 'gem'],
+    ['Rectus abdominis muscle.l', 'abd'],
+    ['External abdominal oblique muscle.r', 'obl'],
+    ['Quadratus lumborum muscle.l', 'lumb'],
+    ['Brachioradialis muscle.r', 'ante'],
+    ['Psoas major.l', 'sin-region'],
+    ['Sternocleidomastoid muscle.r', 'sin-region'],
+  ])('%s -> %s', (nombre, region) => {
+    expect(regionDeMusculo(nombre)).toBe(region)
   })
 })
 

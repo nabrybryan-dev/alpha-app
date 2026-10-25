@@ -137,6 +137,18 @@ export function cargarPiezas(
   }
 }
 
+const nombresDePartes = new WeakMap<Malla, string>()
+
+/**
+ * El nombre anatomico de una parte del atlas («Latissimus dorsi muscle.l»), o `undefined` si
+ * la pieza no lo traia (esqueleto y piel). Las piezas de Blender lo guardan en el campo de
+ * textura; aqui se saca de ahi, porque 522 «texturas» distintas serian 522 tandas de dibujo
+ * y ninguna es una imagen.
+ */
+export function nombreDeParte(malla: Malla): string | undefined {
+  return nombresDePartes.get(malla)
+}
+
 /**
  * EL ALMACÉN DEL ATLAS: qué capa ha llegado y con qué mallas.
  *
@@ -150,18 +162,6 @@ export function cargarPiezas(
  * Cada vértice cuelga de la RAÍZ del sujeto, no del mundo: así el atlas va con él cuando
  * la demostración lo hace flotar o el press lo tumba.
  */
-const nombresDePartes = new WeakMap<Malla, string>()
-
-/**
- * El nombre anatomico de una parte del atlas («Latissimus dorsi muscle.l»), o `undefined` si
- * la pieza no lo traia (esqueleto y piel). Las piezas de Blender lo guardan en el campo de
- * textura; aqui se saca de ahi, porque 522 «texturas» distintas serian 522 tandas de dibujo
- * y ninguna es una imagen.
- */
-export function nombreDeParte(malla: Malla): string | undefined {
-  return nombresDePartes.get(malla)
-}
-
 class AlmacenDelAtlas {
   private porCapa = new Map<string, Malla[]>()
 

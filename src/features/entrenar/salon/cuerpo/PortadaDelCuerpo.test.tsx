@@ -93,4 +93,11 @@ describe('la portada del cuerpo: capas, lectura y dolor', () => {
     expect(cifrasEnUnaLinea({ ...base, rirObjetivo: 2 })).toBe('3 series · 9 reps · 3 min · RIR 2')
     expect(cifrasEnUnaLinea({ ...base, descansoMin: 1.5, rirObjetivo: 'FALLO' })).toBe('3 series · 9 reps · 1,5 min · RIR fallo')
   })
+
+  it('el rojo es del dolor: la opcion elegida no usa el boton rojo (Boton3D) y se marca con aro', () => {
+    render(<PortadaDelCuerpo {...props()} />)
+    const elegida = screen.getByRole('radio', { name: 'Músculo' })
+    expect(elegida.className).not.toContain('btn-3d')
+    expect(elegida.getAttribute('style') ?? '').toContain('inset 0 0 0 1.5px')
+  })
 })
