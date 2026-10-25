@@ -1,13 +1,14 @@
 /**
  * Hoy del asesorado en tres bandas (Fase 3, paso 3; 04 §3.2 y maqueta v7).
  *
- * Banda 0, solo si aplica: lo que se dice antes que nada (algo no subió, permiso, salud).
- * Banda 1, «Lo de hoy»: la sesión con su estado, la pregunta del día, el check-in y la
- * nutrición de hoy. Banda 2, «La semana»: la revisión, la pregunta del coach, los avisos
- * del microciclo y el cuadro para escribirle al coach. Banda 3, «El resto», plegada.
+ * Banda 0, solo si aplica: lo que se dice antes que nada (algo no subió, permiso, cribado de salud).
+ * Banda 1, «Lo de hoy»: la sesión con su estado, los carteles del microciclo (empieza el…,
+ * terminó el…), la pregunta del día, el check-in y los pendientes (nutrición, cuestionarios).
+ * Banda 2, «La semana»: la revisión con la pregunta del coach y el cuadro para escribirle.
+ * Banda 3, «El resto», plegada.
  *
- * ROJO A PROPÓSITO hasta que la pantalla se reordene: la vieja ponía la revisión de la
- * semana arriba de todo y la sesión en el puesto 9 de 19 (04 §1.2).
+ * Estas pruebas se escribieron en rojo contra el orden viejo, que ponía la revisión de la
+ * semana arriba de todo y la sesión en el puesto 9 de 19 (04 §1.2); hoy están en verde.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -81,6 +82,14 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
+})
+
+describe('Hoy en tres bandas — el tema', () => {
+  it('el asesorado NO fuerza data-theme="light": sigue el tema de la persona (decisión de Bryan)', () => {
+    const { container } = pintar()
+    expect(container.querySelector('[data-theme="light"]')).toBeNull()
+    expect(container.querySelector('[data-theme]')).toBeNull()
+  })
 })
 
 describe('Hoy en tres bandas — el orden', () => {
