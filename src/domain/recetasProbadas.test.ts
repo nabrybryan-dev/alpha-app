@@ -141,8 +141,8 @@ describe('completarComidasViejas', () => {
     salG: null,
     confianza: 'estimado',
     items: [
-      { alimentoId: 'cacao', gramos: 7, fuePesado: false, estadoAsumido: 'crudo' },
-      { alimentoId: 'avena', gramos: 15, fuePesado: false, estadoAsumido: 'crudo' },
+      { id: 'i1', alimentoId: 'cacao', gramos: 7, fuePesado: false, estadoAsumido: 'crudo' },
+      { id: 'i2', alimentoId: 'avena', gramos: 15, fuePesado: false, estadoAsumido: 'crudo' },
     ],
     ...cambios,
   })
@@ -156,12 +156,12 @@ describe('completarComidasViejas', () => {
 
   it('no reconoce una comida con otros gramos, otros ítems o que no cocinó él', () => {
     const dia = [
-      comida('c1', { items: [{ alimentoId: 'avena', gramos: 15, fuePesado: false, estadoAsumido: 'crudo' }] }),
+      comida('c1', { items: [{ id: 'i3', alimentoId: 'avena', gramos: 15, fuePesado: false, estadoAsumido: 'crudo' }] }),
       comida('c2', { cocinadoPorEl: false }),
       comida('c3', {
         items: [
-          { alimentoId: 'cacao', gramos: 8, fuePesado: false, estadoAsumido: 'crudo' },
-          { alimentoId: 'avena', gramos: 15, fuePesado: false, estadoAsumido: 'crudo' },
+          { id: 'i4', alimentoId: 'cacao', gramos: 8, fuePesado: false, estadoAsumido: 'crudo' },
+          { id: 'i5', alimentoId: 'avena', gramos: 15, fuePesado: false, estadoAsumido: 'crudo' },
         ],
       }),
     ]
