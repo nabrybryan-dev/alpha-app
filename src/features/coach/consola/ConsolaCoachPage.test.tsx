@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../../data/dbInstance'
 import ConsolaCoachPage from './ConsolaCoachPage'
@@ -8,6 +9,11 @@ import ConsolaCoachPage from './ConsolaCoachPage'
  * siete pestañas y por la cartera **no puede escribir nada**. Se espía cada
  * método de escritura de `db` (el mismo objeto que usa la app real, en modo
  * demo) y se comprueba que ninguno se llamó, ni una sola vez.
+ *
+ * Desde el rediseño (zona 5), la pestaña y la persona viven en la URL: estas
+ * pruebas montan la consola dentro de un router y leen la dirección con una
+ * sonda, porque «sobrevive a recargar y a volver» es una promesa de la
+ * dirección, no del `sessionStorage`.
  */
 function espiarEscrituras() {
   return [
@@ -61,6 +67,29 @@ const PESTANAS = [
   'Revisión en vídeo',
 ]
 
+/** Enseña la dirección actual y deja pedir «atrás», como el gesto del teléfono. */
+function Sonda() {
+  const { search } = useLocation()
+  const navigate = useNavigate()
+  return (
+    <>
+      <output data-testid="url">{search}</output>
+      <button type="button" onClick={() => navigate(-1)}>
+        atrás
+      </button>
+    </>
+  )
+}
+
+function montar(entrada = '/coach/consola') {
+  return render(
+    <MemoryRouter initialEntries={[entrada]}>
+      <ConsolaCoachPage />
+      <Sonda />
+    </MemoryRouter>,
+  )
+}
+
 describe('ConsolaCoachPage', () => {
   beforeEach(() => {
     window.sessionStorage.clear()
@@ -72,7 +101,7 @@ describe('ConsolaCoachPage', () => {
   it('la persona elegida en la cartera manda en todas las pestañas de persona', () => {
     const cartera = db.usuarios.entrenan()
     if (cartera.length < 2) return
-    render(<ConsolaCoachPage />)
+    montar()
     const segunda = cartera[1].nombre
     fireEvent.click(botonDeCartera(segunda))
     for (const etiqueta of ['Ficha del asesorado', 'Microciclos', 'Condición y salud', 'Estilo de vida']) {
@@ -83,29 +112,65 @@ describe('ConsolaCoachPage', () => {
     expect(botonDeCartera(segunda)).toHaveAttribute('aria-current', 'true')
   })
 
-  it('la selección y la pestaña sobreviven a volver a abrir la consola (misma pestaña del navegador)', () => {
+  it('la selección y la pestaña viven en la URL: sobreviven a montar la consola de nuevo', () => {
     const cartera = db.usuarios.entrenan()
     if (cartera.length < 2) return
-    const { unmount } = render(<ConsolaCoachPage />)
+    const { unmount } = montar()
     fireEvent.click(botonDeCartera(cartera[1].nombre))
     fireEvent.click(screen.getByRole('tab', { name: 'Microciclos' }))
+    const url = screen.getByTestId('url').textContent
+    expect(url).toContain('pestana=microciclos')
+    expect(url).toContain(`persona=${encodeURIComponent(cartera[1].id)}`)
     unmount()
-    render(<ConsolaCoachPage />)
+    // Abrir la dirección guardada (lo que hace recargar) devuelve a la misma persona y pestaña.
+    montar(`/coach/consola${url}`)
     expect(screen.getByRole('tab', { name: 'Microciclos' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { level: 2, name: cartera[1].nombre })).toBeInTheDocument()
+  })
+
+  it('una dirección con persona y pestaña abre directamente ahí', () => {
+    const cartera = db.usuarios.entrenan()
+    if (cartera.length < 2) return
+    montar(
+      `/coach/consola?persona=${encodeURIComponent(cartera[1].id)}&pestana=condicion`,
+    )
+    expect(screen.getByRole('tab', { name: 'Condición y salud' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('heading', { level: 2, name: cartera[1].nombre })).toBeInTheDocument()
+  })
+
+  it('el gesto de atrás devuelve a la pestaña anterior, no a la portada', () => {
+    montar()
+    fireEvent.click(screen.getByRole('tab', { name: 'Microciclos' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Ficha del asesorado' }))
+    fireEvent.click(screen.getByRole('button', { name: 'atrás' }))
+    expect(screen.getByRole('tab', { name: 'Microciclos' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('en el teléfono la cartera se abre en una hoja, elige a la persona y se cierra', () => {
+    const cartera = db.usuarios.entrenan()
+    if (cartera.length < 2) return
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: /abrir la cartera/i }))
+    const hoja = screen.getByRole('dialog', { name: 'Cartera de asesorados' })
+    fireEvent.click(within(hoja).getByRole('button', { name: new RegExp(cartera[1].nombre) }))
+    expect(screen.queryByRole('dialog', { name: 'Cartera de asesorados' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('url')).toHaveTextContent(`persona=${encodeURIComponent(cartera[1].id)}`)
   })
 
   it('desde la Revisión, «Ver ficha» elige a la persona y abre su ficha', () => {
     const cartera = db.usuarios.entrenan()
     const ultima = cartera[cartera.length - 1].nombre
-    render(<ConsolaCoachPage />)
+    montar()
     fireEvent.click(screen.getByRole('button', { name: `Ver la ficha de ${ultima}` }))
     expect(screen.getByRole('tab', { name: 'Ficha del asesorado' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { level: 2, name: ultima })).toBeInTheDocument()
   })
 
   it('la cabecera muestra las cinco cifras de la persona, con un vacío que dice qué falta', () => {
-    render(<ConsolaCoachPage />)
+    montar()
     fireEvent.click(screen.getByRole('tab', { name: 'Ficha del asesorado' }))
     const cabecera = screen.getByLabelText(/Resumen de/)
     for (const kpi of ['Semana', 'Adherencia', 'Peso', 'Riesgo', 'Cadena']) {
@@ -114,7 +179,7 @@ describe('ConsolaCoachPage', () => {
   })
 
   it('renderiza las siete pestañas ARIA', () => {
-    render(<ConsolaCoachPage />)
+    montar()
     const tablist = screen.getByRole('tablist', { name: /pestañas de la consola/i })
     for (const etiqueta of PESTANAS) {
       expect(within(tablist).getByRole('tab', { name: etiqueta })).toBeInTheDocument()
@@ -122,7 +187,7 @@ describe('ConsolaCoachPage', () => {
   })
 
   it('la pestaña activa lleva aria-selected="true" y las demás "false"', () => {
-    render(<ConsolaCoachPage />)
+    montar()
     const tabFicha = screen.getByRole('tab', { name: 'Ficha del asesorado' })
     fireEvent.click(tabFicha)
     expect(tabFicha).toHaveAttribute('aria-selected', 'true')
@@ -134,7 +199,7 @@ describe('ConsolaCoachPage', () => {
 
   it('no escribe nada al recorrer las siete pestañas y cambiar de asesorado en la cartera', () => {
     const espias = espiarEscrituras()
-    render(<ConsolaCoachPage />)
+    montar()
 
     for (const etiqueta of PESTANAS) {
       fireEvent.click(screen.getByRole('tab', { name: etiqueta }))
@@ -143,7 +208,7 @@ describe('ConsolaCoachPage', () => {
     // Cambiar de persona en la cartera y volver a recorrer las pestañas.
     const nombres = db.usuarios.entrenan().map((u) => u.nombre)
     if (nombres.length > 1) {
-      fireEvent.click(screen.getByRole('button', { name: new RegExp(nombres[1]) }))
+      fireEvent.click(botonDeCartera(nombres[1]))
       for (const etiqueta of PESTANAS) {
         fireEvent.click(screen.getByRole('tab', { name: etiqueta }))
       }
@@ -154,9 +219,18 @@ describe('ConsolaCoachPage', () => {
     }
   })
 
+  it('las otras pantallas del equipo siguen a un toque, en la hoja «Herramientas»', () => {
+    montar()
+    expect(screen.queryByRole('link', { name: 'Praxis del equipo' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Herramientas' }))
+    const hoja = screen.getByRole('dialog', { name: 'Herramientas del equipo' })
+    expect(within(hoja).getByRole('link', { name: /Equipo/ })).toHaveAttribute('href', '/equipo')
+    expect(within(hoja).getByRole('link', { name: /Praxis del equipo/ })).toHaveAttribute('href', '/praxis')
+  })
+
   it('sin cartera, se rinde con un estado vacío en vez de reventar', () => {
     const espiaEntrenan = vi.spyOn(db.usuarios, 'entrenan').mockReturnValue([])
-    render(<ConsolaCoachPage />)
+    montar()
     expect(screen.getByText('Sin cartera')).toBeInTheDocument()
     espiaEntrenan.mockRestore()
   })
