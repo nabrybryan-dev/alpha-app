@@ -58,6 +58,7 @@ export function RolloDePelicula() {
     items.current.forEach((nodo, i) => {
       const video = nodo?.querySelector('video')
       if (!video) return
+      // play() rechaza si el navegador lo bloquea (ahorro de datos, autoplay): queda el póster, nada que reportar.
       if (i === enVentana) void video.play().catch(() => {})
       else video.pause()
     })
