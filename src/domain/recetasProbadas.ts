@@ -16,6 +16,7 @@
  */
 
 import { calcularRacha, type Racha } from './gamification'
+import type { RegistroComida, TipoComida } from './types'
 
 export interface RecetaProbada {
   recetaId: string
@@ -99,4 +100,50 @@ export function rachaDeRecetas(probadas: readonly RecetaProbada[], hoy: string):
     probadas.map((p) => p.fecha),
     hoy,
   )
+}
+
+/** Lo que deja en el diario una receta al cocinarse: la comida y sus ítems. */
+export interface HuellaDeReceta {
+  comida: TipoComida
+  items: readonly { alimentoId: string; gramos: number }[]
+}
+
+/**
+ * Pasa al formato nuevo las anotaciones anteriores a `comidas`.
+ *
+ * Las viejas solo traían receta y fecha, así que no salían en «cocinadas hoy»,
+ * que lee lo REGISTRADO. Bryan decidió el 25-oct pasarlas. La comida no guarda
+ * de qué receta salió, así que se reconoce por su huella: el mismo día, cocinada
+ * por él, en la comida de la receta y con exactamente sus ítems y gramos. Una
+ * comida ya reclamada por otra anotación no se vuelve a asignar.
+ *
+ * Si no aparece ninguna, la anotación se queda como estaba: sigue contando para
+ * la racha, que es lo que contaba antes. Mejor eso que adivinar una comida.
+ */
+export function completarComidasViejas(
+  probadas: readonly RecetaProbada[],
+  huellaDe: (recetaId: string) => HuellaDeReceta | null,
+  comidasDelDia: (fecha: string) => readonly RegistroComida[],
+): RecetaProbada[] {
+  const reclamadas = new Set(probadas.flatMap((p) => p.comidas ?? []))
+  return probadas.map((p) => {
+    if (p.comidas !== undefined) return p
+    const huella = huellaDe(p.recetaId)
+    if (!huella) return p
+    const comidas = comidasDelDia(p.fecha)
+      .filter((c) => !reclamadas.has(c.id) && encajaConLaHuella(c, huella))
+      .map((c) => c.id)
+    if (comidas.length === 0) return p
+    for (const id of comidas) reclamadas.add(id)
+    return { ...p, comidas }
+  })
+}
+
+function encajaConLaHuella(comida: RegistroComida, huella: HuellaDeReceta): boolean {
+  if (!comida.cocinadoPorEl || comida.comida !== huella.comida) return false
+  if (comida.items.length !== huella.items.length) return false
+  const clave = (i: { alimentoId: string; gramos: number }) => `${i.alimentoId}:${i.gramos}`
+  const deLaComida = comida.items.map(clave).sort()
+  const deLaReceta = huella.items.map(clave).sort()
+  return deLaComida.every((k, i) => k === deLaReceta[i])
 }
