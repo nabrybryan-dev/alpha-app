@@ -276,7 +276,8 @@ interface VisorPatronProps {
    * fantasma. Todo eso sigue entero en la vista de movimiento (sin esta propiedad), que es
    * como estaba. Opcional: sin ella, el visor hace exactamente lo de siempre.
    */
-  cuerpo?: { capa: CapaDelCuerpo; tinte: TinteDelCuerpo }
+  /** `ahora`: la hora con la que se pinta una transición; la pone el salón, que la mueve. */
+  cuerpo?: { capa: CapaDelCuerpo; tinte: TinteDelCuerpo; ahora?: number }
   /**
    * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
    *
@@ -836,7 +837,13 @@ export function VisorPatron({
           // dolor y capa) de `mallasDelCuerpo`, y su firma entra en la de lo estático.
           const pintado =
             enCuerpo && !sin.has('atlas') && estado.current.cuerpo
-              ? mallasDelCuerpo(atlasPorCapa, estado.current.cuerpo.capa, estado.current.cuerpo.tinte, paletaDelTema(lienzo.closest('[data-theme]')))
+              ? mallasDelCuerpo(
+                  atlasPorCapa,
+                  estado.current.cuerpo.capa,
+                  estado.current.cuerpo.tinte,
+                  paletaDelTema(lienzo.closest('[data-theme]')),
+                  estado.current.cuerpo.ahora,
+                )
               : undefined
           const delAtlas = pintado ? pintado.mallas : capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
           const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`

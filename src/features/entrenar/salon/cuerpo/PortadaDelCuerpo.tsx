@@ -130,6 +130,9 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const [hojaAbierta, setHojaAbierta] = useState(false)
   const enCuerpo = p.vista === 'cuerpo'
   const lectura = lecturaCorta(p.series)
+  // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
+  // como «por trabajar» (revisión ciega, N5).
+  const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
 
   return (
     <>
@@ -262,14 +265,14 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             </p>
             {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
                 lo que duele. En Piel lo pendiente no se pinta, así que tampoco se dice. */}
-            {(p.porTrabajar?.length ?? 0) > 0 && p.capa !== 'piel' && (
+            {rojasLisas.length > 0 && p.capa !== 'piel' && (
               <button
                 type="button"
                 onClick={() => setHojaAbierta(true)}
                 data-testigo="por-trabajar"
                 // Corta a propósito: la lista entera, en rojo sobre el suelo, no se leía y se metía
                 // debajo del botón del reloj. Los nombres van en `aria-label` y en la hoja, que abre.
-                aria-label={`En rojo, por trabajar: ${p.porTrabajar!.map((id) => NOMBRE_DE_REGION[id]).join(', ')}`}
+                aria-label={`En rojo, por trabajar: ${rojasLisas.map((id) => NOMBRE_DE_REGION[id]).join(', ')}`}
                 className="press pointer-events-auto mt-0.5 flex min-h-[32px] items-center gap-1.5 text-[12px]"
                 style={{ color: 'var(--texto)', fontWeight: 700, textShadow: '0 1px 6px rgb(0 0 0 / 0.7)' }}
               >

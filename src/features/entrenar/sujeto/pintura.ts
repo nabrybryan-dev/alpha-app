@@ -33,6 +33,13 @@ export interface Paleta {
 /** Lo que tarda una region en pasar del rojo de «por trabajar» al color de lo trabajado. */
 export const TRANSICION_MS = 1200
 
+/**
+ * En cuántos pasos se pinta la transición. Cada paso vuelve a subir lo estático al motor
+ * (sala y atlas), así que van pocos: con 8 en 1,2 s se ve continua y sube 8 veces, no 20
+ * (revisión ciega, N2).
+ */
+export const PASOS_DE_TRANSICION = 8
+
 /** Alto de cada raya del dolor, en metros del sujeto (una de cada dos va oscura). */
 export const BANDA_DEL_DOLOR = 0.03
 
@@ -132,7 +139,7 @@ export class CuerpoPintado {
 
   /**
    * Cambia solo si cambia algo que se ve. Los k se redondean a dos decimales, y durante una
-   * transicion el avance a pasos de 0,05: unas veinte subidas por region que se cierra.
+   * transicion el avance va en `PASOS_DE_TRANSICION` pasos.
    */
   firma(tinte: TinteDelCuerpo, capa: CapaDelCuerpo, ahora = Date.now()): string {
     const partes = Object.entries(tinte)
@@ -140,7 +147,7 @@ export class CuerpoPintado {
         if (t.dolor) return `${id}:D`
         if (t.pendiente) return `${id}:P`
         const avance = avanceDeTransicion(t, ahora)
-        return `${id}:${Math.round(t.k * 100)}${avance < 1 ? `~${Math.round(avance * 20)}` : ''}`
+        return `${id}:${Math.round(t.k * 100)}${avance < 1 ? `~${Math.round(avance * PASOS_DE_TRANSICION)}` : ''}`
       })
       .join(',')
     return `${capa}|${partes}`

@@ -66,6 +66,8 @@ import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
 import { cargaAnterior } from './paredes/cargaAnterior'
 import { regionesConDolor, regionesDirectas, regionesPorTrabajar, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
 import type { IdDeRegion } from '../sujeto/regiones'
+import { horaParaPintar, instantesDeLaTransicion } from '../sujeto/transicion'
+import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 
 /**
  * EL SALÓN: la pantalla `/entrenar`, y la primera que se ve al tocar ENTRENAR.
@@ -450,6 +452,20 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     [rango, sesionEnPantalla],
   )
   const [trabajadasEn, setTrabajadasEn] = useState<Partial<Record<IdDeRegion, number>>>({})
+  /**
+   * EL RELOJ DE LA TRANSICIÓN. El cuerpo se pinta a demanda: sin un cuadro nuevo, el rojo no
+   * avanza. Este estado se mueve SOLO en los instantes que `instantesDeLaTransicion` dice, y
+   * viaja al visor dentro de `cuerpo`, que es lo que le hace reconstruir.
+   */
+  const reducido = useMovimientoReducido()
+  const [relojDelCuerpo, setRelojDelCuerpo] = useState(0)
+  useEffect(() => {
+    const ahora = Date.now()
+    const temporizadores = instantesDeLaTransicion(trabajadasEn, ahora, reducido).map((t) =>
+      window.setTimeout(() => setRelojDelCuerpo(Date.now()), t - ahora),
+    )
+    return () => temporizadores.forEach((id) => window.clearTimeout(id))
+  }, [trabajadasEn, reducido])
   const enCuerpo = conEjeW && vista === 'cuerpo'
   // LA LINEA DE ARRIBA («Nombre arriba, en pequeno»): nombre y cifras del ejercicio, o, en un dia de
   // cardio, el nombre de la ficha y sus cifras (tramos, minutos, intensidad).
@@ -464,9 +480,13 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const cuerpoParaElVisor = useMemo(
     () =>
       enCuerpo
-        ? { capa: capaDelCuerpo, tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn) }
+        ? {
+            capa: capaDelCuerpo,
+            tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn),
+            ahora: horaParaPintar(relojDelCuerpo, reducido),
+          }
         : undefined,
-    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn],
+    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn, relojDelCuerpo, reducido],
   )
 
   const [w, setW] = useState<NivelW>(0)
@@ -822,10 +842,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       // aún trabaja siguen pendientes y en rojo: `tinteDelCuerpo` ignora la marca mientras.
       // Arranca AL IRSE EL LOGRO, no al guardar: el logro tapa la sala `LOGRO_MS` y la
       // transición pasaba entera debajo de él, sin que nadie la viera (medido el 25-oct).
-      const ahora = Date.now() + LOGRO_MS
+      const ahora = Date.now()
+      setRelojDelCuerpo(ahora)
       setTrabajadasEn((previas) => ({
         ...previas,
-        ...Object.fromEntries(regionesDirectas(yaEscrito).map((r) => [r, ahora])),
+        ...Object.fromEntries(regionesDirectas(yaEscrito).map((r) => [r, ahora + LOGRO_MS])),
       }))
     }
   }
@@ -1152,6 +1173,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               diaActual={diaEnPantalla(props.semana, sesionEnPantalla?.id, diaElegido)}
               onElegir={(i) => {
                 setEjercicioManual(null)
+                // Las transiciones son de la sala que se cerró: no se llevan a otro día.
+                setTrabajadasEn({})
                 setDiaElegido(i === diaEnPantalla(props.semana, sesion?.id, null) ? null : i)
                 setSemanaAbierta(false)
               }}
