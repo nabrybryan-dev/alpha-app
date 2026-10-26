@@ -1,7 +1,7 @@
 import type { Color, Malla } from '../../../domain/patrones/malla'
 import { colocar } from '../escena/piezas3d'
 import { regionDeMusculo, type IdDeRegion } from './regiones'
-import type { TinteDelCuerpo } from './tinte'
+import type { TinteDeRegion, TinteDelCuerpo } from './tinte'
 
 /**
  * PINTAR EL SUJETO DE BLENDER: el tinte por region, el dolor en rojo y las tres capas.
@@ -11,8 +11,14 @@ import type { TinteDelCuerpo } from './tinte'
  * COPIAS: `CuerpoPintado` clona las mallas de musculo una vez, y `pintar()` reescribe sus
  * colores y su alfa. Quien llama vuelve a subir `musculos` al motor cuando cambia la `firma`.
  *
- * Los colores salen de los tokens `--salon-3d-*` y `--rojo` (ver `paletaDelTema`): el rojo es
- * el unico del cuerpo y es del dolor (regla de la app: dolor = rojo).
+ * Los colores salen de los tokens `--salon-3d-*` y `--rojo` (ver `paletaDelTema`).
+ *
+ * ## Dos rojos que no se pueden confundir (Bryan, 25-oct)
+ *
+ * El rojo liso es lo que la sesion deja POR TRABAJAR; al terminar sus ejercicios la region
+ * pasa del rojo a «trabajado» en `TRANSICION_MS`. El dolor sigue siendo rojo, pero A RAYAS
+ * (bandas horizontales de `BANDA_DEL_DOLOR`), y debajo del cuerpo se lee «Te duele»: asi un
+ * hombro adolorido no se lee como un hombro que toca entrenar.
  */
 
 export type CapaDelCuerpo = 'piel' | 'musculo' | 'hueso'
@@ -23,6 +29,22 @@ export interface Paleta {
   rojo: Color
   tendon: Color
 }
+
+/** Lo que tarda una region en pasar del rojo de «por trabajar» al color de lo trabajado. */
+export const TRANSICION_MS = 1200
+
+/**
+ * En cuántos pasos se pinta la transición. Cada paso vuelve a subir lo estático al motor
+ * (sala y atlas), así que van pocos: con 8 en 1,2 s se ve continua y sube 8 veces, no 20
+ * (revisión ciega, N2).
+ */
+export const PASOS_DE_TRANSICION = 8
+
+/** Alto de cada raya del dolor, en metros del sujeto (una de cada dos va oscura). */
+export const BANDA_DEL_DOLOR = 0.03
+
+/** Cuanto oscurece la raya oscura del dolor. */
+const RAYA_OSCURA = 0.35
 
 /** Opacidad de los musculos segun la capa: translucidos sobre el hueso, opacos en las demas. */
 const ALFA_DEL_MUSCULO: Record<CapaDelCuerpo, number> = { piel: 1, musculo: 1, hueso: 0.3 }
@@ -35,6 +57,29 @@ export function colorDeRegion(k: number, dolor: boolean, p: Paleta): Color {
     p.base[1] + (p.luz[1] - p.base[1]) * k,
     p.base[2] + (p.luz[2] - p.base[2]) * k,
   ]
+}
+
+function mezclar(a: Color, b: Color, m: number): Color {
+  return [a[0] + (b[0] - a[0]) * m, a[1] + (b[1] - a[1]) * m, a[2] + (b[2] - a[2]) * m]
+}
+
+/** De 0 (recien terminada, aun roja) a 1 (ya en su color de trabajada). Sin marca, 1. */
+export function avanceDeTransicion(t: TinteDeRegion, ahora: number): number {
+  if (t.pendiente || t.trabajadaEn === undefined) return 1
+  const m = (ahora - t.trabajadaEn) / TRANSICION_MS
+  return m <= 0 ? 0 : m >= 1 ? 1 : m
+}
+
+/**
+ * El color liso de una region (sin las rayas del dolor, que van por vertice). En Piel no se
+ * ve ni el tinte de series ni lo pendiente (la maqueta lo oculta): solo el dolor.
+ */
+export function colorDeTinte(t: TinteDeRegion, p: Paleta, capa: CapaDelCuerpo, ahora: number): Color {
+  if (t.dolor) return [...p.rojo]
+  if (capa === 'piel') return [...p.base]
+  if (t.pendiente) return [...p.rojo]
+  const trabajada = colorDeRegion(t.k, false, p)
+  return mezclar(p.rojo, trabajada, avanceDeTransicion(t, ahora))
 }
 
 export interface ParteDeMusculo {
@@ -67,17 +112,23 @@ export class CuerpoPintado {
     })
   }
 
-  pintar(tinte: TinteDelCuerpo, paleta: Paleta, capa: CapaDelCuerpo): void {
+  pintar(tinte: TinteDelCuerpo, paleta: Paleta, capa: CapaDelCuerpo, ahora = Date.now()): void {
+    const oscuro: Color = [paleta.rojo[0] * RAYA_OSCURA, paleta.rojo[1] * RAYA_OSCURA, paleta.rojo[2] * RAYA_OSCURA]
     this.musculos.forEach((malla, i) => {
       const region = this.regiones[i]
-      const t = region ? tinte[region] : { k: 0, dolor: false }
-      // En Piel el tinte de series no se ve (la maqueta lo oculta): solo el dolor.
-      const k = capa === 'piel' ? 0 : t.k
-      const color = colorDeRegion(k, t.dolor, paleta)
+      const t: TinteDeRegion = region ? tinte[region] : { k: 0, dolor: false }
+      const color = colorDeTinte(t, paleta, capa, ahora)
       const destino = malla.color
       const original = this.originales[i]
+      const posicion = malla.posicion
       for (let v = 0; v < destino.length; v += 3) {
-        const c = esTendon(original, v) && !t.dolor ? paleta.tendon : color
+        let c = color
+        if (t.dolor) {
+          // LAS RAYAS DEL DOLOR: bandas horizontales por la altura del vertice.
+          if (Math.floor(posicion[v + 1] / BANDA_DEL_DOLOR) % 2 !== 0) c = oscuro
+        } else if (esTendon(original, v) && !t.pendiente) {
+          c = paleta.tendon
+        }
         destino[v] = c[0]
         destino[v + 1] = c[1]
         destino[v + 2] = c[2]
@@ -86,10 +137,18 @@ export class CuerpoPintado {
     })
   }
 
-  /** Cambia solo si cambia algo que se ve. Los k se redondean a dos decimales. */
-  firma(tinte: TinteDelCuerpo, capa: CapaDelCuerpo): string {
+  /**
+   * Cambia solo si cambia algo que se ve. Los k se redondean a dos decimales, y durante una
+   * transicion el avance va en `PASOS_DE_TRANSICION` pasos.
+   */
+  firma(tinte: TinteDelCuerpo, capa: CapaDelCuerpo, ahora = Date.now()): string {
     const partes = Object.entries(tinte)
-      .map(([id, t]) => `${id}:${t.dolor ? 'D' : Math.round(t.k * 100)}`)
+      .map(([id, t]) => {
+        if (t.dolor) return `${id}:D`
+        if (t.pendiente) return `${id}:P`
+        const avance = avanceDeTransicion(t, ahora)
+        return `${id}:${Math.round(t.k * 100)}${avance < 1 ? `~${Math.round(avance * PASOS_DE_TRANSICION)}` : ''}`
+      })
       .join(',')
     return `${capa}|${partes}`
   }

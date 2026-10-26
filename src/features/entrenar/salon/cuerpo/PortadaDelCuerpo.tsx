@@ -28,6 +28,8 @@ export interface PortadaDelCuerpoProps {
   rango: RangoDeLectura
   series: SeriesPorRegion
   doloridas: readonly IdDeRegion[]
+  /** Lo que la sesión deja por trabajar (se pinta en rojo liso). Vacío = no se dice nada. */
+  porTrabajar?: readonly IdDeRegion[]
   alCambiarCapa: (capa: CapaDelCuerpo) => void
   alCambiarRango: (rango: RangoDeLectura) => void
   alCambiarVista: (vista: VistaDelSalon) => void
@@ -50,17 +52,27 @@ export interface PortadaDelCuerpoProps {
   }
 }
 
-const CAPAS: readonly { id: CapaDelCuerpo; nombre: string }[] = [
-  { id: 'piel', nombre: 'Piel' },
-  { id: 'musculo', nombre: 'Músculo' },
-  { id: 'hueso', nombre: 'Hueso' },
+/**
+ * Cada tecla dice QUÉ ES y, debajo, QUÉ ENSEÑA (Bryan, 25-oct: «que los botones tengan más
+ * detalle»). Con solo «Hoy» y «Semana» no se sabía si cambiaban de día o qué contaban.
+ */
+const CAPAS: readonly { id: CapaDelCuerpo; nombre: string; detalle: string }[] = [
+  { id: 'piel', nombre: 'Piel', detalle: 'la silueta' },
+  { id: 'musculo', nombre: 'Músculo', detalle: 'lo trabajado' },
+  { id: 'hueso', nombre: 'Hueso', detalle: 'el esqueleto' },
+]
+
+const RANGOS: readonly { id: RangoDeLectura; nombre: string; detalle: string }[] = [
+  { id: 'hoy', nombre: 'Hoy', detalle: 'series de hoy' },
+  { id: 'semana', nombre: 'Semana', detalle: 'series de 7 días' },
 ]
 
 /**
- * LA TECLA ALZADA de la maqueta 7 (`.sl-capas button`): 44 px de alto, 12 px de radio, 12 px
- * en negrita. La elegida lleva un aro de 1,5 px en el color del texto.
+ * LA TECLA ALZADA de la maqueta 7 (`.sl-capas button`): 12 px de radio, nombre en negrita y
+ * su detalle debajo, en tenue. Todas del mismo ancho para que la columna no baile. La elegida
+ * lleva un aro de 1,5 px en el color del texto.
  */
-const COMPACTO = '!min-h-[44px] !min-w-[58px] !px-2 !py-0 !text-xs'
+const COMPACTO = '!min-h-[48px] !w-[86px] !px-1.5 !py-1 !text-xs'
 
 /**
  * Una opcion de un grupo, con la tecla secundaria `.tecla-2` de `tokens.css` (la de la maqueta
@@ -74,12 +86,15 @@ function Opcion({
   children,
   radio = true,
   etiqueta,
+  detalle,
 }: {
   activa: boolean
   onClick: () => void
   children: ReactNode
   radio?: boolean
   etiqueta?: string
+  /** Una línea corta debajo del nombre: qué enseña la tecla. */
+  detalle?: string
 }) {
   const aria = radio ? { role: 'radio' as const, 'aria-checked': activa } : {}
   return (
@@ -94,7 +109,14 @@ function Opcion({
         boxShadow: activa ? '0 2px 0 var(--canto), var(--sombra-alzado), inset 0 0 0 1.5px var(--texto)' : undefined,
       }}
     >
-      {children}
+      <span className="flex flex-col items-center leading-tight">
+        <span>{children}</span>
+        {detalle && (
+          <span className="mt-0.5 text-[10px] font-medium" style={{ color: 'var(--tenue)' }}>
+            {detalle}
+          </span>
+        )}
+      </span>
     </button>
   )
 }
@@ -108,6 +130,9 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const [hojaAbierta, setHojaAbierta] = useState(false)
   const enCuerpo = p.vista === 'cuerpo'
   const lectura = lecturaCorta(p.series)
+  // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
+  // como «por trabajar» (revisión ciega, N5).
+  const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
 
   return (
     <>
@@ -140,7 +165,10 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           <div
             // `[&_button]:!text-texto`: el boton del cronometro no trae color y en tema claro el del navegador
             // (negro) caia sobre la sala oscura; asi lo pone el token del salon (claro).
-            className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center [&_button]:!text-texto"
+            // `[&_button]:pointer-events-auto`: la franja no recibe toques (taparía el cuerpo), pero
+            // sus botones sí. Sin esto «Pausar cronómetro» heredaba el `none` y el dedo caía en el
+            // modelo 3D de detrás (medido con elementFromPoint el 25-oct).
+            className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center [&_button]:pointer-events-auto [&_button]:!text-texto"
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 11.6rem)', fontSize: '22px' }}
           >
             <HuecoDeDatos
@@ -165,7 +193,13 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             style={{ right: 'max(8px, env(safe-area-inset-right, 0px))', top: '42%', transform: 'translateY(-50%)' }}
           >
             {CAPAS.map((c) => (
-              <Opcion key={c.id} activa={c.id === p.capa} onClick={() => p.alCambiarCapa(c.id)}>
+              <Opcion
+                key={c.id}
+                activa={c.id === p.capa}
+                etiqueta={c.nombre}
+                detalle={c.detalle}
+                onClick={() => p.alCambiarCapa(c.id)}
+              >
                 {c.nombre}
               </Opcion>
             ))}
@@ -178,10 +212,16 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           style={{ left: 'max(8px, env(safe-area-inset-left, 0px))', top: '42%', transform: 'translateY(-50%)' }}
         >
           {enCuerpo && (
-            <div role="radiogroup" aria-label="Rango de la lectura" className="grid gap-2">
-              {(['hoy', 'semana'] as const).map((r) => (
-                <Opcion key={r} activa={p.rango === r} onClick={() => p.alCambiarRango(r)}>
-                  {r === 'hoy' ? 'Hoy' : 'Semana'}
+            <div role="radiogroup" aria-label="Qué series se cuentan" className="grid gap-2">
+              {RANGOS.map((r) => (
+                <Opcion
+                  key={r.id}
+                  activa={p.rango === r.id}
+                  etiqueta={r.nombre}
+                  detalle={r.detalle}
+                  onClick={() => p.alCambiarRango(r.id)}
+                >
+                  {r.nombre}
                 </Opcion>
               ))}
             </div>
@@ -190,11 +230,10 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             radio={false}
             activa={false}
             etiqueta={enCuerpo ? 'Ver el movimiento' : 'Ver el cuerpo'}
+            detalle={enCuerpo ? 'el ejercicio' : 'capas y series'}
             onClick={() => p.alCambiarVista(enCuerpo ? 'movimiento' : 'cuerpo')}
           >
-            <span className="block max-w-[76px] text-center leading-tight">
-              {enCuerpo ? 'Ver el movimiento' : 'Ver el cuerpo'}
-            </span>
+            {enCuerpo ? 'Movimiento' : 'Cuerpo'}
           </Opcion>
         </div>
 
@@ -224,9 +263,26 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             <p className="text-[10.5px] opacity-85" style={{ color: 'var(--tenue)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
             </p>
+            {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
+                lo que duele. En Piel lo pendiente no se pinta, así que tampoco se dice. */}
+            {rojasLisas.length > 0 && p.capa !== 'piel' && (
+              <button
+                type="button"
+                onClick={() => setHojaAbierta(true)}
+                data-testigo="por-trabajar"
+                // Corta a propósito: la lista entera, en rojo sobre el suelo, no se leía y se metía
+                // debajo del botón del reloj. Los nombres van en `aria-label` y en la hoja, que abre.
+                aria-label={`En rojo, por trabajar: ${rojasLisas.map((id) => NOMBRE_DE_REGION[id]).join(', ')}`}
+                className="press pointer-events-auto mt-0.5 flex min-h-[32px] items-center gap-1.5 text-[12px]"
+                style={{ color: 'var(--texto)', fontWeight: 700, textShadow: '0 1px 6px rgb(0 0 0 / 0.7)' }}
+              >
+                <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--rojo)' }} />
+                Rojo: lo que falta por trabajar
+              </button>
+            )}
             {p.doloridas.length > 0 && (
               <p className="text-[13px]" style={{ color: 'var(--rojo)', fontWeight: 800 }}>
-                Te duele: {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
+                Te duele (a rayas): {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
               </p>
             )}
           </div>
@@ -239,6 +295,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           {REGIONES.map((r) => {
             const n = p.series[r.id] ?? 0
             const duele = p.doloridas.includes(r.id)
+            const falta = p.porTrabajar?.includes(r.id) ?? false
             return (
               <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="text-texto">{r.nombre}</span>
@@ -246,6 +303,11 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                   {duele && (
                     <span className="mr-2 font-bold" style={{ color: 'var(--rojo)' }}>
                       Te duele
+                    </span>
+                  )}
+                  {falta && !duele && (
+                    <span className="mr-2 font-bold" style={{ color: 'var(--rojo)' }}>
+                      Por trabajar
                     </span>
                   )}
                   {cifra(n)}

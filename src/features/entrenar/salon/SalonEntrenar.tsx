@@ -51,7 +51,8 @@ import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './ma
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
-import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
+import { DesplegableDeLaSemana } from './rumbo/DesplegableDeLaSemana'
+import { diaEnPantalla } from './rumbo/diaEnPantalla'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
@@ -63,7 +64,10 @@ import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cue
 import type { CapaDelCuerpo } from '../sujeto/pintura'
 import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
 import { cargaAnterior } from './paredes/cargaAnterior'
-import { regionesConDolor, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
+import { regionesConDolor, regionesDirectas, regionesPorTrabajar, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
+import type { IdDeRegion } from '../sujeto/regiones'
+import { horaParaPintar, instantesDeLaTransicion } from '../sujeto/transicion'
+import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 
 /**
  * EL SALÓN: la pantalla `/entrenar`, y la primera que se ve al tocar ENTRENAR.
@@ -260,7 +264,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   /**
    * EL DÍA QUE SE ESTÁ MIRANDO, cuando no es hoy.
    *
-   * `null` = hoy, que es como se abre siempre. Elegir otro día en el tambor no navega a
+   * `null` = hoy, que es como se abre siempre. Elegir otro día en la semana no navega a
    * otra pantalla ni cambia nada en la base: cambia QUÉ SALA se está viendo. Es la
    * diferencia entre consultar la semana y empezar la sesión de otro día por error.
    */
@@ -294,18 +298,22 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
   const [diaElegido, setDiaElegido] = useState<number | null>(null)
   const [semanaAbierta, setSemanaAbierta] = useState(false)
+  // Estable: la lista escucha Escape en un efecto que depende de esto.
+  const cerrarSemana = useCallback(() => setSemanaAbierta(false), [])
   /**
    * La sesión del día elegido, si hay uno.
    *
    * Sale del MISMO reparto que pinta la semana —`armarSemana`, ya calculado por el
    * dominio— y no de un segundo cruce por nombre de día: dos formas de repartir sesiones
-   * en días se separan, y entonces el tambor abriría una sesión y el calendario diría otra.
+   * en días se separan, y entonces la semana abriría una sesión y el calendario diría otra.
    */
   const sesionDelDiaElegido =
     diaElegido === null
       ? undefined
       : microciclo.sesiones.find((s) => s.id === props.semana[diaElegido]?.sesionId)
-  const sesionEnPantalla = sesionDelDiaElegido ?? sesion
+  // Con un día elegido manda ese día, AUNQUE sea de descanso: caer a la sesión por omisión
+  // pintaba los ejercicios del lunes bajo «MIÉRCOLES · viendo» (revisión ciega del 25-oct).
+  const sesionEnPantalla = diaElegido === null ? sesion : sesionDelDiaElegido
   const ejercicio =
     retenido ??
     (ejercicioManual !== null
@@ -434,6 +442,30 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     [rango, sesionEnPantalla, microciclo.sesiones],
   )
   const doloridas = useMemo(() => regionesConDolor(props.dolorDeHoy), [props.dolorDeHoy])
+  /**
+   * LO QUE LA SESIÓN DEJA POR TRABAJAR, en rojo (Bryan, 25-oct). Solo con «Hoy»: la semana
+   * cuenta lo hecho, no lo pendiente. Y cuándo se cerró cada región en esta visita, para que
+   * pase del rojo a «trabajado» con una transición y no de golpe.
+   */
+  const porTrabajar = useMemo(
+    () => (rango === 'hoy' ? regionesPorTrabajar(sesionEnPantalla) : []),
+    [rango, sesionEnPantalla],
+  )
+  const [trabajadasEn, setTrabajadasEn] = useState<Partial<Record<IdDeRegion, number>>>({})
+  /**
+   * EL RELOJ DE LA TRANSICIÓN. El cuerpo se pinta a demanda: sin un cuadro nuevo, el rojo no
+   * avanza. Este estado se mueve SOLO en los instantes que `instantesDeLaTransicion` dice, y
+   * viaja al visor dentro de `cuerpo`, que es lo que le hace reconstruir.
+   */
+  const reducido = useMovimientoReducido()
+  const [relojDelCuerpo, setRelojDelCuerpo] = useState(0)
+  useEffect(() => {
+    const ahora = Date.now()
+    const temporizadores = instantesDeLaTransicion(trabajadasEn, ahora, reducido).map((t) =>
+      window.setTimeout(() => setRelojDelCuerpo(Date.now()), t - ahora),
+    )
+    return () => temporizadores.forEach((id) => window.clearTimeout(id))
+  }, [trabajadasEn, reducido])
   const enCuerpo = conEjeW && vista === 'cuerpo'
   // LA LINEA DE ARRIBA («Nombre arriba, en pequeno»): nombre y cifras del ejercicio, o, en un dia de
   // cardio, el nombre de la ficha y sus cifras (tramos, minutos, intensidad).
@@ -446,8 +478,15 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     return { nombre: contenido.nombre, cifras }
   }, [ejercicio, contenido, sesionEnPantalla])
   const cuerpoParaElVisor = useMemo(
-    () => (enCuerpo ? { capa: capaDelCuerpo, tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas) } : undefined),
-    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas],
+    () =>
+      enCuerpo
+        ? {
+            capa: capaDelCuerpo,
+            tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn),
+            ahora: horaParaPintar(relojDelCuerpo, reducido),
+          }
+        : undefined,
+    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn, relojDelCuerpo, reducido],
   )
 
   const [w, setW] = useState<NivelW>(0)
@@ -797,7 +836,19 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     }
     // El ejercicio que se acaba de cerrar se queda en la sala mientras se lee que se
     // cerró. `ejercicioEnCurso` ya habría pasado al siguiente sin esto.
-    if (pasa.cierraElEjercicio) setRetenido(yaEscrito)
+    if (pasa.cierraElEjercicio) {
+      setRetenido(yaEscrito)
+      // Sus regiones arrancan la transición del rojo a «trabajado». Las que otro ejercicio
+      // aún trabaja siguen pendientes y en rojo: `tinteDelCuerpo` ignora la marca mientras.
+      // Arranca AL IRSE EL LOGRO, no al guardar: el logro tapa la sala `LOGRO_MS` y la
+      // transición pasaba entera debajo de él, sin que nadie la viera (medido el 25-oct).
+      const ahora = Date.now()
+      setRelojDelCuerpo(ahora)
+      setTrabajadasEn((previas) => ({
+        ...previas,
+        ...Object.fromEntries(regionesDirectas(yaEscrito).map((r) => [r, ahora + LOGRO_MS])),
+      }))
+    }
   }
   return (
     // `fixed inset-0`: el salón ES la pantalla. Va a `--z-elevado` (20) y no más arriba a
@@ -1112,20 +1163,22 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* LA SEMANA, EN UN TAMBOR. Se abre tocando el día y se cierra al elegir uno o al
-            tocar fuera. Elegir NO empieza esa sesión: cambia qué sala se está viendo. */}
+        {/* LA SEMANA, DESPLEGADA. Se abre tocando el día y se cierra al elegir uno, al tocar
+            fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
+            Elegir el día que ya se ve sin elegir nada vuelve a «sin elegir». */}
         {semanaAbierta && (
           <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-elevado)' }}>
-            <TamborDeLaSemana
+            <DesplegableDeLaSemana
               semana={props.semana}
-              diaActual={diaElegido ?? props.semana.findIndex((d) => d.esHoy)}
+              diaActual={diaEnPantalla(props.semana, sesionEnPantalla?.id, diaElegido)}
               onElegir={(i) => {
-                // Volver a HOY no se guarda como «un día elegido»: si se guardara, el
-                // salón dejaría de seguir a la sesión de hoy cuando la agenda cambiara.
-                setDiaElegido(props.semana[i]?.esHoy ? null : i)
+                setEjercicioManual(null)
+                // Las transiciones son de la sala que se cerró: no se llevan a otro día.
+                setTrabajadasEn({})
+                setDiaElegido(i === diaEnPantalla(props.semana, sesion?.id, null) ? null : i)
                 setSemanaAbierta(false)
               }}
-              onCerrar={() => setSemanaAbierta(false)}
+              onCerrar={cerrarSemana}
             />
           </div>
         )}
@@ -1140,6 +1193,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             sesion={sesionEnPantalla}
             semana={props.semana}
             diaElegido={diaElegido}
+            semanaAbierta={semanaAbierta}
             onAbrirSemana={() => setSemanaAbierta(true)}
           />
         </div>
@@ -1240,6 +1294,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             rango={rango}
             series={seriesDelCuerpo}
             doloridas={doloridas}
+            porTrabajar={porTrabajar}
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
             alCambiarVista={setVista}

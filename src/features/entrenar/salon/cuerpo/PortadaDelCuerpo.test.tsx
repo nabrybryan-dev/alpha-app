@@ -23,7 +23,13 @@ describe('la portada del cuerpo: capas, lectura y dolor', () => {
     render(<PortadaDelCuerpo {...p} />)
     const grupo = screen.getByRole('radiogroup', { name: 'Capas del cuerpo' })
     const botones = within(grupo).getAllByRole('radio')
-    expect(botones.map((b) => b.textContent)).toEqual(['Piel', 'Músculo', 'Hueso'])
+    expect(botones.map((b) => b.getAttribute('aria-label'))).toEqual(['Piel', 'Músculo', 'Hueso'])
+    // Y cada una dice debajo qué enseña (Bryan, 25-oct: botones con más detalle).
+    expect(botones.map((b) => b.textContent)).toEqual([
+      'Piella silueta',
+      'Músculolo trabajado',
+      'Huesoel esqueleto',
+    ])
     expect(within(grupo).getByRole('radio', { name: 'Músculo' })).toBeChecked()
     fireEvent.click(within(grupo).getByRole('radio', { name: 'Hueso' }))
     expect(p.alCambiarCapa).toHaveBeenCalledWith('hueso')
@@ -50,7 +56,7 @@ describe('la portada del cuerpo: capas, lectura y dolor', () => {
 
   it('el dolor sale en su propia linea y en rojo, con el nombre de la region', () => {
     render(<PortadaDelCuerpo {...props({ doloridas: ['delt'] })} />)
-    const linea = screen.getByText(/Te duele: Deltoides/)
+    const linea = screen.getByText(/Te duele \(a rayas\): Deltoides/)
     expect(linea.getAttribute('style') ?? '').toContain('var(--rojo)')
   })
 

@@ -876,6 +876,66 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
     expect(cajon.style.visibility).toBe('hidden')
   })
 
+  /**
+   * LA SEMANA DESPLEGADA ESTÁ CONECTADA AL SALÓN (Bryan, 25-oct). Tocar el día de arriba a
+   * la derecha despliega los siete; elegir uno cambia la sesión que se ve, y la banda dice
+   * ese día y esa sesión, no otros.
+   */
+  it('elegir un día en la semana desplegada cambia la sesión y la banda lo dice', () => {
+    const { microciclo, sesion } = montarConFuerza()
+    const semana = armarSemana(microciclo, hoyIso())
+    const otro = semana.findIndex((d) => d.sesionId !== undefined && d.sesionId !== sesion.id)
+    expect(otro).toBeGreaterThan(-1)
+
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    const lista = screen.getByRole('dialog', { name: 'Tu semana' })
+    expect(within(lista).getAllByRole('button')).toHaveLength(7)
+
+    fireEvent.click(within(lista).getAllByRole('button')[otro])
+
+    expect(screen.queryByRole('dialog', { name: 'Tu semana' })).toBeNull()
+    const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
+    expect(banda).toHaveTextContent(semana[otro].titulo)
+    expect(within(banda).getByRole('button', { name: /cambiar de día/i })).toHaveTextContent(semana[otro].dia)
+  })
+
+  it('elegir un día de descanso no enseña la sesión de otro día', () => {
+    const { microciclo } = montarConFuerza()
+    const semana = armarSemana(microciclo, hoyIso())
+    const descanso = semana.findIndex((d) => d.sesionId === undefined)
+    expect(descanso).toBeGreaterThan(-1)
+
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[descanso])
+
+    const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
+    expect(banda).toHaveTextContent(/sin sesión/i)
+    expect(within(banda).getByRole('button', { name: /cambiar de día/i })).toHaveTextContent(semana[descanso].dia)
+  })
+
+  it('al cambiar de día se vuelve al ejercicio que toca, no al mismo número del día anterior', () => {
+    const { microciclo, sesion } = montarConFuerza()
+    const semana = armarSemana(microciclo, hoyIso())
+    const otro = semana.findIndex((d) => d.sesionId !== undefined && d.sesionId !== sesion.id)
+    const sesionOtra = microciclo.sesiones.find((s) => s.id === semana[otro].sesionId)!
+    // Ir al último ejercicio de la sesión de hoy con los puntos de abajo.
+    const puntos = screen.getAllByRole('button', { name: new RegExp(sesion.ejercicios.at(-1)!.nombre) })
+    fireEvent.click(puntos[0])
+
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[otro])
+
+    const primero = sesionOtra.ejercicios.find((e) => e.series.length < (e.sets ?? 1)) ?? sesionOtra.ejercicios[0]
+    expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toHaveTextContent(primero.nombre)
+  })
+
+  it('el botón del cronómetro de la portada recibe toques aunque la franja no', () => {
+    montarConFuerza()
+    const franja = document.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')!.closest('.muro-escena')!
+    expect(franja.className).toContain('pointer-events-none')
+    expect(franja.className).toContain('[&_button]:pointer-events-auto')
+  })
+
   it('en la portada del cuerpo (vista por defecto) el cronometro de la sesion sigue ahi', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
