@@ -178,11 +178,6 @@ describe('RecetasCarousel', () => {
     })
 
     /**
-     * El contador de kcal es un interruptor clínico: si la nutricionista lo
-     * apagó, no puede reaparecer ni en la cabecera ni en lo cocinado hoy. La
-     * lista sigue diciendo QUÉ se cocinó y a qué comida fue, sin la cifra.
-     */
-    /**
      * La hoja tampoco: hasta el 25-oct enseñaba la cifra grande y «Te quedan»
      * aunque la nutricionista hubiera apagado el contador. Los gramos sí salen.
      */
@@ -198,6 +193,11 @@ describe('RecetasCarousel', () => {
       expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
     })
 
+    /**
+     * El contador de kcal es un interruptor clínico: si la nutricionista lo
+     * apagó, no puede reaparecer ni en la cabecera ni en lo cocinado hoy. La
+     * lista sigue diciendo QUÉ se cocinó y a qué comida fue, sin la cifra.
+     */
     it('con el contador apagado no sale ninguna cifra de kcal', () => {
       render(
         <RecetasCarousel
