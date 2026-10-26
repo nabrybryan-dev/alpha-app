@@ -1485,9 +1485,23 @@ body {
   animation: subir-hoja var(--dur-transicional) var(--muelle-transicional) both;
 }
 
+/* La semana del salón cae desde el botón del día, arriba a la derecha (25-oct). */
+@keyframes desplegar-semana {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
+.desplegar-semana {
+  transform-origin: top right;
+  animation: desplegar-semana var(--dur-transicional) var(--ease-salida) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scrim-entra,
-  .subir-hoja {
+  .subir-hoja,
+  .desplegar-semana {
     animation-duration: 1ms;
   }
 }

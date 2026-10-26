@@ -876,6 +876,29 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
     expect(cajon.style.visibility).toBe('hidden')
   })
 
+  /**
+   * LA SEMANA DESPLEGADA ESTÁ CONECTADA AL SALÓN (Bryan, 25-oct). Tocar el día de arriba a
+   * la derecha despliega los siete; elegir uno cambia la sesión que se ve, y la banda dice
+   * ese día y esa sesión, no otros.
+   */
+  it('elegir un día en la semana desplegada cambia la sesión y la banda lo dice', () => {
+    const { microciclo, sesion } = montarConFuerza()
+    const semana = armarSemana(microciclo, hoyIso())
+    const otro = semana.findIndex((d) => d.sesionId !== undefined && d.sesionId !== sesion.id)
+    expect(otro).toBeGreaterThan(-1)
+
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    const lista = screen.getByRole('dialog', { name: 'Tu semana' })
+    expect(within(lista).getAllByRole('button')).toHaveLength(7)
+
+    fireEvent.click(within(lista).getAllByRole('button')[otro])
+
+    expect(screen.queryByRole('dialog', { name: 'Tu semana' })).toBeNull()
+    const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
+    expect(banda).toHaveTextContent(semana[otro].titulo)
+    expect(within(banda).getByRole('button', { name: /cambiar de día/i })).toHaveTextContent(semana[otro].dia)
+  })
+
   it('en la portada del cuerpo (vista por defecto) el cronometro de la sesion sigue ahi', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement

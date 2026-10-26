@@ -51,7 +51,8 @@ import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './ma
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
-import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
+import { DesplegableDeLaSemana } from './rumbo/DesplegableDeLaSemana'
+import { diaEnPantalla } from './rumbo/diaEnPantalla'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
@@ -294,6 +295,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
   const [diaElegido, setDiaElegido] = useState<number | null>(null)
   const [semanaAbierta, setSemanaAbierta] = useState(false)
+  // Estable: la lista escucha Escape en un efecto que depende de esto.
+  const cerrarSemana = useCallback(() => setSemanaAbierta(false), [])
   /**
    * La sesión del día elegido, si hay uno.
    *
@@ -1112,20 +1115,20 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* LA SEMANA, EN UN TAMBOR. Se abre tocando el día y se cierra al elegir uno o al
-            tocar fuera. Elegir NO empieza esa sesión: cambia qué sala se está viendo. */}
+        {/* LA SEMANA, DESPLEGADA. Se abre tocando el día y se cierra al elegir uno, al tocar
+            fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
+            Elegir el día que ya se ve sin elegir nada vuelve a «sin elegir». */}
         {semanaAbierta && (
           <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-elevado)' }}>
-            <TamborDeLaSemana
+            <DesplegableDeLaSemana
               semana={props.semana}
-              diaActual={diaElegido ?? props.semana.findIndex((d) => d.esHoy)}
+              diaActual={diaEnPantalla(props.semana, sesionEnPantalla?.id, diaElegido)}
               onElegir={(i) => {
-                // Volver a HOY no se guarda como «un día elegido»: si se guardara, el
-                // salón dejaría de seguir a la sesión de hoy cuando la agenda cambiara.
-                setDiaElegido(props.semana[i]?.esHoy ? null : i)
+                setEjercicioManual(null)
+                setDiaElegido(i === diaEnPantalla(props.semana, sesion?.id, null) ? null : i)
                 setSemanaAbierta(false)
               }}
-              onCerrar={() => setSemanaAbierta(false)}
+              onCerrar={cerrarSemana}
             />
           </div>
         )}
@@ -1140,6 +1143,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             sesion={sesionEnPantalla}
             semana={props.semana}
             diaElegido={diaElegido}
+            semanaAbierta={semanaAbierta}
             onAbrirSemana={() => setSemanaAbierta(true)}
           />
         </div>

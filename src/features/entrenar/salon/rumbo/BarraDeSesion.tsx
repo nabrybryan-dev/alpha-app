@@ -1,5 +1,6 @@
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
 import type { Sesion } from '../../../../domain/types'
+import { diaEnPantalla } from './diaEnPantalla'
 
 /**
  * LA BANDA DE ARRIBA: de quién es el día y qué sesión toca.
@@ -17,7 +18,8 @@ import type { Sesion } from '../../../../domain/types'
  *
  * ## El día es un mando, y la sesión no
  *
- * Tocar el día abre la semana; el nombre de la sesión no hace nada porque no hay nada que
+ * Tocar el día despliega la semana debajo (Bryan, 25-oct: antes era un tambor que solo
+ * enseñaba tres días a la vez); el nombre de la sesión no hace nada porque no hay nada que
  * hacer con él. Un rótulo que parece pulsable y no lo es enseña que en esta pantalla los
  * rótulos mienten, y a partir de ahí nadie prueba a tocar nada.
  */
@@ -29,13 +31,21 @@ export interface BarraDeSesionProps {
   /** Abrir la semana. Sin esto el día no se pinta como mando. */
   onAbrirSemana?: () => void
   /**
-   * El día que se está mirando, cuando NO es hoy.
+   * El día que se está mirando, cuando se eligió en la semana.
    *
    * La banda tiene que decirlo. Sin esto, mirar el jueves desde el lunes se ve exactamente
    * igual que estar en el jueves, y el asesorado empezaría a anotar series en la sesión
    * equivocada creyendo que es la suya de hoy.
    */
   diaElegido?: number | null
+  /** Si la semana está desplegada: el botón lo dice (`aria-expanded`) y gira su punta. */
+  semanaAbierta?: boolean
+}
+
+/** Qué es el día en pantalla respecto a hoy, en una palabra. */
+function relacionConHoy(dia: DiaRuta, elegido: boolean): string {
+  if (dia.esHoy) return 'hoy'
+  return elegido ? 'viendo' : 'próxima'
 }
 
 export function BarraDeSesion({
@@ -43,12 +53,12 @@ export function BarraDeSesion({
   semana,
   onAbrirSemana,
   diaElegido = null,
+  semanaAbierta = false,
 }: BarraDeSesionProps) {
-  const mirando = diaElegido === null ? semana.find((d) => d.esHoy) : semana[diaElegido]
-  const hoy = mirando
-  // El nombre del día en su forma larga: la rejilla del calendario usa abreviaturas de
-  // tres letras porque tiene siete columnas de 40 px; aquí hay sitio y se lee mejor.
-  const dia = hoy?.dia
+  // El día de la SESIÓN QUE SE VE, no el de hoy: con la de hoy hecha el salón abre la
+  // próxima, y decir «domingo» encima de la sesión del lunes es decir dos cosas a la vez.
+  const mirando = semana[diaEnPantalla(semana, sesion?.id, diaElegido)]
+  const relacion = mirando ? relacionConHoy(mirando, diaElegido !== null) : ''
 
   return (
     <div
@@ -63,29 +73,37 @@ export function BarraDeSesion({
         Sesión{' '}
         <span className="text-silver-300">{sesion?.nombre ?? 'Sin sesión'}</span>
       </p>
-      {dia && (
+      {mirando && (
         <button
           type="button"
           onClick={onAbrirSemana}
           disabled={!onAbrirSemana}
-          className="press pointer-events-auto -my-3 -mr-3 flex min-h-[44px] items-center gap-2 px-3 font-mono text-xs uppercase tracking-[0.16em] text-accion disabled:pointer-events-none"
+          aria-haspopup="dialog"
+          aria-expanded={semanaAbierta}
+          aria-label={`Cambiar de día: ${mirando.dia.toLowerCase()}, ${relacion}`}
+          className="press pointer-events-auto -my-2 -mr-2 flex min-h-[44px] items-center gap-2 rounded-boton border border-ink-500 bg-ink-900/70 py-1 pl-3 pr-2 text-left disabled:pointer-events-none"
         >
-          {dia}
-          {/* La doble punta dice que ESTO SE CAMBIA, y en qué eje: la semana se recorre
-              arriba y abajo. Una sola punta hacia abajo diría «se despliega», que es otra
-              cosa — un desplegable cae, un tambor gira. */}
+          <span className="flex flex-col leading-none">
+            <span className="font-mono text-xs uppercase tracking-[0.16em] text-accion">{mirando.dia}</span>
+            <span className="mt-1 text-[10.5px] text-tenue">
+              {relacion} · ver la semana
+            </span>
+          </span>
+          {/* Una punta hacia abajo: la semana se DESPLIEGA debajo del botón. Abierta, gira. */}
           <svg
             aria-hidden="true"
-            width="12"
-            height="12"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="shrink-0 text-accion transition-transform duration-200"
+            style={{ transform: semanaAbierta ? 'rotate(180deg)' : undefined }}
           >
-            <path d="M7 9l5-5 5 5M7 15l5 5 5-5" />
+            <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
       )}
