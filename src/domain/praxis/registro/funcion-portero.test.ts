@@ -102,25 +102,37 @@ describe('praxis-registro: portero de fichas en las consultas', () => {
   })
 
   it.each([
-    ['ninguna', decide('ninguna', 'cargas-no-llegue-al-rango')],
-    ['ficha de salud', decide('atender', 'dolor-rodilla')],
-    ['ficha no publicada', decide('atender', 'ficha-que-no-existe')],
-    ['HTTP 500', 'http-500'],
-    ['tiempo agotado', 'tiempo'],
-    ['respuesta que no es JSON', 'basura'],
-  ])('%s → la consulta queda como antes', async (_caso, portero) => {
-    vi.spyOn(console, 'log').mockImplementation(() => {})
+    ['ninguna', decide('ninguna', 'cargas-no-llegue-al-rango'), 'ninguna'],
+    ['ficha de salud', decide('atender', 'dolor-rodilla'), 'sin_ficha_contestable'],
+    ['ficha no publicada', decide('atender', 'ficha-que-no-existe'), 'sin_ficha_contestable'],
+    ['HTTP 500', 'http-500', 'http_500'],
+    ['tiempo agotado', 'tiempo', 'error_TimeoutError'],
+    ['respuesta que no es JSON', 'basura', 'ilegible'],
+  ])('%s → la consulta queda como antes, pero el resultado NO es silencioso', async (_caso, portero, resultado) => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     const j = await enviar(entorno({ portero }))
     expect(j.propuesta.respuesta).toBe(ANTES)
     expect(j.meta.portero).toBeUndefined()
-    for (const c of err.mock.calls) expect(JSON.stringify(c)).not.toContain('rango de reps')
+    expect(j.meta.portero_resultado).toBe(resultado)
+    expect(log.mock.calls.filter((c) => c[0] === 'praxis-registro: portero').map((c) => c[1])).toEqual([resultado])
+    for (const c of [...err.mock.calls, ...log.mock.calls]) expect(JSON.stringify(c)).not.toContain('rango de reps')
   })
 
-  it('sin secretos → no llama al portero y queda como antes', async () => {
+  it('atender y aclarar también quedan registrados, sin la frase', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const j = await enviar(entorno())
+    expect(j.meta.portero_resultado).toBe('atender')
+    expect(log.mock.calls.some((c) => c[0] === 'praxis-registro: portero' && c[1] === 'atender')).toBe(true)
+    for (const c of log.mock.calls) expect(JSON.stringify(c)).not.toContain('rango de reps')
+  })
+
+  it('sin secretos → no llama al portero, queda como antes y lo registra', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
     const e = entorno({ secretos: false })
-    expect((await enviar(e)).propuesta.respuesta).toBe(ANTES)
+    const j = await enviar(e)
+    expect(j.propuesta.respuesta).toBe(ANTES)
+    expect(j.meta.portero_resultado).toBe('sin_secretos')
     expect(e.alPortero()).toHaveLength(0)
   })
 
