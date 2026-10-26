@@ -261,7 +261,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   /**
    * EL DÍA QUE SE ESTÁ MIRANDO, cuando no es hoy.
    *
-   * `null` = hoy, que es como se abre siempre. Elegir otro día en el tambor no navega a
+   * `null` = hoy, que es como se abre siempre. Elegir otro día en la semana no navega a
    * otra pantalla ni cambia nada en la base: cambia QUÉ SALA se está viendo. Es la
    * diferencia entre consultar la semana y empezar la sesión de otro día por error.
    */
@@ -302,13 +302,15 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    *
    * Sale del MISMO reparto que pinta la semana —`armarSemana`, ya calculado por el
    * dominio— y no de un segundo cruce por nombre de día: dos formas de repartir sesiones
-   * en días se separan, y entonces el tambor abriría una sesión y el calendario diría otra.
+   * en días se separan, y entonces la semana abriría una sesión y el calendario diría otra.
    */
   const sesionDelDiaElegido =
     diaElegido === null
       ? undefined
       : microciclo.sesiones.find((s) => s.id === props.semana[diaElegido]?.sesionId)
-  const sesionEnPantalla = sesionDelDiaElegido ?? sesion
+  // Con un día elegido manda ese día, AUNQUE sea de descanso: caer a la sesión por omisión
+  // pintaba los ejercicios del lunes bajo «MIÉRCOLES · viendo» (revisión ciega del 25-oct).
+  const sesionEnPantalla = diaElegido === null ? sesion : sesionDelDiaElegido
   const ejercicio =
     retenido ??
     (ejercicioManual !== null

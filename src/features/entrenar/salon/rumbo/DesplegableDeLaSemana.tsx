@@ -48,12 +48,17 @@ export function DesplegableDeLaSemana({ semana, diaActual, onElegir, onCerrar }:
   // El foco entra en el día que se ve, y Escape cierra: la lista es una capa, no otra
   // pantalla, y tiene que poder dejarse como se abrió.
   useEffect(() => {
+    // Al cerrarse, el foco vuelve a quien la abrió (el botón del día), no se pierde en el body.
+    const quienAbrio = document.activeElement as HTMLElement | null
     actual.current?.focus({ preventScroll: true })
     const alPulsar = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCerrar()
     }
     document.addEventListener('keydown', alPulsar)
-    return () => document.removeEventListener('keydown', alPulsar)
+    return () => {
+      document.removeEventListener('keydown', alPulsar)
+      quienAbrio?.focus?.({ preventScroll: true })
+    }
   }, [onCerrar])
 
   return (
@@ -67,6 +72,7 @@ export function DesplegableDeLaSemana({ semana, diaActual, onElegir, onCerrar }:
       />
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Tu semana"
         className="desplegar-semana absolute right-3 overflow-hidden rounded-[18px] border border-ink-500 bg-ink-800"
         style={{

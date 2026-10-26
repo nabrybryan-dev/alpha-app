@@ -43,9 +43,12 @@ export interface BarraDeSesionProps {
 }
 
 /** Qué es el día en pantalla respecto a hoy, en una palabra. */
-function relacionConHoy(dia: DiaRuta, elegido: boolean): string {
+function relacionConHoy(dia: DiaRuta, elegido: boolean, hoyIso: string | undefined): string {
   if (dia.esHoy) return 'hoy'
-  return elegido ? 'viendo' : 'próxima'
+  if (elegido) return 'viendo'
+  // La sesión por omisión puede ser de un día YA PASADO (`sesionDestacada` cae atrás cuando
+  // no queda ninguna por delante): esa no es la próxima, está atrasada.
+  return hoyIso && dia.fechaIso < hoyIso ? 'atrasada' : 'próxima'
 }
 
 export function BarraDeSesion({
@@ -58,7 +61,8 @@ export function BarraDeSesion({
   // El día de la SESIÓN QUE SE VE, no el de hoy: con la de hoy hecha el salón abre la
   // próxima, y decir «domingo» encima de la sesión del lunes es decir dos cosas a la vez.
   const mirando = semana[diaEnPantalla(semana, sesion?.id, diaElegido)]
-  const relacion = mirando ? relacionConHoy(mirando, diaElegido !== null) : ''
+  const hoyIso = semana.find((d) => d.esHoy)?.fechaIso
+  const relacion = mirando ? relacionConHoy(mirando, diaElegido !== null, hoyIso) : ''
 
   return (
     <div

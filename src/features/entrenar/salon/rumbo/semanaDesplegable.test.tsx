@@ -65,6 +65,16 @@ describe('BarraDeSesion', () => {
     expect(screen.getByRole('button', { name: /cambiar de día/i })).toHaveTextContent(/domingo.*hoy/i)
   })
 
+  it('una sesión por omisión de un día ya pasado está atrasada, no es la próxima', () => {
+    const semana = SEMANA.map((d, i) =>
+      i === 0 ? { ...d, estado: 'programada' as const, esHoy: false } : i === 2 ? { ...d, esHoy: true } : d,
+    )
+    render(<BarraDeSesion sesion={sesion('s-dom', 'LEG A')} semana={semana} onAbrirSemana={() => {}} />)
+    const boton = screen.getByRole('button', { name: /cambiar de día/i })
+    expect(boton).toHaveTextContent(/atrasada/i)
+    expect(boton).not.toHaveTextContent(/próxima/i)
+  })
+
   it('dice si la semana está desplegada', () => {
     render(
       <BarraDeSesion sesion={sesion('s-lun', 'UPPER A')} semana={SEMANA} onAbrirSemana={() => {}} semanaAbierta />,
@@ -92,6 +102,40 @@ describe('DesplegableDeLaSemana', () => {
     expect(dias[0]).toHaveTextContent(/hoy/i)
     expect(dias[1]).toHaveTextContent(/UPPER A/)
     expect(dias[3]).toHaveTextContent(/descanso/i)
+  })
+
+  it('un día programado que ya pasó sale «Sin hacer», y uno futuro «Pendiente», también cruzando de mes', () => {
+    // Hoy es el jueves 29: lunes y martes ya pasaron sin hacerse; el domingo 01 es futuro.
+    const semana = [
+      dia(0, { estado: 'completada', sesionId: 's-dom', titulo: 'LEG A' }),
+      dia(1, { estado: 'programada', sesionId: 's-lun', titulo: 'UPPER A' }),
+      dia(2, { estado: 'programada', sesionId: 's-mar', titulo: 'LEG B' }),
+      dia(3, {}),
+      dia(4, { estado: 'hoy', esHoy: true, sesionId: 's-jue', titulo: 'FULL C' }),
+      dia(5, {}),
+      { ...dia(6, { estado: 'programada', sesionId: 's-sig', titulo: 'LEG A' }), fechaIso: '2026-11-01', numero: '01' },
+    ]
+    render(<DesplegableDeLaSemana semana={semana} diaActual={4} onElegir={() => {}} onCerrar={() => {}} />)
+    expect(screen.getByRole('button', { name: /^lunes/i })).toHaveTextContent(/sin hacer/i)
+    expect(screen.getByRole('button', { name: /^martes/i })).toHaveTextContent(/sin hacer/i)
+    expect(screen.getByRole('button', { name: /^jueves/i })).toHaveTextContent(/toca hoy/i)
+    expect(screen.getByRole('button', { name: /^sábado/i })).toHaveTextContent(/pendiente/i)
+  })
+
+  it('al cerrarse deja de escuchar Escape y devuelve el foco a quien la abrió', () => {
+    const boton = document.createElement('button')
+    document.body.appendChild(boton)
+    boton.focus()
+    const onCerrar = vi.fn()
+    const { unmount } = render(
+      <DesplegableDeLaSemana semana={SEMANA} diaActual={1} onElegir={() => {}} onCerrar={onCerrar} />,
+    )
+    expect(document.activeElement).not.toBe(boton)
+    unmount()
+    expect(document.activeElement).toBe(boton)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onCerrar).not.toHaveBeenCalled()
+    boton.remove()
   })
 
   it('marca el día que se está viendo', () => {
