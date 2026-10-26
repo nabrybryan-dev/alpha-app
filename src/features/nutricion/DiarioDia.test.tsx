@@ -8,6 +8,7 @@ import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
 import { db, hoyIso } from '../../data/dbInstance'
 import { RECETAS } from '../../data/recetas'
+import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
 
 /**
  * El camino crítico entero: tocar una comida, buscar, elegir, poner la cantidad
@@ -317,6 +318,27 @@ describe('DiarioDia', () => {
       act(() => db.registroComidas.borrarComida('u-valentina', comida.id))
 
       expect(screen.queryByRole('list', { name: /recetas cocinadas hoy/i })).toBeNull()
+    })
+
+    /**
+     * Las anotaciones de antes de `comidas` (solo receta y fecha) se pasan al
+     * formato nuevo al abrir el diario y salen en «cocinadas hoy».
+     */
+    it('una anotación vieja sale en cocinadas hoy y queda guardada en el formato nuevo', () => {
+      const plan = recetaAlRegistro(receta, `${hoyIso()}T16:05:00`)
+      if (!plan.puede) throw new Error('la receta de prueba no se puede registrar')
+      const comidaId = db.registroComidas.abrirComida({ ...plan.comida, usuarioId: 'u-valentina' })
+      for (const item of plan.items) db.registroComidas.agregarItem('u-valentina', comidaId, item)
+      const clave = 'alpha-recetas-u-valentina'
+      localStorage.setItem(clave, JSON.stringify([{ recetaId: receta.id, fecha: hoyIso() }]))
+
+      pintar()
+
+      const lista = screen.getByRole('list', { name: /recetas cocinadas hoy/i })
+      expect(within(lista).getAllByText(receta.nombre)).toHaveLength(1)
+      expect(JSON.parse(localStorage.getItem(clave) ?? '[]')).toEqual([
+        { recetaId: receta.id, fecha: hoyIso(), comidas: [comidaId] },
+      ])
     })
   })
 })

@@ -23,7 +23,15 @@ import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
 import { RECETAS, type Receta } from '../../data/recetas'
 import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
-import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from '../../domain/recetasProbadas'
+import {
+  anotar,
+  completarComidasViejas,
+  desanotar,
+  distintas,
+  rachaDeRecetas,
+  type HuellaDeReceta,
+  type RecetaProbada,
+} from '../../domain/recetasProbadas'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
 import { RecetasCarousel } from './RecetasCarousel'
 import { ResumenDia } from './ResumenDia'
@@ -71,6 +79,14 @@ const fechaBonita = (iso: string) => {
   return FECHA_LARGA.format(new Date(anio, mes - 1, dia))
 }
 
+/** La comida que deja una receta en el diario, para reconocer las anotaciones viejas. */
+function huellaDeReceta(recetaId: string): HuellaDeReceta | null {
+  const receta = RECETAS.find((r) => r.id === recetaId)
+  if (!receta) return null
+  const plan = recetaAlRegistro(receta, '')
+  return plan.puede ? { comida: plan.comida.comida, items: plan.items } : null
+}
+
 export default function DiarioDia() {
   const { usuario } = useSesion()
   useDbVersion()
@@ -112,9 +128,16 @@ export default function DiarioDia() {
    * para tirarle la racha a quien vuelve a entrar en su propio teléfono.
    */
   const claveProbadas = `alpha-recetas-${usuario.id}`
-  const [probadas, setProbadasEstado] = useState<RecetaProbada[]>(() =>
-    leerJSON<RecetaProbada[]>(claveProbadas, []),
-  )
+  const [probadas, setProbadasEstado] = useState<RecetaProbada[]>(() => {
+    const guardadas = leerJSON<RecetaProbada[]>(claveProbadas, [])
+    // Las anotaciones de antes de `comidas` se pasan una vez al formato nuevo
+    // y se guardan, para que salgan en «cocinadas hoy».
+    const completas = completarComidasViejas(guardadas, huellaDeReceta, (dia) =>
+      db.registroComidas.delDia(usuario.id, dia),
+    )
+    if (completas.some((p, i) => p !== guardadas[i])) escribirJSON(claveProbadas, completas)
+    return completas
+  })
   const setProbadas = (nuevas: RecetaProbada[]) => {
     setProbadasEstado(nuevas)
     escribirJSON(claveProbadas, nuevas)

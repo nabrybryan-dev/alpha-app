@@ -50,13 +50,18 @@ describe('RecetasCarousel', () => {
   })
 
   /**
-   * Sumar los gramos de ingredientes distintos no es una porción: mezcla peso
-   * crudo con cocido y no lo firmó nadie. La tarjeta no enseña esa cifra.
+   * La porción en gramos vuelve a la tarjeta: Bryan la firmó el 25-oct. Va
+   * aunque el contador de kcal esté apagado, porque no es una cifra de kcal.
    */
-  it('no enseña la suma de gramos de la porción', () => {
-    render(<RecetasCarousel recetas={TRES} />)
-    expect(screen.queryAllByText('22 g')).toHaveLength(0)
-    expect(screen.queryByText(/Te entra 22 g/)).toBeNull()
+  it('enseña la porción en gramos, también con el contador apagado', () => {
+    const { unmount } = render(<RecetasCarousel recetas={TRES} />)
+    expect(
+      screen.getAllByRole('button', { name: /Te entra 22 g · 180 kcal/ }).length,
+    ).toBeGreaterThan(0)
+    unmount()
+
+    render(<RecetasCarousel recetas={TRES} verKcal={false} />)
+    expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
   })
 
   /** Sin recetas la sección entera desaparece: ni estado vacío, ni hueco. */
@@ -170,6 +175,22 @@ describe('RecetasCarousel', () => {
       render(<RecetasCarousel recetas={TRES} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
       expect(within(screen.getByRole('dialog')).getByText('Según tu plan de hoy')).toBeInTheDocument()
+    })
+
+    /**
+     * La hoja tampoco: hasta el 25-oct enseñaba la cifra grande y «Te quedan»
+     * aunque la nutricionista hubiera apagado el contador. Los gramos sí salen.
+     */
+    it('con el contador apagado la hoja no enseña kcal, y sí los gramos', () => {
+      render(<RecetasCarousel recetas={TRES} kcalRestantes={420} verKcal={false} />)
+      fireEvent.click(screen.getByText('Brownie de avena'))
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/)).toBeNull()
+      expect(within(hoja).queryByLabelText(/kilocalorías/)).toBeNull()
+      expect(within(hoja).getByText('Según tu plan de hoy')).toBeInTheDocument()
+      expect(within(hoja).getByText(/· 22 g/)).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
     })
 
     /**
