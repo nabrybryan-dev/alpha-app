@@ -64,7 +64,8 @@ import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cue
 import type { CapaDelCuerpo } from '../sujeto/pintura'
 import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
 import { cargaAnterior } from './paredes/cargaAnterior'
-import { regionesConDolor, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
+import { regionesConDolor, regionesDirectas, regionesPorTrabajar, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
+import type { IdDeRegion } from '../sujeto/regiones'
 
 /**
  * EL SALÓN: la pantalla `/entrenar`, y la primera que se ve al tocar ENTRENAR.
@@ -439,6 +440,16 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     [rango, sesionEnPantalla, microciclo.sesiones],
   )
   const doloridas = useMemo(() => regionesConDolor(props.dolorDeHoy), [props.dolorDeHoy])
+  /**
+   * LO QUE LA SESIÓN DEJA POR TRABAJAR, en rojo (Bryan, 25-oct). Solo con «Hoy»: la semana
+   * cuenta lo hecho, no lo pendiente. Y cuándo se cerró cada región en esta visita, para que
+   * pase del rojo a «trabajado» con una transición y no de golpe.
+   */
+  const porTrabajar = useMemo(
+    () => (rango === 'hoy' ? regionesPorTrabajar(sesionEnPantalla) : []),
+    [rango, sesionEnPantalla],
+  )
+  const [trabajadasEn, setTrabajadasEn] = useState<Partial<Record<IdDeRegion, number>>>({})
   const enCuerpo = conEjeW && vista === 'cuerpo'
   // LA LINEA DE ARRIBA («Nombre arriba, en pequeno»): nombre y cifras del ejercicio, o, en un dia de
   // cardio, el nombre de la ficha y sus cifras (tramos, minutos, intensidad).
@@ -451,8 +462,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     return { nombre: contenido.nombre, cifras }
   }, [ejercicio, contenido, sesionEnPantalla])
   const cuerpoParaElVisor = useMemo(
-    () => (enCuerpo ? { capa: capaDelCuerpo, tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas) } : undefined),
-    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas],
+    () =>
+      enCuerpo
+        ? { capa: capaDelCuerpo, tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn) }
+        : undefined,
+    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn],
   )
 
   const [w, setW] = useState<NivelW>(0)
@@ -802,7 +816,18 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     }
     // El ejercicio que se acaba de cerrar se queda en la sala mientras se lee que se
     // cerró. `ejercicioEnCurso` ya habría pasado al siguiente sin esto.
-    if (pasa.cierraElEjercicio) setRetenido(yaEscrito)
+    if (pasa.cierraElEjercicio) {
+      setRetenido(yaEscrito)
+      // Sus regiones arrancan la transición del rojo a «trabajado». Las que otro ejercicio
+      // aún trabaja siguen pendientes y en rojo: `tinteDelCuerpo` ignora la marca mientras.
+      // Arranca AL IRSE EL LOGRO, no al guardar: el logro tapa la sala `LOGRO_MS` y la
+      // transición pasaba entera debajo de él, sin que nadie la viera (medido el 25-oct).
+      const ahora = Date.now() + LOGRO_MS
+      setTrabajadasEn((previas) => ({
+        ...previas,
+        ...Object.fromEntries(regionesDirectas(yaEscrito).map((r) => [r, ahora])),
+      }))
+    }
   }
   return (
     // `fixed inset-0`: el salón ES la pantalla. Va a `--z-elevado` (20) y no más arriba a
@@ -1246,6 +1271,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             rango={rango}
             series={seriesDelCuerpo}
             doloridas={doloridas}
+            porTrabajar={porTrabajar}
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
             alCambiarVista={setVista}

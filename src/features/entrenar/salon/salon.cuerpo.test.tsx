@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, hoyIso } from '../../../data/dbInstance'
@@ -31,7 +31,7 @@ vi.mock('../visor/VisorPatron', () => ({
   },
 }))
 
-type Tinte = Record<string, { k: number; dolor: boolean }>
+type Tinte = Record<string, { k: number; dolor: boolean; pendiente?: boolean }>
 type PropsDelVisor = Record<string, unknown> & { cuerpo?: { capa: string; tinte: Tinte } }
 const ultimas = () => recibidas[recibidas.length - 1] as PropsDelVisor
 
@@ -101,10 +101,34 @@ describe('la vista de cuerpo es la portada', () => {
     expect(ultimas().cuerpo!.capa).toBe('piel')
   })
 
+  it('lo que la sesión deja por trabajar llega al visor en rojo y se dice debajo', () => {
+    montar({ seriesHechas: 0 })
+    expect(ultimas().cuerpo!.tinte.dors.pendiente).toBe(true)
+    const linea = document.querySelector('[data-testigo="por-trabajar"]')!
+    expect(linea).toHaveTextContent(/falta por trabajar/)
+    expect(linea.getAttribute('aria-label')).toMatch(/por trabajar: Dorsal/)
+    // Y abre la hoja de regiones, donde cada pendiente lo dice.
+    fireEvent.click(linea)
+    const hoja = screen.getByRole('dialog', { name: 'Series por región' })
+    expect(within(hoja).getByText('Dorsal').closest('li')).toHaveTextContent('Por trabajar')
+  })
+
+  it('con el ejercicio terminado no queda nada en rojo ni se dice', () => {
+    montar({ seriesHechas: 8 })
+    expect(ultimas().cuerpo!.tinte.dors.pendiente).toBeUndefined()
+    expect(document.querySelector('[data-testigo="por-trabajar"]')).toBeNull()
+  })
+
+  it('con «Semana» no se pinta lo pendiente: la semana cuenta lo hecho', () => {
+    montar({ seriesHechas: 0 })
+    fireEvent.click(screen.getByRole('radio', { name: 'Semana' }))
+    expect(ultimas().cuerpo!.tinte.dors.pendiente).toBeUndefined()
+  })
+
   it('el dolor del check-in llega al visor en rojo y se lee en su linea', () => {
     montar({ seriesHechas: 1, dolor: { dolor: 7, dolorDonde: 'el hombro' } })
     expect(ultimas().cuerpo!.tinte.delt.dolor).toBe(true)
-    expect(screen.getByText(/Te duele: Deltoides/)).toBeInTheDocument()
+    expect(screen.getByText(/Te duele \(a rayas\): Deltoides/)).toBeInTheDocument()
   })
 
   it('un dolor bajo (menos de 4) no pinta nada', () => {

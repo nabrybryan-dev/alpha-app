@@ -7,6 +7,8 @@ import {
   intensidadDeRegion,
   lecturaCorta,
   regionesConDolor,
+  regionesDirectas,
+  regionesPorTrabajar,
   seriesPorRegion,
   tinteDelCuerpo,
 } from './tinte'
@@ -89,4 +91,41 @@ describe('la lectura corta', () => {
     expect(lecturaCorta({ bic: 1.5 })).toBe('Bíceps 1,5')
   })
   it('vacia si no hay series', () => expect(lecturaCorta({})).toBe(''))
+})
+
+/**
+ * LO QUE LA SESIÓN DEJA POR TRABAJAR (Bryan, 25-oct): en rojo liso las regiones directas de
+ * los ejercicios sin terminar; al terminarlos, pasan a «trabajado».
+ */
+describe('regiones por trabajar', () => {
+  const conSets = (e: EjercicioPrescrito, sets: number) => ({ ...e, sets }) as EjercicioPrescrito
+
+  it('un remo trabaja de forma directa el dorsal; el bíceps y el trapecio no se encienden', () => {
+    expect(regionesDirectas({ categoria: 'TRACCIÓN HORIZONTAL', nombre: 'Remo con barra' })).toEqual(['dors'])
+  })
+
+  it('un ejercicio terminado ya no deja nada por trabajar', () => {
+    const remo = conSets(ejercicio('TRACCIÓN HORIZONTAL', 'Remo con barra', 3), 3)
+    expect(regionesPorTrabajar(sesion(remo))).toEqual([])
+    const aMedias = conSets(ejercicio('TRACCIÓN HORIZONTAL', 'Remo con barra', 1), 3)
+    expect(regionesPorTrabajar(sesion(aMedias))).toEqual(['dors'])
+  })
+
+  it('una región que trabajan dos ejercicios sigue pendiente hasta terminar los dos', () => {
+    const remo = conSets(ejercicio('TRACCIÓN HORIZONTAL', 'Remo con barra', 3), 3)
+    const otro = conSets(ejercicio('TRACCIÓN HORIZONTAL', 'Remo con mancuerna', 0), 3)
+    expect(regionesPorTrabajar(sesion(remo, otro))).toEqual(['dors'])
+  })
+
+  it('sin sesión no hay nada por trabajar', () => {
+    expect(regionesPorTrabajar(undefined)).toEqual([])
+  })
+
+  it('el tinte marca lo pendiente y, solo cuando deja de estarlo, cuándo se cerró', () => {
+    const t = tinteDelCuerpo({}, [], ['dors'], { dors: 1000, pecho: 2000 })
+    expect(t.dors.pendiente).toBe(true)
+    expect(t.dors.trabajadaEn).toBeUndefined()
+    expect(t.pecho.trabajadaEn).toBe(2000)
+    expect(t.cua.pendiente).toBeUndefined()
+  })
 })

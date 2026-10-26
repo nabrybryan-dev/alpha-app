@@ -9,7 +9,7 @@ import type { TinteDelCuerpo } from './tinte'
  *
  * - **Piel**: la piel translucida (la maqueta oculta las regiones, pero el dolor tiene que
  *   verse en las tres capas) sobre los musculos en su color de base.
- * - **Musculo**: los musculos con el tinte de las series y el dolor.
+ * - **Musculo**: los musculos con el tinte de las series, lo pendiente en rojo y el dolor a rayas.
  * - **Hueso**: el esqueleto opaco y los musculos al 30 %.
  *
  * Los musculos y la piel se COPIAN una vez (el atlas es compartido); el esqueleto va tal cual.
@@ -61,6 +61,7 @@ export function mallasDelCuerpo(
   capa: CapaDelCuerpo,
   tinte: TinteDelCuerpo,
   paleta: Paleta,
+  ahora = Date.now(),
 ): { mallas: Malla[]; firma: string } {
   const mallas: Malla[] = []
   const llegadas: string[] = []
@@ -75,9 +76,9 @@ export function mallasDelCuerpo(
       }
       copiasDeMusculos.set(musculos, entrada)
     }
-    const firma = `${entrada.cuerpo.firma(tinte, capa)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}`
+    const firma = `${entrada.cuerpo.firma(tinte, capa, ahora)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}`
     if (firma !== entrada.pintada) {
-      entrada.cuerpo.pintar(tinte, paleta, capa)
+      entrada.cuerpo.pintar(tinte, paleta, capa, ahora)
       entrada.pintada = firma
     }
     mallas.push(...entrada.cuerpo.musculos)
@@ -96,6 +97,6 @@ export function mallasDelCuerpo(
     llegadas.push('p')
   }
 
-  const base = musculos ? `${copiasDeMusculos.get(musculos)!.cuerpo.firma(tinte, capa)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}` : capa
+  const base = musculos ? `${copiasDeMusculos.get(musculos)!.cuerpo.firma(tinte, capa, ahora)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}` : capa
   return { mallas, firma: `${base}|${llegadas.join('')}` }
 }

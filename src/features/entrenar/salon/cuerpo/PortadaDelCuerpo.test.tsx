@@ -56,7 +56,7 @@ describe('la portada del cuerpo: capas, lectura y dolor', () => {
 
   it('el dolor sale en su propia linea y en rojo, con el nombre de la region', () => {
     render(<PortadaDelCuerpo {...props({ doloridas: ['delt'] })} />)
-    const linea = screen.getByText(/Te duele: Deltoides/)
+    const linea = screen.getByText(/Te duele \(a rayas\): Deltoides/)
     expect(linea.getAttribute('style') ?? '').toContain('var(--rojo)')
   })
 

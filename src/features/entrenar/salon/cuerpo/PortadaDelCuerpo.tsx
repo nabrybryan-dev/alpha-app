@@ -28,6 +28,8 @@ export interface PortadaDelCuerpoProps {
   rango: RangoDeLectura
   series: SeriesPorRegion
   doloridas: readonly IdDeRegion[]
+  /** Lo que la sesión deja por trabajar (se pinta en rojo liso). Vacío = no se dice nada. */
+  porTrabajar?: readonly IdDeRegion[]
   alCambiarCapa: (capa: CapaDelCuerpo) => void
   alCambiarRango: (rango: RangoDeLectura) => void
   alCambiarVista: (vista: VistaDelSalon) => void
@@ -258,9 +260,26 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             <p className="text-[10.5px] opacity-85" style={{ color: 'var(--tenue)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
             </p>
+            {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
+                lo que duele. En Piel lo pendiente no se pinta, así que tampoco se dice. */}
+            {(p.porTrabajar?.length ?? 0) > 0 && p.capa !== 'piel' && (
+              <button
+                type="button"
+                onClick={() => setHojaAbierta(true)}
+                data-testigo="por-trabajar"
+                // Corta a propósito: la lista entera, en rojo sobre el suelo, no se leía y se metía
+                // debajo del botón del reloj. Los nombres van en `aria-label` y en la hoja, que abre.
+                aria-label={`En rojo, por trabajar: ${p.porTrabajar!.map((id) => NOMBRE_DE_REGION[id]).join(', ')}`}
+                className="press pointer-events-auto mt-0.5 flex min-h-[32px] items-center gap-1.5 text-[12px]"
+                style={{ color: 'var(--texto)', fontWeight: 700, textShadow: '0 1px 6px rgb(0 0 0 / 0.7)' }}
+              >
+                <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--rojo)' }} />
+                Rojo: lo que falta por trabajar
+              </button>
+            )}
             {p.doloridas.length > 0 && (
               <p className="text-[13px]" style={{ color: 'var(--rojo)', fontWeight: 800 }}>
-                Te duele: {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
+                Te duele (a rayas): {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
               </p>
             )}
           </div>
@@ -273,6 +292,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           {REGIONES.map((r) => {
             const n = p.series[r.id] ?? 0
             const duele = p.doloridas.includes(r.id)
+            const falta = p.porTrabajar?.includes(r.id) ?? false
             return (
               <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="text-texto">{r.nombre}</span>
@@ -280,6 +300,11 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                   {duele && (
                     <span className="mr-2 font-bold" style={{ color: 'var(--rojo)' }}>
                       Te duele
+                    </span>
+                  )}
+                  {falta && !duele && (
+                    <span className="mr-2 font-bold" style={{ color: 'var(--rojo)' }}>
+                      Por trabajar
                     </span>
                   )}
                   {cifra(n)}
