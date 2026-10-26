@@ -172,6 +172,7 @@ export function RecetasCarousel({
         <RecetaSheet
           receta={abierta}
           kcalRestantes={kcalRestantes}
+          verKcal={verKcal}
           onCerrar={() => setAbierta(null)}
           registro={registro}
         />

@@ -51,6 +51,8 @@ export interface RecetaSheetProps {
    * cambia al texto de plan. Es lo único que separa esto de un feed cualquiera.
    */
   kcalRestantes?: number
+  /** El interruptor de la nutricionista: apagado, la hoja no enseña ninguna kcal. */
+  verKcal?: boolean
   onCerrar: () => void
   /**
    * DECISIÓN PENDIENTE: sin esto el botón queda de muestra y no escribe nada.
@@ -62,7 +64,13 @@ export interface RecetaSheetProps {
   registro?: RecetaRegistro
 }
 
-export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: RecetaSheetProps) {
+export function RecetaSheet({
+  receta,
+  kcalRestantes,
+  verKcal = true,
+  onCerrar,
+  registro,
+}: RecetaSheetProps) {
   const hoja = useRef<HTMLDivElement>(null)
   /** La receta ya quedó registrada: el botón se retira y el aviso se queda. */
   const [hecha, setHecha] = useState(false)
@@ -127,7 +135,12 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
           </div>
         </div>
 
-        <AjusteAlfa ajuste={ajuste} gramos={gramosDeReceta(receta)} kcalRestantes={kcalRestantes} />
+        <AjusteAlfa
+          ajuste={ajuste}
+          gramos={gramosDeReceta(receta)}
+          kcalRestantes={verKcal ? kcalRestantes : undefined}
+          verKcal={verKcal}
+        />
 
         <Ingredientes receta={receta} />
         <Preparacion pasos={receta.preparacion} />
@@ -259,10 +272,12 @@ function AjusteAlfa({
   ajuste,
   gramos,
   kcalRestantes,
+  verKcal,
 }: {
   ajuste: Receta['ajuste']
   gramos: number
   kcalRestantes?: number
+  verKcal: boolean
 }) {
   const porcion = [ajuste.porcion, ajuste.porcionNota].filter(Boolean).join(' ')
   return (
@@ -270,12 +285,14 @@ function AjusteAlfa({
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Tu ajuste Alfa</p>
 
       <div className="mt-1.5 flex items-center gap-3">
-        <Cifra3D
-          valor={ajuste.kcal}
-          tamano={34}
-          sufijo=" kcal"
-          etiqueta={`${ajuste.kcal} kilocalorías por porción`}
-        />
+        {verKcal && (
+          <Cifra3D
+            valor={ajuste.kcal}
+            tamano={34}
+            sufijo=" kcal"
+            etiqueta={`${ajuste.kcal} kilocalorías por porción`}
+          />
+        )}
         <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
           {porcion}
           {gramos > 0 && ` · ${gramos} g`}
