@@ -23,9 +23,8 @@ import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
 import { anunciarSalaDeBlender, piezasDelAtlas, SALA_GIMNASIO } from './piezas'
 import { AjusteDeDensidad, esCelular } from './densidad'
-import { mallasDelCuerpo } from '../sujeto/cuerpoEnEscena'
-import { paletaDelTema, type CapaDelCuerpo } from '../sujeto/pintura'
-import type { TinteDelCuerpo } from '../sujeto/tinte'
+import { mallasDelCuerpoParaElVisor, type CuerpoParaPintar } from '../sujeto/cuerpoEnEscena'
+import { paletaDelTema } from '../sujeto/pintura'
 import { encuadreDelCuerpo } from '../sujeto/encuadreDelCuerpo'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
@@ -277,7 +276,7 @@ interface VisorPatronProps {
    * como estaba. Opcional: sin ella, el visor hace exactamente lo de siempre.
    */
   /** `ahora`: la hora con la que se pinta una transición; la pone el salón, que la mueve. */
-  cuerpo?: { capa: CapaDelCuerpo; tinte: TinteDelCuerpo; ahora?: number }
+  cuerpo?: CuerpoParaPintar
   /**
    * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
    *
@@ -837,13 +836,7 @@ export function VisorPatron({
           // dolor y capa) de `mallasDelCuerpo`, y su firma entra en la de lo estático.
           const pintado =
             enCuerpo && !sin.has('atlas') && estado.current.cuerpo
-              ? mallasDelCuerpo(
-                  atlasPorCapa,
-                  estado.current.cuerpo.capa,
-                  estado.current.cuerpo.tinte,
-                  paletaDelTema(lienzo.closest('[data-theme]')),
-                  estado.current.cuerpo.ahora,
-                )
+              ? mallasDelCuerpoParaElVisor(atlasPorCapa, estado.current.cuerpo, paletaDelTema(lienzo.closest('[data-theme]')))
               : undefined
           const delAtlas = pintado ? pintado.mallas : capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
           const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`

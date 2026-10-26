@@ -174,6 +174,51 @@ describe('la vista de cuerpo es la portada', () => {
     }
   })
 
+  /**
+   * CON MOVIMIENTO REDUCIDO (revisión ciega, ronda 3: R1). Fue el caso que destapó N1: la
+   * región se quedaba en rojo. Sin pasos: roja mientras se ve el logro y, al irse, de una vez
+   * en su color.
+   */
+  it('con movimiento reducido: roja durante el logro y en su color de una vez al irse', () => {
+    const medios = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (consulta: string) =>
+        ({
+          matches: consulta.includes('reduce'),
+          media: consulta,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {},
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        }) as unknown as MediaQueryList,
+    )
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    vi.setSystemTime(new Date('2026-10-26T10:00:00Z').getTime())
+    try {
+      const { conHechas } = montar({ seriesHechas: 2 })
+      const cajon = document.querySelector('[data-cajon="serie"]') as HTMLElement
+      fireEvent.keyDown(document.querySelector('[data-asidero="ficha"]') as HTMLElement, { key: 'Enter' })
+      act(() => vi.advanceTimersByTime(50))
+      fireEvent.click(within(cajon).getByRole('button', { name: 'RIR 2' }))
+      fireEvent.click(within(cajon).getByRole('button', { name: /^Hecho tal cual/ }))
+      conHechas(3)
+      const avance = () => {
+        const c = ultimas().cuerpo!
+        return avanceDeTransicion(c.tinte.dors as TinteDeRegion, c.ahora ?? Date.now())
+      }
+
+      expect(avance(), 'durante el logro tiene que seguir roja').toBe(0)
+      act(() => vi.advanceTimersByTime(LOGRO_MS - 100))
+      expect(avance(), 'aún no se fue el logro').toBe(0)
+      act(() => vi.advanceTimersByTime(200))
+      expect(avance(), 'al irse el logro cambia de una vez, sin pasos').toBe(1)
+    } finally {
+      vi.useRealTimers()
+      medios.mockRestore()
+    }
+  })
+
   it('en Piel no se dice lo que falta por trabajar, porque no se pinta', () => {
     montar({ seriesHechas: 0 })
     fireEvent.click(screen.getByRole('radio', { name: 'Piel' }))

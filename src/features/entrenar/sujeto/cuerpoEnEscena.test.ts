@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { Malla } from '../../../domain/patrones/malla'
 import { nombreDeParte } from '../visor/cargaDelAtlas'
-import { mallasDelCuerpo, type AlmacenDeCapas } from './cuerpoEnEscena'
-import type { Paleta } from './pintura'
+import { mallasDelCuerpo, mallasDelCuerpoParaElVisor, type AlmacenDeCapas } from './cuerpoEnEscena'
+import { TRANSICION_MS, type Paleta } from './pintura'
 import { tinteDelCuerpo } from './tinte'
 
 const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 1], rojo: [1, 0, 0], tendon: [0.9, 0.9, 0.9] }
@@ -84,5 +84,20 @@ describe('que mallas se suben en cada capa del cuerpo', () => {
     const con = (p: Paleta) => mallasDelCuerpo(a, 'musculo', tinte, p).firma
     expect(con({ ...PALETA, rojo: [0.5, 0, 0] })).not.toBe(con(PALETA))
     expect(con({ ...PALETA, tendon: [0.5, 0.5, 0.5] })).not.toBe(con(PALETA))
+  })
+})
+
+/**
+ * El visor pinta con la hora que le pasa el salón (revisión ciega, ronda 3: M25). Si se
+ * quedara por el camino, la transición se congelaría sin que nada lo dijera.
+ */
+describe('la entrada del visor respeta la hora del salón', () => {
+  it('la misma transición, a dos horas distintas, da dos firmas distintas; terminada, una sola', () => {
+    const { a } = almacen()
+    const conMarca = { ...tinte, dors: { k: 1, dolor: false, trabajadaEn: 1000 } }
+    const firma = (ahora: number) =>
+      mallasDelCuerpoParaElVisor(a, { capa: 'musculo', tinte: conMarca, ahora }, PALETA).firma
+    expect(firma(1000)).not.toBe(firma(1000 + TRANSICION_MS / 2))
+    expect(firma(1000 + TRANSICION_MS)).toBe(firma(1000 + TRANSICION_MS * 3))
   })
 })

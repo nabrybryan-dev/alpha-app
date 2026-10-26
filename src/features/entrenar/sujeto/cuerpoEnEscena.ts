@@ -100,3 +100,24 @@ export function mallasDelCuerpo(
   const base = musculos ? `${copiasDeMusculos.get(musculos)!.cuerpo.firma(tinte, capa, ahora)}|${paleta.base.join()}|${paleta.luz.join()}|${paleta.rojo.join()}|${paleta.tendon.join()}` : capa
   return { mallas, firma: `${base}|${llegadas.join('')}` }
 }
+
+/** Lo que el salón le pasa al visor: la capa, el tinte y la hora con la que se pinta. */
+export interface CuerpoParaPintar {
+  capa: CapaDelCuerpo
+  tinte: TinteDelCuerpo
+  /** La pone el salón y la mueve en cada paso de una transición; sin ella, la hora actual. */
+  ahora?: number
+}
+
+/**
+ * La entrada del visor: recibe el `cuerpo` ENTERO y no sus piezas sueltas, para que la hora
+ * del salón no se pueda quedar por el camino (revisión ciega del 26-oct: si el visor la
+ * ignoraba, la transición se congelaba y ninguna prueba lo veía).
+ */
+export function mallasDelCuerpoParaElVisor(
+  atlas: AlmacenDeCapas,
+  cuerpo: CuerpoParaPintar,
+  paleta: Paleta,
+): { mallas: Malla[]; firma: string } {
+  return mallasDelCuerpo(atlas, cuerpo.capa, cuerpo.tinte, paleta, cuerpo.ahora)
+}
