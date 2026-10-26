@@ -79,20 +79,19 @@ const pestanasAsesorado = [
 ]
 
 /**
- * Los cinco ESPACIOS del staff que también entrena (Manuela; maqueta «Espacios de Alpha»
- * aprobada por Bryan el 28-sep), en este orden:
+ * Los cinco ESPACIOS del staff (maqueta 7, pasos 9-11), en el orden de la barra del equipo:
  *
- *   · Mi día (/): Hoy con su semana, el chequeo, su nutrición de hoy y sus medidas.
- *   · Mi entreno (/mi-entreno): la semana, lo que toca hoy y la entrada al salón.
- *   · Equipo (/equipo): nutrición y entrenamiento por persona, aprobaciones y mensajes.
- *   · Estrategias (/coach/estrategias): mercadeo y después influencers.
- *   · Administración (/coach/administracion): plan, finanzas, agentes y decisiones.
+ *   · Mi día (/): su Hoy con la banda de trabajo de los tres sombreros.
+ *   · Equipo (/equipo): la cartera única y su ficha.
+ *   · Bandeja (/bandeja): tareas, mensajes y firmas.
+ *   · Empresa (/empresa): las herramientas de los tres sombreros, según sus permisos
+ *     (dentro siguen vivas Estrategias y Administración, que antes eran pestañas propias).
+ *   · Yo (/mi-entreno): su propio entreno. Se conserva con el nombre de la maqueta.
  *
  * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
  */
 const pestanasStaff = [
   { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
-  { ...pestanasAsesorado[1], ruta: '/mi-entreno', etiqueta: 'Mi entreno' },
   {
     ruta: '/equipo',
     etiqueta: 'Equipo',
@@ -105,16 +104,32 @@ const pestanasStaff = [
     ),
   },
   {
-    ruta: '/coach/estrategias',
-    etiqueta: 'Estrategias',
-    icono: <Icono><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></Icono>,
-  },
-  {
-    ruta: '/coach/administracion',
-    etiqueta: 'Administración',
+    ruta: '/bandeja',
+    etiqueta: 'Bandeja',
     icono: (
       <Icono>
-        <path d="M4 19V11M10 19V5M16 19v-6M22 19H2" />
+        <path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+        <path d="M3 13h5l1 3h6l1-3h5" />
+      </Icono>
+    ),
+  },
+  {
+    ruta: '/empresa',
+    etiqueta: 'Empresa',
+    icono: (
+      <Icono>
+        <rect x="4" y="3" width="12" height="18" rx="1.5" />
+        <path d="M16 9h4v12h-4M8 7h4M8 11h4M8 15h4" />
+      </Icono>
+    ),
+  },
+  {
+    ruta: '/mi-entreno',
+    etiqueta: 'Yo',
+    icono: (
+      <Icono>
+        <circle cx="12" cy="7" r="3.5" />
+        <path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7" />
       </Icono>
     ),
   },
@@ -122,27 +137,10 @@ const pestanasStaff = [
 
 export type EspaciosNav = 'asesorado' | 'staff'
 
-/**
- * Bryan usa la MISMA barra de cinco espacios que Manuela (misma pieza, mismo estilo). Lo único que
- * cambia es qué espacios se ofrecen: cada uno sigue a su capacidad. Por defecto, todos.
- */
-export interface OpcionesCoach {
-  estrategias?: boolean
-  administracion?: boolean
-}
-
 export function BottomNav({
   espacios = 'asesorado',
-  opcionesCoach = {},
-}: { espacios?: EspaciosNav; opcionesCoach?: OpcionesCoach } = {}) {
-  const { estrategias = true, administracion = true } = opcionesCoach
-  const pestanas =
-    espacios === 'staff'
-      ? pestanasStaff.filter(
-          (p) =>
-            !(p.ruta === '/coach/estrategias' && !estrategias) && !(p.ruta === '/coach/administracion' && !administracion),
-        )
-      : pestanasAsesorado
+}: { espacios?: EspaciosNav } = {}) {
+  const pestanas = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
   return (
     <nav
       aria-label="Navegación principal"

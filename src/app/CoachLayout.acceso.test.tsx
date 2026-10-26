@@ -107,26 +107,29 @@ describe('CoachLayout · acceso por capacidad', () => {
     expect(screen.getByText('Revisar audios y vídeos')).toBeInTheDocument()
   })
 
-  it('el coach con ver_administracion ve Administración; sin ella, «sin permiso» y sin su pestaña', () => {
+  it('el coach con ver_administracion ve Administración; sin ella, «sin permiso» y la barra lleva a Empresa', () => {
     estado.rol = 'coach'
     estado.capacidades = new Set(['ver_administracion'])
     const a = en('/coach/administracion')
     expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Administración' }).length).toBeGreaterThan(0)
+    // La pestaña directa ya no existe: las herramientas se agrupan en Empresa (paso 11).
+    expect(screen.getAllByRole('link', { name: 'Empresa' }).length).toBeGreaterThan(0)
     a.unmount()
     estado.capacidades = new Set(['decisiones_compartidas', 'organizar_plan'])
     en('/coach/administracion')
     expect(screen.getByRole('alert').textContent).toMatch(/Sin permiso/)
     expect(screen.queryByText('Contenido de administracion')).not.toBeInTheDocument()
+    // La fuerza que tenía esta prueba en main: lo que la puerta devuelve no se ofrece como enlace.
     expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Empresa' }).length).toBeGreaterThan(0)
   })
 
-  it('el coach (cuenta personal) ve la barra de cinco espacios de Manuela, también en escritorio, sin marco aparte', () => {
+  it('el coach (cuenta personal) ve la barra de cinco espacios de la maqueta 7, también en escritorio, sin marco aparte', () => {
     estado.rol = 'coach'
     estado.capacidades = new Set(['ver_administracion', 'revisar_creadores'])
     en('/coach/estrategias')
     const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(barra.textContent).toMatch(/Mi día.*Mi entreno.*Equipo.*Estrategias.*Administración/)
+    expect(barra.textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Yo/)
     expect(screen.queryByRole('navigation', { name: 'Alpha' })).not.toBeInTheDocument()
     // La barra no se esconde por ancho: ningún ancestro lleva `lg:hidden`.
     expect(barra.closest('.lg\\:hidden')).toBeNull()
@@ -166,7 +169,7 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion'])
     en('/coach/administracion')
     expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).textContent).toMatch(/Mi día.*Mi entreno.*Equipo/)
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Yo/)
   })
 
   it('…y sin esa capacidad un asesorado vuelve a la portada; mientras se consulta, no se decide nada', () => {
@@ -186,7 +189,7 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.capacidades = new Set(['leer_entrenamiento', 'ver_administracion'])
     en('/coach/consola')
     const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(barra.textContent).toMatch(/Mi día.*Mi entreno.*Equipo.*Estrategias.*Administración/)
+    expect(barra.textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Yo/)
   })
 
   it('un asesorado nunca entra a la consola', () => {
@@ -243,6 +246,16 @@ describe('CoachLayout · acceso por capacidad', () => {
   it('Estrategias y Administración no se prestan la puerta', () => {
     estado.capacidades = new Set(['responder_mercadeo'])
     en('/coach/administracion')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+  })
+
+  // El caso que se colaba en Empresa: `decisiones_compartidas` abre Administración, no Estrategias.
+  it('decisiones_compartidas abre Administración y NO Estrategias', () => {
+    estado.capacidades = new Set(['decisiones_compartidas'])
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    a.unmount()
+    en('/coach/estrategias')
     expect(screen.getByText('Portada')).toBeInTheDocument()
   })
 })

@@ -55,6 +55,28 @@ vi.mock('../../data/consola/planesRenovados', () => ({
   planesRenovadosPendientes: () => leer(estado.renovados),
 }))
 
+// Los tres paneles de la cartera vieja se cuentan al MONTARSE: montar `PanelMicrociclos` es el
+// único camino por el que `barrerYActivar` puede escribir al abrir Equipo.
+const paneles = vi.hoisted(() => ({ salud: 0, embudo: 0, microciclos: 0 }))
+vi.mock('../coach/SaludDeDatos', () => ({
+  SaludDeDatos: () => {
+    paneles.salud++
+    return <p>Salud de los datos</p>
+  },
+}))
+vi.mock('../coach/EmbudoDeAvisos', () => ({
+  EmbudoDeAvisos: () => {
+    paneles.embudo++
+    return <p>Permiso de avisos</p>
+  },
+}))
+vi.mock('../coach/PanelMicrociclos', () => ({
+  PanelMicrociclos: () => {
+    paneles.microciclos++
+    return <p>Panel de microciclos</p>
+  },
+}))
+
 const { default: EquipoPage } = await import('./EquipoPage')
 const { REVALIDAR_CAPACIDADES_MS } = await import('./useCapacidadesVigentes')
 
@@ -65,6 +87,7 @@ function pintar() {
         <Route path="/equipo" element={<EquipoPage />} />
         <Route path="/" element={<p>Portada</p>} />
         <Route path="/coach/consola" element={<p>La consola</p>} />
+        <Route path="/equipo/:usuarioId" element={<p>La ficha única</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -80,6 +103,9 @@ beforeEach(() => {
   estado.renovados = []
   estado.lecturas = 0
   estado.usuarioId = 'u-manuela'
+  paneles.salud = 0
+  paneles.embudo = 0
+  paneles.microciclos = 0
 })
 
 describe('EquipoPage', () => {
@@ -103,6 +129,40 @@ describe('EquipoPage', () => {
       for (const r of alDia) expect(within(cartera).getByText(r.usuario.nombre)).toBeInTheDocument()
     }
     expect(screen.getByText(new RegExp(`${resumenes.length} personas · ${atencion.length} pide`))).toBeInTheDocument()
+  })
+
+  // Revisión ciega del 25-oct (defecto 1): los tres paneles de la cartera vieja se colaron en
+  // Equipo sin la puerta que tenían en `AsesoradosPage`. `PanelMicrociclos` puede escribir con
+  // `barrerYActivar`, así que no basta con esconderlos: no se pueden montar sin la puerta.
+  it('la nutricionista sin leer_entrenamiento no ve los paneles del coach ni monta el que escribe', async () => {
+    estado.capacidades = new Set(['aprobar_primer_plan'])
+    pintar()
+    await screen.findByText(/permiso de leer el entrenamiento/)
+    expect(screen.queryByText('Salud de los datos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Permiso de avisos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Panel de microciclos')).not.toBeInTheDocument()
+    expect(paneles).toEqual({ salud: 0, embudo: 0, microciclos: 0 })
+  })
+
+  it('el coach con leer_entrenamiento sí ve los tres paneles y monta PanelMicrociclos', async () => {
+    estado.rol = 'coach'
+    estado.usuarioId = 'u-bryan'
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    pintar()
+    expect(await screen.findByText('Panel de microciclos')).toBeInTheDocument()
+    expect(screen.getByText('Salud de los datos')).toBeInTheDocument()
+    expect(screen.getByText('Permiso de avisos')).toBeInTheDocument()
+    expect(paneles.microciclos).toBeGreaterThan(0)
+  })
+
+  it('el coach SIN leer_entrenamiento también ve los paneles: en main bastaba con ser coach', async () => {
+    estado.rol = 'coach'
+    estado.usuarioId = 'u-bryan'
+    estado.capacidades = new Set()
+    pintar()
+    expect(await screen.findByText('Panel de microciclos')).toBeInTheDocument()
+    expect(screen.getByText('Salud de los datos')).toBeInTheDocument()
+    expect(screen.getByText('Permiso de avisos')).toBeInTheDocument()
   })
 
   it('sin capacidades no pinta «Por aprobar» ni la consola, y la cartera no enlaza a ella', async () => {
@@ -180,16 +240,17 @@ describe('EquipoPage', () => {
     expect(within(tarjeta).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
   })
 
-  it('con leer_entrenamiento, cada fila abre la consola ya puesta en esa persona', async () => {
+  it('con leer_entrenamiento, cada fila abre la FICHA ÚNICA ya puesta en esa persona', async () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     pintar()
     expect(await screen.findByRole('link', { name: 'Abrir la consola completa' })).toHaveAttribute('href', '/coach/consola')
     const cartera = screen.getByRole('region', { name: 'Cartera' })
     const boton = within(cartera).queryByRole('button')
     if (boton) fireEvent.click(boton)
-    const fila = within(cartera).getAllByRole('link')[0]
+    const fila = within(cartera).getAllByRole('link', { name: /^Entrenamiento de / })[0]
+    expect(fila.getAttribute('href')).toMatch(/^\/equipo\/u-/)
     fireEvent.click(fila)
-    expect(screen.getByText('La consola')).toBeInTheDocument()
+    expect(screen.getByText('La ficha única')).toBeInTheDocument()
     const guardado = JSON.parse(sessionStorage.getItem('consola-coach:seleccion') ?? '{}') as { persona?: string }
     expect(db.usuarios.entrenan().map((u) => u.id)).toContain(guardado.persona)
   })
@@ -212,7 +273,7 @@ describe('EquipoPage', () => {
     const boton = within(cartera).queryByRole('button', { name: /al día/ })
     if (boton) fireEvent.click(boton)
     const entrenamiento = within(cartera).getAllByRole('link', { name: /^Entrenamiento de / })[0]
-    expect(entrenamiento.getAttribute('href')).toMatch(/^\/coach\/asesorado\/u-/)
+    expect(entrenamiento.getAttribute('href')).toMatch(/^\/equipo\/u-/)
     expect(within(cartera).getAllByRole('link', { name: /^Nutrición de / })[0].getAttribute('href')).toMatch(/^\/equipo-nutricion\?persona=/)
     expect(screen.queryByRole('tab', { name: 'Bryan' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Mensajes de los asesorados' })).toHaveAttribute('href', '/coach/chat')

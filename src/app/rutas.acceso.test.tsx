@@ -69,7 +69,6 @@ vi.mock('../features/contenidos/ContenidosPage', () => marcador('Contenidos'))
 vi.mock('../features/logros/LogrosPage', () => marcador('Logros'))
 vi.mock('../features/marca/MarcaPage', () => marcador('Marca'))
 vi.mock('../features/coach/MiDiaCoachPage', () => marcador('Mi día del coach'))
-vi.mock('../features/coach/AsesoradosPage', () => marcador('Cartera'))
 vi.mock('../features/coach/AsesoradoDetallePage', () => marcador('Asesorado'))
 vi.mock('../features/coach/CoachChatPage', () => marcador('Chat del coach'))
 vi.mock('../features/coach/ConsultasPage', () => marcador('Consultas'))
@@ -79,6 +78,8 @@ vi.mock('../features/coach/administracion/AdministracionPage', () => marcador('A
 vi.mock('../features/coach/administracion/EstrategiasPage', () => marcador('Estrategias'))
 vi.mock('../features/aprobacion/RevisionesPage', () => marcador('Revisiones'))
 vi.mock('../features/entrenar/encoder/EncoderPage', () => marcador('Encoder'))
+vi.mock('../features/equipo/BandejaPage', () => marcador('Bandeja'))
+vi.mock('../features/equipo/EmpresaPage', () => marcador('Empresa'))
 // Mi entreno, Equipo, Nutrición del equipo, Cifras y Mi plan llevan la puerta DENTRO de la pantalla: se montan
 // reales (seed demo) y el test mira dónde acaba la dirección.
 

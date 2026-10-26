@@ -74,8 +74,10 @@ describe('inventario de rutas', () => {
     expect(padreDe('/progreso')).toBeNull()
     expect(padreDe('/entrenar', true)).toEqual({ patron: '/mi-entreno', titulo: 'Mi entreno' })
     expect(padreDe('/no-existe')).toBeNull()
-    // Las cinco pestañas del equipo son raíces: sin «‹».
-    for (const r of ['/', '/mi-entreno', '/equipo', '/coach/estrategias', '/coach/administracion']) expect(padreDe(r, true), r).toBeNull()
+    // Las pestañas del equipo son raíces: sin «‹».
+    for (const r of ['/', '/mi-entreno', '/equipo', '/bandeja', '/empresa', '/coach/estrategias', '/coach/administracion']) expect(padreDe(r, true), r).toBeNull()
+    // La ficha única sí vuelve a la cartera.
+    expect(padreDe('/equipo/u-valentina', true)).toEqual({ patron: '/equipo', titulo: 'Equipo' })
     expect(tituloDeRuta('/')).toBe('Hoy')
   })
 

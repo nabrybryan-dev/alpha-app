@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -117,6 +117,20 @@ describe('DiarioDia', () => {
   })
 
   it('cambiar de día no arrastra lo registrado', async () => {
+    // La tira no deja abrir días futuros. Un lunes no hay otro día abierto en la semana, y la
+    // prueba fallaba solo ese día (CI del lunes 26-oct a las 00:18 UTC): se corre como martes.
+    if (new Date().getDay() === 1) {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(Date.now() + 24 * 60 * 60 * 1000))
+    }
+    try {
+      await cambiarDeDiaNoArrastra()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  async function cambiarDeDiaNoArrastra() {
     pintar()
     await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('aceite de girasol', /aceite de girasol/i)
@@ -125,12 +139,12 @@ describe('DiarioDia', () => {
 
     // Cualquier otro día de la tira: el almuerzo vuelve a estar vacío.
     const dias = screen.getAllByRole('button', { name: /^\d{4}-\d{2}-\d{2}$/ })
-    const otro = dias.find((d) => d.getAttribute('aria-pressed') === 'false')
+    const otro = dias.find((d) => d.getAttribute('aria-pressed') === 'false' && !d.hasAttribute('disabled'))
     if (!otro) throw new Error('la tira no ofrece otro día')
     await userEvent.click(otro)
 
     expect(screen.getByRole('button', { name: /almuerzo, sin registrar/i })).toBeInTheDocument()
-  })
+  }
 
   describe('la compuerta', () => {
     it('sin la encuesta respondida, Nutrición no se abre', () => {

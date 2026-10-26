@@ -69,7 +69,8 @@ describe('Semana · la bandeja', () => {
   it('se abre con su título, su rango de fechas y la cuenta de lo hecho', async () => {
     pintar()
     expect(await screen.findByRole('heading', { level: 2, name: 'Semana' })).toBeInTheDocument()
-    expect(screen.getByText(/Del \d+ al \d+ de /)).toBeInTheDocument()
+    // También cuando la semana cruza de mes: «Del 26 de octubre al 1 de noviembre».
+    expect(screen.getByText(/Del \d+( de [a-z]+)? al \d+ de /)).toBeInTheDocument()
     expect(screen.getByText(/hechas esta semana|Sin nada pautado esta semana/)).toBeInTheDocument()
   })
 

@@ -64,11 +64,12 @@ describe('rutas del asesorado', () => {
     expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
   })
 
-  it('el asesorado sí llega al encoder: medir la barra es parte de entrenar', async () => {
-    // Estuvo un rato colgando del panel del coach y era el sitio equivocado: la
-    // medición ocurre mientras haces la serie, no mientras revisas a alguien.
+  it('la mesa del encoder es del equipo: el asesorado vuelve a Entrenar', async () => {
+    // El encoder se usa DENTRO de la serie; la mesa de laboratorio solo la abre el equipo
+    // (paso 2 del plan 14). Antes esta prueba defendía lo contrario y por eso se cambia.
     renderizarEn('/entrenar/encoder')
-    expect(await screen.findByText('Encoder de cámara')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Entrenar' })).toBeInTheDocument()
+    expect(screen.queryByText('Encoder de cámara')).not.toBeInTheDocument()
   })
 
   it('Progreso tiene pestaña propia y el chat sigue alcanzable desde Hoy', async () => {
@@ -133,9 +134,10 @@ describe('rutas del coach', () => {
     localStorage.setItem('alpha-usuario', 'u-bryan')
   })
 
-  it('muestra el panel del coach', async () => {
+  it('la cartera vieja del panel redirige a la cartera única /equipo', async () => {
     renderizarEn('/coach/asesorados')
-    expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Cartera' })).toBeInTheDocument()
+    expect(screen.queryByText(/Encoder/i)).not.toBeInTheDocument()
   })
 
   it('/coach abre «Mi día» con la barra de cinco espacios (no depende del ancho de pantalla)', async () => {
@@ -153,12 +155,9 @@ describe('rutas del coach', () => {
     expect(screen.queryByText('Revisar audios y vídeos')).not.toBeInTheDocument()
   })
 
-  it('el encoder ya no está en el panel del coach', async () => {
-    // Se movió a Entrenar: la medición ocurre mientras haces la serie, no
-    // mientras revisas a alguien. Un coach que quiera medir entra con su cuenta
-    // de asesorado, como cualquiera que esté entrenando.
+  it('la mesa del encoder no está en la cartera: se abre desde Empresa, y solo el equipo', async () => {
     renderizarEn('/coach/asesorados')
-    expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Cartera' })).toBeInTheDocument()
     expect(screen.queryByText(/Encoder/i)).not.toBeInTheDocument()
   })
 })

@@ -105,9 +105,9 @@ export function SaludDeDatos() {
   // que esto no dice nada de los teléfonos de los asesorados.
   const apartadas = descartesPendientes()
 
-  // Los errores del navegador van aquí y no en `AsesoradosPage`: son la otra mitad de la misma
-  // pregunta —¿está llegando lo que la gente hace?—, y así esa página no se toca. Van aunque el
-  // bloque de familias no se pinte: un fallo de la app no espera a que haya datos.
+  // Los errores del navegador van aquí y no en la cartera (`EquipoPage`): son la otra mitad de la
+  // misma pregunta —¿está llegando lo que la gente hace?—, y así la cartera no se toca. Van aunque
+  // el bloque de familias no se pinte: un fallo de la app no espera a que haya datos.
   if (salud.sinEstrenar) return <ErroresDelNavegador />
 
   return (
