@@ -50,13 +50,18 @@ describe('RecetasCarousel', () => {
   })
 
   /**
-   * Sumar los gramos de ingredientes distintos no es una porción: mezcla peso
-   * crudo con cocido y no lo firmó nadie. La tarjeta no enseña esa cifra.
+   * La porción en gramos vuelve a la tarjeta: Bryan la firmó el 25-oct. Va
+   * aunque el contador de kcal esté apagado, porque no es una cifra de kcal.
    */
-  it('no enseña la suma de gramos de la porción', () => {
-    render(<RecetasCarousel recetas={TRES} />)
-    expect(screen.queryAllByText('22 g')).toHaveLength(0)
-    expect(screen.queryByText(/Te entra 22 g/)).toBeNull()
+  it('enseña la porción en gramos, también con el contador apagado', () => {
+    const { unmount } = render(<RecetasCarousel recetas={TRES} />)
+    expect(
+      screen.getAllByRole('button', { name: /Te entra 22 g · 180 kcal/ }).length,
+    ).toBeGreaterThan(0)
+    unmount()
+
+    render(<RecetasCarousel recetas={TRES} verKcal={false} />)
+    expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
   })
 
   /** Sin recetas la sección entera desaparece: ni estado vacío, ni hueco. */

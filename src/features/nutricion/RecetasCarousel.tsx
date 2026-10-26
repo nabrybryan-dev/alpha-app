@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import type { Receta } from '../../data/recetas'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { gramosDeReceta, type Receta } from '../../data/recetas'
 import type { TipoComida } from '../../domain/types'
 import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
 import { RecetaSheet, type RecetaRegistro } from './RecetaSheet'
@@ -248,9 +248,16 @@ function TarjetaReceta({
   onAbrir: () => void
 }) {
   const kcal = receta.ajuste.kcal
-  const etiqueta = verKcal
-    ? `${receta.nombre}, de ${receta.handle}. Te entra ${kcal} kcal`
-    : `${receta.nombre}, de ${receta.handle}`
+  // La porción en gramos la firmó Bryan el 25-oct; las kcal siguen el
+  // interruptor de la nutricionista.
+  const gramos = gramosDeReceta(receta)
+  const partes = [gramos > 0 ? `${gramos} g` : null, verKcal ? `${kcal} kcal` : null].filter(
+    (p): p is string => p !== null,
+  )
+  const etiqueta =
+    partes.length > 0
+      ? `${receta.nombre}, de ${receta.handle}. Te entra ${partes.join(' · ')}`
+      : `${receta.nombre}, de ${receta.handle}`
 
   return (
     <button
@@ -299,9 +306,15 @@ function TarjetaReceta({
             {receta.nombre}
           </span>
           <span className="mt-1 block text-xs text-tenue">
-            {verKcal ? (
+            {partes.length > 0 ? (
               <>
-                Te entra <b className="text-texto">{receta.ajuste.kcal} kcal</b>
+                Te entra{' '}
+                {partes.map((parte, i) => (
+                  <Fragment key={parte}>
+                    {i > 0 && ' · '}
+                    <b className="text-texto">{parte}</b>
+                  </Fragment>
+                ))}
               </>
             ) : (
               'Ajustada a tu plan'

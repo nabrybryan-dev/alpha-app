@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
-import type { Receta, RecetaNota } from '../../data/recetas'
+import { gramosDeReceta, type Receta, type RecetaNota } from '../../data/recetas'
 import { Boton3D } from '../../components/ui/Boton3D'
 import { Cifra3D } from '../../components/ui/Cifra3D'
 import { comidaDeReceta, motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
@@ -127,7 +127,7 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
           </div>
         </div>
 
-        <AjusteAlfa ajuste={ajuste} kcalRestantes={kcalRestantes} />
+        <AjusteAlfa ajuste={ajuste} gramos={gramosDeReceta(receta)} kcalRestantes={kcalRestantes} />
 
         <Ingredientes receta={receta} />
         <Preparacion pasos={receta.preparacion} />
@@ -257,9 +257,11 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
 
 function AjusteAlfa({
   ajuste,
+  gramos,
   kcalRestantes,
 }: {
   ajuste: Receta['ajuste']
+  gramos: number
   kcalRestantes?: number
 }) {
   const porcion = [ajuste.porcion, ajuste.porcionNota].filter(Boolean).join(' ')
@@ -276,6 +278,7 @@ function AjusteAlfa({
         />
         <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
           {porcion}
+          {gramos > 0 && ` · ${gramos} g`}
           <br />
           {ajuste.prot} g proteína · {ajuste.carb} g carbohidratos · {ajuste.grasa} g grasa
         </span>

@@ -56,7 +56,7 @@ describe('recetas que sí encajan', () => {
     expect(screen.getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
     expect(
       screen.getByRole('button', {
-        name: /Brownie de avena, de @ejemplo\.cocina\. Te entra 180 kcal/i,
+        name: /Brownie de avena, de @ejemplo\.cocina\. Te entra 22 g · 180 kcal/i,
       }),
     ).toBeInTheDocument()
     expect(screen.getAllByText('0:47').length).toBe(3)
@@ -161,7 +161,7 @@ describe('la hoja de la receta', () => {
     expect(screen.getByRole('button', { name: 'La cociné' })).toBeInTheDocument()
   })
 
-  it('el ajuste enseña la porción, los macros y la kcal en relieve, sin sumar gramos', () => {
+  it('el ajuste enseña la porción, los macros y la kcal en relieve y los gramos de la porción', () => {
     const { container } = render(
       <RecetasCarousel
         recetas={TRES}
@@ -171,10 +171,10 @@ describe('la hoja de la receta', () => {
     )
     fireEvent.click(screen.getByText('Brownie de avena'))
 
-    // «1 porción» y su nota son la prescripción firmada; los 22 g que se
-    // sumaban aparte no lo estaban y desaparecen.
+    // «1 porción» y su nota son la prescripción firmada; los 22 g de la
+    // porción los firmó Bryan el 25-oct y vuelven a su lado.
     expect(screen.getByText(/1 porción de las 9 que salen del molde/)).toBeInTheDocument()
-    expect(screen.queryByText(/· 22 g/)).toBeNull()
+    expect(screen.getByText(/· 22 g/)).toBeInTheDocument()
     expect(screen.getByText(/7 g proteína · 24 g carbohidratos · 6 g grasa/)).toBeInTheDocument()
     expect(container.querySelector('.cifra-3d')).toBeInTheDocument()
   })
