@@ -182,6 +182,22 @@ describe('RecetasCarousel', () => {
      * apagó, no puede reaparecer ni en la cabecera ni en lo cocinado hoy. La
      * lista sigue diciendo QUÉ se cocinó y a qué comida fue, sin la cifra.
      */
+    /**
+     * La hoja tampoco: hasta el 25-oct enseñaba la cifra grande y «Te quedan»
+     * aunque la nutricionista hubiera apagado el contador. Los gramos sí salen.
+     */
+    it('con el contador apagado la hoja no enseña kcal, y sí los gramos', () => {
+      render(<RecetasCarousel recetas={TRES} kcalRestantes={420} verKcal={false} />)
+      fireEvent.click(screen.getByText('Brownie de avena'))
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/)).toBeNull()
+      expect(within(hoja).queryByLabelText(/kilocalorías/)).toBeNull()
+      expect(within(hoja).getByText('Según tu plan de hoy')).toBeInTheDocument()
+      expect(within(hoja).getByText(/· 22 g/)).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
+    })
+
     it('con el contador apagado no sale ninguna cifra de kcal', () => {
       render(
         <RecetasCarousel

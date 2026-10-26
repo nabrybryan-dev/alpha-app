@@ -176,6 +176,38 @@ describe('completarComidasViejas', () => {
     expect(nuevas).toEqual([nueva, vieja])
   })
 
+  it('solo mira las comidas del día de la anotación', () => {
+    const vieja = { recetaId: 'r1', fecha: '2026-08-15' }
+    const nuevas = completarComidasViejas([vieja], huellaDe, (dia) =>
+      dia === HOY ? [comida('c1')] : [],
+    )
+    expect(nuevas).toEqual([vieja])
+  })
+
+  it('no reconoce una comida con un ítem de más', () => {
+    const conDeMas = comida('c1')
+    const dia = [
+      {
+        ...conDeMas,
+        items: [
+          ...conDeMas.items,
+          { id: 'i9', alimentoId: 'miel', gramos: 5, fuePesado: false, estadoAsumido: 'crudo' as const },
+        ],
+      },
+    ]
+    const vieja = { recetaId: 'r1', fecha: HOY }
+    expect(completarComidasViejas([vieja], huellaDe, () => dia)).toEqual([vieja])
+  })
+
+  /** Antes una receta valía una vez por día; si se cocinó dos veces, son dos comidas. */
+  it('le da a la vieja todas las comidas iguales de ese día', () => {
+    const nuevas = completarComidasViejas([{ recetaId: 'r1', fecha: HOY }], huellaDe, () => [
+      comida('c1'),
+      comida('c2'),
+    ])
+    expect(nuevas).toEqual([{ recetaId: 'r1', fecha: HOY, comidas: ['c1', 'c2'] }])
+  })
+
   it('sin receta conocida deja la anotación como estaba', () => {
     const vieja = { recetaId: 'borrada', fecha: HOY }
     expect(completarComidasViejas([vieja], huellaDe, () => [comida('c1')])).toEqual([vieja])
