@@ -32,7 +32,23 @@ vi.mock('../features/coach/consola/useCapacidades', () => ({
   }),
 }))
 
-vi.mock('../components/ui/TopBar', () => ({ TopBar: ({ titulo }: { titulo: string }) => <h1>{titulo}</h1> }))
+// La cabecera de mentira pinta el «‹» con la tabla real de padres (`rutas.ts`), la misma que
+// usa `TopBar`: así una pantalla que se quede sin salida se ve aquí.
+vi.mock('../components/ui/TopBar', async () => {
+  const { Link, useLocation } = await import('react-router-dom')
+  const { padreDe } = await import('./rutas')
+  return {
+    TopBar: ({ titulo }: { titulo: string }) => {
+      const destino = padreDe(useLocation().pathname, true)
+      return (
+        <>
+          {destino && <Link to={destino.patron} aria-label={`Volver a ${destino.titulo}`}>‹</Link>}
+          <h1>{titulo}</h1>
+        </>
+      )
+    },
+  }
+})
 
 const { CoachLayout } = await import('./layouts')
 
@@ -121,6 +137,7 @@ describe('CoachLayout · acceso por capacidad', () => {
     expect(screen.queryByText('Contenido de administracion')).not.toBeInTheDocument()
     // La salida es el «‹» de la cabecera, no un enlace de texto suelto.
     expect(screen.queryByRole('link', { name: 'Volver' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Volver a Empresa' })).toHaveAttribute('href', '/empresa')
     // La fuerza que tenía esta prueba en main: lo que la puerta devuelve no se ofrece como enlace.
     expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Empresa' }).length).toBeGreaterThan(0)
