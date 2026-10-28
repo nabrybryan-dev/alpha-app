@@ -4,7 +4,8 @@
  * `hidratarDesdeNube` reemplaza la base local ENTERA (`aplicarSnapshot`), así que cada
  * rama de error, cada respuesta vacía y cada fila rara decide si alguien conserva o
  * pierde lo suyo. Aquí se fija lo que el código HACE hoy en esos caminos; no se cambia
- * ninguno. Lo que se descubrió roto va como `it.fails` con el motivo al lado.
+ * ninguno. Lo que se descubrió roto se documentó primero como `it.fails` y luego se corrigió
+ * (ver la prueba de `preferencia_estado`).
  *
  * Solo datos ficticios: Valentina (`u-val`) y una persona ajena inventada (`u-otra`).
  *
@@ -395,13 +396,12 @@ describe('un fallo no borra lo que la persona ya tenía', () => {
   })
 
   /**
-   * HALLAZGO REAL (no corregido aquí). Todas las tablas posteriores conservan
-   * `instantaneaLocal()` si fallan, salvo `preferencia_estado`: usa `local?.…`, y
-   * `local` solo existe cuando FALLÓ el registro de comidas. Si falla SOLO esta tabla,
-   * `local` es `undefined` y las preferencias del dispositivo se sobrescriben con `[]`.
-   * El comportamiento correcto (conservarlas) es lo que afirma la prueba.
+   * Regresión (hallazgo del 26-oct-2026, ya CORREGIDO): `preferencia_estado` usaba
+   * `local?.…`, y `local` solo existe cuando FALLÓ el registro de comidas. Si fallaba SOLO
+   * esta tabla, las preferencias del dispositivo se sobrescribían con `[]`. Ahora conserva
+   * `instantaneaLocal()`, como las demás tablas. Fue `it.fails` hasta el arreglo.
    */
-  it.fails('preferencia_estado con error aislado debería conservar las preferencias locales', async () => {
+  it('preferencia_estado con error aislado debería conservar las preferencias locales', async () => {
     const pref = { usuarioId: 'u-val', familia: 'lacteos', estado: 'evita' }
     await sembrarLocal({ preferenciasEstado: [pref] as never })
     errores.preferencia_estado = { message: 'timeout', code: '57014' }
