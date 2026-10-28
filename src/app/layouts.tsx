@@ -12,7 +12,6 @@ import {
   puedeVerCreadores,
   puedeVerEstrategias,
 } from './accesoPanel'
-import { padreDe } from './rutas'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
@@ -204,7 +203,6 @@ export function CoachLayout() {
             <p role="alert" className="rounded-tarjeta border border-dashed border-linea p-4 text-sm text-tenue">
               Sin permiso: la administración se abre con el permiso de ver la administración, y todavía no lo tienes.
             </p>
-            <Link to="/coach" className="mt-3 inline-flex min-h-[44px] items-center underline">Volver</Link>
           </main>
           {barraDelStaff()}
         </div>
@@ -261,11 +259,8 @@ export function CoachLayout() {
           </>
         ) : (
           <>
-            {/* Donde la cabecera ya trae el «‹» (padre en `rutas.ts`) este enlace no se repite; en las pestañas
-                Estrategias y Administración, que no tienen «‹», se conserva: ninguna salida se pierde. */}
-            {!padreDe(pathname, true) && (
-              <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
-            )}
+            {/* La salida de todas las pantallas del equipo la da el «‹» único de la cabecera
+                (padre declarado en `rutas.ts`): aquí no se repite ningún «Volver a…» de texto. */}
             <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
           </>
         )}

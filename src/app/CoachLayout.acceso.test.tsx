@@ -70,13 +70,13 @@ describe('CoachLayout · acceso por capacidad', () => {
     expect(screen.queryByText('Volver a mi app')).not.toBeInTheDocument()
   })
 
-  it('…y donde NO hay «‹» (las pestañas Estrategias y Administración) el enlace a su app se conserva: ninguna salida se pierde', () => {
+  it('Estrategias y Administración también llevan «‹» (a Empresa): no repiten el «Volver a mi app» de texto', () => {
     estado.capacidades = new Set(['responder_mercadeo', 'ver_administracion', 'organizar_plan'])
     const a = en('/coach/estrategias')
-    expect(screen.getByText('Volver a mi app')).toBeInTheDocument()
+    expect(screen.queryByText('Volver a mi app')).not.toBeInTheDocument()
     a.unmount()
     en('/coach/administracion')
-    expect(screen.getByText('Volver a mi app')).toBeInTheDocument()
+    expect(screen.queryByText('Volver a mi app')).not.toBeInTheDocument()
   })
 
   it('…pero el resto del panel del coach sigue siendo solo del coach', () => {
@@ -119,6 +119,8 @@ describe('CoachLayout · acceso por capacidad', () => {
     en('/coach/administracion')
     expect(screen.getByRole('alert').textContent).toMatch(/Sin permiso/)
     expect(screen.queryByText('Contenido de administracion')).not.toBeInTheDocument()
+    // La salida es el «‹» de la cabecera, no un enlace de texto suelto.
+    expect(screen.queryByRole('link', { name: 'Volver' })).toBeNull()
     // La fuerza que tenía esta prueba en main: lo que la puerta devuelve no se ofrece como enlace.
     expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Empresa' }).length).toBeGreaterThan(0)

@@ -141,11 +141,14 @@ export const RUTAS: readonly RutaApp[] = [
   // La firma de audios y vídeos. `scripts/firmar-revisiones` manda aquí: queda para siempre.
   { patron: '/coach/revisiones', ejemplo: '/coach/revisiones', padre: '/', titulo: 'Revisiones', guarda: { marco: 'coach' } },
   { patron: '/coach/creadores', ejemplo: '/coach/creadores', padre: '/', titulo: 'Creadores', guarda: { marco: 'coach', capacidades: ['revisar_creadores'] } },
-  { patron: '/coach/estrategias', ejemplo: '/coach/estrategias', padre: null, titulo: 'Estrategias', guarda: { marco: 'coach', capacidades: ['responder_mercadeo', 'revisar_creadores'] } },
+  // Estrategias y Administración son herramientas del sombrero de Administración: Empresa las
+  // agrupa y las enlaza, así que su «‹» vuelve allí. La barra del equipo sigue teniendo «Mi día»,
+  // de modo que la salida de siempre no se pierde (zona 6 del plan 14).
+  { patron: '/coach/estrategias', ejemplo: '/coach/estrategias', padre: '/empresa', titulo: 'Estrategias', guarda: { marco: 'coach', capacidades: ['responder_mercadeo', 'revisar_creadores'] } },
   {
     patron: '/coach/administracion',
     ejemplo: '/coach/administracion',
-    padre: null,
+    padre: '/empresa',
     titulo: 'Administración',
     guarda: { marco: 'coach', capacidades: ['organizar_plan', 'decisiones_compartidas', 'ver_administracion'], coachNecesita: 'ver_administracion' },
   },
