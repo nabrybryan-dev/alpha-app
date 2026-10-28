@@ -49,6 +49,7 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 // El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
+import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxis, type RespuestaDeConsulta } from '../../../src/domain/praxis/consultas/portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
 import { VERSION_PROMPT_CHARLA } from '../../../src/domain/praxis/charla/promptCharla.ts'
@@ -71,6 +72,9 @@ export interface Entorno {
   PRAXIS_CAMINO_RAPIDO?: string
   /** '1' enciende «gana la lectura más grave» sobre frases marcadas por el filtro. Apagado por defecto: ver `masGrave.ts`. */
   PRAXIS_RIESGO_MAS_GRAVE?: string
+  /** Portero de fichas (consultas del equipo). Sin los dos, la consulta sigue como siempre: «Eso lo decide Bryan…». */
+  PORTERO_URL?: string
+  PORTERO_CLAVE?: string
 }
 
 export interface Dependencias {
@@ -507,7 +511,12 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
 
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
   const { extraccion, citasInvalidas } = validarExtraccion(frase, salida.entrada)
-  const propuesta = resolverPropuesta(frase, extraccion, ctx, citasInvalidas)
+  const resuelta = resolverPropuesta(frase, extraccion, ctx, citasInvalidas)
+  // Consulta del equipo: el portero la intenta contestar con una ficha. Ya pasó los dos filtros de riesgo.
+  // El resolutor llama «consulta» también a la charla: el portero solo entra si el modelo la etiquetó consulta.
+  const consulta = resuelta.motivo === 'consulta' && extraccion.intencion.includes('consulta') ? await medir(reloj, 'portero', consultarPortero(d, s, frase)) : null
+  const portero = consulta?.contestada ?? null
+  const propuesta = portero ? { ...resuelta, respuesta: portero.respuesta, notas_coach: [...resuelta.notas_coach, portero.nota] } : resuelta
   // La charla: solo si no hay nada que guardar, preguntar ni derivar. Es TEXTO: no crea tarjeta de confirmación ni escribe nada.
   const textoCharla = !rapido && cabeCharla(propuesta, { intencionCharla: extraccion.intencion.includes('charla') && !extraccion.intencion.includes('consulta') }) ? leerRespuestaCharla(salida.entrada, contextoCharla) : null
   return json({
@@ -522,12 +531,51 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       version_esquema: VERSION_ESQUEMA,
       version_resolutores: VERSION_RESOLUTORES,
       camino: rapido ? 'rapido' : 'modelo', // «rapido»: el registrador no llamó al modelo
+      ...(consulta ? { portero_resultado: consulta.resultado } : {}),
+      ...(portero ? { portero: portero.fichas } : {}), // solo ids de ficha, nunca la frase
       tokens_entrada: salida.tokensEntrada,
       tokens_salida: salida.tokensSalida,
       latencia_ms: d.ahora().getTime() - t0,
       tiempos_ms: reloj.tiempos,
     },
   })
+}
+
+const TIMEOUT_PORTERO_MS = 4000
+
+/** Qué pasó con la consulta (I2 de REVISION-CALIDAD-PRAXIS-BETTATECH): las caídas a «lo de antes» no deben ser silenciosas. */
+export type ResultadoPortero = 'atender' | 'aclarar' | 'ninguna' | 'sin_ficha_contestable' | 'ilegible' | 'sin_secretos' | `http_${number}` | `error_${string}`
+
+/**
+ * Pregunta al portero qué ficha contesta la consulta y arma la respuesta con `fichas_respuesta` (leída con el
+ * JWT de la persona: solo las publicadas). Cualquier fallo (sin secretos, portero apagado, tiempo, ficha de
+ * salud) deja la consulta como antes. Siempre deja UNA línea de registro con el resultado; nunca la frase.
+ */
+async function consultarPortero(d: Dependencias, s: Sesion, frase: string) {
+  const fin = (resultado: ResultadoPortero, contestada: RespuestaDeConsulta | null = null) => {
+    console.log('praxis-registro: portero', resultado)
+    return { resultado, contestada }
+  }
+  const { PORTERO_URL: url, PORTERO_CLAVE: clave } = d.entorno
+  if (!url || !clave) return fin('sin_secretos')
+  try {
+    const r = await d.fetch(`${url.replace(/\/+$/, '')}/enrutar`, {
+      method: 'POST',
+      headers: { 'x-clave': clave, 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(TIMEOUT_PORTERO_MS),
+      body: JSON.stringify({ texto: frase }),
+    })
+    if (!r.ok) return fin(`http_${r.status}`)
+    const lectura = leerPortero(await r.json().catch(() => null))
+    if (!lectura) return fin('ilegible')
+    const ids = fichasNecesarias(lectura)
+    if (ids.length === 0) return fin('ninguna')
+    const filas = await leer<FichaParaPraxis[]>(d, s, `fichas_respuesta?id=in.(${ids.join(',')})&select=id,titulo,bandera_salud,cuerpo`)
+    const contestada = respuestaDeConsulta(lectura, new Map((filas ?? []).map((f) => [f.id, f])))
+    return contestada ? fin(lectura.decision, contestada) : fin('sin_ficha_contestable')
+  } catch (e) {
+    return fin(`error_${e instanceof Error ? e.name : 'desconocido'}`)
+  }
 }
 
 interface CuerpoIngreso {
@@ -886,6 +934,8 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
         PRAXIS_CAMINO_RAPIDO: entorno('PRAXIS_CAMINO_RAPIDO'),
         PRAXIS_RIESGO_MAS_GRAVE: entorno('PRAXIS_RIESGO_MAS_GRAVE'),
+        PORTERO_URL: entorno('PORTERO_URL'),
+        PORTERO_CLAVE: entorno('PORTERO_CLAVE'),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),
