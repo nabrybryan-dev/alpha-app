@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
-import { Card } from '../../../../components/ui/Card'
 import { EmptyState } from '../../../../components/ui/EmptyState'
 import {
   corridasDeTodaLaCartera,
@@ -21,7 +20,7 @@ import {
   type PreguntaPendienteDeLaCartera,
 } from '../../../../domain/consolaCoach/tableroAgentes'
 import { useDatoConsola } from '../datoConsola'
-import { Esqueleto } from '../piezas'
+import { Esqueleto, ETIQUETA_SECCION } from '../piezas'
 import { PreguntasAlCoach, type EstadoRespuestas } from '../PreguntasAlCoach'
 import { ResponderComoStaff } from '../ResponderComoStaff'
 
@@ -120,10 +119,10 @@ function FilaPersonaAgentes({
   const fila = filaDeLaPersona(usuarioId, todasLasCorridas)
   return (
     <tr
-      className={`border-t border-linea transition-colors duration-base ${seleccionada ? 'consola-destello bg-rojo/[0.07]' : 'hover:bg-surface-2/60'}`}
+      className={`border-t border-linea transition-colors duration-base ${seleccionada ? 'consola-destello bg-surface-2' : 'hover:bg-surface-2/60'}`}
       aria-current={seleccionada ? 'true' : undefined}
     >
-      <td className={`py-2 pl-2 pr-3 align-top ${seleccionada ? 'shadow-[inset_3px_0_0_rgb(var(--rojo-rgb))]' : ''}`}>
+      <td className={`py-2 pl-2 pr-3 align-top ${seleccionada ? 'shadow-[inset_3px_0_0_var(--texto)]' : ''}`}>
         {onVerPersona ? (
           <button
             type="button"
@@ -132,7 +131,7 @@ function FilaPersonaAgentes({
             aria-label={`Ver la ficha de ${nombre}`}
           >
             <span className="block font-bold text-texto underline-offset-2 group-hover:underline">{nombre}</span>
-            <span className="block text-[11px] text-rojo opacity-0 transition-opacity duration-base group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="block text-[11px] text-tenue opacity-0 transition-opacity duration-base group-hover:opacity-100 group-focus-visible:opacity-100">
               Ver ficha →
             </span>
           </button>
@@ -172,7 +171,7 @@ function PreguntaItem({
     <li className="rounded-lg border border-linea bg-surface-2 p-2.5 text-sm">
       <p className="text-[11px] font-bold uppercase tracking-wide text-tenue">
         {onVerPersona ? (
-          <button type="button" className="font-bold uppercase text-texto hover:text-rojo" onClick={() => onVerPersona(pregunta.usuarioId)}>
+          <button type="button" className="font-bold uppercase text-texto underline-offset-2 hover:underline" onClick={() => onVerPersona(pregunta.usuarioId)}>
             {nombre}
           </button>
         ) : (
@@ -241,12 +240,12 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
 
   if (cargando) {
     return (
-      <Card>
-        <p className="kicker">Cargando el tablero de la cadena</p>
+      <section aria-label="Cargando el tablero de la cadena" className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <p className={ETIQUETA_SECCION}>Cargando el tablero de la cadena</p>
         <div className="mt-3">
           <Esqueleto lineas={5} />
         </div>
-      </Card>
+      </section>
     )
   }
 
@@ -277,15 +276,15 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
         onVerPersona={onVerPersona}
       />
 
-      <Card destacada className="flex flex-wrap items-center justify-between gap-2">
+      <section aria-label="Datos de la cadena" className="flex flex-wrap items-center justify-between gap-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
         <p className="text-sm text-texto">
           Datos de la cadena del <span className="font-bold">{fechaRecepcion ? formatoFechaHora(fechaRecepcion) : 'sin dato'}</span>
         </p>
         {atrasado && <Badge tono="rojo">Datos atrasados</Badge>}
-      </Card>
+      </section>
 
-      <Card>
-        <p className="kicker">Tablero de la cadena · toda la cartera</p>
+      <section aria-label="Tablero de la cadena" className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <p className={ETIQUETA_SECCION}>Tablero de la cadena · toda la cartera</p>
         <p className="mt-1 text-sm text-tenue">Un paso por persona: ① Valoración · ② Planificación · ③ Prescripción · ④ Ejecución</p>
         <div className="mt-2.5 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
@@ -314,10 +313,10 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
             </tbody>
           </table>
         </div>
-      </Card>
+      </section>
 
-      <Card>
-        <p className="kicker">Preguntas pendientes</p>
+      <section aria-label="Preguntas pendientes" className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <p className={ETIQUETA_SECCION}>Preguntas pendientes</p>
         <p className="mt-1 text-sm text-tenue">Lo que un agente preguntó y todavía no tiene respuesta.</p>
         {bandeja.length === 0 ? (
           <p className="mt-2.5 text-sm text-tenue">No hay preguntas pendientes.</p>
@@ -333,7 +332,7 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
             ))}
           </ul>
         )}
-      </Card>
+      </section>
     </div>
   )
 }
