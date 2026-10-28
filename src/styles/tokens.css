@@ -147,13 +147,18 @@
   --tenue-rgb: 95 94 90;
   --tenue: rgb(var(--tenue-rgb));
   --gris-marca: #7a7a7a;
-  --rojo-rgb: 213 18 22;
+  /* Los tres tonos de estado se oscurecieron el 28-oct para que el rótulo de un
+     Badge (texto del tono sobre su propio tinte al 15 %) llegue a 4,5:1, mínimo
+     de la casa. Medidos en claro: rojo 4,86 · verde 4,99 · ámbar 4,78. Antes
+     daban 4,12 / 3,79 / 3,56, que es el 3,5–3,7 que cazó la auditoría en los
+     rótulos de Bienestar. */
+  --rojo-rgb: 192 13 18;
   --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
-  /* "Logrado/completado" = plata neutro (gris medio para contraste en claro) */
-  --verde-rgb: 111 119 130;
+  /* "Logrado/completado" = plata neutro (gris oscuro para contraste en claro) */
+  --verde-rgb: 90 98 108;
   --verde: rgb(var(--verde-rgb));
-  --ambar-rgb: 168 110 7;
+  --ambar-rgb: 138 90 0;
   --ambar: rgb(var(--ambar-rgb));
   --azul-rgb: 20 98 184;
   --azul: rgb(var(--azul-rgb));

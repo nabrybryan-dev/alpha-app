@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 import { ContextoDeHistoria } from './historiaInternaContexto'
+import { ContextoVolverInterno } from './volverInternoContexto'
 
 interface Entrada {
   clave: string
@@ -46,5 +47,16 @@ export function HistoriaInterna({ children }: { children: ReactNode }) {
   }
 
   const anterior = estado.i > 0 ? estado.pila[estado.i - 1].pathname : null
-  return <ContextoDeHistoria.Provider value={{ anterior }}>{children}</ContextoDeHistoria.Provider>
+  // Un estado interno (el detalle de una comida, la vista Semana) no cambia la
+  // dirección, así que su vuelta viaja por aquí. El «‹» de la cabecera la usa
+  // antes que el padre de `rutas.ts`.
+  const [volverInterno, setVolverInterno] = useState<(() => void) | null>(null)
+  const registrar = useCallback((cerrar: (() => void) | null) => setVolverInterno(() => cerrar), [])
+  return (
+    <ContextoDeHistoria.Provider value={{ anterior }}>
+      <ContextoVolverInterno.Provider value={{ volver: volverInterno, registrar }}>
+        {children}
+      </ContextoVolverInterno.Provider>
+    </ContextoDeHistoria.Provider>
+  )
 }
