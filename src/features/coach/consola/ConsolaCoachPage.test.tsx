@@ -122,8 +122,22 @@ describe('ConsolaCoachPage', () => {
     expect(url).toContain('pestana=microciclos')
     expect(url).toContain(`persona=${encodeURIComponent(cartera[1].id)}`)
     unmount()
+    // Sin el respaldo: si la consola ignorara la URL, aquí volvería a la portada.
+    window.sessionStorage.clear()
     // Abrir la dirección guardada (lo que hace recargar) devuelve a la misma persona y pestaña.
     montar(`/coach/consola${url}`)
+    expect(screen.getByRole('tab', { name: 'Microciclos' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { level: 2, name: cartera[1].nombre })).toBeInTheDocument()
+  })
+
+  it('la URL gana al respaldo cuando apuntan a otra persona y otra pestaña', () => {
+    const cartera = db.usuarios.entrenan()
+    if (cartera.length < 2) return
+    const { unmount } = montar()
+    fireEvent.click(botonDeCartera(cartera[0].nombre))
+    fireEvent.click(screen.getByRole('tab', { name: 'Agentes' }))
+    unmount()
+    montar(`/coach/consola?persona=${encodeURIComponent(cartera[1].id)}&pestana=microciclos`)
     expect(screen.getByRole('tab', { name: 'Microciclos' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { level: 2, name: cartera[1].nombre })).toBeInTheDocument()
   })
