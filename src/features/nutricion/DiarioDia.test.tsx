@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import DiarioDia from './DiarioDia'
 import { CompuertaNutricion } from './CompuertaNutricion'
+import { HistoriaInterna } from '../../app/HistoriaInterna'
 import { SessionProvider } from '../../app/SessionProvider'
+import { useVolverInterno } from '../../app/volverInternoContexto'
 import { reiniciarDb } from '../../data/mockDb'
 import { db, hoyIso } from '../../data/dbInstance'
 import { RECETAS } from '../../data/recetas'
@@ -16,13 +18,31 @@ import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
  * pueden estar bien por separado y no encajar.
  */
 
+/**
+ * El «‹» que pinta `TopBar` cuando hay un estado interno abierto. Se reproduce
+ * aquí sin montar la cabecera entera (que pide permisos de coach): lo que se
+ * comprueba es que el diario REGISTRA su vuelta, no cómo la pinta la cabecera.
+ */
+function VolverDeLaCabecera() {
+  const { volver } = useVolverInterno()
+  if (!volver) return null
+  return (
+    <button type="button" onClick={volver}>
+      ‹ Diario
+    </button>
+  )
+}
+
 const pintar = () =>
   render(
     <MemoryRouter>
       <SessionProvider>
-        <CompuertaNutricion>
-          <DiarioDia />
-        </CompuertaNutricion>
+        <HistoriaInterna>
+          <VolverDeLaCabecera />
+          <CompuertaNutricion>
+            <DiarioDia />
+          </CompuertaNutricion>
+        </HistoriaInterna>
       </SessionProvider>
     </MemoryRouter>,
   )
@@ -33,7 +53,7 @@ const abrirYAgregar = async (comida: RegExp) => {
   await userEvent.click(screen.getByRole('button', { name: /agregar alimento/i }))
 }
 
-const volver = () => userEvent.click(screen.getByRole('button', { name: /volver al diario/i }))
+const volver = () => userEvent.click(screen.getByRole('button', { name: /‹ Diario/i }))
 
 const buscarYElegir = async (texto: string, nombreParcial: RegExp) => {
   await userEvent.type(screen.getByLabelText('Nombre del alimento'), texto)

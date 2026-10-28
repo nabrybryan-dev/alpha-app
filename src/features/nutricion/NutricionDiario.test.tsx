@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { SessionProvider } from '../../app/SessionProvider'
@@ -32,6 +32,20 @@ describe('la cabecera y la tira de la semana', () => {
     pintarDiario()
     expect(screen.getByRole('heading', { level: 1, name: 'Nutrición' })).toBeInTheDocument()
     expect(screen.getByText(/diario de comidas/i)).toBeInTheDocument()
+  })
+
+  it('la fecha va como se escribe en español: «lunes, 26 de octubre», no «26 De Octubre»', () => {
+    // H-12: el `capitalize` de CSS ponía mayúscula en CADA palabra. En español
+    // los días y los meses van en minúscula.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-10-26T09:00:00'))
+      pintarDiario()
+      expect(screen.getByText(/lunes, 26 de octubre/)).toBeInTheDocument()
+      expect(screen.queryByText(/26 De Octubre/)).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('la tira lleva el botón Semana y no deja abrir días que aún no han llegado', () => {

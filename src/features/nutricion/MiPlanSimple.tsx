@@ -1,4 +1,5 @@
 import { esHora } from '../../domain/nutricion/pauta'
+import { sinCifrasDeKcal } from '../../domain/nutricion/textoSinKcal'
 import type { MenuDia, PlanNutricional } from '../../domain/types'
 
 /**
@@ -44,27 +45,20 @@ function tituloDelMenu(plan: PlanNutricional, menu: MenuDia, posicion: number): 
 
 export function MiPlanSimple({
   plan,
+  verKcal = true,
   onRegistrar,
-  onVolver,
   onVerCompleto,
 }: {
   plan: PlanNutricional
+  /** Apagado, las notas libres pierden su frase de kcal (el resto no se toca). */
+  verKcal?: boolean
   onRegistrar: (linea: string, tituloComida: string) => void
-  onVolver: () => void
   /** Abre la vista completa (mercado, suplementos, cambios de alimentos). */
   onVerCompleto: () => void
 }) {
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          aria-label="Volver"
-          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
+      <header>
         <h1 className="font-display text-xl text-texto">Lo que comes esta semana</h1>
       </header>
 
@@ -102,7 +96,9 @@ export function MiPlanSimple({
               </ul>
 
               {comida.nota && (
-                <p className="mt-2 text-xs leading-snug text-tenue">{comida.nota}</p>
+                <p className="mt-2 text-xs leading-snug text-tenue">
+                  {verKcal ? comida.nota : sinCifrasDeKcal(comida.nota)}
+                </p>
               )}
             </div>
           ))}
@@ -113,7 +109,7 @@ export function MiPlanSimple({
         <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
           <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
-            {especial.contenido}
+            {verKcal ? especial.contenido : sinCifrasDeKcal(especial.contenido)}
           </p>
         </section>
       ))}

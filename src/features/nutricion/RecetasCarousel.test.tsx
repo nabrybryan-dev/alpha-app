@@ -217,6 +217,35 @@ describe('RecetasCarousel', () => {
       const lista = screen.getByRole('list', { name: /cocinadas hoy/i })
       expect(within(lista).getAllByText('Brownie de avena')).toHaveLength(2)
     })
+
+    /**
+     * H-03: las notas de la receta son prosa del coach y llevan la cifra dentro
+     * («148 de las 445 kcal»). Con el interruptor apagado se borra la frase, no
+     * se reescribe el consejo. Y H-10: un «—» de Instagram no es una métrica.
+     */
+    it('los consejos de la receta pierden su frase de kcal y el «—» de vistas no se pinta', () => {
+      const conProsa: Receta = {
+        ...receta('prosa', 'Rollitos de atún'),
+        social: { views: '—', likes: '—', guardados: '—' },
+        ajuste: {
+          ...receta('prosa', 'Rollitos de atún').ajuste,
+          notas: [
+            { tipo: 'canje', label: 'El canje', texto: 'La mozzarella son 148 de las 445 kcal. Bájala a 30 g.' },
+            { tipo: 'ojo', label: 'Ojo con', texto: 'Escurre bien el atún.' },
+          ],
+        },
+      }
+      render(<RecetasCarousel recetas={[conProsa]} verKcal={false} />)
+      fireEvent.click(screen.getByText('Rollitos de atún'))
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/i)).toBeNull()
+      // El consejo que no era una cifra sigue firmado y visible.
+      expect(within(hoja).getByText('Bájala a 30 g.')).toBeInTheDocument()
+      expect(within(hoja).getByText('Escurre bien el atún.')).toBeInTheDocument()
+      expect(within(hoja).queryByText(/de vistas/)).toBeNull()
+      expect(within(hoja).queryByText(/me gusta/)).toBeNull()
+    })
   })
 
   /** El esqueleto reserva el hueco exacto: si no coincide, el contenido salta. */

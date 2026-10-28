@@ -42,6 +42,13 @@ describe('SheetBuscarAlimento', () => {
     expect(screen.getByText(/de 1.200 alimentos/)).toBeInTheDocument()
   })
 
+  it('con el contador apagado no enseña kcal/100 g y sigue encontrando', async () => {
+    pintar({ verKcal: false })
+    await userEvent.type(campo(), 'arroz')
+    expect(screen.queryByText(/kcal/i)).toBeNull()
+    expect(screen.getAllByRole('button', { name: /arroz/i }).length).toBeGreaterThan(0)
+  })
+
   it('un filtro deja solo su grupo', async () => {
     pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Grasas' }))

@@ -5,6 +5,7 @@ import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
 import { AVISO_SIN_MACROS, macrosDelDia } from '../../domain/nutricion/macrosDelDia'
 import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
+import { sinCifrasDeKcal } from '../../domain/nutricion/textoSinKcal'
 import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
 import { SheetCambios } from './SheetCambios'
@@ -60,6 +61,11 @@ export default function MiPlan() {
   // ella no haya decidido. Ver `visibilidadDelAsesorado`.
   const respuestas = respuestasDe(usuario.id)
   const visibilidad = visibilidadDelAsesorado(usuario.id)
+  // El interruptor clínico manda también sobre la prosa del coach: `plan.analisis`
+  // lleva «TDEE estimado en 2050 kcal» dentro de una frase, y las notas de una
+  // comida pueden llevar otra. Sin contador, esa frase no se pinta.
+  const conKcal = visibilidad.verContadorKcal
+  const textoDelPlan = (texto: string) => (conKcal ? texto : sinCifrasDeKcal(texto))
 
   if (!plan) {
     return (
@@ -134,8 +140,8 @@ export default function MiPlan() {
     return (
       <MiPlanSimple
         plan={plan}
+        verKcal={conKcal}
         onRegistrar={registrarSinGramos}
-        onVolver={() => navegar('/nutricion')}
         onVerCompleto={() => cambiarVista(true)}
       />
     )
@@ -158,14 +164,6 @@ export default function MiPlan() {
       )}
 
       <header className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={() => navegar('/nutricion')}
-          aria-label="Volver al diario"
-          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
         <h1 className="font-display text-xl text-texto">Tu plan nutricional</h1>
         {/* La despensa vive aquí y no en el diario a propósito: es la pantalla
             que PROPONE cambios, y el sentido de saber qué hay en casa es dejar
@@ -179,9 +177,10 @@ export default function MiPlan() {
         </button>
       </header>
 
-      <SheetCambios linea={cambiando} onCerrar={() => setCambiando(null)} />
+      <SheetCambios linea={cambiando} verKcal={conKcal} onCerrar={() => setCambiando(null)} />
       <SheetDespensa
         asesoradoId={usuario.id}
+        verKcal={conKcal}
         abierto={despensaAbierta}
         onCerrar={() => setDespensaAbierta(false)}
       />
@@ -236,7 +235,7 @@ export default function MiPlan() {
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Antes de los números
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-texto">{plan.analisis}</p>
+          <p className="mt-2 text-sm leading-relaxed text-texto">{textoDelPlan(plan.analisis)}</p>
         </section>
       )}
 
@@ -262,7 +261,11 @@ export default function MiPlan() {
                   <span className="cifras text-right text-xs text-tenue">
                     {macros ? (
                       <>
-                        <b className="text-texto">{macros.kcal.toLocaleString('es-CO')}</b> kcal
+                        {conKcal && (
+                          <>
+                            <b className="text-texto">{macros.kcal.toLocaleString('es-CO')}</b> kcal
+                          </>
+                        )}
                         <span className="block">
                           P {macros.proteinaG} · C {macros.carbosG} · G {macros.grasaG}
                         </span>
@@ -296,9 +299,9 @@ export default function MiPlan() {
                 <span className="block text-xs font-semibold">
                   {plan.etiquetasDia?.[tipo] ?? tipo}
                 </span>
-                <span className="cifras block text-xs opacity-70">
-                  {kcalDelTipo(plan, tipo)}
-                </span>
+                {conKcal && (
+                  <span className="cifras block text-xs opacity-70">{kcalDelTipo(plan, tipo)}</span>
+                )}
               </button>
             ))}
           </div>
@@ -308,7 +311,12 @@ export default function MiPlan() {
             dice cocido, se pesa cocido.
           </p>
 
-          <ComidasDelMenu menu={menu} onRegistrar={registrar} onCambiar={setCambiando} />
+          <ComidasDelMenu
+            menu={menu}
+            verKcal={conKcal}
+            onRegistrar={registrar}
+            onCambiar={setCambiando}
+          />
         </section>
       )}
 
@@ -370,7 +378,7 @@ export default function MiPlan() {
         <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
           <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
-            {especial.contenido}
+            {textoDelPlan(especial.contenido)}
           </p>
         </section>
       ))}
@@ -380,10 +388,13 @@ export default function MiPlan() {
 
 export function ComidasDelMenu({
   menu,
+  verKcal = true,
   onRegistrar,
   onCambiar,
 }: {
   menu: MenuDia
+  /** Apagado, la nota libre de la comida pierde también su frase de kcal. */
+  verKcal?: boolean
   onRegistrar: (linea: string, tituloComida: string) => void
   onCambiar: (linea: string) => void
 }) {
@@ -427,7 +438,9 @@ export function ComidasDelMenu({
           </ul>
 
           {comida.nota && (
-            <p className="mt-2 text-xs leading-snug text-tenue">{comida.nota}</p>
+            <p className="mt-2 text-xs leading-snug text-tenue">
+              {verKcal ? comida.nota : sinCifrasDeKcal(comida.nota)}
+            </p>
           )}
         </div>
       ))}
