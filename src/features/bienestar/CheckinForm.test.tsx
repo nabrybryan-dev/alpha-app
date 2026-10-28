@@ -185,4 +185,17 @@ describe('CheckinForm — la escala de dolor', () => {
     expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ dolor: 0 }))
     expect(onGuardar.mock.calls[0][0].dolorDonde).toBeUndefined()
   })
+
+  it('peso y pasos se apilan a una columna en 390 px y vuelven a dos desde sm', () => {
+    // H-08: a dos columnas, entre las dos teclas de 44 px no cabían «59 kg» ni
+    // «8.800»; el campo recortaba la cifra o la unidad se montaba encima.
+    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
+
+    const peso = screen.getByLabelText('Peso ayunas en kg')
+    const rejilla = peso.closest('div.grid')
+    expect(rejilla).not.toBeNull()
+    expect(rejilla).toHaveClass('grid-cols-1', 'sm:grid-cols-2')
+    // Los dos campos siguen existiendo: no se ha resuelto escondiendo uno.
+    expect(screen.getByLabelText('Pasos de ayer')).toBeInTheDocument()
+  })
 })

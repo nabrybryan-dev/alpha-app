@@ -85,7 +85,7 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
         {celdas.map((celda, i) => (
           <div
             key={celda.nombre}
-            className={`relative overflow-hidden px-2 py-3.5 text-center ${
+            className={`relative min-w-0 overflow-hidden px-2 py-3.5 text-center ${
               i > 0 ? 'border-l border-hairline' : ''
             }`}
           >
@@ -100,14 +100,18 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
               data-descubierto={fracciones[i]}
             />
             <div className="relative">
-              <span className="mb-1 flex justify-center text-tenue">
+              <span className="mb-1 flex justify-center text-silver-400">
                 <celda.Icono className="h-[19px] w-[19px]" />
               </span>
               <p className="cifras font-display text-2xl text-rojo">
                 <CifraAnimada valor={celda.racha.actual} duracionMs={700} />
               </p>
-              <p className="text-xs uppercase tracking-wider text-tenue">{celda.nombre}</p>
-              <p className="mt-0.5 text-xs text-tenue">Récord: {celda.racha.record}</p>
+              {/* La pieza es una foto nocturna: el texto va en claro fijo, no con
+                  `text-tenue`, que en tema claro se volvía gris oscuro sobre negro. */}
+              <p className="break-words text-[10.5px] uppercase leading-tight tracking-wide text-silver-300">
+                {celda.nombre}
+              </p>
+              <p className="mt-0.5 text-[10.5px] leading-tight text-silver-400">Récord: {celda.racha.record}</p>
             </div>
           </div>
         ))}
