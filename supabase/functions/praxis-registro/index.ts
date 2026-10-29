@@ -49,7 +49,7 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 // El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
-import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxis, type RespuestaDeConsulta } from '../../../src/domain/praxis/consultas/portero.ts'
+import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxis, type LecturaPortero, type RespuestaDeConsulta } from '../../../src/domain/praxis/consultas/portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
 import { VERSION_PROMPT_CHARLA } from '../../../src/domain/praxis/charla/promptCharla.ts'
@@ -188,6 +188,10 @@ const aMicrociclo = (f: FilaMicrociclo): MicrocicloJson => ({
 interface Sesion {
   usuarioId: string
   token: string
+  /** El rol ya comprobado en `manejar`. La cola de dudas solo escribe si es del equipo. */
+  rol?: string
+  /** Ocupa el puesto de coach (`capacidades_staff`, 0106): cuenta como equipo, igual que `es_staff()` (decisión de Bryan, 29-oct). */
+  puesto?: boolean
 }
 
 /** GET a PostgREST con el JWT de la persona (RLS). */
@@ -516,6 +520,8 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   // El resolutor llama «consulta» también a la charla: el portero solo entra si el modelo la etiquetó consulta.
   const consulta = resuelta.motivo === 'consulta' && extraccion.intencion.includes('consulta') ? await medir(reloj, 'portero', consultarPortero(d, s, frase)) : null
   const portero = consulta?.contestada ?? null
+  // Cola de dudas del taller: si el portero no halló ficha o dudó, la frase del equipo queda anotada. Nunca rompe la respuesta.
+  if (consulta?.lectura) await medir(reloj, 'cola', encolarDuda(d, s, frase, consulta.lectura))
   const propuesta = portero ? { ...resuelta, respuesta: portero.respuesta, notas_coach: [...resuelta.notas_coach, portero.nota] } : resuelta
   // La charla: solo si no hay nada que guardar, preguntar ni derivar. Es TEXTO: no crea tarjeta de confirmación ni escribe nada.
   const textoCharla = !rapido && cabeCharla(propuesta, { intencionCharla: extraccion.intencion.includes('charla') && !extraccion.intencion.includes('consulta') }) ? leerRespuestaCharla(salida.entrada, contextoCharla) : null
@@ -552,9 +558,10 @@ export type ResultadoPortero = 'atender' | 'aclarar' | 'ninguna' | 'sin_ficha_co
  * salud) deja la consulta como antes. Siempre deja UNA línea de registro con el resultado; nunca la frase.
  */
 async function consultarPortero(d: Dependencias, s: Sesion, frase: string) {
+  let leida: LecturaPortero | null = null
   const fin = (resultado: ResultadoPortero, contestada: RespuestaDeConsulta | null = null) => {
     console.log('praxis-registro: portero', resultado)
-    return { resultado, contestada }
+    return { resultado, contestada, lectura: leida }
   }
   const { PORTERO_URL: url, PORTERO_CLAVE: clave } = d.entorno
   if (!url || !clave) return fin('sin_secretos')
@@ -568,6 +575,7 @@ async function consultarPortero(d: Dependencias, s: Sesion, frase: string) {
     if (!r.ok) return fin(`http_${r.status}`)
     const lectura = leerPortero(await r.json().catch(() => null))
     if (!lectura) return fin('ilegible')
+    leida = lectura
     const ids = fichasNecesarias(lectura)
     if (ids.length === 0) return fin('ninguna')
     const filas = await leer<FichaParaPraxis[]>(d, s, `fichas_respuesta?id=in.(${ids.join(',')})&select=id,titulo,bandera_salud,cuerpo`)
@@ -575,6 +583,85 @@ async function consultarPortero(d: Dependencias, s: Sesion, frase: string) {
     return contestada ? fin(lectura.decision, contestada) : fin('sin_ficha_contestable')
   } catch (e) {
     return fin(`error_${e instanceof Error ? e.name : 'desconocido'}`)
+  }
+}
+
+const TIMEOUT_JUEZ_MS = 4000
+const PROMPT_JUEZ = [
+  'Eres el juez de un catálogo de fichas de respuesta para consultas del equipo de entrenamiento y nutrición.',
+  'Recibes una frase y la lista de fichas ("id: título"). Elige UNA ficha que conteste la frase, o "ninguna" si ninguna la contesta.',
+  'Responde SOLO con el id exacto de la ficha, o la palabra ninguna. Sin comillas ni explicación.',
+].join('\n')
+
+/**
+ * Cola de dudas (migración 0117, decisión de Bryan 28-oct-2026): cuando el portero devuelve `ninguna` («arriba») o
+ * `aclarar`, la FRASE COMPLETA de la persona del equipo (coach o nutricionista; de asesorados nada) se guarda con la
+ * ficha que elige Haiku del catálogo publicado. Se escribe con el JWT de la persona (RLS `es_staff()`), nunca con
+ * service_role. Cualquier fallo (rol, catálogo, juez, insert) NO afecta la respuesta: solo deja una línea
+ * `praxis-registro: cola <motivo>`, sin la frase. No suma al tope de 60 por hora: es parte del mismo mensaje.
+ */
+/** Tope de la columna `frase` en `praxis_cola_dudas` (check de la migración 0117). */
+export const FRASE_COLA_MAX = 600
+
+export async function encolarDuda(d: Dependencias, s: Sesion, frase: string, lectura: LecturaPortero): Promise<void> {
+  try {
+    if (lectura.decision === 'atender') return
+    if (s.rol !== 'coach' && s.rol !== 'nutricionista' && s.puesto !== true) return
+    // Exhaustivo a propósito: una decisión nueva del portero no cae como «arriba» sin que nadie lo decida (revisión ciega 29-oct).
+    const origen = lectura.decision === 'aclarar' ? 'aclarar' : lectura.decision === 'ninguna' ? 'arriba' : null
+    if (!origen) return
+    const juez = await elegirFichaJuez(d, s, frase)
+    const r = await d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/praxis_cola_dudas`, {
+      method: 'POST',
+      headers: {
+        apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${s.token}`, 'content-type': 'application/json',
+        prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        usuario_id: s.usuarioId,
+        frase: frase.trim().slice(0, FRASE_COLA_MAX), // la tabla acepta hasta 600: una frase más larga no se pierde, se guarda recortada
+        origen,
+        portero_fichas: { decision: lectura.decision, ficha: lectura.ficha, tres_primeras: lectura.tresPrimeras },
+        ficha_juez: juez.ficha,
+        modelo_juez: juez.modelo,
+      }),
+    })
+    console.log('praxis-registro: cola', r.ok ? `ok_${origen}` : `http_${r.status}`)
+  } catch (e) {
+    console.log('praxis-registro: cola', `error_${e instanceof Error ? e.name : 'desconocido'}`)
+  }
+}
+
+/** Haiku elige UNA ficha del catálogo publicado o «ninguna». Si falla, devuelve ficha y modelo null (nunca lanza). */
+async function elegirFichaJuez(d: Dependencias, s: Sesion, frase: string): Promise<{ ficha: string | null; modelo: string | null }> {
+  const sin = { ficha: null, modelo: null }
+  try {
+    const clave = d.entorno.ANTHROPIC_API_KEY
+    if (!clave) { console.log('praxis-registro: cola juez_sin_clave'); return sin }
+    const catalogo = await leer<{ id: string; titulo: string }[]>(d, s, 'fichas_respuesta?select=id,titulo&order=id&limit=200')
+    if (!catalogo || catalogo.length === 0) { console.log('praxis-registro: cola juez_sin_catalogo'); return sin }
+    const r = await d.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': clave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(TIMEOUT_JUEZ_MS),
+      body: JSON.stringify({
+        model: MODELO_HAIKU,
+        max_tokens: 40,
+        temperature: 0,
+        system: [bloqueDeSistema(PROMPT_JUEZ)],
+        messages: [{ role: 'user', content: `Fichas:\n${catalogo.map((f) => `${f.id}: ${f.titulo}`).join('\n')}\n\nFrase: ${frase}` }],
+      }),
+    })
+    if (!r.ok) { console.log('praxis-registro: cola juez_http', r.status); return sin }
+    const cuerpo = (await r.json()) as { content?: { type: string; text?: string }[] }
+    const texto = (cuerpo.content ?? []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('').trim().toLowerCase().replace(/[`"'.\s]/g, '')
+    if (texto === 'ninguna') return { ficha: null, modelo: MODELO_HAIKU }
+    if (catalogo.some((f) => f.id === texto)) return { ficha: texto, modelo: MODELO_HAIKU }
+    console.log('praxis-registro: cola juez_ilegible')
+    return sin
+  } catch (e) {
+    console.log('praxis-registro: cola juez_error', e instanceof Error ? e.name : 'desconocido')
+    return sin
   }
 }
 
@@ -892,7 +979,6 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   const auth = await authEnCurso
   if (!auth.ok) return json({ error: auth.error }, 401)
   if (auth.id !== previa.usuarioId) return json({ error: 'Sesion invalida' }, 401) // el token decía una persona y Auth otra
-  const sesion: Sesion = { usuarioId: auth.id, token }
 
   // Mientras Praxis esté cerrada a los asesorados, la función atiende solo al equipo. El
   // interruptor es el de la pantalla (`acceso.ts`): antes solo existía allí, y cualquier
@@ -905,6 +991,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
   if (!conocido || !puedeVerPraxis(rol as Rol, undefined, ocupaElPuesto)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
   console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
+  const sesion: Sesion = { usuarioId: auth.id, token, rol, puesto: ocupaElPuesto }
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
   if (esIngreso) return ingresar(d, sesion, cuerpo)

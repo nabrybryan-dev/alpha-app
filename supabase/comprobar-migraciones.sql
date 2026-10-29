@@ -2497,5 +2497,18 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_cola_dudas: RLS, select/insert solo authenticated, sin anon',
+       case when to_regclass('public.praxis_cola_dudas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_cola_dudas')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'r') <> 1 then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'a') <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd in ('w', 'd')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_cola_dudas', 'select')
+              or has_table_privilege('anon', 'public.praxis_cola_dudas', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'insert') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
