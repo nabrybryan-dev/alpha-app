@@ -19,7 +19,7 @@
   --tenue-rgb: 168 168 173;
   --tenue: rgb(var(--tenue-rgb));
   --gris-marca: #7a7a7a;
-  --rojo-rgb: 255 30 30;
+  --rojo-rgb: 255 70 70;
   --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
   /* "Logrado/completado" = plata neutro (reemplaza el verde; decisión de marca) */
@@ -149,16 +149,18 @@
   --gris-marca: #7a7a7a;
   /* Los tres tonos de estado se oscurecieron el 28-oct para que el rótulo de un
      Badge (texto del tono sobre su propio tinte al 15 %) llegue a 4,5:1, mínimo
-     de la casa. Medidos en claro: rojo 4,86 · verde 4,99 · ámbar 4,78. Antes
-     daban 4,12 / 3,79 / 3,56, que es el 3,5–3,7 que cazó la auditoría en los
-     rótulos de Bienestar. */
+     de la casa. Medidos en claro sobre surface-1 y sobre bg: rojo 4,90 · 4,61,
+     verde 4,99 · 4,70, ámbar 5,21 · 4,91. El fondo del tinte rojo es
+     `--rojo-relleno` (bg-rojo/15), no el rojo de texto. Antes daban
+     4,12 / 3,79 / 3,56 en surface-1, que es el 3,5–3,7 que cazó la auditoría en
+     los rótulos de Bienestar; el ámbar sobre bg se quedaba en 4,48. */
   --rojo-rgb: 192 13 18;
   --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
   /* "Logrado/completado" = plata neutro (gris oscuro para contraste en claro) */
   --verde-rgb: 90 98 108;
   --verde: rgb(var(--verde-rgb));
-  --ambar-rgb: 138 90 0;
+  --ambar-rgb: 130 84 0;
   --ambar: rgb(var(--ambar-rgb));
   --azul-rgb: 20 98 184;
   --azul: rgb(var(--azul-rgb));
@@ -361,11 +363,15 @@
   --bone-300: #dcd8cf;
   --paper: #ffffff;
 
-  /* Semánticos: acción = rojo Alpha (pop 5%); logrado = plata neutro.
-     Canales RGB para poder usar opacidad en Tailwind (bg-accion/15, etc.). */
-  --accion: #ff1e1e;
-  --accion-rgb: 255 30 30;
+  /* Acción = rojo Alpha. El tono de TEXTO sube en oscuro para pasar 4,5:1
+     sobre las superficies; el de RELLENO baja para que el blanco del botón
+     también pase. Son dos tokens porque un solo rojo no puede hacer las dos
+     cosas: cuanto más claro para leerse sobre negro, peor para el blanco
+     encima. Los valores están medidos en `contraste-tokens.test.ts`. */
+  --accion: #ff4646;
+  --accion-rgb: 255 70 70;
   --accion-osc: #c8121a;
+  --accion-relleno-rgb: 213 18 22;
   --logrado: var(--silver-300);
   --silver-300-rgb: 194 200 207;
   /* Oro: reservado al nivel Élite de la Escala Alfa. No es un acento de uso
@@ -3922,6 +3928,11 @@ body.praxis-sala-abierta { overflow:hidden; }
 :root,
 [data-theme="dark"] {
   --rojo-relleno: rgb(213 18 22);
+  --rojo-relleno-rgb: 213 18 22;
+  /* El rojo de una cifra sobre la foto nocturna de Logros: el rojo de texto del
+     tema claro (#c00d12) se queda en 3,15:1 sobre la calle. Este es fijo porque
+     la foto es oscura en los dos temas. */
+  --rojo-foto: #ff6b6b;
   --on-rojo: #ffffff;
   --hero-a: #4a0f14;
   --hero-b: #161616;
@@ -3950,6 +3961,10 @@ body.praxis-sala-abierta { overflow:hidden; }
   --canto: #c9c6bd;
   --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --sombra-card: 0 4px 14px rgba(0, 0, 0, 0.12);
+  /* En claro el rojo de marca ya pasa sobre las dos superficies; el que no
+     pasaba era el #ff1e1e heredado de la maqueta (3,59 sobre bg). */
+  --accion: #c00d12;
+  --accion-rgb: 192 13 18;
 }
 
 /* ---------- Botón 3D (Boton3D) ---------- */

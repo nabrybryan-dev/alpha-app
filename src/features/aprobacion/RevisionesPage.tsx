@@ -37,7 +37,7 @@ function Revision({ revision, actualizar }: { revision: RevisionPendiente; actua
       : <video controls playsInline src={url} className="max-h-96 w-full" onPlay={() => setReproducida(true)} onError={() => { setReproducida(false); setRevisada(false); setError('El vídeo no se pudo reproducir') }} />)}
     {revision.correccion_solicitada && <p role="status" className="my-2 text-sm">Corrección solicitada: {revision.correccion_solicitada}</p>}
     <label className="my-3 flex gap-2 text-sm"><input type="checkbox" disabled={!reproducida || ocupado} checked={revisada} onChange={e => setRevisada(e.target.checked)} />He revisado el guion y el archivo completo.</label>
-    <button type="button" disabled={ocupado || !revisada || !revision.guion.trim() || !!revision.correccion_solicitada} onClick={() => void decidir(true)} className="min-h-[44px] rounded-boton bg-accion px-4 text-ink-1000 disabled:opacity-40">Aprobar esta versión</button>
+    <button type="button" disabled={ocupado || !revisada || !revision.guion.trim() || !!revision.correccion_solicitada} onClick={() => void decidir(true)} className="min-h-[44px] rounded-boton bg-accion px-4 text-white disabled:opacity-40">Aprobar esta versión</button>
     <label className="mt-4 block text-sm">Qué hay que corregir<textarea maxLength={4000} value={correccion} onChange={e => setCorreccion(e.target.value)} className="mt-1 block w-full rounded-boton border border-linea bg-bg p-2" /></label>
     <button type="button" disabled={ocupado || !correccion.trim()} onClick={() => void decidir(false)} className="min-h-[44px] underline disabled:opacity-40">Solicitar corrección</button>
     {error && <p role="alert" className="mt-2 text-sm">{error}</p>}

@@ -123,7 +123,7 @@ export function BandejaAprobacion({
                 <button
                   type="button"
                   onClick={() => onAprobar(b.id)}
-                  className="press min-h-[44px] flex-1 rounded-boton bg-accion px-3 text-sm font-semibold text-ink-1000"
+                  className="press min-h-[44px] flex-1 rounded-boton bg-accion px-3 text-sm font-semibold text-white"
                 >
                   Sale tal cual
                 </button>

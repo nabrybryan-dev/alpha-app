@@ -13,6 +13,8 @@ export default {
         tenue: 'rgb(var(--tenue-rgb) / <alpha-value>)',
         'gris-marca': 'var(--gris-marca)',
         rojo: 'rgb(var(--rojo-rgb) / <alpha-value>)',
+        'rojo-relleno': 'rgb(var(--rojo-relleno-rgb) / <alpha-value>)',
+        'rojo-foto': 'var(--rojo-foto)',
         'rojo-osc': 'var(--rojo-osc)',
         verde: 'rgb(var(--verde-rgb) / <alpha-value>)',
         ambar: 'rgb(var(--ambar-rgb) / <alpha-value>)',
@@ -20,6 +22,7 @@ export default {
         // Design System Alfa (handoff). accion/logrado con canal RGB
         // para soportar opacidad (bg-accion/15, border-accion/35, etc.).
         accion: 'rgb(var(--accion-rgb) / <alpha-value>)',
+        'accion-relleno': 'rgb(var(--accion-relleno-rgb) / <alpha-value>)',
         'accion-osc': 'var(--accion-osc)',
         logrado: 'rgb(var(--silver-300-rgb) / <alpha-value>)',
         'ink-1000': 'rgb(var(--ink-1000-rgb) / <alpha-value>)',
@@ -42,6 +45,19 @@ export default {
         paper: 'var(--paper)',
         // Solo para el nivel Élite de la Escala Alfa.
         oro: 'rgb(var(--oro-rgb) / <alpha-value>)',
+      },
+      // Un rojo no puede servir para las dos cosas: el texto necesita ser claro
+      // sobre negro y el relleno oscuro bajo el blanco. `bg-rojo`/`bg-accion`
+      // usan el tono de RELLENO; `text-rojo`/`text-accion`, el de TEXTO.
+      // `border-rojo`/`border-accion` siguen leyendo `colors` (tono de texto),
+      // que es el que tiene que verse sobre las superficies.
+      backgroundColor: {
+        rojo: 'rgb(var(--rojo-relleno-rgb) / <alpha-value>)',
+        accion: 'rgb(var(--accion-relleno-rgb) / <alpha-value>)',
+      },
+      textColor: {
+        rojo: 'rgb(var(--rojo-rgb) / <alpha-value>)',
+        accion: 'rgb(var(--accion-rgb) / <alpha-value>)',
       },
       fontFamily: {
         display: ['Archivo', 'system-ui', 'sans-serif'],
