@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
@@ -6,6 +7,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
+import { leerEstadoAvisos, type EstadoAvisos } from '../avisos/estadoAvisos'
 import { CheckinForm } from './CheckinForm'
 import { filasCheckin } from './filasCheckin'
 import { HistorialDeCheckins } from './HistorialDeCheckins'
@@ -17,8 +19,19 @@ export default function BienestarPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
-  // Sin soporte de notificaciones también se ofrece «Yo» (que lo explica); con ellas ya permitidas, no hace falta.
-  const permiso = typeof Notification === 'undefined' ? 'default' : Notification.permission
+  // La tarjeta depende del estado REAL de los avisos, no solo del permiso del navegador: quien los apagó en «Yo»
+  // conserva el permiso pero no la suscripción, y sin la tarjeta no se enteraría de que no recibe el recordatorio.
+  // Sin soporte, bloqueado o sin preguntar también se ofrece «Yo» (que lo explica); solo `activo` no la necesita.
+  const [avisos, setAvisos] = useState<EstadoAvisos | null>(null)
+  useEffect(() => {
+    let vivo = true
+    void leerEstadoAvisos().then((e) => {
+      if (vivo) setAvisos(e)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
@@ -42,7 +55,7 @@ export default function BienestarPage() {
       </header>
 
       {/* El recordatorio de las 6 pm sale del servidor y se enciende en «Yo»: aquí solo se avisa a quien no lo tiene. */}
-      {permiso !== 'granted' && (
+      {avisos !== null && avisos !== 'activo' && (
         <Card className="entrada entrada-2 flex items-center justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-sm font-bold text-texto">
