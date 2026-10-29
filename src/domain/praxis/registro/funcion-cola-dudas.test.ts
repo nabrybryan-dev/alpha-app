@@ -171,6 +171,22 @@ describe('encolarDuda directa: la guarda de rol no depende del 403 de manejar (r
     expect(e.alJuez()).toHaveLength(0)
   })
 
+  it('asesorado que ocupa el puesto de coach → cuenta como equipo: juez e insert (decisión de Bryan, 29-oct)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const e = entorno()
+    await encolarDuda(e.d, { usuarioId: 'u-cola-1', token: 'jwt-de-la-persona', rol: 'asesorado', puesto: true }, FRASE, lecturaArriba)
+    expect(e.inserts()).toHaveLength(1)
+    expect(e.alJuez()).toHaveLength(1)
+  })
+
+  it('asesorado con puesto en false → nada', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const e = entorno()
+    await encolarDuda(e.d, { usuarioId: 'u-cola-1', token: 'jwt-de-la-persona', rol: 'asesorado', puesto: false }, FRASE, lecturaArriba)
+    expect(e.inserts()).toHaveLength(0)
+    expect(e.alJuez()).toHaveLength(0)
+  })
+
   it('coach con frase de 601 caracteres → se guarda recortada a 600 y el log no la lleva', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const e = entorno()

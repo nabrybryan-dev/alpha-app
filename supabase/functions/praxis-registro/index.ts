@@ -190,6 +190,8 @@ interface Sesion {
   token: string
   /** El rol ya comprobado en `manejar`. La cola de dudas solo escribe si es del equipo. */
   rol?: string
+  /** Ocupa el puesto de coach (`capacidades_staff`, 0106): cuenta como equipo, igual que `es_staff()` (decisión de Bryan, 29-oct). */
+  puesto?: boolean
 }
 
 /** GET a PostgREST con el JWT de la persona (RLS). */
@@ -604,7 +606,7 @@ export const FRASE_COLA_MAX = 600
 export async function encolarDuda(d: Dependencias, s: Sesion, frase: string, lectura: LecturaPortero): Promise<void> {
   try {
     if (lectura.decision === 'atender') return
-    if (s.rol !== 'coach' && s.rol !== 'nutricionista') return
+    if (s.rol !== 'coach' && s.rol !== 'nutricionista' && s.puesto !== true) return
     // Exhaustivo a propósito: una decisión nueva del portero no cae como «arriba» sin que nadie lo decida (revisión ciega 29-oct).
     const origen = lectura.decision === 'aclarar' ? 'aclarar' : lectura.decision === 'ninguna' ? 'arriba' : null
     if (!origen) return
@@ -989,7 +991,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
   if (!conocido || !puedeVerPraxis(rol as Rol, undefined, ocupaElPuesto)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
   console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
-  const sesion: Sesion = { usuarioId: auth.id, token, rol }
+  const sesion: Sesion = { usuarioId: auth.id, token, rol, puesto: ocupaElPuesto }
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
   if (esIngreso) return ingresar(d, sesion, cuerpo)
