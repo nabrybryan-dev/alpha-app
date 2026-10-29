@@ -15,7 +15,7 @@
 //
 // Solo acepta la clave de servicio en Authorization. Sin datos de salud: solo título y primer paso.
 
-import { decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, ROLES_DEL_RECORDATORIO_CHECKIN, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
+import { decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, lotesDeIds, ROLES_DEL_RECORDATORIO_CHECKIN, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
 
@@ -154,14 +154,29 @@ async function manejar(req: Request): Promise<Response> {
   }
 
   // ---- 2 · El recordatorio del check-in de las 6 pm, para toda persona con suscripción viva ----
-  const ids = subs.map((s) => s.usuario_id).join(',')
+  // Las tres lecturas van por lotes de ids (la URL no crece sin tope) y, si una falla, queda dicho cuál en `lecturasFallidas`.
+  const lotes = lotesDeIds(subs.map((s) => s.usuario_id))
+  const lecturasFallidas: string[] = []
+  const leer = async <T>(nombre: string, ruta: (ids: string) => string): Promise<T[]> => {
+    const filas: T[] = []
+    for (const lote of lotes) {
+      const r = await rest(ruta(lote.join(',')))
+      if (!r.ok) {
+        lecturasFallidas.push(nombre)
+        break
+      }
+      filas.push(...((await r.json()) as T[]))
+    }
+    return filas
+  }
   // El recordatorio va a asesorados y a la nutricionista con suscripción (Bryan, 29-oct); el coach no lo recibe.
-  const rUsuarios = await rest(`usuarios_app?id=in.(${ids})&rol=in.(${ROLES_DEL_RECORDATORIO_CHECKIN.join(',')})&select=id`)
-  const rCheckins = await rest(`checkins?fecha=eq.${dia}&usuario_id=in.(${ids})&select=usuario_id`)
+  const usuarios = await leer<{ id: string }>('usuarios_app', (ids) => `usuarios_app?id=in.(${ids})&rol=in.(${ROLES_DEL_RECORDATORIO_CHECKIN.join(',')})&select=id`)
+  const checkins = await leer<{ usuario_id: string }>('checkins', (ids) => `checkins?fecha=eq.${dia}&usuario_id=in.(${ids})&select=usuario_id`)
   const rYa = await rest(`avisos_checkin_enviados?fecha_aviso=eq.${dia}&select=usuario_id`)
-  if (rUsuarios.ok && rCheckins.ok && rYa.ok) {
-    const elegibles = ((await rUsuarios.json()) as { id: string }[]).map((x) => x.id)
-    const conCheckinHoy = new Set(((await rCheckins.json()) as { usuario_id: string }[]).map((x) => x.usuario_id))
+  if (!rYa.ok) lecturasFallidas.push('avisos_checkin_enviados')
+  if (lecturasFallidas.length === 0) {
+    const elegibles = usuarios.map((x) => x.id)
+    const conCheckinHoy = new Set(checkins.map((x) => x.usuario_id))
     const yaAvisados = new Set(((await rYa.json()) as { usuario_id: string }[]).map((x) => x.usuario_id))
     const recordar = decidirRecordatoriosCheckin({ ahora, suscritos: elegibles, conCheckinHoy, enviadosHoy: yaAvisados })
     candidatos += recordar.length
@@ -189,7 +204,7 @@ async function manejar(req: Request): Promise<Response> {
   } else {
     fallos++
   }
-  return json({ dia, candidatos, enviados, recordatorios, caducadas, fallos })
+  return json({ dia, candidatos, enviados, recordatorios, caducadas, fallos, lecturasFallidas })
 }
 
 Deno.serve(manejar)

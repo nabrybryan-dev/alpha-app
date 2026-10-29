@@ -195,3 +195,14 @@ export function decidirRecordatoriosCheckin(e: EntradaCheckin): AvisoCheckin[] {
 export function destinatariosDelPlan(suscritos: readonly string[], ids: Record<Dueno, string>): Dueno[] {
   return (Object.keys(ids) as Dueno[]).filter((d) => suscritos.includes(ids[d]))
 }
+
+/** Tope de ids por consulta: PostgREST lleva el filtro `in.(...)` en la URL y esta no puede crecer sin límite. */
+export const TOPE_IDS_POR_CONSULTA = 100
+
+/** Parte la lista de ids en lotes de a lo sumo `tope` (sin repetidos, en orden). Lista vacía: ningún lote. */
+export function lotesDeIds(ids: readonly string[], tope: number = TOPE_IDS_POR_CONSULTA): string[][] {
+  const unicos = [...new Set(ids)]
+  const lotes: string[][] = []
+  for (let i = 0; i < unicos.length; i += tope) lotes.push(unicos.slice(i, i + tope))
+  return lotes
+}

@@ -3,6 +3,7 @@ import {
   decidirAvisos,
   decidirRecordatoriosCheckin,
   destinatariosDelPlan,
+  lotesDeIds,
   ROLES_DEL_RECORDATORIO_CHECKIN,
   minutosDeHora,
   relojLocal,
@@ -178,5 +179,21 @@ describe('quién recibe el recordatorio del check-in (29-oct)', () => {
 
   it('que la nutricionista reciba el recordatorio no la vuelve destinataria de otra cosa: el plan sigue yendo solo por id', () => {
     expect(destinatariosDelPlan(['u-nutri'], { bryan: 'u-bryan', manuela: 'u-manuela' })).toEqual([])
+  })
+})
+
+describe('lotesDeIds: la URL de las consultas no crece sin tope', () => {
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => `u${i}`)
+  it('parte en lotes de a lo sumo el tope y no pierde ningún id', () => {
+    const lotes = lotesDeIds(ids(250), 100)
+    expect(lotes.map((l) => l.length)).toEqual([100, 100, 50])
+    expect(lotes.flat()).toEqual(ids(250))
+  })
+  it('una lista vacía no hace ninguna consulta, y una corta va en un solo lote', () => {
+    expect(lotesDeIds([])).toEqual([])
+    expect(lotesDeIds(ids(3))).toEqual([ids(3)])
+  })
+  it('no repite ids', () => {
+    expect(lotesDeIds(['a', 'b', 'a'], 10)).toEqual([['a', 'b']])
   })
 })
