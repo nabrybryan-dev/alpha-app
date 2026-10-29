@@ -174,26 +174,6 @@ export function IconoEstrella({ className }: IconoProps) {
 
 /* ---------- Panel del coach ---------- */
 
-/** Consultas pendientes. */
-export function IconoConsulta({ className }: IconoProps) {
-  return (
-    <Icono className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.6 9.6a2.4 2.4 0 1 1 3.3 2.2c-.6.3-.9.8-.9 1.4v.5" />
-      <path d="M12 16.8h.01" />
-    </Icono>
-  )
-}
-
-/** Bandeja de mensajes. */
-export function IconoMensaje({ className }: IconoProps) {
-  return (
-    <Icono className={className}>
-      <path d="M20.5 12.2a7.5 7.5 0 0 1-7.5 7.5H8.4L4 22.5v-4.7a7.5 7.5 0 0 1 4-13.6h5a7.5 7.5 0 0 1 7.5 8Z" />
-    </Icono>
-  )
-}
-
 /**
  * Cámara. La usa el encoder para medir la barra desde dentro de la serie.
  *

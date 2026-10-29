@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   COLUMNAS_PLANES_ESTRATEGICOS,
-  historialDePlanes,
   planVigente,
   TABLA_PLANES_ESTRATEGICOS,
 } from './planesEstrategicos'
@@ -48,12 +47,10 @@ const filaVigente = {
 }
 
 let filaUnica: typeof filaVigente | null
-let filas: (typeof filaVigente)[]
 let errorPropio: { code: string; message: string } | null
 let usuarioFiltrado: string | undefined
 let vigenteFiltrado: boolean | undefined
 let columnasPedidas: string | undefined
-let ordenPedido: { columna: string; ascending: boolean } | undefined
 
 vi.mock('../supabase', () => ({
   modoNube: true,
@@ -70,10 +67,6 @@ vi.mock('../supabase', () => ({
                 eq: (columna2: string, valor2: unknown) => {
                   if (columna2 === 'vigente') vigenteFiltrado = valor2 as boolean
                   return { maybeSingle: () => Promise.resolve({ data: filaUnica, error: errorPropio }) }
-                },
-                order: (columna2: string, opts: { ascending: boolean }) => {
-                  ordenPedido = { columna: columna2, ascending: opts.ascending }
-                  return Promise.resolve({ data: filas, error: errorPropio })
                 },
               }
             },
@@ -130,29 +123,5 @@ describe('planVigente: el propio, filtrado por vigente=true, sin lanzar nunca', 
   it('sin usuarioId no consulta nada', async () => {
     await planVigente('')
     expect(columnasPedidas).toBeUndefined()
-  })
-})
-
-describe('historialDePlanes: todas las versiones, de más reciente a más vieja', () => {
-  beforeEach(() => {
-    filas = [filaVigente, { ...filaVigente, id: 'plan-0', version: 1, vigente: false, hash: 'hash-v1' }]
-    errorPropio = null
-    ordenPedido = undefined
-  })
-
-  it('ordena por version descendente', async () => {
-    await historialDePlanes('u-1')
-    expect(ordenPedido).toEqual({ columna: 'version', ascending: false })
-  })
-
-  it('devuelve todas las versiones traducidas', async () => {
-    const historial = await historialDePlanes('u-1')
-    expect(historial.map((p) => p.version)).toEqual([2, 1])
-    expect(historial.map((p) => p.vigente)).toEqual([true, false])
-  })
-
-  it('devuelve [] ante un error, nunca lanza', async () => {
-    errorPropio = { code: '42P01', message: 'no existe' }
-    await expect(historialDePlanes('u-1')).resolves.toEqual([])
   })
 })
