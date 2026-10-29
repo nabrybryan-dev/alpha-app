@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { IconoCampana } from '../../components/ui/Icono'
@@ -12,13 +12,13 @@ import { HistorialDeCheckins } from './HistorialDeCheckins'
 import { MedidasCard } from './MedidasCard'
 import { MensajesVidaBandeja } from './MensajesVidaBandeja'
 import { TarjetaVidaCard } from './TarjetaVidaCard'
-import { activarRecordatorios, permisoActual } from './recordatorio'
 
 export default function BienestarPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
-  const [permiso, setPermiso] = useState(permisoActual())
+  // Sin soporte de notificaciones también se ofrece «Yo» (que lo explica); con ellas ya permitidas, no hace falta.
+  const permiso = typeof Notification === 'undefined' ? 'default' : Notification.permission
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
@@ -41,7 +41,8 @@ export default function BienestarPage() {
         </p>
       </header>
 
-      {permiso === 'default' && (
+      {/* El recordatorio de las 6 pm sale del servidor y se enciende en «Yo»: aquí solo se avisa a quien no lo tiene. */}
+      {permiso !== 'granted' && (
         <Card className="entrada entrada-2 flex items-center justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-sm font-bold text-texto">
@@ -49,25 +50,16 @@ export default function BienestarPage() {
               Recordatorio de las 6 pm
             </p>
             <p className="mt-0.5 text-xs text-tenue">
-              Si a las 6 pm no has llenado tu check-in, te avisamos con una notificación.
+              Si a las 6 pm no has llenado tu check-in, te avisamos al teléfono aunque la app esté cerrada. Se enciende en Yo.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void activarRecordatorios().then((r) => setPermiso(r))
-            }}
-            className="press min-h-11 shrink-0 rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
+          <Link
+            to="/yo"
+            className="press inline-flex min-h-11 shrink-0 items-center rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
           >
-            Activar
-          </button>
+            Ir a Yo
+          </Link>
         </Card>
-      )}
-      {permiso === 'denied' && (
-        <p className="entrada entrada-2 text-center text-xs text-tenue">
-          Las notificaciones están bloqueadas en tu navegador — actívalas en la configuración del
-          sitio para recibir el recordatorio de las 6 pm.
-        </p>
       )}
 
       {deHoy ? (

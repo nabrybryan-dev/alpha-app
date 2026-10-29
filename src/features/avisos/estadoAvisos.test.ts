@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const guardar = vi.fn(() => Promise.resolve())
+const guardar = vi.fn<(d: unknown) => Promise<void>>(() => Promise.resolve())
 vi.mock('../../data/nube/avisos', () => ({ guardarDecisionDeAviso: (d: unknown) => guardar(d) }))
 
 const { activarAvisos, apagarAvisos, CLAVE_VISTO, leerEstadoAvisos } = await import('./estadoAvisos')

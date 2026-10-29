@@ -45,7 +45,6 @@ vi.mock('../data/consola/capacidadesStaff', async (original) => ({
 }))
 vi.mock('../components/ui/TopBar', () => ({ TopBar: ({ titulo }: { titulo: string }) => <h1>{titulo}</h1> }))
 vi.mock('../features/plan/BannerPlanHoy', () => ({ BannerPlanHoy: () => null }))
-vi.mock('../features/bienestar/recordatorio', () => ({ revisarRecordatorioBienestar: () => Promise.resolve() }))
 vi.mock('../features/praxis/PraxisCosmos', () => ({ PraxisCosmos: () => <p>Pantalla: Praxis</p> }))
 
 // Las pantallas sin puerta propia: un marcador. Las puertas de arriba (layouts) siguen siendo las reales.

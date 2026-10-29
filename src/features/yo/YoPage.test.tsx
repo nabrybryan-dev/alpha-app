@@ -9,11 +9,11 @@ import type { EstadoAvisos } from '../avisos/estadoAvisos'
  * El estado de los avisos y el cambio de clave se sustituyen en su capa más baja; el buzón es el real.
  */
 const estado = { avisos: 'sin-preguntar' as EstadoAvisos }
-const activar = vi.fn(async () => {
+const activar = vi.fn<(id: string) => Promise<EstadoAvisos>>(async () => {
   estado.avisos = 'activo'
   return estado.avisos
 })
-const apagar = vi.fn(async () => {
+const apagar = vi.fn<(id: string) => Promise<EstadoAvisos>>(async () => {
   estado.avisos = 'apagado'
   return estado.avisos
 })
@@ -24,7 +24,7 @@ vi.mock('../avisos/estadoAvisos', () => ({
   apagarAvisos: (id: string) => apagar(id),
 }))
 
-const actualizar = vi.fn(async (_: { password: string }) => ({ error: null as { message: string } | null }))
+const actualizar = vi.fn<(d: { password: string }) => Promise<{ error: { message: string } | null }>>(async () => ({ error: null }))
 vi.mock('../../data/supabase', () => ({
   modoNube: true,
   supabase: () => ({ auth: { updateUser: (d: { password: string }) => actualizar(d) } }),

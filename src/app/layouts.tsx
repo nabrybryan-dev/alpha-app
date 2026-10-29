@@ -1,9 +1,7 @@
-import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
-import { db, hoyIso } from '../data/dbInstance'
-import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
+import { db } from '../data/dbInstance'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import {
@@ -106,26 +104,8 @@ export function AsesoradoLayout() {
   const { pathname } = useLocation()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
 
-  // Recordatorio de las 6 pm: al abrir la app, al volver a ella y cada 10 min
-  // mientras esté abierta. Solo dispara si falta el check-in de hoy.
-  useEffect(() => {
-    if (usuario.rol === 'coach') return
-    const revisar = () => {
-      const hoy = hoyIso()
-      const hecho = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
-      void revisarRecordatorioBienestar(hecho, hoy)
-    }
-    revisar()
-    const alVolver = () => {
-      if (document.visibilityState === 'visible') revisar()
-    }
-    document.addEventListener('visibilitychange', alVolver)
-    const id = window.setInterval(revisar, 10 * 60 * 1000)
-    return () => {
-      document.removeEventListener('visibilitychange', alVolver)
-      window.clearInterval(id)
-    }
-  }, [usuario.id, usuario.rol])
+  // El recordatorio de las 6 pm del check-in ya no se dispara aquí: sale del servidor (Edge Function `avisos-plan`), así
+  // llega aunque la app esté cerrada. Se enciende en «Yo» (decisión de Bryan, 28-oct).
 
   // Dos cuentas de Bryan (0106). La cuenta «Alpha» (rol coach + `solo_tablero`) no tiene espacios: solo el
   // tablero. La PERSONAL sigue siendo `asesorado` (entrena, está en la cartera) y lleva el puesto de coach
