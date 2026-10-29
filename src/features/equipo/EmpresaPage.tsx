@@ -105,15 +105,22 @@ export default function EmpresaPage() {
     entrenador.push({ titulo: 'Revisiones de voz y vídeo', nota: 'Programadas; la puerta de firma sigue hasta retirarla.', a: '/coach/revisiones' })
   }
   entrenador.push({ titulo: 'Mesa del encoder', nota: 'Calibrar y medir la barra; solo el equipo.', a: '/entrenar/encoder' })
-  entrenador.push({ titulo: 'Praxis del equipo', nota: 'Probar el cosmos; cerrada a asesorados.', a: '/praxis' })
-  // Antes solo se llegaba escribiendo la dirección (H-10).
-  entrenador.push({ titulo: 'Praxis de ejemplo', nota: 'La maqueta completa con datos de ejemplo; solo el equipo.', a: '/praxis/ejemplo' })
-  entrenador.push({ titulo: 'Prueba de ingreso', nota: 'El cuestionario con cronómetro, hablando o escribiendo; no guarda nada.', a: '/praxis/ingreso-prueba' })
+  // Praxis es del equipo. La nutricionista (sin puesto de coach) la tiene en SU grupo: si filtra por «Nutrición»
+  // no pierde la entrada, y sin fila doble ni segunda navegación en el panel (H-08).
+  const filasPraxis: Fila[] = [
+    { titulo: 'Praxis del equipo', nota: 'Probar el cosmos; cerrada a asesorados.', a: '/praxis' },
+    // Antes solo se llegaba escribiendo la dirección (H-10).
+    { titulo: 'Praxis de ejemplo', nota: 'La maqueta completa con datos de ejemplo; solo el equipo.', a: '/praxis/ejemplo' },
+    { titulo: 'Prueba de ingreso', nota: 'El cuestionario con cronómetro, hablando o escribiendo; no guarda nada.', a: '/praxis/ingreso-prueba' },
+  ]
+  const praxisEnNutricion = usuario.rol === 'nutricionista' && !esCoach
+  if (!praxisEnNutricion) entrenador.push(...filasPraxis)
 
   const nutricion: Fila[] = [
     { titulo: 'Nutrición del equipo', nota: 'Adherencia y cifras por persona.', a: '/equipo-nutricion' },
     { titulo: 'Cifras de los asesorados', nota: 'Los números de nutrición, sin nombres de más.', a: '/equipo-nutricion/cifras' },
     { titulo: 'Planes por renovar', nota: 'Primeros planes y renovados; se firman en la Bandeja.', a: '/bandeja' },
+    ...(praxisEnNutricion ? filasPraxis : []),
   ]
 
   const administracion: Fila[] = []
