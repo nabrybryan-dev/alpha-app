@@ -89,20 +89,34 @@ function crudo(bloque: string, nombre: string): string {
 }
 
 // EXCEPCIÓN FIRMADA POR BRYAN, 29-oct-2026: en oscuro la leyenda pequeña de la retícula pasa
-// de white/35 (3,16:1) a #8a8d91 (5,80:1 sobre el lienzo). Ya es #rrggbb y entra en las
-// comprobaciones de 4,5:1 como cualquier otro token; este filtro queda como identidad.
-const sinLeyendaEnOscuro = (_nombre: string, tokens: string[]) => tokens
+// de white/35 (3,16:1) a #8a8d91 (5,80:1 sobre el lienzo). Esa excepción es SOLO del oscuro:
+// en claro la leyenda se mide a 4,5:1 como todo lo demás (abajo, `salon-3d-leyenda`).
+//
+// En OSCURO el contrato dice «igual que main»: el rótulo (#6f7782) y el matiz (#7a7a7a) de main
+// NO llegan a 4,5:1 sobre el lienzo y se quedan como estaban (no hay firma para subirlos). Por
+// eso solo se miden a 4,5:1 en claro. Su valor oscuro lo fija la prueba «oscuro igual que main».
+const SIN_MEDIDA_EN_OSCURO = ['salon-3d-rotulo', 'salon-3d-matiz']
+const medibles = (nombre: string, tokens: string[]) =>
+  nombre === 'oscuro' ? tokens.filter((t) => !SIN_MEDIDA_EN_OSCURO.includes(t)) : tokens
 
 describe.each(TEMAS)('el texto del salón también se lee sobre el fondo del lienzo, tema $nombre', ({ nombre, bloque }) => {
-  it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-texto', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda', 'salon-3d-arrastre']))(
+  it.each(medibles(nombre, ['salon-3d-texto', 'salon-3d-dato', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda', 'salon-3d-arrastre']))(
     '%s llega a 4,5:1 sobre --salon-3d-lienzo',
     (token) => {
       const c = contraste(color(bloque, token), color(bloque, 'salon-3d-lienzo'))
       expect(Number(c.toFixed(2)), token).toBeGreaterThanOrEqual(4.5)
     },
   )
-  it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda']))('%s llega a 4,5:1 sobre la pared', (token) => {
+  it.each(medibles(nombre, ['salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda']))('%s llega a 4,5:1 sobre la pared', (token) => {
     expect(Number(contraste(color(bloque, token), color(bloque, 'salon-3d-pared')).toFixed(2))).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+describe('la leyenda del salón en CLARO se mide a 4,5:1 (la excepción de #8a8d91 es solo del oscuro)', () => {
+  it.each(['salon-3d-lienzo', 'salon-3d-pared'])('--salon-3d-leyenda (claro) sobre --%s', (fondo) => {
+    expect(crudo(claro, 'salon-3d-leyenda').toLowerCase()).not.toBe('#8a8d91')
+    const c = contraste(color(claro, 'salon-3d-leyenda'), color(claro, fondo))
+    expect(Number(c.toFixed(2))).toBeGreaterThanOrEqual(4.5)
   })
 })
 
@@ -114,10 +128,79 @@ describe('los tokens del salón claro son distintos de los oscuros', () => {
 
 /**
  * EL OSCURO SE VE IGUAL QUE ANTES (encargo: «en oscuro no cambia nada»). Los valores son
- * los que tenían las reglas `.muro-*` y el joystick antes de la zona 8. Las únicas
- * excepciones son las que obliga el contraste de 4,5:1, y van escritas aquí con su porqué:
- * el rótulo era #6f7782 (4,15:1 sobre la pared: no llega) y el matiz #7a7a7a (4,4:1).
+ * los que tenían las reglas `.muro-*` y el joystick antes de la zona 8. NO hay excepciones
+ * de contraste en oscuro: el rótulo (#6f7782) y el matiz (#7a7a7a) siguen como en main.
  */
+/**
+ * EL OSCURO ES IGUAL QUE MAIN, TOKEN POR TOKEN (contrato firmado por Bryan). Lista explícita
+ * de TODOS los `--salon-3d-*` del bloque oscuro de `tokens.css`, con el valor que tenía main
+ * (0b015bab) o, para los tokens nuevos, el valor literal que las reglas y el código de main
+ * escribían a mano (pared, panel, `.muro-dato` = silver-100, etc.).
+ * Única excepción firmada (29-oct-2026): la leyenda pequeña, #8a8d91 en vez de white/35.
+ * Si alguien añade, quita o cambia un token del oscuro, esta prueba falla.
+ */
+const OSCURO_DE_MAIN: Record<string, string> = {
+  'salon-3d-piel': '#a9afb8',
+  'salon-3d-base': '#2b3038',
+  'salon-3d-apagada': '#3b414b',
+  'salon-3d-luz': '#e9eef4',
+  'salon-3d-hueso': '#d9d4c8',
+  'salon-3d-cielo': '#cfd8e3',
+  'salon-3d-tierra': '#0b0e12',
+  'salon-3d-sombra': '0.45',
+  'salon-3d-brillo': '0.22',
+  'salon-3d-pared': '#101114',
+  'salon-3d-zocalo': '#181b1f',
+  'salon-3d-marco': '#333842',
+  'salon-3d-panel': '#070809',
+  'salon-3d-segmento': '#ff3d3d',
+  'salon-3d-segmento-apagado': '#0e0f11',
+  'salon-3d-texto': '#f2f2f2',
+  'salon-3d-dato': '#f4f5f6',
+  'salon-3d-tenue': '#c2c8cf',
+  'salon-3d-accion': '#ff4646',
+  'salon-3d-accion-suave': '#ff4646d9',
+  'salon-3d-lienzo': '#0b0e12',
+  'salon-3d-plata': '#6f7782',
+  'salon-3d-rotulo': '#6f7782',
+  'salon-3d-matiz': '#7a7a7a',
+  'salon-3d-leyenda': '#8a8d91', // EXCEPCIÓN FIRMADA (main: white/35)
+  'salon-3d-leyenda-tenue': 'rgb(255 255 255 / 0.2)',
+  'salon-3d-resplandor': '0 0 0.42em rgb(111 119 130 / 0.55)',
+  'salon-3d-relieve': '0 1px 0 rgb(0 0 0 / 0.6), 1px 2px 0 #2a2d31, 2px 3px 0 #22252a',
+  'salon-3d-sombra-portada': '0 1px 6px rgb(0 0 0 / 0.55)',
+  'salon-3d-sombra-portada-fuerte': '0 1px 6px rgb(0 0 0 / 0.7)',
+  'salon-3d-filo-bajo': 'rgb(0 0 0 / 0.9)',
+  'salon-3d-sombra-caja': 'rgb(0 0 0 / 0.95)',
+  'salon-3d-vineta-rgb': '5 7 10',
+  'salon-3d-negro-rgb': '0 0 0',
+  'salon-3d-borde-fino': 'rgb(255 255 255 / 0.14)',
+  'salon-3d-filete-rgb': '255 255 255',
+  'salon-3d-arrastre': '#9aa1ab',
+  'salon-3d-sombra-pared': 'rgb(0 0 0 / 0.9)',
+  'salon-3d-sombra-menu': 'rgb(0 0 0 / 0.7)',
+  'salon-3d-superficie': 'rgb(var(--ink-1000-rgb) / 0.96)',
+  'salon-3d-superficie-alta': 'rgb(var(--ink-800-rgb) / 0.96)',
+  'salon-3d-borde': 'rgb(var(--silver-500-rgb) / 0.45)',
+  'salon-3d-velo': 'rgb(var(--ink-1000-rgb) / 0.6)',
+}
+
+describe('tema oscuro del salón: IGUAL que main, token por token', () => {
+  const normal = (v: string) => v.replace(/\s+/g, ' ').trim().toLowerCase()
+  it.each(Object.entries(OSCURO_DE_MAIN))('--%s', (nombre, esperado) => {
+    expect(normal(crudo(oscuro, nombre))).toBe(normal(esperado))
+  })
+  it('el bloque oscuro no tiene ningún --salon-3d-* fuera de la lista (ni le falta ninguno)', () => {
+    const presentes = [...oscuro.matchAll(/^\s*--(salon-3d-[a-z0-9-]+):/gm)].map((m) => m[1]!)
+    expect([...new Set(presentes)].sort()).toEqual(Object.keys(OSCURO_DE_MAIN).sort())
+  })
+  it('la cifra grande y la paleta fija que leen las tarjetas siguen como en main', () => {
+    expect(crudo(oscuro, 'texto-rgb')).toBe('242 242 242')
+    expect(css).toMatch(/--silver-100:\s*#f4f5f6/i)
+    expect(css).toMatch(/--silver-500-rgb:\s*111 119 130/)
+  })
+})
+
 describe('tema oscuro del salón: los valores de antes', () => {
   it('conserva el rojo, el resplandor, el relieve y el borde del joystick', () => {
     expect(crudo(oscuro, 'salon-3d-accion').toLowerCase()).toBe('#ff4646')
