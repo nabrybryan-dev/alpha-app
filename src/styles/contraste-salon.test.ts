@@ -344,9 +344,64 @@ describe('tarjeta con foto del cronómetro de la sesión, tema claro', () => {
     expect(baseVelo).toContain('rgba(10, 10, 10, 0.38)')
     expect(baseVelo).toContain('rgba(10, 10, 10, 0.72)')
     expect(baseVelo).toContain('rgba(10, 10, 10, 0.92)')
-    // Ninguna regla de claro toca `.tarjeta-foto` sin el alcance de la sesión.
-    const sueltas = [...css.matchAll(/\[data-theme="light"\][^{,]*\.tarjeta-foto[^{,]*\{/g)].map((m) => m[0]).filter((t) => !t.includes('[data-sesion="entrenar"]'))
-    expect(sueltas).toEqual([])
+    // Ninguna regla de claro toca `.tarjeta-foto` sin el alcance de la sesión (en cualquiera de
+    // sus escrituras: ver `reglasDeClaroSinAlcance`, más abajo).
+    expect(reglasDeClaroSinAlcance(css).filter((r) => r.includes('tarjeta-foto'))).toEqual([])
+  })
+})
+
+/**
+ * PRUEBA DE ALCANCE: ninguna regla de TEMA CLARO puede tocar la sesión sin el alcance
+ * `[data-sesion` / `[data-salon`. El claro se puede escribir de varias formas, y todas cuentan:
+ * `[data-theme="light"]`, con comillas simples o sin ellas, y `:root:not([data-theme="dark"])`
+ * (igual de «claro» para quien lee el CSS). Una regla así que no esté en la lista de lo que ya
+ * había en main (cifras 3D y Praxis, que traen su propio alcance) es una fuga hacia Logros o
+ * cualquier otra pantalla que reutilice las clases de la sesión.
+ */
+const CLARO_SIN_ALCANCE_DE_MAIN = [
+  '[data-theme="light"]', // el bloque de tokens
+  '[data-theme="light"] .cifra-3d',
+  '[data-theme="light"] .cifra-3d-rojo',
+  '[data-theme="light"] .praxis:not([data-tema="oscuro"])',
+]
+
+function reglasDeClaroSinAlcance(fuente: string): string[] {
+  const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, '')
+  const esClaro = /data-theme\s*=\s*["']?light["']?|:not\(\s*\[\s*data-theme\s*=\s*["']?dark["']?\s*\]\s*\)/
+  const fugas: string[] = []
+  for (const m of sinComentarios.matchAll(/([^{}]+)\{/g)) {
+    const cabecera = m[1]!.trim()
+    if (cabecera.startsWith('@')) continue
+    for (const crudoSel of cabecera.split(/,(?![^(]*\))/)) {
+      // Comillas simples o ninguna = las dobles; espacios de más fuera.
+      const sel = crudoSel
+        .replace(/\[\s*data-theme\s*=\s*['"]?(light|dark)['"]?\s*\]/g, '[data-theme="$1"]')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (!esClaro.test(sel)) continue
+      if (/\[data-(sesion|salon)/.test(sel)) continue
+      if (CLARO_SIN_ALCANCE_DE_MAIN.includes(sel)) continue
+      fugas.push(sel)
+    }
+  }
+  return fugas
+}
+
+describe('el tema claro de la sesión no se sale de [data-sesion] / [data-salon]', () => {
+  it('ninguna regla de claro (en cualquiera de sus escrituras) toca clases de la sesión sin alcance', () => {
+    expect(reglasDeClaroSinAlcance(css)).toEqual([])
+  })
+  it('el detector ve las escrituras alternativas (si no, la prueba de arriba no vale)', () => {
+    const trampas = [
+      ':root:not([data-theme="dark"]) .tarjeta-foto .opacity-50 { opacity: .7 }',
+      ":root:not([data-theme='dark']) .tarjeta-foto { color: red }",
+      "[data-theme='light'] .tarjeta-foto { color: red }",
+      '[data-theme=light] .kicker { color: red }',
+      '[data-theme="light"]   .tarjeta-foto::after { background: red }',
+    ]
+    for (const t of trampas) expect(reglasDeClaroSinAlcance(t), t).toHaveLength(1)
+    expect(reglasDeClaroSinAlcance('[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto { color: red }')).toEqual([])
+    expect(reglasDeClaroSinAlcance(':root:not([data-theme="dark"]) [data-salon="entrenar"] .x { color: red }')).toEqual([])
   })
 })
 
