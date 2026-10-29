@@ -74,10 +74,11 @@ export async function correrAlertasNutri(e: EntradaEnvio): Promise<Record<string
     const d = decidirAlertasNutri({ hoy: e.hoy, encendidas, hambre, planes, abiertas })
 
     if (d.resolver.length > 0) {
-      await e.rest(`alertas_nutricion?id=in.(${d.resolver.join(',')})`, {
+      const rp = await e.rest(`alertas_nutricion?id=in.(${d.resolver.join(',')})`, {
         method: 'PATCH',
         body: JSON.stringify({ resuelta_en: new Date().toISOString() }),
       })
+      if (!rp.ok) throw new Error(`no se pudieron retirar las alertas (${rp.status})`)
     }
     let nuevas: { id: string }[] = []
     if (d.crear.length > 0) {
@@ -86,7 +87,8 @@ export async function correrAlertasNutri(e: EntradaEnvio): Promise<Record<string
         headers: { Prefer: 'resolution=ignore-duplicates,return=representation' },
         body: JSON.stringify(d.crear),
       })
-      if (r.ok) nuevas = (await r.json()) as { id: string }[]
+      if (!r.ok) throw new Error(`no se pudieron crear las alertas (${r.status})`)
+      nuevas = (await r.json()) as { id: string }[]
     }
 
     // Pendientes de avisar: las nuevas y las que quedaron sin aviso en una corrida anterior.
@@ -116,10 +118,11 @@ export async function correrAlertasNutri(e: EntradaEnvio): Promise<Record<string
       }
       return { ...resumen, push: 0, motivo: 'fallo del envio' }
     }
-    await e.rest(`alertas_nutricion?id=in.(${pendientes.join(',')})`, {
+    const ra = await e.rest(`alertas_nutricion?id=in.(${pendientes.join(',')})`, {
       method: 'PATCH',
       body: JSON.stringify({ avisada_en: new Date().toISOString() }),
     })
+    if (!ra.ok) return { alertasNutri: 'error', motivo: `push enviado pero no se marcó avisada_en (${ra.status})`, push: 1 }
     return { ...resumen, push: 1 }
   } catch (err) {
     return { alertasNutri: 'error', motivo: err instanceof Error ? err.message : 'desconocido' }

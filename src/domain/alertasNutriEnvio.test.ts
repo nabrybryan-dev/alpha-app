@@ -114,6 +114,31 @@ describe('alertas nutricionales: la parte con red', () => {
     expect(llamadas.some((l) => l.metodo === 'PATCH' && l.ruta.includes('vieja-1') && l.cuerpo?.includes('resuelta_en'))).toBe(true)
   })
 
+  it('si el POST de las alertas nuevas falla, el resumen reporta el error y no dice ok', async () => {
+    const base = servidor({
+      alertas_nutricion_ajustes: [{ clave: 'hambre_sostenida', encendida: true }],
+      checkins: hambreAlta(3),
+      permisos_de_aviso: suscripcion,
+    })
+    const rest: Rest = async (ruta, init = {}) =>
+      init.method === 'POST' ? new Response('boom', { status: 500 }) : base.rest(ruta, init)
+    let enviados = 0
+    const r = await correrAlertasNutri({ rest, hoy: HOY, manuelaId: MANUELA, enviar: async () => void enviados++ })
+    expect(r.alertasNutri).toBe('error')
+    expect(enviados).toBe(0)
+  })
+
+  it('si el PATCH que retira alertas falla, el resumen reporta el error y no dice ok', async () => {
+    const base = servidor({
+      alertas_nutricion_ajustes: [{ clave: 'hambre_sostenida', encendida: false }],
+      alertas_nutricion: [{ id: 'vieja-1', asesorado_id: 'u1', clave: 'hambre_sostenida', avisada_en: null }],
+    })
+    const rest: Rest = async (ruta, init = {}) =>
+      init.method === 'PATCH' ? new Response('boom', { status: 500 }) : base.rest(ruta, init)
+    const r = await correrAlertasNutri({ rest, hoy: HOY, manuelaId: MANUELA, enviar: async () => {} })
+    expect(r.alertasNutri).toBe('error')
+  })
+
   it('un fallo de lectura no lanza: devuelve error', async () => {
     const rest: Rest = async () => new Response('x', { status: 500 })
     const r = await correrAlertasNutri({ rest, hoy: HOY, manuelaId: MANUELA, enviar: async () => {} })
