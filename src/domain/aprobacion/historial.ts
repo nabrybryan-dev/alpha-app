@@ -80,7 +80,9 @@ export function semanasDeFirma(
   let enCurso: (SemanaDeFirma & { firmados: number }) | null = null
 
   for (const f of filas) {
-    if (f.aprobado_en && f.aprobado_por !== firmante) continue
+    // La corrección que pidió este firmante le pesa a él aunque después firme otra persona.
+    const suya = correccionDeEsteFirmante(f, firmante)
+    if (!suya && f.aprobado_en && f.aprobado_por !== firmante) continue
     const lunes = lunesDe(f.semana)
     const abierta = lunes >= lunesHoy
     let s: SemanaDeFirma
@@ -93,7 +95,7 @@ export function semanasDeFirma(
       porSemana.set(lunes, s)
     }
     s.borradores++
-    if (correccionDeEsteFirmante(f, firmante)) s.corregidos++
+    if (suya) s.corregidos++
     else if (f.aprobado_en) s.aprobadosSinTocar++
   }
 
