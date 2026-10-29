@@ -62,6 +62,15 @@ function valorGlobal(nombre: string): string {
   return valor(css, nombre)
 }
 
+/** El token en el bloque del tema; si el tema no lo redefine, el global. */
+function valorDelTema(bloqueCss: string, nombre: string): string {
+  try {
+    return valor(bloqueCss, nombre)
+  } catch {
+    return valorGlobal(nombre)
+  }
+}
+
 function canalesDeValor(valorCrudo: string, nombre: string): [number, number, number] {
   const indirecto = valorCrudo.match(/^rgb\(var\(--([\w-]+)\)\)$/)
   if (indirecto) return canalesDeValor(valorGlobal(indirecto[1]!), indirecto[1]!)
@@ -111,10 +120,9 @@ describe.each(TEMAS)('contraste de los rótulos de estado en tema $nombre', (tem
     'el texto del Badge $nombre llega a 4,5:1 sobre su tinte en bg y surface-1',
     ({ texto, fondoDelTinte }) => {
       const color = canalesDeValor(valor(tema.bloque, texto), texto)
-      const tinteColor = canalesDeValor(
-        valorGlobal(fondoDelTinte),
-        fondoDelTinte,
-      )
+      // El tinte se lee en el bloque del tema: el verde y el ámbar cambian entre
+      // claro y oscuro, y leerlos del global medía el claro con el color oscuro.
+      const tinteColor = canalesDeValor(valorDelTema(tema.bloque, fondoDelTinte), fondoDelTinte)
       for (const fondo of FONDOS) {
         const cociente = contraste(color, tinte(tinteColor, superficie(fondo)))
         expect(Number(cociente.toFixed(2)), `${texto} sobre ${fondo}`).toBeGreaterThanOrEqual(4.5)
