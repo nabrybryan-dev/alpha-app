@@ -38,6 +38,10 @@ describe('0149 · quien recalcula estandarizado_ejercicio', () => {
     expect(s).toMatch(/grant execute on function public\.recalcular_estandarizado\(\) to service_role/)
   })
 
+  it('el motivo guardado es el de la ULTIMA ruptura (order by numero desc), no el de la primera', () => {
+    expect(sql()).toMatch(/array_agg\(motivo order by numero desc\) filter \(where ev = 'rompe'\)/)
+  })
+
   it('no pisa un veto del coach: solo actualiza filas derivadas', () => {
     const s = sql()
     expect(s).toMatch(/on conflict \(usuario_id, ejercicio_id\) do update/)
