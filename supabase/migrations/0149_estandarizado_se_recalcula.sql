@@ -89,7 +89,7 @@ begin
       from evento group by 1, 2
   ), racha as (
     select e.usuario_id, e.eid, c.motivo,
-           count(*) filter (where e.ev = 'suma' and e.numero > coalesce(c.ultimo_rompe, -1)) as ok
+           count(distinct e.numero) filter (where e.ev = 'suma' and e.numero > coalesce(c.ultimo_rompe, -1)) as ok
       from evento e join corte c using (usuario_id, eid)
      group by 1, 2, 3
   ), escrito as (

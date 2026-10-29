@@ -102,12 +102,53 @@ begin
 end
 $$;
 
+-- ── 1b · Segunda persona: los casos de borde, todos con microciclos cerrados salvo donde se dice ──
+insert into auth.users (id, email) values
+  ('f2200000-0000-0000-0000-000000000002', 'est-bordes@ejemplo.test')
+on conflict (id) do nothing;
+
+insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
+  ('f2200000-0000-0000-0000-000000000002', 'Bordes de la estandarizacion', 'asesorado', 'BE')
+on conflict (id) do update set
+  nombre = excluded.nombre, rol = excluded.rol, avatar_iniciales = excluded.avatar_iniciales;
+
+-- Un microciclo con DOS sesiones (para el mismo ejercicio repetido en un microciclo).
+create function pg_temp.micro2(p_sesion1 jsonb, p_sesion2 jsonb) returns jsonb
+language sql as $$
+  select jsonb_build_object('sesiones', jsonb_build_array(
+    jsonb_build_object('ejercicios', p_sesion1), jsonb_build_object('ejercicios', p_sesion2)));
+$$;
+
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('bor-m1', 'f2200000-0000-0000-0000-000000000002', 1, 'cerrado', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej('ej-e', 'Pies firmes', 2, 2)))),
+  -- ej-e aparece en las DOS sesiones de m2: es UN microciclo limpio, no dos.
+  ('bor-m2', 'f2200000-0000-0000-0000-000000000002', 2, 'cerrado', pg_temp.micro2(
+     jsonb_build_array(pg_temp.ej('ej-e', 'Pies firmes', 2, 2)),
+     jsonb_build_array(pg_temp.ej('ej-e', 'Pies firmes', 2, 2)))),
+  ('bor-m3', 'f2200000-0000-0000-0000-000000000002', 3, 'cerrado', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej('ej-e', 'Pies firmes', 2, 2))));
+
+do $$
+declare r record;
+begin
+  perform public.recalcular_estandarizado();
+  -- B1 · m2 (dos apariciones) + m3 = 2 microciclos limpios tras la ruptura de m1. Contando apariciones saldria
+  -- 3 y 'si'.
+  select * into r from public.estandarizado_ejercicio
+   where usuario_id = 'f2200000-0000-0000-0000-000000000002' and ejercicio_id = 'ej-e';
+  if r.estado <> 'no' or r.microciclos_ok <> 2 then
+    raise exception 'ej-e (repetido en un microciclo) debia ser no/2, salio %/%', r.estado, r.microciclos_ok;
+  end if;
+end
+$$;
+
 -- ── 2 · Idempotencia: una segunda pasada seguida no reescribe ninguna fila de esta persona ──
 -- `now()` es el mismo dentro de la transaccion, asi que comparar `actualizado_en` antes y despues no puede
 -- fallar nunca. Se retrocede el sello de las filas a una fecha vieja ANTES de la segunda pasada: si la pasada
 -- reescribe una fila igual (falta la guarda `is distinct from`), el sello salta a now() y se ve.
 update public.estandarizado_ejercicio set actualizado_en = timestamptz '2000-01-01 00:00:00+00'
- where usuario_id = 'f2200000-0000-0000-0000-000000000001';
+ where usuario_id in ('f2200000-0000-0000-0000-000000000001', 'f2200000-0000-0000-0000-000000000002');
 
 do $$
 declare
@@ -116,7 +157,7 @@ declare
 begin
   v_devueltas := public.recalcular_estandarizado();
   select count(*) into v_reescritas from public.estandarizado_ejercicio
-   where usuario_id = 'f2200000-0000-0000-0000-000000000001'
+   where usuario_id in ('f2200000-0000-0000-0000-000000000001', 'f2200000-0000-0000-0000-000000000002')
      and actualizado_en > timestamptz '2000-01-01 00:00:00+00';
   if v_devueltas <> 0 then
     raise exception 'Una pasada sin cambios en el historial debia devolver 0 filas, devolvio %', v_devueltas;

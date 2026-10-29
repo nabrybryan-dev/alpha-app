@@ -42,6 +42,10 @@ describe('0149 · quien recalcula estandarizado_ejercicio', () => {
     expect(sql()).toMatch(/array_agg\(motivo order by numero desc\) filter \(where ev = 'rompe'\)/)
   })
 
+  it('la racha cuenta microciclos distintos, no apariciones del ejercicio', () => {
+    expect(sql()).toMatch(/count\(distinct e\.numero\) filter \(where e\.ev = 'suma'/)
+  })
+
   it('no pisa un veto del coach: solo actualiza filas derivadas', () => {
     const s = sql()
     expect(s).toMatch(/on conflict \(usuario_id, ejercicio_id\) do update/)
