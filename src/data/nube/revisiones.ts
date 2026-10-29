@@ -56,7 +56,7 @@ export async function historialDeFirma(ahora: Date = new Date()): Promise<Histor
   const desde = new Date(ahora)
   desde.setDate(desde.getDate() - ((desde.getDay() + 6) % 7) - 7 * SEMANAS_DE_VENTANA)
   const { data, error } = await supabase().from('videos_semanales')
-    .select('semana, aprobado_en, aprobado_por, correccion_solicitada, version')
+    .select('semana, aprobado_en, aprobado_por, correccion_solicitada, version, correccion_pedida_por, motivo_version')
     .gte('semana', fechaLocal(desde))
     .order('semana', { ascending: false })
     .limit(1000)

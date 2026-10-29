@@ -9,6 +9,14 @@ export interface FilaDeRevision {
   correccion_solicitada: string | null
   /** Sube cada vez que el archivo se rehace; más de 1 = hubo que rehacerlo. */
   version: number
+  /** Quién pidió la última corrección (migración 0150). Null = no se sabe (filas anteriores). */
+  correccion_pedida_por: string | null
+  /**
+   * Por qué subió la versión (migración 0150). Null = no se sabe: NO cuenta como corrección.
+   * PREGUNTA PARA BRYAN: el corte entre 'correccion' y 'republicacion_tecnica' (hoy: había una
+   * corrección pendiente o no) no está escrito en ningún documento; confirmarlo.
+   */
+  motivo_version: 'correccion' | 'republicacion_tecnica' | null
 }
 
 export interface HistorialDeFirma {
@@ -32,25 +40,33 @@ function vacia(fecha: string): SemanaDeFirma {
   return { fecha, borradores: 0, aprobadosSinTocar: 0, corregidos: 0 }
 }
 
+/** ¿Esta fila pesa como corrección en el semáforo de `firmante`? Solo si la pidió él. */
+function correccionDeEsteFirmante(f: FilaDeRevision, firmante: string): boolean {
+  if (f.correccion_pedida_por !== firmante) return false
+  const pendiente = f.correccion_solicitada !== null
+  const atendida = f.version > 1 && f.motivo_version === 'correccion'
+  return pendiente || atendida
+}
+
 /**
  * Convierte las filas de revisión en el historial de UN firmante para `veredictoDeLaPuerta`.
  *
  * - Una fila cuenta como borrador de este firmante si la firmó él o si nadie la ha firmado
  *   aún. Lo que firmó otra persona no entra: cada firmante tiene su propia puerta.
  * - «Sin tocar» = firmada por él, a la primera versión y sin corrección pedida.
- * - «Corregido» = versión mayor que 1 o corrección solicitada.
+ * - «Corregido» para ESTE firmante = una corrección que ÉL pidió (pendiente, o ya atendida en una
+ *   versión nueva con motivo 'correccion'). Una que pidió otra persona pesa en el semáforo de esa
+ *   persona, no en el de este. Una republicación técnica no cuenta para nadie.
  * - La semana en curso (la del lunes de `hoy`, o posterior) va aparte: lo pendiente de una
  *   semana que no ha terminado no es «sin mirar». Las anteriores sí: silencio no es firma.
  * - Una semana cerrada sin filas entra vacía, para que «seguidas» sean semanas del calendario.
  *
- * LÍMITES CON LOS DATOS QUE HAY (sin migración):
- * - Pedir una corrección borra `aprobado_por` (migración 0081), así que una fila corregida y
- *   aún sin firmar no se sabe de quién es y entra en la puerta de TODOS los firmantes.
- * - `version > 1` no distingue una corrección de una republicación técnica del archivo; se
- *   cuenta como corrección (la lectura prudente: cierra la puerta, no la abre).
+ * LÍMITES CON LOS DATOS QUE HAY:
+ * - Filas anteriores a la 0150 no traen quién pidió ni el motivo: no cuentan como corrección para
+ *   nadie (valor por omisión que no cuenta; PREGUNTA PARA BRYAN si prefiere lo contrario).
  * - Una fila firmada antes de la 0081 tiene `aprobado_en` pero no `aprobado_por`: no se sabe
  *   quién firmó y se deja fuera del historial de todos. Esa semana queda más corta o vacía,
- *   y por el hueco la racha se corta (otra vez, lo prudente).
+ *   y por el hueco la racha se corta (lo prudente).
  *
  * @param hoy Fecha local `AAAA-MM-DD`.
  */
@@ -77,7 +93,7 @@ export function semanasDeFirma(
       porSemana.set(lunes, s)
     }
     s.borradores++
-    if (f.version > 1 || f.correccion_solicitada !== null) s.corregidos++
+    if (correccionDeEsteFirmante(f, firmante)) s.corregidos++
     else if (f.aprobado_en) s.aprobadosSinTocar++
   }
 

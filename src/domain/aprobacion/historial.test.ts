@@ -3,13 +3,16 @@ import { semanasDeFirma, type FilaDeRevision } from './historial'
 import { veredictoDeLaPuerta } from './puerta'
 
 const HOY = '2026-10-28' // miércoles; su lunes es 2026-10-26
-const base = { aprobado_por: 'bryan', correccion_solicitada: null, version: 1 }
+const base = { aprobado_por: 'bryan', correccion_solicitada: null, version: 1, correccion_pedida_por: null, motivo_version: null as FilaDeRevision['motivo_version'] }
 const fila = (semana: string, extra: Partial<FilaDeRevision> = {}): FilaDeRevision => ({
   semana, aprobado_en: semana + 'T10:00:00Z', ...base, ...extra,
 })
+/** Versión nueva que atiende una corrección que pidió `quien`. */
+const atendida = (semana: string, quien: string, extra: Partial<FilaDeRevision> = {}): FilaDeRevision =>
+  fila(semana, { version: 2, motivo_version: 'correccion', correccion_pedida_por: quien, ...extra })
 const varias = (semana: string, n: number) => Array.from({ length: n }, () => fila(semana))
 const pendiente = (semana: string): FilaDeRevision =>
-  ({ semana, aprobado_en: null, aprobado_por: null, correccion_solicitada: null, version: 1 })
+  ({ semana, aprobado_en: null, aprobado_por: null, correccion_solicitada: null, version: 1, correccion_pedida_por: null, motivo_version: null })
 
 describe('semanasDeFirma: de las filas de revisión al historial de UN firmante', () => {
   it('sin filas, sin historial ni semana en curso', () => {
@@ -24,10 +27,10 @@ describe('semanasDeFirma: de las filas de revisión al historial de UN firmante'
     ])
   })
 
-  it('una versión mayor que 1 o una corrección pedida cuentan como corregidos, no como sin tocar', () => {
+  it('una corrección atendida o pendiente que pidió ESTE firmante cuenta como corregida, no como sin tocar', () => {
     const { semanas } = semanasDeFirma([
-      fila('2026-10-05', { version: 2 }),
-      fila('2026-10-05', { aprobado_en: null, aprobado_por: null, correccion_solicitada: 'Cambiar la cifra' }),
+      atendida('2026-10-05', 'bryan'),
+      fila('2026-10-05', { aprobado_en: null, aprobado_por: null, correccion_solicitada: 'Cambiar la cifra', correccion_pedida_por: 'bryan' }),
       fila('2026-10-05'),
     ], 'bryan', HOY)
     expect(semanas[0]).toEqual({ fecha: '2026-10-05', borradores: 3, aprobadosSinTocar: 1, corregidos: 2 })
@@ -68,7 +71,7 @@ describe('semanasDeFirma: de las filas de revisión al historial de UN firmante'
   })
 
   it('H6: «firmados» cuenta también lo aprobado después de corregir', () => {
-    const filas = [fila('2026-10-26'), fila('2026-10-26', { version: 2 }), fila('2026-10-26', { version: 3 }), pendiente('2026-10-26')]
+    const filas = [fila('2026-10-26'), atendida('2026-10-26', 'bryan'), atendida('2026-10-26', 'bryan', { version: 3 }), pendiente('2026-10-26')]
     const { enCurso } = semanasDeFirma(filas, 'bryan', HOY)
     expect(enCurso).toMatchObject({ borradores: 4, aprobadosSinTocar: 1, corregidos: 2, firmados: 3 })
   })
@@ -77,5 +80,46 @@ describe('semanasDeFirma: de las filas de revisión al historial de UN firmante'
     const { enCurso } = semanasDeFirma([fila('2026-11-02'), pendiente('2026-11-02')], 'bryan', HOY)
     expect(enCurso?.fecha).toBe('2026-10-26')
     expect(enCurso?.borradores).toBe(2)
+  })
+
+  describe('semáforo por firmante (0150)', () => {
+    const pendienteDe = (semana: string, quien: string | null) =>
+      fila(semana, { aprobado_en: null, aprobado_por: null, correccion_solicitada: 'Cambiar la cifra', correccion_pedida_por: quien })
+
+    it('una corrección que pidió Manuela pesa en el semáforo de Manuela y no en el de Bryan', () => {
+      // La fila la firmó Bryan tras la corrección de Manuela; la pendiente de Manuela la ven ambas puertas.
+      const filas = [atendida('2026-10-05', 'manuela'), pendienteDe('2026-10-05', 'manuela')]
+      expect(semanasDeFirma(filas, 'bryan', HOY).semanas[0]).toMatchObject({ corregidos: 0, aprobadosSinTocar: 1 })
+      expect(semanasDeFirma(filas.map(f => ({ ...f, aprobado_por: f.aprobado_en ? 'manuela' : null })), 'manuela', HOY).semanas[0])
+        .toMatchObject({ corregidos: 2 })
+    })
+
+    it('una corrección pendiente pedida por otro no cierra la puerta de este firmante', () => {
+      const { semanas } = semanasDeFirma([pendienteDe('2026-10-05', 'manuela')], 'bryan', HOY)
+      expect(semanas[0]).toMatchObject({ borradores: 1, corregidos: 0 })
+    })
+
+    it('una republicación técnica no cuenta como corrección para nadie', () => {
+      const tecnica = fila('2026-10-05', { version: 3, motivo_version: 'republicacion_tecnica' })
+      for (const quien of ['bryan', 'manuela']) {
+        const r = semanasDeFirma([{ ...tecnica, aprobado_por: quien }], quien, HOY)
+        expect(r.semanas[0]).toMatchObject({ corregidos: 0, aprobadosSinTocar: 1 })
+      }
+    })
+
+    it('una republicación técnica con un pedido viejo de corrección tampoco cuenta', () => {
+      const r = semanasDeFirma([fila('2026-10-05', { version: 2, motivo_version: 'republicacion_tecnica', correccion_pedida_por: 'bryan' })], 'bryan', HOY)
+      expect(r.semanas[0]).toMatchObject({ corregidos: 0 })
+    })
+
+    it('filas viejas (versión > 1 sin motivo ni quién pidió) no cuentan: valor por omisión', () => {
+      const r = semanasDeFirma([fila('2026-10-05', { version: 4 })], 'bryan', HOY)
+      expect(r.semanas[0]).toMatchObject({ corregidos: 0, aprobadosSinTocar: 1 })
+    })
+
+    it('una pendiente sin saber quién la pidió no cuenta para nadie', () => {
+      const r = semanasDeFirma([pendienteDe('2026-10-05', null)], 'bryan', HOY)
+      expect(r.semanas[0]).toMatchObject({ corregidos: 0 })
+    })
   })
 })
