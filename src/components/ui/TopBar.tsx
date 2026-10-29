@@ -4,6 +4,7 @@ import { useHistoriaInterna } from '../../app/historiaInternaContexto'
 import { buscarRuta, padreDe, tituloDeRuta } from '../../app/rutas'
 import { useSesion } from '../../app/SessionProvider'
 import { useTema } from '../../app/ThemeProvider'
+import { useVolverInterno } from '../../app/volverInternoContexto'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { usePuestoCoach } from '../../features/coach/consola/usePuestoCoach'
 import { MarcaAguila } from './MarcaAguila'
@@ -44,6 +45,7 @@ export function TopBar({ titulo }: TopBarProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { anterior } = useHistoriaInterna()
+  const { volver: volverInterno, titulo: tituloInterno } = useVolverInterno()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   useDbVersion()
 
@@ -54,8 +56,21 @@ export function TopBar({ titulo }: TopBarProps) {
   const esEquipo = usuario.rol === 'nutricionista' || esCoach
   const padre = cargando || (esCoach && tiene('solo_tablero')) ? null : padreDe(pathname, esEquipo)
   const previa = padre && anterior && anterior !== pathname ? buscarRuta(anterior) : undefined
-  const destino = previa ? { titulo: tituloDeRuta(previa.patron, esEquipo) ?? padre?.titulo ?? '', atras: true } : padre ? { titulo: padre.titulo, atras: false } : null
+  const destino = volverInterno
+    ? // Un estado interno dentro de la misma ruta (detalle de comida, semana del
+      // diario): lo cierra el MISMO «‹», no un botón propio de la pantalla. El
+      // título lo trae quien registró el estado; la cabecera no lo inventa.
+      { titulo: tituloInterno ?? 'Diario', atras: false }
+    : previa
+      ? { titulo: tituloDeRuta(previa.patron, esEquipo) ?? padre?.titulo ?? '', atras: true }
+      : padre
+        ? { titulo: padre.titulo, atras: false }
+        : null
   const volver = () => {
+    if (volverInterno) {
+      volverInterno()
+      return
+    }
     if (!padre || !destino) return
     if (destino.atras) navigate(-1)
     else navigate(padre.patron, { replace: true })

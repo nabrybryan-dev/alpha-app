@@ -62,7 +62,7 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   const pts = coordenadas(puntos)
   if (pts.length === 0) {
     return (
-      <div className="grid h-24 place-items-center text-xs text-silver-500">
+      <div className="grid h-24 place-items-center text-xs text-tenue">
         Aún no hay datos suficientes para el gráfico.
       </div>
     )
@@ -114,7 +114,7 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
           pathLength={1}
         />
       )}
-      <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill="var(--accion)" stroke="var(--ink-900)" strokeWidth="2" />
+      <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill="var(--accion)" stroke="var(--bg)" strokeWidth="2" />
     </svg>
   )
 }
@@ -122,10 +122,10 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
 /** El color sigue a la etiqueta, que ahora es la misma que usa la hoja PERFIL. */
 const CLASE_NIVEL: Record<NivelVolumen, string> = {
   'Muy Alto': 'text-accion',
-  Alto: 'text-silver-200',
-  Normal: 'text-silver-400',
-  Bajo: 'text-silver-500',
-  'Muy Bajo': 'text-silver-500',
+  Alto: 'text-texto',
+  Normal: 'text-tenue',
+  Bajo: 'text-tenue',
+  'Muy Bajo': 'text-tenue',
 }
 
 export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
@@ -206,33 +206,33 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Gráfico de evolución con toggle Peso / Fuerza */}
-      <div className="relieve rounded-bloque border border-ink-500 bg-ink-800 p-4">
+      <div className="relieve rounded-bloque border border-linea bg-surface-2 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-silver-500">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
               {metrica === 'peso' ? 'Peso en ayunas' : 'Carga de trabajo'}
             </p>
             <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="cifras text-3xl font-bold leading-none text-silver-100">
+              <span className="cifras text-3xl font-bold leading-none text-texto">
                 {actual !== undefined ? actual.toLocaleString('es-CO') : '—'}
-                <span className="text-base font-medium text-silver-500"> {unidad}</span>
+                <span className="text-base font-medium text-tenue"> {unidad}</span>
               </span>
               {delta !== undefined && delta !== 0 && (
-                <span className={`cifras text-sm font-bold ${delta < 0 ? 'text-accion' : 'text-silver-400'}`}>
+                <span className={`cifras text-sm font-bold ${delta < 0 ? 'text-accion' : 'text-tenue'}`}>
                   {delta > 0 ? '+' : ''}
                   {delta}
                 </span>
               )}
             </div>
           </div>
-          <div className="flex shrink-0 gap-1 rounded-full bg-ink-600 p-1">
+          <div className="flex shrink-0 gap-1 rounded-full bg-surface-3 p-1">
             {(['peso', 'fuerza'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setMetrica(m)}
                 className={`press min-h-11 rounded-full px-3 py-1 text-xs font-bold transition-colors duration-200 ${
-                  metrica === m ? 'bg-accion text-white' : 'text-silver-400'
+                  metrica === m ? 'bg-accion text-white' : 'text-tenue'
                 }`}
               >
                 {m === 'peso' ? 'Peso' : 'Fuerza'}
@@ -243,7 +243,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         <div className="mt-3">
           <GraficoLinea key={metrica} puntos={puntos} unidad={unidad} />
         </div>
-        <p className="mt-2 text-xs text-silver-500">
+        <p className="mt-2 text-xs text-tenue">
           {metrica === 'peso'
             ? 'Peso en ayunas registrado a lo largo del tiempo.'
             : 'Tonelaje (carga × reps) por sesión del microciclo actual.'}
@@ -255,17 +255,17 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
           dónde se está quedando corta —que es justo lo que abre conversación en
           la revisión—. */}
       {grupos.length > 0 && (
-        <div className="relieve rounded-bloque border border-ink-500 bg-ink-800 p-4">
+        <div className="relieve rounded-bloque border border-linea bg-surface-2 p-4">
           <div className="mb-1 flex items-center justify-between">
-            <span className="font-display text-sm text-silver-100">Volumen por grupo</span>
-            <span className="text-xs font-bold uppercase tracking-[0.1em] text-silver-500">
+            <span className="font-display text-sm text-texto">Volumen por grupo</span>
+            <span className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">
               Microciclo
             </span>
           </div>
           {/* La etiqueta (ALTO, NORMAL…) describe el PLAN, no lo hecho. Sin
               decirlo, "Espalda 0/15 ALTO" se lee como que va sobrada de volumen
               cuando lleva cero series. */}
-          <p className="mb-3 text-xs leading-snug text-silver-500">
+          <p className="mb-3 text-xs leading-snug text-tenue">
             Barra clara y etiqueta: lo que te pautó tu coach. Barra roja y primer número: lo
             que llevas registrado.
           </p>
@@ -274,15 +274,15 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
               const nivel = nivelDeSeries(g.seriesPautadas)
               return (
                 <div key={g.grupo} className="grid grid-cols-[76px_1fr_62px] items-center gap-2.5">
-                  <span className="truncate text-xs font-semibold text-silver-200">{g.grupo}</span>
+                  <span className="truncate text-xs font-semibold text-texto">{g.grupo}</span>
                   <span className="flex flex-col gap-1">
-                    <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
+                    <span className="h-1.5 overflow-hidden rounded-full bg-linea">
                       <span
-                        className="barra-crece block h-full rounded-full bg-silver-400"
+                        className="barra-crece block h-full rounded-full bg-tenue"
                         style={{ width: `${Math.round((g.seriesPautadas / maxSeries) * 100)}%` }}
                       />
                     </span>
-                    <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
+                    <span className="h-1.5 overflow-hidden rounded-full bg-linea">
                       <span
                         className="barra-crece block h-full rounded-full bg-accion"
                         style={{ width: `${Math.round((g.seriesHechas / maxSeries) * 100)}%` }}
@@ -290,7 +290,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
                     </span>
                   </span>
                   <span className="text-right">
-                    <span className="cifras block text-xs font-bold text-silver-100">
+                    <span className="cifras block text-xs font-bold text-texto">
                       {formatearSeries(g.seriesHechas)}/{formatearSeries(g.seriesPautadas)}
                     </span>
                     <span
@@ -309,21 +309,21 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
       {/* Medidas · desviación del último registro */}
       {perimetros.length > 0 && (
         <div>
-          <p className="mb-2 px-1 font-display text-sm text-silver-100">Medidas · última desviación</p>
+          <p className="mb-2 px-1 font-display text-sm text-texto">Medidas · última desviación</p>
           <div className="grid grid-cols-2 gap-2.5">
             {perimetros.map(([nombre, valor, unidad]) => {
               const antes = previoDe(nombre)
               const d = antes !== undefined ? Math.round((valor - antes) * 10) / 10 : undefined
               return (
-                <div key={nombre} className="rounded-tarjeta border border-ink-500 bg-ink-800 p-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-silver-500">{nombre}</p>
+                <div key={nombre} className="rounded-tarjeta border border-linea bg-surface-2 p-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">{nombre}</p>
                   <div className="mt-1 flex items-baseline justify-between gap-1">
-                    <span className="cifras text-xl font-bold text-silver-100">
+                    <span className="cifras text-xl font-bold text-texto">
                       {valor}
-                      <span className="text-xs font-medium text-silver-500"> {unidad}</span>
+                      <span className="text-xs font-medium text-tenue"> {unidad}</span>
                     </span>
                     {d !== undefined && d !== 0 && (
-                      <span className={`cifras text-xs font-bold ${d < 0 ? 'text-accion' : 'text-silver-400'}`}>
+                      <span className={`cifras text-xs font-bold ${d < 0 ? 'text-accion' : 'text-tenue'}`}>
                         {d > 0 ? '+' : ''}
                         {d}
                       </span>

@@ -84,7 +84,9 @@ export default function SemanaPage() {
     remitentes.length > 1 ? 'Escríbele a tu coach o a tu nutricionista' : 'Escríbele a tu coach'
 
   return (
-    <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
+    // Sigue el tema de la persona (decisión de Bryan, 28-oct): la cabecera y la
+    // barra inferior ya lo siguen, y forzar el cuerpo a claro partía la app en dos.
+    <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
       <header className="entrada entrada-1">
         <p className="kicker">Tu semana</p>
         <h2 className="mt-1 font-display text-3xl leading-none text-texto">Semana</h2>

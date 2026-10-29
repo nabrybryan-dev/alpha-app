@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useEffect, useState } from 'react'
 import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Rol } from '../../domain/types'
@@ -30,6 +31,7 @@ vi.mock('../../features/coach/consola/useCapacidades', () => ({
 const { TopBar } = await import('./TopBar')
 const { ThemeProvider } = await import('../../app/ThemeProvider')
 const { HistoriaInterna } = await import('../../app/HistoriaInterna')
+const { useVolverInterno } = await import('../../app/volverInternoContexto')
 
 function Sonda() {
   const { pathname } = useLocation()
@@ -229,6 +231,67 @@ describe('TopBar: el «‹» único', () => {
     estado.capacidades = new Set(['solo_tablero'])
     montar('/tablero', { titulo: 'Alpha · Tablero' })
     expect(volver()).toBeNull()
+  })
+
+  it('un estado interno (detalle de comida, semana del diario) usa el MISMO «‹»', async () => {
+    // `/nutricion` no tiene padre en `rutas.ts`: sin este registro, el detalle de
+    // una comida y la vista Semana se quedaban con su propio «←» o sin vuelta.
+    function DetalleInterno() {
+      const { registrar } = useVolverInterno()
+      const [abierto, setAbierto] = useState(true)
+      useEffect(() => {
+        if (abierto) {
+          registrar(() => setAbierto(false), 'Diario')
+          return () => registrar(null)
+        }
+        registrar(null)
+      }, [abierto, registrar])
+      return abierto ? <p>detalle abierto</p> : <p>diario</p>
+    }
+
+    const usuario = userEvent.setup()
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/nutricion']}>
+          <HistoriaInterna>
+            <TopBar titulo="Nutrición" />
+            <DetalleInterno />
+          </HistoriaInterna>
+        </MemoryRouter>
+      </ThemeProvider>,
+    )
+
+    expect(screen.getByText('detalle abierto')).toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Volver a Diario' }))
+    expect(screen.getByText('diario')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Volver a Diario' })).toBeNull()
+  })
+
+  it('el título del volver interno lo pone quien registra el estado, no la cabecera', () => {
+    // Antes `TopBar` escribía siempre «Diario». El siguiente estado interno
+    // —la semana del diario, una hoja abierta dentro de una pestaña— habría
+    // mentido sobre a dónde vuelve.
+    function EstadoInterno() {
+      const { registrar } = useVolverInterno()
+      useEffect(() => {
+        registrar(() => {}, 'Semana del diario')
+        return () => registrar(null)
+      }, [registrar])
+      return <p>semana abierta</p>
+    }
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/nutricion']}>
+          <HistoriaInterna>
+            <TopBar titulo="Nutrición" />
+            <EstadoInterno />
+          </HistoriaInterna>
+        </MemoryRouter>
+      </ThemeProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Volver a Semana del diario' })).toBeInTheDocument()
   })
 
   it('conserva el título, el tema y el menú de la cuenta', () => {

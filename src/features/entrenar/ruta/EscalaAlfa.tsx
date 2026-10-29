@@ -14,37 +14,37 @@ const ETIQUETA: Record<EstadoNivelAlfa, string> = {
 }
 
 const COLOR_ETIQUETA: Record<EstadoNivelAlfa, string> = {
-  superado: 'text-silver-500',
+  superado: 'text-tenue',
   actual: 'text-accion',
-  bloqueado: 'text-silver-500',
+  bloqueado: 'text-tenue',
   elite: 'text-oro',
 }
 
 const COLOR_TITULO: Record<EstadoNivelAlfa, string> = {
-  superado: 'text-silver-100',
-  actual: 'text-silver-100',
-  bloqueado: 'text-silver-300',
+  superado: 'text-texto',
+  actual: 'text-texto',
+  bloqueado: 'text-tenue',
   elite: 'text-oro',
 }
 
 function claseNodo(estado: EstadoNivelAlfa): string {
   if (estado === 'superado') return 'border-accion bg-accion text-white'
   if (estado === 'actual') return 'border-accion text-accion'
-  if (estado === 'elite') return 'border-oro/60 bg-ink-800 text-oro'
-  return 'border-ink-400 bg-ink-800 text-silver-500'
+  if (estado === 'elite') return 'border-oro/60 bg-surface-2 text-oro'
+  return 'border-linea bg-surface-2 text-tenue'
 }
 
 function estiloTarjeta(estado: EstadoNivelAlfa): React.CSSProperties | undefined {
   if (estado === 'actual') {
-    return { background: 'color-mix(in srgb, var(--accion) 6%, var(--ink-700))' }
+    return { background: 'color-mix(in srgb, var(--accion) 6%, var(--surface-3))' }
   }
   return undefined
 }
 
 function claseTarjeta(estado: EstadoNivelAlfa): string {
   if (estado === 'actual') return 'border-accion/30'
-  if (estado === 'elite') return 'border-oro/30 bg-ink-800'
-  return 'border-ink-500 bg-ink-800'
+  if (estado === 'elite') return 'border-oro/30 bg-surface-2'
+  return 'border-linea bg-surface-2'
 }
 
 /**
@@ -55,7 +55,7 @@ function claseTarjeta(estado: EstadoNivelAlfa): string {
 export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
   return (
     <section>
-      <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.16em] text-silver-500">
+      <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.16em] text-tenue">
         Escala Alfa
       </h3>
       <ol className="flex flex-col">
@@ -66,7 +66,7 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
                 className={`cifras grid h-[34px] w-[34px] place-items-center rounded-full border-[1.5px] text-[12.5px] font-bold ${claseNodo(nivel.estado)}`}
                 style={
                   nivel.estado === 'actual'
-                    ? { background: 'color-mix(in srgb, var(--accion) 18%, var(--ink-700))' }
+                    ? { background: 'color-mix(in srgb, var(--accion) 18%, var(--surface-3))' }
                     : undefined
                 }
               >
@@ -80,7 +80,7 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
                   // colas, lo que espera»— y esto es un riel literal: no es
                   // contenido, es lo que une dos peldaños. Detrás, los nodos y las
                   // tarjetas quedan delante y la línea de tiempo gana su eje.
-                  className={`min-h-3.5 w-0.5 flex-1 ${nivel.estado === 'superado' ? 'bg-accion' : 'bg-ink-500'}`}
+                  className={`min-h-3.5 w-0.5 flex-1 ${nivel.estado === 'superado' ? 'bg-accion' : 'bg-linea'}`}
                   style={{ transform: 'translateZ(var(--prof-fondo))' }}
                 />
               )}
@@ -96,12 +96,12 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
                       entrenados: cada peldaño declara al suyo. Se calla cuando
                       diría lo mismo que el nombre ("AVANZADO · Avanzado"). */}
                   {ETIQUETA_METODO[nivel.nivelMetodo].toUpperCase() !== nivel.nombre && (
-                    <span className="shrink-0 whitespace-nowrap text-xs uppercase tracking-[0.1em] text-silver-500">
+                    <span className="shrink-0 whitespace-nowrap text-xs uppercase tracking-[0.1em] text-tenue">
                       {ETIQUETA_METODO[nivel.nivelMetodo]}
                     </span>
                   )}
                 </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-silver-400">{nivel.descripcion}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-tenue">{nivel.descripcion}</p>
                 <p
                   className={`mt-2 text-xs font-bold uppercase tracking-[0.12em] ${COLOR_ETIQUETA[nivel.estado]}`}
                 >

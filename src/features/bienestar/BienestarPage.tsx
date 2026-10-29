@@ -30,8 +30,9 @@ export default function BienestarPage() {
   const verPeso = visibilidadDelAsesorado(usuario.id).verComposicion
 
   return (
-    // Bienestar es superficie clara siempre (decisión de diseño), sin importar el tema global.
-    <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
+    // Sigue el tema de la persona (decisión de Bryan, 28-oct): en oscuro se veía la
+    // cabecera oscura sobre un cuerpo hueso, como dos apps pegadas.
+    <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
       <header className="entrada entrada-1">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">Test durante el día</p>
         <h2 className="mt-1 font-display text-3xl leading-none text-texto">Check-in diario</h2>

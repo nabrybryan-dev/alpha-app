@@ -109,6 +109,19 @@ describe('la hoja de cambios', () => {
     await userEvent.click(screen.getByLabelText('Cerrar panel'))
     expect(onCerrar).toHaveBeenCalled()
   })
+
+  it('con el contador apagado no enseña la deriva de kcal, y sí los gramos', () => {
+    render(
+      <MemoryRouter>
+        <SessionProvider>
+          <SheetCambios linea="150 g de arroz blanco" verKcal={false} onCerrar={vi.fn()} />
+        </SessionProvider>
+      </MemoryRouter>,
+    )
+    const hoja = screen.getByRole('dialog')
+    expect(hoja.textContent).not.toMatch(/kcal/i)
+    expect(hoja.textContent).toMatch(/\d+ g/)
+  })
 })
 
 describe('lo que ya tiene en casa', () => {

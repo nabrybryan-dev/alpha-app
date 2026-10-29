@@ -2,6 +2,7 @@ import { etiquetaDelTipoDeDia, tipoDiaDeLaFecha } from '../../domain/nutricion/t
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { useVolverInterno } from '../../app/volverInternoContexto'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
@@ -149,6 +150,22 @@ export default function DiarioDia() {
   const [verSemana, setVerSemana] = useState(false)
   const [comidaAbierta, setComidaAbierta] = useState<TipoComida | null>(prefijo?.comida ?? null)
   const [elegido, setElegido] = useState<AlimentoIndice | null>(null)
+  const { registrar: registrarVolver } = useVolverInterno()
+
+  // El detalle de una comida y la vista Semana viven dentro de `/nutricion`, sin
+  // dirección propia. Su vuelta la pinta el «‹» de la cabecera, no un botón de la
+  // pantalla: aquí se le dice a `TopBar` qué cerrar mientras estén abiertos.
+  useEffect(() => {
+    if (detalle !== null) {
+      registrarVolver(() => setDetalle(null), 'Diario')
+      return () => registrarVolver(null)
+    }
+    if (verSemana) {
+      registrarVolver(() => setVerSemana(false), 'Diario')
+      return () => registrarVolver(null)
+    }
+    registrarVolver(null)
+  }, [detalle, verSemana, registrarVolver])
 
   const plan = db.nutricion.planByUsuario(usuario.id)
   // El tipo de día sale del plan y de la fecha que se mira; antes estaba fijo en ALTO.
@@ -362,6 +379,7 @@ export default function DiarioDia() {
   abierto={comidaAbierta !== null && elegido === null}
   recientes={recientes}
   consultaInicial={prefijo?.busqueda}
+  verKcal={visibilidad.verContadorKcal}
   onCerrar={() => setComidaAbierta(null)}
   onElegir={setElegido}
 />
@@ -372,6 +390,7 @@ export default function DiarioDia() {
   preguntarEstado={elegido ? preguntaDe(elegido) : null}
   nombreComida={destino ?? ''}
   gramosIniciales={prefijo?.gramos}
+  verKcal={visibilidad.verContadorKcal}
   onCerrar={() => setElegido(null)}
   onElegirEstado={(alimento) => {
     db.registroComidas.recordarPreferencia({
@@ -402,7 +421,6 @@ export default function DiarioDia() {
         resumen={resumenDeSemana(porDiaDeLaSemana, semana, porId, meta.kcal)}
         meta={meta}
         visibilidad={visibilidad}
-        onVolver={() => setVerSemana(false)}
         onElegirDia={(dia) => {
           setFecha(dia)
           setVerSemana(false)
@@ -419,7 +437,7 @@ export default function DiarioDia() {
       <>
         <DetalleComida
           comida={comida}
-          onVolver={() => setDetalle(null)}
+          verKcal={visibilidad.verContadorKcal}
           onAgregar={() => setComidaAbierta(detalle)}
           onQuitarItem={(itemId) => db.registroComidas.quitarItem(usuario.id, comida.id, itemId)}
           onCambiar={(cambios) =>
@@ -435,7 +453,7 @@ export default function DiarioDia() {
     <div className="flex flex-col gap-4 pb-6">
       <header>
         <h1 className="font-display text-xl text-texto">Nutrición</h1>
-        <p className="mt-0.5 text-xs capitalize text-tenue">
+        <p className="mt-0.5 text-xs text-tenue">
           {fechaBonita(fecha)} · {etiquetaDelTipoDeDia(plan, tipoDia)}
         </p>
       </header>
@@ -509,6 +527,7 @@ export default function DiarioDia() {
       <PanelCalibracion
         pruebas={pruebas}
         diasPesando={diasPesando}
+        verKcal={visibilidad.verContadorKcal}
         onRegistrar={({ alimentoId, estimados, reales }) =>
           db.calibracion.registrar({
             usuarioId: usuario.id,

@@ -100,6 +100,34 @@ describe('topes del día', () => {
   })
 })
 
+describe('avisos con el contador de kcal apagado', () => {
+  // El interruptor clínico esconde cifras de energía, no la protección: quien
+  // registra 1,5 kg de arroz tiene que seguir viendo el aviso.
+  it('el aviso de energía imposible sigue saliendo, sin la cifra', () => {
+    const avisos = revisarItem({ kcal: 1200.0 }, 10, false)
+    expect(avisos.some((a) => a.bloquea)).toBe(true)
+    expect(avisos[0].mensaje).toContain('imposible')
+    expect(avisos[0].mensaje).not.toMatch(/kcal/i)
+  })
+
+  it('el aviso del registro sigue saliendo, con los gramos y sin kcal', () => {
+    const avisos = revisarItem({ kcal: 130.0 }, 1500, false)
+    expect(avisos).toHaveLength(1)
+    expect(avisos[0].mensaje).toContain('1500 g')
+    expect(avisos[0].mensaje).toContain('¿Seguro?')
+    expect(avisos[0].mensaje).not.toMatch(/kcal|\d+ kcal/i)
+  })
+
+  it('con el contador encendido la frase es la de siempre', () => {
+    expect(revisarItem({ kcal: 1200.0 }, 10, true)[0].mensaje).toBe(
+      '1200 kcal por 100 g es imposible: revisa el alimento',
+    )
+    expect(revisarItem({ kcal: 130.0 }, 1500, true)[0].mensaje).toBe(
+      '1500 g son 1950 kcal en un solo registro. ¿Seguro?',
+    )
+  })
+})
+
 describe('valores', () => {
   it('los cuatro topes son los aprobados', () => {
     expect(TOPE_KCAL_100G).toBe(950.0)
