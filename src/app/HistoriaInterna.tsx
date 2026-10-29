@@ -49,12 +49,23 @@ export function HistoriaInterna({ children }: { children: ReactNode }) {
   const anterior = estado.i > 0 ? estado.pila[estado.i - 1].pathname : null
   // Un estado interno (el detalle de una comida, la vista Semana) no cambia la
   // dirección, así que su vuelta viaja por aquí. El «‹» de la cabecera la usa
-  // antes que el padre de `rutas.ts`.
-  const [volverInterno, setVolverInterno] = useState<(() => void) | null>(null)
-  const registrar = useCallback((cerrar: (() => void) | null) => setVolverInterno(() => cerrar), [])
+  // antes que el padre de `rutas.ts`, y el título lo pone quien registra: la
+  // cabecera no puede saber si debajo hay un diario o una semana.
+  const [volverInterno, setVolverInterno] = useState<{ cerrar: () => void; titulo: string } | null>(
+    null,
+  )
+  const registrar = useCallback((cerrar: (() => void) | null, titulo = 'Diario') => {
+    setVolverInterno(cerrar ? { cerrar, titulo } : null)
+  }, [])
   return (
     <ContextoDeHistoria.Provider value={{ anterior }}>
-      <ContextoVolverInterno.Provider value={{ volver: volverInterno, registrar }}>
+      <ContextoVolverInterno.Provider
+        value={{
+          volver: volverInterno?.cerrar ?? null,
+          titulo: volverInterno?.titulo ?? null,
+          registrar,
+        }}
+      >
         {children}
       </ContextoVolverInterno.Provider>
     </ContextoDeHistoria.Provider>

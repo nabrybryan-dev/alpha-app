@@ -15,11 +15,14 @@ import { createContext, useContext } from 'react'
  */
 export interface VolverInterno {
   volver: (() => void) | null
-  registrar: (cerrar: (() => void) | null) => void
+  /** Cómo se llama el estado interno al que se vuelve. Lo dice quien lo registra. */
+  titulo: string | null
+  registrar: (cerrar: (() => void) | null, titulo?: string) => void
 }
 
 export const ContextoVolverInterno = createContext<VolverInterno>({
   volver: null,
+  titulo: null,
   registrar: () => {},
 })
 

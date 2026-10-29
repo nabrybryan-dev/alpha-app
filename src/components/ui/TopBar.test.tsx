@@ -241,7 +241,7 @@ describe('TopBar: el «‹» único', () => {
       const [abierto, setAbierto] = useState(true)
       useEffect(() => {
         if (abierto) {
-          registrar(() => setAbierto(false))
+          registrar(() => setAbierto(false), 'Diario')
           return () => registrar(null)
         }
         registrar(null)
@@ -265,6 +265,33 @@ describe('TopBar: el «‹» único', () => {
     await usuario.click(screen.getByRole('button', { name: 'Volver a Diario' }))
     expect(screen.getByText('diario')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Volver a Diario' })).toBeNull()
+  })
+
+  it('el título del volver interno lo pone quien registra el estado, no la cabecera', () => {
+    // Antes `TopBar` escribía siempre «Diario». El siguiente estado interno
+    // —la semana del diario, una hoja abierta dentro de una pestaña— habría
+    // mentido sobre a dónde vuelve.
+    function EstadoInterno() {
+      const { registrar } = useVolverInterno()
+      useEffect(() => {
+        registrar(() => {}, 'Semana del diario')
+        return () => registrar(null)
+      }, [registrar])
+      return <p>semana abierta</p>
+    }
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/nutricion']}>
+          <HistoriaInterna>
+            <TopBar titulo="Nutrición" />
+            <EstadoInterno />
+          </HistoriaInterna>
+        </MemoryRouter>
+      </ThemeProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Volver a Semana del diario' })).toBeInTheDocument()
   })
 
   it('conserva el título, el tema y el menú de la cuenta', () => {

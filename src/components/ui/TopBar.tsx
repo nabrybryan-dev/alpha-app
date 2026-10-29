@@ -45,7 +45,7 @@ export function TopBar({ titulo }: TopBarProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { anterior } = useHistoriaInterna()
-  const { volver: volverInterno } = useVolverInterno()
+  const { volver: volverInterno, titulo: tituloInterno } = useVolverInterno()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   useDbVersion()
 
@@ -58,8 +58,9 @@ export function TopBar({ titulo }: TopBarProps) {
   const previa = padre && anterior && anterior !== pathname ? buscarRuta(anterior) : undefined
   const destino = volverInterno
     ? // Un estado interno dentro de la misma ruta (detalle de comida, semana del
-      // diario): lo cierra el MISMO «‹», no un botón propio de la pantalla.
-      { titulo: 'Diario', atras: false }
+      // diario): lo cierra el MISMO «‹», no un botón propio de la pantalla. El
+      // título lo trae quien registró el estado; la cabecera no lo inventa.
+      { titulo: tituloInterno ?? 'Diario', atras: false }
     : previa
       ? { titulo: tituloDeRuta(previa.patron, esEquipo) ?? padre?.titulo ?? '', atras: true }
       : padre

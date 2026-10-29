@@ -157,11 +157,11 @@ export default function DiarioDia() {
   // pantalla: aquí se le dice a `TopBar` qué cerrar mientras estén abiertos.
   useEffect(() => {
     if (detalle !== null) {
-      registrarVolver(() => setDetalle(null))
+      registrarVolver(() => setDetalle(null), 'Diario')
       return () => registrarVolver(null)
     }
     if (verSemana) {
-      registrarVolver(() => setVerSemana(false))
+      registrarVolver(() => setVerSemana(false), 'Diario')
       return () => registrarVolver(null)
     }
     registrarVolver(null)
