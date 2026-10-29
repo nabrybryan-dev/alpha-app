@@ -226,6 +226,39 @@ select pruebas.afirmar(
   'confirmar no activó la propuesta, no cerró la de la cadena o no cerró el aviso'
 );
 
+-- Confirmar sobre una propuesta que ya no se puede activar (cerrada) NO marca el aviso confirmado.
+-- B tiene el aviso de cd-b-9app ya confirmado; se siembra otro para una propuesta cerrada de C.
+reset role;
+insert into public.microciclos (id, usuario_id, numero, estado, datos)
+values ('cd-c-7', 'd2000000-0000-0000-0000-000000000003', 7, 'cerrado', '{}'::jsonb);
+insert into public.microciclos_choques
+  (id, usuario_id, propuesta_id, propuesta_numero, propuesta_origen, existente_numero, existente_origen)
+values ('c3000000-0000-0000-0000-000000000001', 'd2000000-0000-0000-0000-000000000003', 'cd-c-7', 7, 'app', 8, 'cadena');
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+do $$
+declare v_msg text;
+begin
+  begin
+    perform public.confirmar_pisar_microciclo('cd-c-7');
+  exception when others then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'confirmar_pisar_microciclo: la propuesta cd-c-7 no quedó activa%' then
+      raise exception 'FALLO: error inesperado al confirmar una propuesta cerrada: %', v_msg;
+    end if;
+    return;
+  end;
+  raise exception 'FALLO: confirmar sobre una propuesta cerrada no dio error';
+end $$;
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos_choques where id = 'c3000000-0000-0000-0000-000000000001') = 'pendiente'
+  and (select estado from public.microciclos where id = 'cd-c-7') = 'cerrado',
+  'confirmar_pisar_microciclo marcó confirmado un aviso sin activar nada'
+);
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+
 -- La confirmación no queda abierta para la siguiente operación de la sesión.
 select pruebas.afirmar(
   coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si',

@@ -334,12 +334,22 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_estado text;
 begin
   if auth.uid() is not null and not public.es_coach() then
     raise exception 'confirmar_pisar_microciclo: solo el coach confirma' using errcode = '42501';
   end if;
   perform set_config('alpha.pisar_microciclo', 'si', true);
   perform public.activar_microciclo(p_propuesta_id);
+  -- `activar_microciclo` vuelve en silencio si la propuesta ya se cerró o se borró. Marcar el aviso
+  -- «confirmado» sin que nada se haya activado dejaría un registro falso: se corta, el aviso
+  -- sigue pendiente (puede descartarse) y el coach ve el error.
+  select m.estado into v_estado from public.microciclos m where m.id = p_propuesta_id;
+  if v_estado is distinct from 'activo' then
+    raise exception 'confirmar_pisar_microciclo: la propuesta % no quedó activa (estado: %)',
+      p_propuesta_id, coalesce(v_estado, 'no existe') using errcode = '22023';
+  end if;
   update public.microciclos_choques
      set estado = 'confirmado', resuelto_por = auth.uid(), resuelto_en = now()
    where propuesta_id = p_propuesta_id and estado = 'pendiente';
