@@ -67,7 +67,7 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
   return (
     <div
       ref={marco}
-      className="relative overflow-hidden rounded-tarjeta border border-ink-500 bg-ink-900"
+      className="relative w-full max-w-full overflow-hidden rounded-tarjeta border border-ink-500 bg-ink-900"
     >
       {hayCalle && (
         <FondoLoop
@@ -78,10 +78,14 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
           anchura={1280}
           altura={720}
           className="absolute inset-0 h-full w-full object-cover"
+          // La pieza F trae un trazo rojo de la calle que competía con el rojo
+          // de los datos y se leía como un rayón suelto. En gris vuelve a ser
+          // fondo; el único rojo de la tira es la cifra de la racha.
+          estilo={{ filter: 'grayscale(1) brightness(0.9)' }}
         />
       )}
 
-      <div className="relative grid grid-cols-3">
+      <div className="relative grid w-full grid-cols-3">
         {celdas.map((celda, i) => (
           <div
             key={celda.nombre}
@@ -99,19 +103,21 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
               style={{ width: `${(1 - fracciones[i]) * 100}%` }}
               data-descubierto={fracciones[i]}
             />
-            <div className="relative">
+            <div className="relative min-w-0">
               <span className="mb-1 flex justify-center text-silver-400">
                 <celda.Icono className="h-[19px] w-[19px]" />
               </span>
-              <p className="cifras font-display text-2xl text-rojo">
+              <p className="cifras font-display text-2xl text-rojo-foto">
                 <CifraAnimada valor={celda.racha.actual} duracionMs={700} />
               </p>
               {/* La pieza es una foto nocturna: el texto va en claro fijo, no con
                   `text-tenue`, que en tema claro se volvía gris oscuro sobre negro. */}
-              <p className="break-words text-[10.5px] uppercase leading-tight tracking-wide text-silver-300">
+              <p className="break-words text-[10px] uppercase leading-tight tracking-wide text-silver-300">
                 {celda.nombre}
               </p>
-              <p className="mt-0.5 text-[10.5px] leading-tight text-silver-400">Récord: {celda.racha.record}</p>
+              <p className="mt-0.5 break-words text-[10px] leading-tight text-silver-400">
+                Récord: {celda.racha.record}
+              </p>
             </div>
           </div>
         ))}

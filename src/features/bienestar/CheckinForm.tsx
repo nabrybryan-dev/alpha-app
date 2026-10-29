@@ -43,8 +43,11 @@ function CampoPills({
 }) {
   return (
     <fieldset className="rounded-tarjeta border border-linea bg-surface-1 p-3.5 shadow-sm">
-      <legend className="mb-2.5 text-sm font-bold text-texto">{titulo}</legend>
-      <div className="flex gap-2">
+      {/* `legend` nativo se dibuja ENCIMA del borde del fieldset. Con `float`
+          vuelve al flujo de dentro de la tarjeta y el borde queda entero; el
+          `clear` de las opciones evita que se monten sobre el rótulo. */}
+      <legend className="float-left mb-2.5 w-full text-sm font-bold text-texto">{titulo}</legend>
+      <div className="clear-both flex gap-2">
         {opciones.map((o) => {
           const sel = valor === o
           return (

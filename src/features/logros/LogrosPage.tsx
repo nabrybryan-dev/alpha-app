@@ -68,7 +68,7 @@ export default function LogrosPage() {
           misma calle, con la pieza F corriendo por detrás y cada celda
           descubriendo hasta donde llegó su racha. El porqué está en
           `TiraDeRachas.tsx` y en el spec del 25-08. */}
-      <section className="entrada entrada-2">
+      <section className="entrada entrada-2 min-w-0">
         <TiraDeRachas celdas={rachas} />
       </section>
 
