@@ -51,8 +51,8 @@ describe('historialDeFirma: «hoy» es la fecha local, no la de UTC', () => {
     correccion_solicitada: null, version: 1, correccion_pedida_por: null, motivo_version: null,
   }
 
-  it('domingo 23:00 en Bogotá (lunes 04:00 UTC): la semana en curso sigue siendo la del lunes 26-oct', async () => {
-    const domingoNoche = new Date('2026-11-02T04:00:00Z') // dom 1-nov 23:00 en Bogotá
+  it('domingo 20:00 en Bogotá (lunes 01:00 UTC): la semana en curso sigue siendo la del lunes 26-oct', async () => {
+    const domingoNoche = new Date('2026-11-02T01:00:00Z') // dom 1-nov 20:00 en Bogotá
     expect(domingoNoche.getDay()).toBe(0)
     expect(domingoNoche.getUTCDay()).toBe(1)
     consulta.datos.filas = [firmadaLaSemanaEnCurso]
