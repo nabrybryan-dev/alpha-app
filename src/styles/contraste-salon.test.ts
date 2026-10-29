@@ -88,15 +88,20 @@ function crudo(bloque: string, nombre: string): string {
   return v
 }
 
-describe.each(TEMAS)('el texto del salón también se lee sobre el fondo del lienzo, tema $nombre', ({ bloque }) => {
-  it.each(['salon-3d-texto', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda'])(
+// En oscuro la leyenda de la retícula conserva su valor de antes (white/35, 3,16:1, no
+// es #rrggbb): excepción declarada, ver «tema oscuro del salón: los valores de antes».
+const sinLeyendaEnOscuro = (nombre: string, tokens: string[]) =>
+  nombre === 'oscuro' ? tokens.filter((t) => t !== 'salon-3d-leyenda') : tokens
+
+describe.each(TEMAS)('el texto del salón también se lee sobre el fondo del lienzo, tema $nombre', ({ nombre, bloque }) => {
+  it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-texto', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda']))(
     '%s llega a 4,5:1 sobre --salon-3d-lienzo',
     (token) => {
       const c = contraste(color(bloque, token), color(bloque, 'salon-3d-lienzo'))
       expect(Number(c.toFixed(2)), token).toBeGreaterThanOrEqual(4.5)
     },
   )
-  it.each(['salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda'])('%s llega a 4,5:1 sobre la pared', (token) => {
+  it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda']))('%s llega a 4,5:1 sobre la pared', (token) => {
     expect(Number(contraste(color(bloque, token), color(bloque, 'salon-3d-pared')).toFixed(2))).toBeGreaterThanOrEqual(4.5)
   })
 })
@@ -122,6 +127,11 @@ describe('tema oscuro del salón: los valores de antes', () => {
     expect(crudo(oscuro, 'salon-3d-relieve')).toContain('#22252a')
     expect(crudo(oscuro, 'salon-3d-borde-fino')).toContain('255 255 255 / 0.14')
     expect(crudo(oscuro, 'salon-3d-accion-suave').toLowerCase()).toBe('#ff4646d9')
+  })
+  it('la leyenda de la retícula y la cifra grande no cambiaron en oscuro (R2-5)', () => {
+    expect(crudo(oscuro, 'salon-3d-leyenda')).toBe('rgb(255 255 255 / 0.35)')
+    expect(crudo(oscuro, 'salon-3d-texto').toLowerCase()).toBe('#f2f2f2')
+    expect(crudo(oscuro, 'texto-rgb')).toBe('242 242 242')
   })
   it('en claro no hay resplandor ni relieve', () => {
     expect(crudo(claro, 'salon-3d-resplandor')).toBe('none')

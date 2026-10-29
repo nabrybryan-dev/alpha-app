@@ -129,18 +129,21 @@
   --salon-3d-panel: #070809;
   --salon-3d-segmento: #ff3d3d;
   --salon-3d-segmento-apagado: #0e0f11;
-  --salon-3d-texto: #f4f5f6;
+  --salon-3d-texto: #f2f2f2;
   --salon-3d-tenue: #c2c8cf;
   --salon-3d-accion: #ff4646;
   --salon-3d-accion-suave: #ff4646d9;
   /* El fondo del lienzo (lo que hay donde no llega la sala) y el resto de tonos que lee la
-     interfaz del salón. En oscuro son los valores de antes de la zona 8; las dos únicas
-     excepciones son el rótulo y el matiz, que subieron un escalón para llegar a 4,5:1. */
+     interfaz del salón. En oscuro son los valores de antes de la zona 8; las únicas
+     excepciones son el rótulo y el matiz, que subieron un escalón para llegar a 4,5:1.
+     La leyenda de la retícula (white/35, 3,16:1 sobre el lienzo, 9 px decorativos) y la cifra
+     grande (--texto, #f2f2f2) se quedan EXACTAMENTE como estaban: el contrato dice «oscuro
+     igual». La leyenda en claro sí llega a 4,5:1. */
   --salon-3d-lienzo: #0b0e12;
   --salon-3d-plata: #6f7782;
   --salon-3d-rotulo: #767f8a;
   --salon-3d-matiz: #7f7f7f;
-  --salon-3d-leyenda: #8a8d91;
+  --salon-3d-leyenda: rgb(255 255 255 / 0.35);
   --salon-3d-leyenda-tenue: rgb(255 255 255 / 0.2);
   --salon-3d-resplandor: 0 0 0.42em rgb(111 119 130 / 0.55);
   --salon-3d-relieve: 0 1px 0 rgb(0 0 0 / 0.6), 1px 2px 0 #2a2d31, 2px 3px 0 #22252a;
