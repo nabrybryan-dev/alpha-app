@@ -221,8 +221,9 @@ export default function EquipoNutricionPage() {
         )}
       </section>
 
-      {/* Alertas de seguridad nutricional (H-02): apagadas hasta que Manuela firme; sin filas no pinta nada. */}
-      {persona === null && <AlertasNutricionales />}
+      {/* Alertas de seguridad nutricional (H-02): apagadas hasta que Manuela firme; sin filas no pinta nada.
+          Solo la nutricionista las ve (Bryan, 29-oct); un coach que entra aquí no las pide. */}
+      {persona === null && usuario.rol === 'nutricionista' && <AlertasNutricionales />}
 
       {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
           mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}

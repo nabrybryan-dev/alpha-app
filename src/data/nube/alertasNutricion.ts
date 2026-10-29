@@ -16,11 +16,11 @@ export interface AlertaNutricion {
 }
 
 /**
- * Las alertas nutricionales abiertas, para el staff (0148).
+ * Las alertas nutricionales abiertas, para la nutricionista (0148).
  *
  * Con el interruptor apagado (el estado por defecto, hasta que la nutricionista firme) la Edge
  * Function no crea ninguna y esto devuelve una lista vacía: la pantalla no pinta nada. Solo el
- * staff las lee (la política de la 0148); a cualquier otro rol le devuelve vacío.
+ * nutricionista las lee (la política de la 0148); a cualquier otro rol le devuelve vacío.
  * Lanza si la lectura falla: quien llama decide no mostrar nada.
  */
 export async function traerAlertasNutricion(): Promise<AlertaNutricion[]> {

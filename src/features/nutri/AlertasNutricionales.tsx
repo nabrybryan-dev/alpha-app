@@ -5,7 +5,7 @@ import { ETIQUETA_ALERTA, traerAlertasNutricion, type AlertaNutricion } from '..
 
 /**
  * Alertas nutricionales abiertas, para Manuela (H-02). El aviso del teléfono es neutro («Tienes una
- * alerta nueva de un asesorado»); aquí, con sesión de staff, está el detalle: quién, qué y por qué.
+ * alerta nueva de un asesorado»); aquí, con sesión de nutricionista, está el detalle: quién, qué y por qué.
  *
  * Apagado por defecto: mientras la nutricionista no firme cada alerta (tabla alertas_nutricion_ajustes,
  * migración 0148) no hay filas y esto no pinta nada. Si la lectura falla tampoco pinta ni rompe.
