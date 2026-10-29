@@ -123,10 +123,13 @@ describe('semanasDeFirma: de las filas de revisión al historial de UN firmante'
       expect(r.semanas[0]).toMatchObject({ corregidos: 0, aprobadosSinTocar: 1 })
     })
 
-    it('una pendiente sin saber quién la pidió no cuenta para nadie', () => {
+    // Decisión de Bryan (29-oct): una corrección pendiente anterior a la 0150, sin quién la pidió,
+    // sale del historial de los dos. No es corrección ni «sin mirar»: no cierra la puerta de nadie.
+    it('una pendiente sin saber quién la pidió no cuenta para nadie, ni como sin mirar', () => {
       for (const quien of ['bryan', 'manuela']) {
         const r = semanasDeFirma([pendienteDe('2026-10-05', null)], quien, HOY)
-        expect(r.semanas[0]).toEqual({ fecha: '2026-10-05', borradores: 1, aprobadosSinTocar: 0, corregidos: 0 })
+        expect(r.semanas).toEqual([])
+        expect(r.enCurso).toBeNull()
       }
     })
   })

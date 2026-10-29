@@ -64,7 +64,8 @@ function correccionDeEsteFirmante(f: FilaDeRevision, firmante: string): boolean 
  *
  * LÍMITES CON LOS DATOS QUE HAY:
  * - Filas anteriores a la 0150 no traen quién pidió ni el motivo: no cuentan como corrección para
- *   nadie (decisión de Bryan, 29-oct).
+ *   nadie, y si la corrección sigue pendiente tampoco cuentan como «sin mirar» (decisión de Bryan,
+ *   29-oct).
  * - Una fila firmada antes de la 0081 tiene `aprobado_en` pero no `aprobado_por`: no se sabe
  *   quién firmó y se deja fuera del historial de todos. Esa semana queda más corta o vacía,
  *   y por el hueco la racha se corta (lo prudente).
@@ -85,7 +86,8 @@ export function semanasDeFirma(
     const suya = correccionDeEsteFirmante(f, firmante)
     if (!suya && f.aprobado_en && f.aprobado_por !== firmante) continue
     // Una corrección pendiente que pidió otra persona es de su semáforo: no es «sin mirar» de este.
-    if (!suya && !f.aprobado_en && f.correccion_solicitada !== null && f.correccion_pedida_por !== null) continue
+    // Si no se sabe quién la pidió (anterior a la 0150), sale del de todos (Bryan, 29-oct).
+    if (!suya && !f.aprobado_en && f.correccion_solicitada !== null) continue
     const lunes = lunesDe(f.semana)
     const abierta = lunes >= lunesHoy
     let s: SemanaDeFirma
