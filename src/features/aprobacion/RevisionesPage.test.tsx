@@ -102,17 +102,27 @@ describe('revisiones: la puerta de la salida automática', () => {
   it('H5: la semana en curso se enseña como «en curso» y no como «sin mirar»', async () => {
     vi.mocked(historialDeFirma).mockResolvedValue({
       semanas: ['2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19'].map(limpia),
-      enCurso: { fecha: '2026-10-26', borradores: 23, aprobadosSinTocar: 10, corregidos: 0 },
+      enCurso: { fecha: '2026-10-26', borradores: 23, aprobadosSinTocar: 10, corregidos: 4, firmados: 14 },
     })
     render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
-    expect(await screen.findByText(/Semana en curso.*10 de 23/)).toBeTruthy()
+    expect(await screen.findByText(/Semana en curso.*14 de 23/)).toBeTruthy()
     expect(screen.queryByText(/sin abrir/)).toBeNull()
     expect(document.querySelector('[data-puerta="abierta"]')).not.toBeNull()
   })
 
-  it('H10: avisa de que las firmas anteriores a la 0081 no se cuentan', async () => {
+  it('dice en pantalla los límites de los datos: correcciones contra todos, versión rehecha, firmas antiguas', async () => {
     render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
-    expect(await screen.findByText(/anteriores a la identificación del firmante/)).toBeTruthy()
+    const aviso = await screen.findByText(/anteriores a la identificación del firmante/)
+    expect(aviso.textContent).toMatch(/corrección.*todos los firmantes/)
+    expect(aviso.textContent).toMatch(/versión rehecha cuenta como corregida/)
+  })
+
+  it('abierta: dice que una corrección de esta semana cierra la puerta cuando la semana termine', async () => {
+    vi.mocked(historialDeFirma).mockResolvedValue({
+      semanas: ['2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12'].map(limpia), enCurso: null })
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    expect(await screen.findByText(/cuando la semana termine/)).toBeTruthy()
+    expect(screen.queryByText(/vuelve a cerrarla/)).toBeNull()
   })
 
   it('si el historial no carga, lo dice y la firma sigue disponible', async () => {

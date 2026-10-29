@@ -48,13 +48,13 @@ describe('semanasDeFirma: de las filas de revisión al historial de UN firmante'
       ...varias('2026-09-28', 6), fila('2026-10-26'), pendiente('2026-10-26'), pendiente('2026-10-26')]
     const r = semanasDeFirma(filas, 'bryan', HOY)
     expect(r.semanas.map(s => s.fecha)).not.toContain('2026-10-26')
-    expect(r.enCurso).toEqual({ fecha: '2026-10-26', borradores: 3, aprobadosSinTocar: 1, corregidos: 0 })
+    expect(r.enCurso).toEqual({ fecha: '2026-10-26', borradores: 3, aprobadosSinTocar: 1, corregidos: 0, firmados: 1 })
     // y la puerta, con cuatro semanas cerradas limpias, se abre aunque haya pendientes hoy
     expect(veredictoDeLaPuerta(r.semanas)).toEqual({ abierta: true, desde: '2026-10-19' })
   })
 
   it('H6: una semana del calendario sin filas corta la racha (no se cuentan posiciones)', () => {
-    // limpias: 5-oct, 12-oct, 26-oct (hueco el 19) y la de 28-sep: cuatro limpias, pero no seguidas
+    // limpias: 28-sep, 5-oct y 12-oct; las semanas del 19 y del 26-oct no tienen filas (huecos finales)
     const filas = [...varias('2026-09-28', 6), ...varias('2026-10-05', 6), ...varias('2026-10-12', 6)]
     const { semanas } = semanasDeFirma(filas, 'bryan', '2026-11-02') // cerradas: hasta el 26-oct
     expect(semanas.at(-1)).toEqual({ fecha: '2026-10-26', borradores: 0, aprobadosSinTocar: 0, corregidos: 0 })
@@ -65,5 +65,17 @@ describe('semanasDeFirma: de las filas de revisión al historial de UN firmante'
     const filas = [...varias('2026-09-07', 6), ...varias('2026-09-14', 6), ...varias('2026-10-05', 6), ...varias('2026-10-12', 6), ...varias('2026-10-19', 6)]
     const { semanas } = semanasDeFirma(filas, 'bryan', HOY)
     expect(veredictoDeLaPuerta(semanas)).toMatchObject({ abierta: false, semanasLimpias: 3 })
+  })
+
+  it('H6: «firmados» cuenta también lo aprobado después de corregir', () => {
+    const filas = [fila('2026-10-26'), fila('2026-10-26', { version: 2 }), fila('2026-10-26', { version: 3 }), pendiente('2026-10-26')]
+    const { enCurso } = semanasDeFirma(filas, 'bryan', HOY)
+    expect(enCurso).toMatchObject({ borradores: 4, aprobadosSinTocar: 1, corregidos: 2, firmados: 3 })
+  })
+
+  it('H5: con filas de una semana futura, la semana en curso lleva el lunes de ESTA semana', () => {
+    const { enCurso } = semanasDeFirma([fila('2026-11-02'), pendiente('2026-11-02')], 'bryan', HOY)
+    expect(enCurso?.fecha).toBe('2026-10-26')
+    expect(enCurso?.borradores).toBe(2)
   })
 })

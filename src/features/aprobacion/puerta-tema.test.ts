@@ -27,8 +27,11 @@ const contraste = (a: number[], b: number[]) => (Math.max(lum(a), lum(b)) + 0.05
 const ARCHIVOS = ['EstadoDeLaPuerta.tsx', 'RevisionesPage.tsx', 'BandejaAprobacion.tsx']
 
 describe('aprobación: las tarjetas se leen en los dos temas', () => {
-  it.each(ARCHIVOS)('%s no usa bg-ink-900 (no cambia con el tema)', (a) => {
-    expect(readFileSync(join(RAIZ, 'src/features/aprobacion', a), 'utf8')).not.toMatch(/bg-ink-900/)
+  it.each(ARCHIVOS)('%s no usa fondos fijos ni colores escritos a mano (no cambian con el tema)', (a) => {
+    const fuente = readFileSync(join(RAIZ, 'src/features/aprobacion', a), 'utf8')
+    expect(fuente).not.toMatch(/bg-ink-\d+/)
+    expect(fuente).not.toMatch(/(?<![\w-])(?:bg|text|border|ring|fill|stroke|from|via|to|outline|divide|shadow)-\[(?:#|rgb|hsl)/)
+    expect(fuente).not.toMatch(/style=\{\{[^}]*(?:#[0-9a-f]{3,8}|rgb\()/i)
   })
 
   it.each([['claro', claro], ['oscuro', oscuro]] as const)(

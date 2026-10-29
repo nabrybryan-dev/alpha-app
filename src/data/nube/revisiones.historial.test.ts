@@ -1,3 +1,6 @@
+// El día de la semana y la fecha tienen que salir de la MISMA hora: Bogotá, no UTC.
+process.env.TZ = 'America/Bogota'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const consulta = vi.hoisted(() => {
@@ -29,5 +32,14 @@ describe('historialDeFirma: la consulta no pierde lo más reciente', () => {
     expect(por.limit?.[0]).toBeGreaterThanOrEqual(1000)
     // 26 semanas atrás desde el lunes 26-oct
     expect(por.gte).toEqual(['semana', '2026-04-27'])
+  })
+
+  it('domingo a las 20:00 en Bogotá (ya es lunes en UTC): la ventana sigue empezando 26 lunes antes', async () => {
+    const domingoNoche = new Date('2026-11-02T01:00:00Z') // dom 1-nov 20:00 en Bogotá
+    expect(domingoNoche.getDay()).toBe(0) // la prueba solo vale si la zona horaria está puesta
+    expect(domingoNoche.getUTCDay()).toBe(1)
+    await historialDeFirma(domingoNoche)
+    const por = Object.fromEntries(consulta.llamadas.map(([m, a]) => [m, a]))
+    expect(por.gte).toEqual(['semana', '2026-04-27']) // lunes 26-oct menos 26 semanas
   })
 })

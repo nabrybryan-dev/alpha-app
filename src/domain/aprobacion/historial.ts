@@ -15,7 +15,7 @@ export interface HistorialDeFirma {
   /** Semanas YA CERRADAS, seguidas en el calendario (una sin filas entra vacía). */
   semanas: SemanaDeFirma[]
   /** La semana que aún no ha terminado: se muestra, pero no cuenta para la puerta. */
-  enCurso: SemanaDeFirma | null
+  enCurso: (SemanaDeFirma & { firmados: number }) | null
 }
 
 const DIA = 86_400_000
@@ -61,7 +61,7 @@ export function semanasDeFirma(
 ): HistorialDeFirma {
   const lunesHoy = lunesDe(hoy)
   const porSemana = new Map<string, SemanaDeFirma>()
-  let enCurso: SemanaDeFirma | null = null
+  let enCurso: (SemanaDeFirma & { firmados: number }) | null = null
 
   for (const f of filas) {
     if (f.aprobado_en && f.aprobado_por !== firmante) continue
@@ -69,8 +69,9 @@ export function semanasDeFirma(
     const abierta = lunes >= lunesHoy
     let s: SemanaDeFirma
     if (abierta) {
-      s = enCurso ??= vacia(lunes)
-      if (lunes < s.fecha) s.fecha = lunes
+      // Siempre el lunes de ESTA semana, aunque haya borradores adelantados de semanas futuras.
+      s = enCurso ??= { ...vacia(lunesHoy), firmados: 0 }
+      if (f.aprobado_en) enCurso.firmados++
     } else {
       s = porSemana.get(lunes) ?? vacia(lunes)
       porSemana.set(lunes, s)

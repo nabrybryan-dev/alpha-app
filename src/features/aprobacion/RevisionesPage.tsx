@@ -9,7 +9,7 @@ const NOTA_A_MANO = 'Hoy el envío automático no está encendido: la firma sigu
 
 // Límite de los datos (sin migración): no se sabe quién firmó lo anterior a la 0081, ni de quién
 // es una revisión pendiente de corrección; se cuentan con la lectura prudente (cierran, no abren).
-const AVISO_DATOS = 'Las firmas anteriores a la identificación del firmante no se cuentan, y una revisión rehecha cuenta como corregida.'
+const AVISO_DATOS = 'Límites de los datos: pedir una corrección borra quién firmó, así que una corrección cuenta contra todos los firmantes; una versión rehecha cuenta como corregida; y las firmas anteriores a la identificación del firmante no se cuentan.'
 
 /** La puerta de quien firma. Solo se muestra: no decide ni envía nada. */
 function Puerta({ recarga }: { recarga: number }) {

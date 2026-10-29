@@ -18,7 +18,7 @@ export function EstadoDeLaPuerta({ veredicto, nota, enCurso, aviso }: {
   veredicto: VeredictoDeLaPuerta
   nota?: string
   /** La semana que no ha terminado: se enseña, pero no cuenta para la puerta. */
-  enCurso?: SemanaDeFirma | null
+  enCurso?: (SemanaDeFirma & { firmados: number }) | null
   /** Letra pequeña sobre qué datos no se cuentan. */
   aviso?: string
 }) {
@@ -37,7 +37,7 @@ export function EstadoDeLaPuerta({ veredicto, nota, enCurso, aviso }: {
                 no se sabe salir es peor que no tenerla. */}
             <p className="mt-1 text-[11px] leading-snug text-tenue">
               {nota
-                ? 'Cumple las cuatro semanas limpias. Corregir una revisión vuelve a cerrarla.'
+                ? 'Cumple las cuatro semanas limpias. Si corriges una revisión esta semana, la puerta se cierra cuando la semana termine.'
                 : 'Los borradores pueden salir sin que los mires. Corrige uno y vuelve a cerrarse.'}
             </p>
           </>
@@ -51,7 +51,7 @@ export function EstadoDeLaPuerta({ veredicto, nota, enCurso, aviso }: {
         )}
         {enCurso && (
           <p data-en-curso="" className="mt-2 text-[11px] leading-snug text-tenue">
-            Semana en curso ({enCurso.fecha}): {enCurso.aprobadosSinTocar} de {enCurso.borradores} firmados.
+            Semana en curso ({enCurso.fecha}): {enCurso.firmados} de {enCurso.borradores} firmados.
             Todavía no cuenta para la puerta.
           </p>
         )}
