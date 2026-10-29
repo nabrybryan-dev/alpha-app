@@ -31,6 +31,7 @@ insert into auth.users (id, email) values
   ('d2000000-0000-0000-0000-000000000005', 'cd-e@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000006', 'cd-f@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000007', 'cd-g@ejemplo.test'),
+  ('d2000000-0000-0000-0000-000000000008', 'cd-h@ejemplo.test'),
   ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test')
 on conflict (id) do nothing;
 
@@ -42,6 +43,7 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('d2000000-0000-0000-0000-000000000005', 'Candado E', 'asesorado', 'CE'),
   ('d2000000-0000-0000-0000-000000000006', 'Candado F', 'asesorado', 'CF'),
   ('d2000000-0000-0000-0000-000000000007', 'Candado G', 'asesorado', 'CG'),
+  ('d2000000-0000-0000-0000-000000000008', 'Candado H', 'asesorado', 'CH'),
   ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
@@ -377,6 +379,32 @@ select pruebas.afirmar(
   'Activar igualmente aprobó un plan que esperaba por un motivo que no era el choque'
 );
 reset role;
+
+-- ─ 8b · Una PWA vieja del asesorado NO pierde sus series por un choque (H4, regresión de la 0021) ─
+-- H tiene un M9 activo de la cadena y un M8 cerrado que cargó la app. Su PWA cacheada drena un upsert
+-- de M8 con estado 'activo' y series nuevas (activarlo choca con el M9 de la cadena). El candado conserva el estado (no activa), el aviso queda
+-- REGISTRADO y la escritura NO falla: las series se guardan. Con staff y con la cadena no cambia nada.
+select set_config('request.jwt.claim.sub', '', false);  -- sin sesión: la cadena
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('cd-h-9', 'd2000000-0000-0000-0000-000000000008', 9, 'activo', '{}'::jsonb);
+select set_config('request.jwt.claim.sub', 'd2000000-0000-0000-0000-000000000008', false);  -- con sesión: origen 'app'
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('cd-h-8', 'd2000000-0000-0000-0000-000000000008', 8, 'cerrado', '{}'::jsonb);
+select pruebas.soy('d2000000-0000-0000-0000-000000000008');
+set role authenticated;
+insert into public.microciclos (id, usuario_id, numero, estado, datos)
+values ('cd-h-8', 'd2000000-0000-0000-0000-000000000008', 8, 'activo', '{"series":"nuevas"}'::jsonb)
+on conflict (id) do update set estado = excluded.estado, datos = excluded.datos;
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-h-8') = 'cerrado'
+  and (select datos->>'series' from public.microciclos where id = 'cd-h-8') = 'nuevas',
+  'el upsert del asesorado perdió las series o activó la semana pese al choque'
+);
+select pruebas.afirmar(
+  (select count(*) from public.microciclos_choques where usuario_id = 'd2000000-0000-0000-0000-000000000008' and estado = 'pendiente') = 1,
+  'el choque provocado por una sesión de asesorado no quedó registrado como aviso'
+);
 
 -- ─ 9 · anon no ejecuta NADA de la 0147 (LINEA DE DEFENSA H2) ─────────────
 -- Con uid nulo la guarda `auth.uid() is not null and not es_coach()` DEJA PASAR: lo único que frena a

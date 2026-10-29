@@ -200,7 +200,17 @@ describe('0147: estructura que no puede perderse', () => {
 
   it('H3: el candado no lanza excepción (se perdería el aviso) y registra con un trigger AFTER', () => {
     expect(cuerpoDe(SQL, 'microciclos_candado')).not.toMatch(/raise exception/i)
-    expect(cuerpoDe(SQL, 'microciclos_registrar_choque')).toContain('registrar_choque_microciclo(new.id)')
+    expect(cuerpoDe(SQL, 'microciclos_registrar_choque')).toContain('registrar_choque_microciclo_interno(new.id)')
+  })
+
+  it('H4: el AFTER no pasa por la guarda de staff (si no, el upsert de un asesorado pierde sus series)', () => {
+    const trig = SQL.slice(SQL.indexOf('function public.microciclos_registrar_choque('))
+    expect(trig.slice(0, trig.indexOf('$$;'))).toMatch(/security definer/i)
+    expect(cuerpoDe(SQL, 'registrar_choque_microciclo_interno')).not.toContain('solo el staff')
+    expect(SQL).toContain(
+      'revoke all on function public.registrar_choque_microciclo_interno(text) from public, anon, authenticated;',
+    )
+    expect(cuerpoDe(SQL, 'registrar_choque_microciclo')).toContain('solo el staff')
   })
 
   it('H7: confirmar_pisar_microciclo comprueba que la propuesta quedó activa ANTES de marcar confirmado', () => {

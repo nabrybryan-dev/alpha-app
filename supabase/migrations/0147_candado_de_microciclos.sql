@@ -185,15 +185,21 @@ create trigger trg_microciclos_b_candado
   before insert or update of estado on public.microciclos
   for each row execute function public.microciclos_candado();
 
+-- security definer + la función interna (sin guarda de staff): el aviso se registra SIEMPRE que el
+-- BEFORE bloqueó una activación, también cuando la escritura la hace una sesión que no es de staff
+-- (PWA vieja del asesorado que sube un microciclo con estado 'activo'). Con la guarda de staff, el
+-- AFTER lanzaba 42501 y el upsert entero fallaba: se perdían las series (lo que la 0021 evitaba).
+-- Quien escribe conserva sus datos, el estado no cambia y el coach ve el aviso.
 create or replace function public.microciclos_registrar_choque()
 returns trigger
 language plpgsql
+security definer
 set search_path = public
 as $$
 begin
   if coalesce(current_setting('alpha.choque_bloqueado', true), '') = new.id then
     perform set_config('alpha.choque_bloqueado', '', true);
-    perform public.registrar_choque_microciclo(new.id);
+    perform public.registrar_choque_microciclo_interno(new.id);
   end if;
   return null;
 end;
@@ -238,7 +244,7 @@ revoke all on public.microciclos_choques from public, anon, authenticated;
 grant select on public.microciclos_choques to authenticated;
 grant all on public.microciclos_choques to service_role;
 
-create or replace function public.registrar_choque_microciclo(p_propuesta_id text)
+create or replace function public.registrar_choque_microciclo_interno(p_propuesta_id text)
 returns void
 language plpgsql
 security definer
@@ -248,9 +254,6 @@ declare
   p  record;
   ch record;
 begin
-  if auth.uid() is not null and not public.es_staff() then
-    raise exception 'registrar_choque_microciclo: solo el staff' using errcode = '42501';
-  end if;
   select * into p from public.microciclos where id = p_propuesta_id;
   if not found then return; end if;
   select * into ch from public.microciclo_choque(p.usuario_id, p.id, p.numero, p.origen);
@@ -262,6 +265,25 @@ begin
     (p.usuario_id, p.id, p.numero, p.origen,
      ch.id, ch.numero, ch.origen, ch.cargado_en, ch.cargado_por)
   on conflict (propuesta_id) where estado = 'pendiente' do nothing;
+end;
+$$;
+
+-- Solo la llama el trigger AFTER (que es security definer) y el envoltorio de abajo: nadie más.
+revoke all on function public.registrar_choque_microciclo_interno(text) from public, anon, authenticated;
+grant execute on function public.registrar_choque_microciclo_interno(text) to service_role;
+
+-- Llamada directa (consola, coach): sigue pidiendo staff, igual que antes.
+create or replace function public.registrar_choque_microciclo(p_propuesta_id text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and not public.es_staff() then
+    raise exception 'registrar_choque_microciclo: solo el staff' using errcode = '42501';
+  end if;
+  perform public.registrar_choque_microciclo_interno(p_propuesta_id);
 end;
 $$;
 
