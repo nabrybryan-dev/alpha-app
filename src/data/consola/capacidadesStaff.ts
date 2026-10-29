@@ -19,7 +19,8 @@ export const TABLA_CAPACIDADES_STAFF = 'capacidades_staff'
  *  - `triar_comentarios`: solo de SERVIDOR. La usan la política de lectura y la RPC de estado de la 0095
  *    (`tiene_capacidad('triar_comentarios')`). No existe pantalla de triaje; se hace con la habilidad
  *    `comentarios-app`.
- *  - `firmar_creadores` y `firmar_politica`: declaradas en el `check` (0083/0086/0087/0090) y asignables, pero
+ *  - `firmar_creadores` y `firmar_politica`: declaradas en el `check` (`firmar_politica` desde la 0083, también en 0086/0087/0090;
+ *    `firmar_creadores` solo desde la 0090) y asignables, pero
  *    NINGUNA función SQL, política RLS ni Edge Function las consulta hoy con `tiene_capacidad(...)`; tampoco la
  *    interfaz. Son reserva de permiso sin consumidor, no una puerta de servidor. Solo `supabase/test/70` afirma que
  *    la staff común NO tiene `firmar_politica`, y `supabase/test/110` que ni con `firmar_creadores` se escribe

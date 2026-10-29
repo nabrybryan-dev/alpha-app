@@ -59,7 +59,7 @@ describe('nutricionista ficticia del demo', () => {
     ['/equipo-nutricion/cifras', /Qué cifras ve cada asesorado/],
     ['/mi-plan', /Pídeselo al coach/],
     ['/bandeja', /Los tres sombreros, juntos/],
-  ])('%s la deja entrar con el router real', async (ruta, texto) => {
+  ])('%s no se cae con el router real (en /mi-plan, el aviso de permiso)', async (ruta, texto) => {
     localStorage.setItem('alpha-usuario', ID)
     montarEn(ruta)
     expect(await screen.findByText(texto)).toBeInTheDocument()
