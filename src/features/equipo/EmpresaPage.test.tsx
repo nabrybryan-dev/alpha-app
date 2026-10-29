@@ -109,6 +109,13 @@ describe('la pantalla Empresa', () => {
     expect(screen.getAllByRole('link', { name: /Praxis del equipo/ })).toHaveLength(1)
   })
 
+  it('29-oct: con el filtro «todo» (el de por defecto) la nutricionista ve cada Praxis una sola vez', () => {
+    montar()
+    expect(screen.getAllByRole('link', { name: /Praxis del equipo/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: /Praxis de ejemplo/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: /Prueba de ingreso/ })).toHaveLength(1)
+  })
+
   it('29-oct: un asesorado no ve Praxis en Empresa (vuelve a la portada)', () => {
     estado.rol = 'asesorado'
     estado.capacidades = new Set()
