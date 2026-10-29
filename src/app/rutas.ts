@@ -104,6 +104,9 @@ export const RUTAS: readonly RutaApp[] = [
   { patron: '/cuestionarios', ejemplo: '/cuestionarios', padre: '/', titulo: 'Cuestionarios', guarda: ASESORADO },
   { patron: '/contenidos', ejemplo: '/contenidos', padre: '/', titulo: 'Contenidos', guarda: ASESORADO },
   { patron: '/logros', ejemplo: '/logros', padre: '/', titulo: 'Logros', guarda: ASESORADO },
+  // «Yo» (decisión de Bryan, 28-oct): avisos, buzón de comentarios y cambio de clave. Nada de salud. Se llega
+  // desde el menú de cuenta de la cabecera. La cuenta con rol coach (la de Alpha, solo tablero) no entra.
+  { patron: '/yo', ejemplo: '/yo', padre: '/', titulo: 'Yo', tituloEquipo: 'Mi cuenta', guarda: ASESORADO },
   { patron: '/marca', ejemplo: '/marca', padre: '/', titulo: 'Marca', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   // Espacios del equipo (pestañas de su barra, sin «‹»): la propia pantalla manda al asesorado a su sitio.
   { patron: '/mi-entreno', ejemplo: '/mi-entreno', padre: null, titulo: 'Mi entreno', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/entrenar' } } },

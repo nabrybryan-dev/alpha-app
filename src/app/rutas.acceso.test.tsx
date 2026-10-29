@@ -170,6 +170,8 @@ describe('lo que prometen los avisos y los scripts llega a una pantalla', () => 
     '/mi-plan': ['nutricionista (Manuela)'],
     '/coach/mi-plan': ['coach', 'cuenta personal de Bryan (puesto_de_coach)'],
     '/coach/revisiones': ['coach', 'cuenta personal de Bryan (puesto_de_coach)'],
+    // El recordatorio del check-in de las 6 pm (avisos-plan): lo recibe quien hace check-in, o sea todo el que no es rol coach.
+    '/bienestar': ['asesorado', 'nutricionista (Manuela)', 'cuenta personal de Bryan (puesto_de_coach)'],
   }
   const citas = [...new Map(citasDeAvisosYScripts().map((c) => [c.ruta, c])).values()]
 

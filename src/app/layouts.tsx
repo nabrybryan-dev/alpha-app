@@ -33,11 +33,14 @@ const titulos: Record<string, string> = {
   '/mi-entreno': 'Mi entreno',
   '/equipo-nutricion': 'Nutrición',
   '/mi-plan': 'Mi plan',
+  '/yo': 'Yo',
 }
 
 function tituloDe(ruta: string, esStaff = false): string {
   const base = `/${ruta.split('/')[1] ?? ''}`
   if (esStaff && base === '/') return 'Mi día'
+  // La pestaña «Yo» del equipo es Mi entreno: su pantalla de cuenta se llama «Mi cuenta» (como en `rutas.ts`).
+  if (esStaff && base === '/yo') return 'Mi cuenta'
   return titulos[base] ?? 'Alpha'
 }
 
