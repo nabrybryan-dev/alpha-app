@@ -1,6 +1,7 @@
 // Edge Function: avisos-plan
 // Envía Web Push (VAPID) del organizador SOLO al dueño (Bryan / Manuela). La llama un cron (ver
-// organizador-NOTAS.md). Se entrega copiando esta carpeta (index.ts + decidir.ts) a Supabase.
+// organizador-NOTAS.md). Se despliega con `supabase functions deploy avisos-plan` desde la RAÍZ del repo (importa de src/domain; pegar
+// index.ts y decidir.ts en el editor ya no basta).
 //
 // Variables de entorno (ninguna vive en el repo):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   las pone Supabase
