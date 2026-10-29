@@ -3,6 +3,7 @@ import {
   decidirAvisos,
   decidirRecordatoriosCheckin,
   destinatariosDelPlan,
+  ROLES_DEL_RECORDATORIO_CHECKIN,
   minutosDeHora,
   relojLocal,
   type TareaAviso,
@@ -164,5 +165,18 @@ describe('los avisos del equipo no llegan a los asesorados', () => {
   it('una tarea del equipo no produce aviso del plan si su dueño no es destinatario (un asesorado suscrito no basta)', () => {
     const duenos = destinatariosDelPlan(['u-asesorado'], ids)
     expect(decidirAvisos({ ...base, duenosConSuscripcion: duenos, tareas: [tarea()], ahora: OCHO_Y_MEDIA })).toEqual([])
+  })
+})
+
+describe('quién recibe el recordatorio del check-in (29-oct)', () => {
+  it('lo reciben los asesorados y la nutricionista, y el coach no', () => {
+    const roles: readonly string[] = ROLES_DEL_RECORDATORIO_CHECKIN
+    expect(roles).toContain('asesorado')
+    expect(roles).toContain('nutricionista')
+    expect(roles).not.toContain('coach')
+  })
+
+  it('que la nutricionista reciba el recordatorio no la vuelve destinataria de otra cosa: el plan sigue yendo solo por id', () => {
+    expect(destinatariosDelPlan(['u-nutri'], { bryan: 'u-bryan', manuela: 'u-manuela' })).toEqual([])
   })
 })

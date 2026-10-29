@@ -165,6 +165,9 @@ export interface EntradaCheckin {
   enviadosHoy: ReadonlySet<string>
 }
 
+/** Quién recibe el recordatorio de las 6 pm (Bryan, 29-oct): asesorados y la nutricionista; el coach no. Aparte de los avisos del plan. */
+export const ROLES_DEL_RECORDATORIO_CHECKIN = ['asesorado', 'nutricionista'] as const
+
 export function decidirRecordatoriosCheckin(e: EntradaCheckin): AvisoCheckin[] {
   const { dia, minutos } = relojLocal(e.ahora)
   if (minutos < minutosDeHora(HORA_CHECKIN) || minutos >= minutosDeHora(HORA_TOPE_CHECKIN)) return []

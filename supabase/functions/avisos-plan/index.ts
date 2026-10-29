@@ -1,7 +1,7 @@
 // Edge Function: avisos-plan
 // Envía Web Push (VAPID). Dos cosas, las dos con una suscripción viva en `permisos_de_aviso`:
 //   1. El organizador, SOLO al dueño (Bryan / Manuela).
-//   2. El recordatorio del check-in de las 6 pm (hora de Bogotá) a los asesorados que aún no lo ha llenado hoy, aunque la
+//   2. El recordatorio del check-in de las 6 pm (hora de Bogotá) a los asesorados y a la nutricionista que aún no lo ha llenado hoy, aunque la
 //      app esté cerrada. Su registro vive en `avisos_checkin_enviados` (migración 0146; si no está
 //      aplicada, la reserva falla y no se envía nada).
 // La llama un cron (ver organizador-NOTAS.md). Se entrega copiando esta carpeta (index.ts + decidir.ts) a Supabase.
@@ -15,7 +15,7 @@
 //
 // Solo acepta la clave de servicio en Authorization. Sin datos de salud: solo título y primer paso.
 
-import { decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
+import { decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, ROLES_DEL_RECORDATORIO_CHECKIN, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
 
@@ -155,8 +155,8 @@ async function manejar(req: Request): Promise<Response> {
 
   // ---- 2 · El recordatorio del check-in de las 6 pm, para toda persona con suscripción viva ----
   const ids = subs.map((s) => s.usuario_id).join(',')
-  // El recordatorio va a los asesorados con suscripción (decisión del coordinador, 28-oct); el equipo no lo recibe.
-  const rUsuarios = await rest(`usuarios_app?id=in.(${ids})&rol=eq.asesorado&select=id`)
+  // El recordatorio va a asesorados y a la nutricionista con suscripción (Bryan, 29-oct); el coach no lo recibe.
+  const rUsuarios = await rest(`usuarios_app?id=in.(${ids})&rol=in.(${ROLES_DEL_RECORDATORIO_CHECKIN.join(',')})&select=id`)
   const rCheckins = await rest(`checkins?fecha=eq.${dia}&usuario_id=in.(${ids})&select=usuario_id`)
   const rYa = await rest(`avisos_checkin_enviados?fecha_aviso=eq.${dia}&select=usuario_id`)
   if (rUsuarios.ok && rCheckins.ok && rYa.ok) {
