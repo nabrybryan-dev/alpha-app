@@ -121,13 +121,16 @@ $$;
 
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
   ('bor-m1', 'f2200000-0000-0000-0000-000000000002', 1, 'cerrado', pg_temp.micro(jsonb_build_array(
-     pg_temp.ej('ej-e', 'Pies firmes', 2, 2)))),
+     pg_temp.ej('ej-e', 'Pies firmes', 2, 2), pg_temp.ej('ej-f', 'Hombros atras', 2, 2)))),
   -- ej-e aparece en las DOS sesiones de m2: es UN microciclo limpio, no dos.
   ('bor-m2', 'f2200000-0000-0000-0000-000000000002', 2, 'cerrado', pg_temp.micro2(
-     jsonb_build_array(pg_temp.ej('ej-e', 'Pies firmes', 2, 2)),
+     jsonb_build_array(pg_temp.ej('ej-e', 'Pies firmes', 2, 2), pg_temp.ej('ej-f', 'Hombros atras', 2, 2)),
      jsonb_build_array(pg_temp.ej('ej-e', 'Pies firmes', 2, 2)))),
   ('bor-m3', 'f2200000-0000-0000-0000-000000000002', 3, 'cerrado', pg_temp.micro(jsonb_build_array(
-     pg_temp.ej('ej-e', 'Pies firmes', 2, 2))));
+     pg_temp.ej('ej-e', 'Pies firmes', 2, 2), pg_temp.ej('ej-f', 'Hombros atras', 2, 2)))),
+  -- m4 PROPUESTO (no vivido): cue reescrito y RIR fuera de banda en ej-f, y ej-h que solo existe aqui.
+  ('bor-m4', 'f2200000-0000-0000-0000-000000000002', 4, 'propuesto', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej('ej-f', 'Hombros adelante', 5, 2), pg_temp.ej('ej-h', 'Solo propuesto', 2, 2))));
 
 do $$
 declare r record;
@@ -139,6 +142,19 @@ begin
    where usuario_id = 'f2200000-0000-0000-0000-000000000002' and ejercicio_id = 'ej-e';
   if r.estado <> 'no' or r.microciclos_ok <> 2 then
     raise exception 'ej-e (repetido en un microciclo) debia ser no/2, salio %/%', r.estado, r.microciclos_ok;
+  end if;
+
+  -- B2 · «solo lo entrenado»: el m4 PROPUESTO no rompe ej-f (cue nuevo y RIR 5 contra 2) ni lo suma: queda
+  -- en no/2, con el motivo de su unica ruptura real (m1, ejercicio nuevo).
+  select * into r from public.estandarizado_ejercicio
+   where usuario_id = 'f2200000-0000-0000-0000-000000000002' and ejercicio_id = 'ej-f';
+  if r.estado <> 'no' or r.microciclos_ok <> 2 or r.motivo is distinct from 'ejercicio nuevo' then
+    raise exception 'ej-f con un m4 PROPUESTO debia ser no/2/ejercicio nuevo, salio %/%/%', r.estado, r.microciclos_ok, r.motivo;
+  end if;
+  -- Un ejercicio que solo aparece en un microciclo propuesto no tiene fila.
+  if exists (select 1 from public.estandarizado_ejercicio
+              where usuario_id = 'f2200000-0000-0000-0000-000000000002' and ejercicio_id = 'ej-h') then
+    raise exception 'ej-h solo existe en un microciclo PROPUESTO y no debia tener fila';
   end if;
 end
 $$;

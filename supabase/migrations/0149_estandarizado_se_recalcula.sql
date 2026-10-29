@@ -30,6 +30,11 @@
 -- activo está a medias, y una sola serie buena de la semana en curso no puede dar por asentada la técnica.
 -- Marcar de más es el error caro (0043, líneas 18-22); marcar de menos cuesta una semana.
 --
+-- SOLO LO ENTRENADO (Bryan, 2026-10-29). Los microciclos en estado `propuesto` todavía no se vivieron: se
+-- dejan FUERA del historial, así que ni suman ni rompen la racha, ni cuentan como «primera aparición», ni
+-- como cue previo. Los estados posibles son solo activo, cerrado y propuesto (check de la tabla). El activo
+-- sí es vivido: puede romper, pero no suma hasta cerrarse. Lo mismo hace `siguienteEstado` en TypeScript.
+--
 -- EL VETO GANA. Las filas con origen 'veto_coach' no se tocan: el `do update` solo actúa sobre las
 -- derivadas. Una fila nueva se inserta siempre como derivada.
 --
@@ -64,6 +69,7 @@ begin
            jsonb_array_elements(m.datos->'sesiones') s,
            jsonb_array_elements(coalesce(s->'ejercicios','[]'::jsonb)) e
      where coalesce(e->>'id','') <> ''
+       and m.estado <> 'propuesto'
   ), con_previo as (
     select *,
            lag(cue) over (partition by usuario_id, eid order by numero, mid) as cue_previo,

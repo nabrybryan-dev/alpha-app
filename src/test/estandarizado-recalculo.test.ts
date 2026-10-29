@@ -46,6 +46,11 @@ describe('0149 · quien recalcula estandarizado_ejercicio', () => {
     expect(sql()).toMatch(/count\(distinct e\.numero\) filter \(where e\.ev = 'suma'/)
   })
 
+  it('solo lo entrenado: los microciclos propuestos quedan fuera del historial (igual que en estandarizacion.ts)', () => {
+    expect(sql()).toMatch(/and m\.estado <> 'propuesto'/)
+    expect(readFileSync('src/domain/estandarizacion.ts', 'utf8')).toMatch(/estadoMicrociclo === 'propuesto'/)
+  })
+
   it('no pisa un veto del coach: solo actualiza filas derivadas', () => {
     const s = sql()
     expect(s).toMatch(/on conflict \(usuario_id, ejercicio_id\) do update/)
