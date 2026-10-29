@@ -102,24 +102,27 @@ begin
 end
 $$;
 
--- ── 2 · Idempotencia: una segunda pasada seguida no cambia nada de esta persona ──
+-- ── 2 · Idempotencia: una segunda pasada seguida no reescribe ninguna fila de esta persona ──
+-- `now()` es el mismo dentro de la transaccion, asi que comparar `actualizado_en` antes y despues no puede
+-- fallar nunca. Se retrocede el sello de las filas a una fecha vieja ANTES de la segunda pasada: si la pasada
+-- reescribe una fila igual (falta la guarda `is distinct from`), el sello salta a now() y se ve.
+update public.estandarizado_ejercicio set actualizado_en = timestamptz '2000-01-01 00:00:00+00'
+ where usuario_id = 'f2200000-0000-0000-0000-000000000001';
+
 do $$
 declare
-  v_antes timestamptz;
-  v_despues timestamptz;
+  v_devueltas integer;
+  v_reescritas integer;
 begin
-  select max(actualizado_en) into v_antes from public.estandarizado_ejercicio
-   where usuario_id = 'f2200000-0000-0000-0000-000000000001';
-  perform public.recalcular_estandarizado();
-  select max(actualizado_en) into v_despues from public.estandarizado_ejercicio
-   where usuario_id = 'f2200000-0000-0000-0000-000000000001';
-  -- `now()` es el de la transaccion: si la segunda pasada reescribiera filas iguales, el sello seria el mismo
-  -- y no se veria. Por eso se cuenta tambien que no haya cambios que reportar.
-  if public.recalcular_estandarizado() <> 0 then
-    raise exception 'Una pasada sin cambios en el historial debia devolver 0 filas';
+  v_devueltas := public.recalcular_estandarizado();
+  select count(*) into v_reescritas from public.estandarizado_ejercicio
+   where usuario_id = 'f2200000-0000-0000-0000-000000000001'
+     and actualizado_en > timestamptz '2000-01-01 00:00:00+00';
+  if v_devueltas <> 0 then
+    raise exception 'Una pasada sin cambios en el historial debia devolver 0 filas, devolvio %', v_devueltas;
   end if;
-  if v_despues is distinct from v_antes then
-    raise exception 'La segunda pasada movio actualizado_en de filas que no cambiaron';
+  if v_reescritas <> 0 then
+    raise exception 'La segunda pasada reescribio % filas que no habian cambiado', v_reescritas;
   end if;
 end
 $$;
