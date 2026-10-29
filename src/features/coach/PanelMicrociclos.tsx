@@ -42,9 +42,12 @@ import {
   choquesPendientes,
   confirmarPisar,
   descartarChoque,
+  nombreDeOrigen,
   textoChoque,
   type ChoqueMicrociclo,
 } from '../../data/consola/choquesMicrociclo'
+import { hidratarDesdeNube } from '../../data/nube/hidratar'
+import { procesarCola } from '../../data/nube/sync'
 import { barrerYActivar, conclusion, revisarCartera, type FilaCartera } from './revisionCartera'
 
 const motorActivo = import.meta.env.VITE_MOTOR_APP_ACTIVO === 'true'
@@ -60,17 +63,42 @@ export function PanelMicrociclos() {
   // y contar las activaciones como hechas sería afirmar algo que no se comprobó.
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
 
+  // Hasta que no se han leído los avisos no se sabe qué activó de verdad la base: la activación
+  // sale por la cola y el candado actúa en el servidor, DESPUÉS de que la copia local ya diga
+  // «activo». Por eso se espera a que la cola drene, se leen los avisos y, si una propuesta
+  // bloqueada sigue activa en local, se rehidrata para que la copia local deje de mentir.
+  const [avisosListos, setAvisosListos] = useState(false)
+
   useEffect(() => {
     let vivo = true
-    void choquesPendientes().then((r) => {
+    void (async () => {
+      if (motorActivo) {
+        try {
+          await procesarCola()
+        } catch {
+          // Si la cola falla se lee igual: los avisos que ya existan se enseñan.
+        }
+      }
+      const r = await choquesPendientes()
       if (!vivo) return
       if (r.ok) {
         setChoques(r.choques)
         setErrorCarga(null)
+        const activaEnLocal = r.choques.some((c) =>
+          db.microciclos.byUsuario(c.usuarioId).some((m) => m.id === c.propuestaId && m.estado === 'activo'),
+        )
+        if (activaEnLocal) {
+          try {
+            await hidratarDesdeNube()
+          } catch {
+            // La próxima hidratación del arranque la corrige igual.
+          }
+        }
       } else {
         setErrorCarga(r.error)
       }
-    })
+      if (vivo) setAvisosListos(true)
+    })()
     return () => {
       vivo = false
     }
@@ -87,12 +115,17 @@ export function PanelMicrociclos() {
   }
 
   // Lo que la app NO activó por el candado no se cuenta como activado.
-  const bloqueadas = new Set(choques.map((c) => c.usuarioId))
-  // Y si no se pudieron leer los avisos, tampoco se sabe qué se activó de verdad: no se cuenta nada.
+  // Por persona Y número de propuesta, no solo por persona.
+  const bloqueadas = new Set(choques.map((c) => `${c.usuarioId}:${c.propuestaNumero}`))
+  // Y si no se pudieron leer los avisos, o aún no se han leído, no se sabe qué se activó de
+  // verdad: no se cuenta nada.
   const sinSaberAvisos = motorActivo && errorCarga !== null
-  const activadas = sinSaberAvisos
-    ? []
-    : filas.filter((f) => f.estado === 'automatica' && !bloqueadas.has(f.usuario.id))
+  const activadas =
+    sinSaberAvisos || (motorActivo && !avisosListos)
+      ? []
+      : filas.filter(
+          (f) => f.estado === 'automatica' && !bloqueadas.has(`${f.usuario.id}:${(f.numeroActual ?? 0) + 1}`),
+        )
   const enEspera = filas.filter((f) => f.estado === 'revisar')
   // Sin nada vencido no se pinta nada: un panel que dice «0 novedades» todos los
   // días enseña a no mirarlo, y el día que traiga algo tampoco se mirará.
@@ -127,7 +160,7 @@ export function PanelMicrociclos() {
 
       {choques.length > 0 && (
         <section className="flex flex-col gap-2">
-          <p className="kicker">La cadena ya cargó esa semana</p>
+          <p className="kicker">Esa semana ya estaba cargada</p>
           {choques.map((choque) => (
             <div key={choque.id} className="flex flex-col gap-2 rounded-xl border border-linea bg-surface-2 px-3 py-2">
               <span className="text-xs leading-snug text-texto">
@@ -135,10 +168,10 @@ export function PanelMicrociclos() {
               </span>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className="text-xs underline" onClick={() => void decidir(choque, false)}>
-                  Dejar la de la cadena
+                  Dejar la de {nombreDeOrigen(choque.existenteOrigen)}
                 </button>
                 <button type="button" className="text-xs underline" onClick={() => void decidir(choque, true)}>
-                  Activar la de la app igualmente
+                  Activar la de {nombreDeOrigen(choque.propuestaOrigen ?? 'app')} igualmente
                 </button>
               </div>
             </div>

@@ -18,6 +18,8 @@ export interface ChoqueMicrociclo {
   /** La propuesta de la app que NO se activó. */
   propuestaId: string
   propuestaNumero: number
+  /** Quién cargó la propuesta que no se activó. Ausente = 'app' (el caso de siempre). */
+  propuestaOrigen?: 'cadena' | 'app'
   /** La semana que ya estaba: su número, quién la cargó y cuándo. */
   existenteNumero: number
   existenteOrigen: 'cadena' | 'app'
@@ -29,6 +31,7 @@ interface FilaChoque {
   usuario_id: string
   propuesta_id: string
   propuesta_numero: number
+  propuesta_origen: 'cadena' | 'app'
   existente_numero: number
   existente_origen: 'cadena' | 'app'
   existente_en: string | null
@@ -40,7 +43,7 @@ export type ResultadoDecision = { ok: true } | { ok: false; error: string }
 const ERROR_CARGA = 'No se pudieron leer los avisos de microciclos. Vuelve a intentarlo.'
 const ERROR_DECISION = 'No se pudo guardar tu decisión. Vuelve a intentarlo.'
 
-const SELECCION = 'id,usuario_id,propuesta_id,propuesta_numero,existente_numero,existente_origen,existente_en'
+const SELECCION = 'id,usuario_id,propuesta_id,propuesta_numero,propuesta_origen,existente_numero,existente_origen,existente_en'
 
 /** Los avisos pendientes. En modo demo no hay base a la que preguntar: lista vacía. */
 export async function choquesPendientes(): Promise<ResultadoChoques> {
@@ -59,6 +62,7 @@ export async function choquesPendientes(): Promise<ResultadoChoques> {
         usuarioId: f.usuario_id,
         propuestaId: f.propuesta_id,
         propuestaNumero: f.propuesta_numero,
+        propuestaOrigen: f.propuesta_origen,
         existenteNumero: f.existente_numero,
         existenteOrigen: f.existente_origen,
         existenteEn: f.existente_en ?? '',
@@ -90,6 +94,10 @@ export const descartarChoque = (choqueId: string) =>
 /** La frase que ve el coach: quién la cargó, cuándo, y que la app no hizo nada. */
 export function textoChoque(choque: ChoqueMicrociclo, nombre: string): string {
   const quien = choque.existenteOrigen === 'cadena' ? 'la cadena de agentes' : 'la app'
+  const propia = (choque.propuestaOrigen ?? 'app') === 'cadena' ? 'la cadena de agentes' : 'la app'
   const cuando = choque.existenteEn ? ` el ${choque.existenteEn.slice(0, 10)}` : ''
-  return `${nombre}: ${quien} ya cargó su M${choque.existenteNumero}${cuando}. La propuesta M${choque.propuestaNumero} de la app no se activó.`
+  return `${nombre}: ${quien} ya cargó su M${choque.existenteNumero}${cuando}. La propuesta M${choque.propuestaNumero} de ${propia} no se activó.`
 }
+
+/** «la cadena» / «la app»: para los botones, que nombran a quién se deja y a quién se activa. */
+export const nombreDeOrigen = (origen: 'cadena' | 'app'): string => (origen === 'cadena' ? 'la cadena' : 'la app')

@@ -66,7 +66,7 @@ describe('choquesPendientes', () => {
     expect(r).toEqual({
       ok: true,
       choques: [{
-        id: 'c-1', usuarioId: 'u-1', propuestaId: 'm-10', propuestaNumero: 9,
+        id: 'c-1', usuarioId: 'u-1', propuestaId: 'm-10', propuestaNumero: 9, propuestaOrigen: 'app',
         existenteNumero: 9, existenteOrigen: 'cadena', existenteEn: '2026-10-27T13:05:00Z',
       }],
     })
