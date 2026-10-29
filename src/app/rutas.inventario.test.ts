@@ -75,7 +75,10 @@ describe('inventario de rutas', () => {
     expect(padreDe('/entrenar', true)).toEqual({ patron: '/mi-entreno', titulo: 'Mi entreno' })
     expect(padreDe('/no-existe')).toBeNull()
     // Las pestañas del equipo son raíces: sin «‹».
-    for (const r of ['/', '/mi-entreno', '/equipo', '/bandeja', '/empresa', '/coach/estrategias', '/coach/administracion']) expect(padreDe(r, true), r).toBeNull()
+    for (const r of ['/', '/mi-entreno', '/equipo', '/bandeja', '/empresa']) expect(padreDe(r, true), r).toBeNull()
+    // Estrategias y Administración son herramientas de Empresa (zona 6): su «‹» vuelve allí.
+    expect(padreDe('/coach/estrategias', true)).toEqual({ patron: '/empresa', titulo: 'Empresa' })
+    expect(padreDe('/coach/administracion', true)).toEqual({ patron: '/empresa', titulo: 'Empresa' })
     // La ficha única sí vuelve a la cartera.
     expect(padreDe('/equipo/u-valentina', true)).toEqual({ patron: '/equipo', titulo: 'Equipo' })
     expect(tituloDeRuta('/')).toBe('Hoy')
@@ -123,6 +126,10 @@ describe('salidas que el «‹» heredó de enlaces propios', () => {
     { desde: '/tablero', llevaba: '/', equipo: true },
     { desde: '/coach/consola', llevaba: '/', equipo: true },
     { desde: '/coach/creadores', llevaba: '/', equipo: true },
+    // Zona 6: el «‹» sustituye al «Volver a mi app» de estas dos pantallas y las devuelve a
+    // Empresa, que es desde donde se abren (sombrero de Administración).
+    { desde: '/coach/estrategias', llevaba: '/empresa', equipo: true },
+    { desde: '/coach/administracion', llevaba: '/empresa', equipo: true },
   ]
   it.each(HEREDADAS.map((h) => [h.desde, h] as const))('%s sigue pudiendo volver a su destino de siempre', (_d, h) => {
     expect(padreDe(h.desde, h.equipo)?.patron).toBe(h.llevaba)

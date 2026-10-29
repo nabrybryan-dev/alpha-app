@@ -13,6 +13,7 @@ import {
   type Semaforo,
 } from '../../../domain/adminTablero'
 import { CLASE_ETIQUETA } from '../../plan/comun'
+import { Flecha } from './TarjetaPlegable'
 
 export interface EnlaceSeccion {
   a: string
@@ -20,14 +21,17 @@ export interface EnlaceSeccion {
 }
 
 const COLOR_PUNTO: Record<Semaforo, string> = {
+  // El semáforo se dice por MATERIA, no solo por color: al día es un punto de plata sin
+  // filete, la atención es un anillo ámbar hueco y lo rojo es lo único lleno (T2 del 10).
   verde: 'bg-verde',
-  amarillo: 'bg-ambar',
+  amarillo: 'border-2 border-ambar bg-transparent',
   rojo: 'bg-rojo',
   gris: 'border border-tenue bg-surface-3',
 }
 const COLOR_TEXTO: Record<Semaforo, string> = {
   verde: 'text-texto',
-  amarillo: 'text-ambar',
+  // El ámbar no se usa como texto pequeño (T4): la palabra va en el color de lectura.
+  amarillo: 'text-texto',
   rojo: 'text-rojo',
   gris: 'text-tenue',
 }
@@ -165,25 +169,27 @@ export function TarjetaSeccion({
   }
 
   return (
-    <section aria-label={nombre} className="entrada rounded-tarjeta border border-linea bg-surface-1 shadow-sm">
+    <section aria-label={nombre} className="entrada overflow-hidden rounded-tarjeta border border-linea bg-surface-1 shadow-sm">
       {/* Capa 1: título, semáforo, una frase, una cifra. */}
       <button
         type="button"
         aria-expanded={abierta}
         aria-controls={idCuerpo}
         onClick={onAlternar}
-        className="press flex min-h-[64px] w-full items-start justify-between gap-3 p-4 text-left"
+        className="press flex min-h-[72px] w-full items-center justify-between gap-3 px-4 py-3 text-left"
       >
-        <span className="flex min-w-0 flex-col gap-1">
-          <span className={CLASE_ETIQUETA}>{nombre}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-sm font-semibold text-texto">{nombre}</span>
           <Semaforito semaforo={semaforo} />
-          <span className={`text-sm ${cifra.falta && leida.estado !== 'ok' ? 'font-bold text-tenue' : 'text-texto'}`}>{frase}</span>
+          <span className={`text-[13px] leading-snug ${cifra.falta && leida.estado !== 'ok' ? 'font-bold text-tenue' : 'text-texto'}`}>
+            {frase}
+          </span>
         </span>
-        <span className="flex shrink-0 flex-col items-end gap-0.5">
-          <span className={`cifras text-xl font-bold ${cifra.falta ? 'text-tenue' : 'text-texto'}`}>{cifra.texto}</span>
+        <span className="flex max-w-[45%] flex-col items-end gap-0.5">
+          <span className={`cifras break-words text-right text-2xl font-bold ${cifra.falta ? 'text-tenue' : 'text-texto'}`}>{cifra.texto}</span>
           {etiquetaCifra && <span className="text-[11px] text-tenue">{etiquetaCifra}</span>}
-          <span aria-hidden="true" className="text-tenue">{abierta ? '▾' : '▸'}</span>
         </span>
+        <Flecha abierta={abierta} />
       </button>
 
       {abierta && (
@@ -224,10 +230,10 @@ export function TarjetaSeccion({
           {enlace && (
             <Link
               to={enlace.a}
-              className="press inline-flex min-h-[48px] items-center justify-between gap-3 rounded-boton border border-texto px-4 text-[13px] font-bold text-texto"
+              className="press flex min-h-[56px] items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-2 px-4 text-[13px] font-bold text-texto"
             >
               <span>{enlace.texto}</span>
-              <span aria-hidden="true">›</span>
+              <span aria-hidden="true" className="text-tenue">›</span>
             </Link>
           )}
         </div>

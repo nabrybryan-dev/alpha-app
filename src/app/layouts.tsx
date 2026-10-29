@@ -12,7 +12,6 @@ import {
   puedeVerCreadores,
   puedeVerEstrategias,
 } from './accesoPanel'
-import { padreDe } from './rutas'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
@@ -69,6 +68,18 @@ function esRutaPropiaDelCoach(ruta: string): boolean {
 /** La barra del equipo es la misma para Manuela y para Bryan (maqueta 7, pasos 9-11). */
 function barraDelStaff() {
   return <BottomNav espacios="staff" />
+}
+
+/** Una salida del panel, con el mismo cuerpo de tecla que los chips de sombreros. */
+function EnlaceDelPanel({ a, children }: { a: string; children: string }) {
+  return (
+    <Link
+      to={a}
+      className="press inline-flex min-h-[44px] shrink-0 items-center rounded-full border border-linea bg-surface-1 px-3.5 text-xs font-bold text-tenue"
+    >
+      {children}
+    </Link>
+  )
 }
 
 /**
@@ -204,7 +215,6 @@ export function CoachLayout() {
             <p role="alert" className="rounded-tarjeta border border-dashed border-linea p-4 text-sm text-tenue">
               Sin permiso: la administración se abre con el permiso de ver la administración, y todavía no lo tienes.
             </p>
-            <Link to="/coach" className="mt-3 inline-flex min-h-[44px] items-center underline">Volver</Link>
           </main>
           {barraDelStaff()}
         </div>
@@ -249,27 +259,29 @@ export function CoachLayout() {
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin })} />
-      <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
-        {esCoach ? (
-          <>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/equipo">Cartera de asesorados</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/tablero">Tablero</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
-          </>
-        ) : (
-          <>
-            {/* Donde la cabecera ya trae el «‹» (padre en `rutas.ts`) este enlace no se repite; en las pestañas
-                Estrategias y Administración, que no tienen «‹», se conserva: ninguna salida se pierde. */}
-            {!padreDe(pathname, true) && (
-              <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
-            )}
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
-          </>
-        )}
-      </nav>
+      {/* La consola trae sus propias salidas en la hoja «Herramientas»: aquí no se repite la
+          fila de enlaces de texto que el rediseño retira. En el resto del panel se conservan,
+          ahora como teclas, para que ninguna salida se pierda. */}
+      {!enConsola && (
+        <nav aria-label="Herramientas del panel" className="mx-auto flex max-w-3xl gap-1.5 overflow-x-auto px-4 pt-3 [scrollbar-width:none]">
+          {esCoach ? (
+            <>
+              <EnlaceDelPanel a="/coach/revisiones">Revisar audios y vídeos</EnlaceDelPanel>
+              <EnlaceDelPanel a="/equipo">Cartera de asesorados</EnlaceDelPanel>
+              <EnlaceDelPanel a="/tablero">Tablero</EnlaceDelPanel>
+              <EnlaceDelPanel a="/coach/creadores">Creadores</EnlaceDelPanel>
+              <EnlaceDelPanel a="/coach/mi-plan">Mi plan</EnlaceDelPanel>
+              <EnlaceDelPanel a="/praxis">Praxis (solo equipo)</EnlaceDelPanel>
+            </>
+          ) : (
+            <>
+              {/* La salida de todas las pantallas del equipo la da el «‹» único de la cabecera
+                  (padre declarado en `rutas.ts`): aquí no se repite ningún «Volver a…» de texto. */}
+              <EnlaceDelPanel a="/praxis">Praxis (solo equipo)</EnlaceDelPanel>
+            </>
+          )}
+        </nav>
+      )}
       {(esCoach || enCreadores || enAdmin || enEstrategias) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
@@ -291,7 +303,7 @@ function tituloCoachLayout(
   en: { enConsola: boolean; enEstrategias: boolean; enCreadores: boolean; enAdmin: boolean },
 ): string {
   if (esCoach) {
-    if (en.enConsola) return 'Alpha · Asesorados'
+    if (en.enConsola) return 'Consola'
     if (en.enEstrategias || en.enCreadores) return 'Estrategia'
     if (en.enAdmin) return 'Administración'
     return 'Panel del coach'

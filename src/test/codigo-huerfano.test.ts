@@ -39,6 +39,8 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+  'src/domain/praxis/consultas/portero.ts':
+    'Consultas del equipo contestadas con una ficha (Bryan, 25-oct-2026); lo consume la Edge Function praxis-registro, no la app.',
 
   // La condicion del cero (Bryan, 1-oct-2026): con {rir} = 0 las respuestas de Praxis usan
   // FRASES-DEL-CERO en vez de «te quedaban 0 mas». Sin enchufar porque alpha-app todavia no
