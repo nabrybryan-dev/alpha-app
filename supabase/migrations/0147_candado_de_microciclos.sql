@@ -21,7 +21,24 @@
 -- (auth.uid() no nulo) = 'app'; contexto de servicio (SQL Editor, service_role) = 'cadena'. Así la
 -- app no manda ninguna columna nueva y no se rompe si esta migración aún no está aplicada. Todo lo
 -- que existe hoy lo cargó la cadena (el motor de la app estuvo apagado): se rellena 'cadena'.
--- SIN COMPROBAR en producción: que la cadena entre siempre sin sesión de usuario.
+--
+-- EVIDENCIA de que la cadena NUNCA carga con sesión de usuario (revisada el 29-oct-2026; las rutas
+-- cuelgan de la carpeta dev/ del equipo de Bryan):
+--   · cerebro-alpha-agentes/tuberia/README.md:36-37: «Los scripts generan SQL, no lo ejecutan. No
+--     leen credenciales»; el SQL se corre con el MCP de Supabase (`execute_sql`) o con `psql`.
+--   · cerebro-alpha-agentes/tuberia/cargar_perfil_prueba.py:31: mismo reparto (execute_sql o psql).
+--   · cerebro-alpha-agentes/tuberia/cargar.py:135: la carga real se ejecuta con `psql`.
+--   · cerebro-alpha-agentes/tuberia/guardar_borrador_plan.py:19 y activar_plan.py:93: «service_role
+--     (`supabase db query --linked`)»; subir_a_consola.py:92 y :828, igual.
+--   · supabase/plantilla-carga-microciclo.sql (sección 4): se usa en un archivo `begin; select
+--     tmp_cargar_siguiente(...); commit;` que se ejecuta por esas mismas vías, sin app de por medio.
+--   · scripts/rellenar-carga.mjs:35-43: `SUPABASE_SERVICE_KEY` (service_role); solo hace UPDATE de
+--     `datos`, sin insertar. scripts/semilla-sql.mjs genera SQL puro.
+--   Ninguna de esas vías hace `signIn`: psql, execute_sql, db query y la clave de servicio entran
+--   sin claim `sub`, es decir con auth.uid() nulo, que es lo que lee el trigger (comportamiento
+--   estándar de Supabase, no ejecutado aquí). No hay ninguna carga de la cadena con sesión de
+--   usuario en ese código. Lo que NO se puede comprobar desde el repo es un uso manual futuro con
+--   sesión: si pasara, esa carga quedaría con origen 'app'.
 --
 -- QUÉ HACE CADA PIEZA
 --   1 · columnas origen / cargado_en / cargado_por en `microciclos`.

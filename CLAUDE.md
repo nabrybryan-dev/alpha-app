@@ -214,9 +214,11 @@ app ya cargó la semana, la cadena no la pisa en silencio.
   `select set_config('alpha.pisar_microciclo','si',true)` en su misma transacción.
 - **Orden de encendido:** aplicar la 0147 (a mano, Bryan) ANTES de poner la variable en Vercel y
   reconstruir. Sin la 0147 no hay candado y la bandera reabre el pisado en silencio.
-- Sin comprobar a la hora de escribir esto: que la cadena entre siempre sin sesión de usuario
-  (si usara una sesión autenticada, quedaría con origen `app`); el SQL no se ejecutó en un
-  Postgres (el test `supabase/test/216-candado-de-microciclos.sql` corre en el CI).
+- Origen de la cadena: comprobado por lectura (la cabecera de la 0147 cita archivo:línea): la
+  tubería genera SQL que se corre con psql, execute_sql o `supabase db query` (auth.uid() nulo),
+  sin `signIn`. Un uso manual futuro con sesión de usuario quedaría con origen `app`.
+- El SQL no se ejecutó en un Postgres: el test `supabase/test/216-candado-de-microciclos.sql`
+  corre en el CI.
 
 ### Cómo fluyen los datos
 
