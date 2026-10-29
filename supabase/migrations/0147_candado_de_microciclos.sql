@@ -83,8 +83,14 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_microciclos_poner_origen on public.microciclos;
-create trigger trg_microciclos_poner_origen
+-- ORDEN DE LOS TRIGGERS. Postgres dispara los del mismo momento y evento POR ORDEN ALFABETICO del
+-- nombre. El candado (4) lee `new.origen`, así que el que lo fija tiene que dispararse antes: por eso
+-- los nombres llevan a_ / b_ (y c_ el del aviso, ya AFTER). Si alguien renombra uno y los invierte, el
+-- candado evaluaría con el origen por defecto 'cadena' en vez del definitivo; el test 216 comprueba
+-- el orden por nombre y, aparte, un insert `activo` con sesión.
+drop trigger if exists trg_microciclos_poner_origen on public.microciclos;  -- nombre del borrador
+drop trigger if exists trg_microciclos_a_origen on public.microciclos;
+create trigger trg_microciclos_a_origen
   before insert on public.microciclos
   for each row execute function public.microciclos_poner_origen();
 
@@ -137,8 +143,9 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_microciclos_candado on public.microciclos;
-create trigger trg_microciclos_candado
+drop trigger if exists trg_microciclos_candado on public.microciclos;  -- nombre del borrador
+drop trigger if exists trg_microciclos_b_candado on public.microciclos;
+create trigger trg_microciclos_b_candado
   before insert or update of estado on public.microciclos
   for each row execute function public.microciclos_candado();
 

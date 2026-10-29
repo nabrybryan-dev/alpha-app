@@ -22,6 +22,7 @@ insert into auth.users (id, email) values
   ('d2000000-0000-0000-0000-000000000001', 'cd-a@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000002', 'cd-b@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000003', 'cd-c@ejemplo.test'),
+  ('d2000000-0000-0000-0000-000000000004', 'cd-d@ejemplo.test'),
   ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test')
 on conflict (id) do nothing;
 
@@ -29,6 +30,7 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('d2000000-0000-0000-0000-000000000001', 'Candado A', 'asesorado', 'CA'),
   ('d2000000-0000-0000-0000-000000000002', 'Candado B', 'asesorado', 'CB'),
   ('d2000000-0000-0000-0000-000000000003', 'Candado C', 'asesorado', 'CC'),
+  ('d2000000-0000-0000-0000-000000000004', 'Candado D', 'asesorado', 'CD'),
   ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
@@ -37,11 +39,24 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos) values
   ('cd-a-8',  'd2000000-0000-0000-0000-000000000001', 8, 'activo', '{}'::jsonb),
   ('cd-b-8',  'd2000000-0000-0000-0000-000000000002', 8, 'cerrado', '{}'::jsonb),
   ('cd-b-9',  'd2000000-0000-0000-0000-000000000002', 9, 'activo', '{}'::jsonb),
-  ('cd-c-8',  'd2000000-0000-0000-0000-000000000003', 8, 'activo', '{}'::jsonb);
+  ('cd-c-8',  'd2000000-0000-0000-0000-000000000003', 8, 'activo', '{}'::jsonb),
+  ('cd-d-9',  'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb);
 
 select pruebas.afirmar(
-  (select count(*) from public.microciclos where id like 'cd-%' and origen = 'cadena') = 4,
+  (select count(*) from public.microciclos where id like 'cd-%' and origen = 'cadena') = 5,
   'lo cargado sin sesión de usuario no quedó con origen cadena'
+);
+
+-- ─ 0 · El ORDEN de los triggers (hallazgo H4) ───────────────────────────
+-- Postgres dispara por orden alfabético: el que fija el origen tiene que ir ANTES que el candado.
+-- Se comprueba por nombre (la causa) y, más abajo, por comportamiento (el efecto).
+select pruebas.afirmar(
+  (select array_position(array_agg(tgname::text order by tgname::text), 'trg_microciclos_a_origen')
+        < array_position(array_agg(tgname::text order by tgname::text), 'trg_microciclos_b_candado')
+     from pg_trigger
+    where tgrelid = 'public.microciclos'::regclass and not tgisinternal
+      and tgname in ('trg_microciclos_a_origen', 'trg_microciclos_b_candado')),
+  'el trigger que fija el origen no se dispara antes que el candado (orden alfabético de los nombres)'
 );
 
 -- ─ 1 · El coach, desde la app ───────────────────────────────────────────
@@ -83,6 +98,25 @@ select pruebas.afirmar(
       and existente_id = 'cd-b-9' and existente_origen = 'cadena' and existente_en is not null) = 1,
   'el choque no quedó avisado con quién la cargó y cuándo'
 );
+
+-- H4 por comportamiento: el coach (sesión) inserta DIRECTO un M9 'activo' sobre el M9 'activo' de la
+-- cadena de D. Con el origen ya fijado ('app') eso es un choque. Si el candado se evaluara antes de
+-- fijar el origen vería 'cadena' (el valor por defecto), no vería choque y pisaría en silencio.
+do $$
+declare v_msg text;
+begin
+  begin
+    insert into public.microciclos (id, usuario_id, numero, estado, datos)
+    values ('cd-d-9app', 'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb);
+  exception when raise_exception then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'candado_microciclo:%' then
+      raise exception 'FALLO: error inesperado en el insert directo: %', v_msg;
+    end if;
+    return;
+  end;
+  raise exception 'FALLO: un insert activo con sesión no chocó (¿el candado corre antes de fijar el origen?)';
+end $$;
 
 -- Un reintento de la cola no duplica el aviso.
 select public.activar_microciclo('cd-b-9app');
