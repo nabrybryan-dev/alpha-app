@@ -5,13 +5,18 @@
 --      sesión (el coach en la app) queda 'app', con quién y cuándo.
 --   2. La app NO activa una propuesta si la cadena ya cargó esa semana (o una posterior): no
 --      levanta excepción, no activa, y deja un aviso con quién la cargó y cuándo.
---   3. La cadena (insert directo, contexto de servicio) NO activa encima de una semana de la app:
---      la excepción aborta y el activo de la app sigue activo.
+--   3. La cadena (insert o update directo, contexto de servicio) NO activa encima de una semana de
+--      la app: NO hay excepción (una excepción deshace también el aviso) y el choque queda
+--      REGISTRADO; la fila queda 'propuesto'. «Cerrado» también cuenta como semana ocupada.
 --   4. Un número MAYOR sobre uno de otro origen es el relevo normal: pasa sin aviso.
 --   5. Misma procedencia: pasa sin aviso.
---   6. Confirmar (solo el coach) activa de verdad y cierra el aviso; un asesorado no confirma.
+--   6. Confirmar (solo el coach) activa de verdad y cierra el aviso; un asesorado no confirma ni
+--      descarta (se comprueba el MENSAJE de la guarda, no cualquier 42501, y que nada cambió);
+--      confirmar sobre una propuesta que no se puede activar falla y deja el aviso pendiente.
 --   7. La cadena confirma con set_config('alpha.pisar_microciclo','si',true).
---   8. El asesorado no lee los avisos.
+--   8. Un primer plan que choca queda en espera_bryan (decidir y vencer), nunca 'aprobado' sin activar.
+--   9. El asesorado no lee los avisos; anon no ejecuta NINGUNA función de la 0147.
+--  10. El trigger que fija el origen se dispara antes que el candado (por nombre y por comportamiento).
 -- Bloque de UUID propio (d2…/e2…). ROLLBACK al final.
 
 \set ON_ERROR_STOP on
@@ -199,20 +204,45 @@ select pruebas.afirmar(
 );
 
 -- ─ 6 · Confirmar: solo el coach ─────────────────────────────────────────
+-- Un asesorado no confirma NI descarta. Cada intento tiene que morir por la GUARDA (se comprueba
+-- el mensaje: un 42501 cualquiera —permiso denegado sobre una tabla o una función— no basta, porque
+-- también sería insufficient_privilege) y, después, nada puede haber cambiado. Si la función NO
+-- fallara, el `raise exception 'FALLO...'` de abajo es P0001 y NO lo captura `insufficient_privilege`.
+-- El asesorado no puede leer la tabla: el id del aviso se guarda ANTES, como dueño.
+select set_config('prueba.choque_b', (select id::text from public.microciclos_choques where propuesta_id = 'cd-b-9app'), false);
 select pruebas.soy('d2000000-0000-0000-0000-000000000002');
 set role authenticated;
 do $$
+declare v_msg text;
 begin
   begin
     perform public.confirmar_pisar_microciclo('cd-b-9app');
     raise exception 'FALLO: un asesorado confirmó pisar un microciclo';
-  exception
-    when insufficient_privilege then null;
+  exception when insufficient_privilege then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'confirmar_pisar_microciclo: solo el coach confirma%' then
+      raise exception 'FALLO: murió por otra causa y no por la guarda del coach: %', v_msg;
+    end if;
+  end;
+  begin
+    perform public.descartar_choque_microciclo(current_setting('prueba.choque_b')::uuid);
+    raise exception 'FALLO: un asesorado descartó un aviso';
+  exception when insufficient_privilege then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'descartar_choque_microciclo: solo el coach decide%' then
+      raise exception 'FALLO: descartar murió por otra causa y no por la guarda del coach: %', v_msg;
+    end if;
   end;
 end $$;
 select pruebas.afirmar(
   (select count(*) from public.microciclos_choques) = 0,
   'el asesorado puede leer los avisos de choque'
+);
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-b-9app') = 'propuesto'
+  and (select estado from public.microciclos_choques where propuesta_id = 'cd-b-9app') = 'pendiente',
+  'un asesorado cambió algo (la propuesta o el aviso) aunque su llamada falló'
 );
 
 reset role;
@@ -306,6 +336,45 @@ select pruebas.afirmar(
 select pruebas.afirmar(
   (select count(*) from public.microciclos_choques where propuesta_id = 'cd-f-5app' and estado = 'pendiente') = 1,
   'vencer_primer_plan con choque no dejó el aviso'
+);
+
+-- ─ 9 · anon no ejecuta NADA de la 0147 (LINEA DE DEFENSA H2) ─────────────
+-- Con uid nulo la guarda `auth.uid() is not null and not es_coach()` DEJA PASAR: lo único que frena a
+-- anon es el revoke. Si alguien lo quita (o lo deja en `from public` sin `anon`), esto se pone rojo.
+select pruebas.afirmar(
+  not has_function_privilege('anon', 'public.descartar_choque_microciclo(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.confirmar_pisar_microciclo(text)', 'execute')
+  and not has_function_privilege('anon', 'public.registrar_choque_microciclo(text)', 'execute')
+  and not has_function_privilege('anon', 'public.microciclo_choque(uuid,text,integer,text)', 'execute')
+  and not has_function_privilege('anon', 'public.activar_microciclo(text)', 'execute')
+  and not has_function_privilege('anon', 'public.decidir_primer_plan(uuid,text,text)', 'execute')
+  and not has_function_privilege('anon', 'public.vencer_primer_plan()', 'execute'),
+  'anon puede ejecutar una función de la 0147 (¿falta anon en algún revoke?)'
+);
+
+-- Y por comportamiento: anon intenta descartar un aviso pendiente y la base lo rechaza por permiso.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Un aviso que SIGUE pendiente (el de E, del bloque 8): si el revoke faltara, anon lo descartaría.
+select set_config('prueba.choque_e', (select id::text from public.microciclos_choques where propuesta_id = 'cd-e-5app'), false);
+set role anon;
+do $$
+declare v_msg text;
+begin
+  begin
+    perform public.descartar_choque_microciclo(current_setting('prueba.choque_e')::uuid);
+    raise exception 'FALLO: anon descartó un aviso de choque';
+  exception when insufficient_privilege then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'permission denied for function descartar_choque_microciclo%' then
+      raise exception 'FALLO: anon murió por otra causa: %', v_msg;
+    end if;
+  end;
+end $$;
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos_choques where propuesta_id = 'cd-e-5app') = 'pendiente',
+  'el aviso de E dejó de estar pendiente tras el intento de anon'
 );
 
 \echo 'OK · candado de microciclos (0147)'
