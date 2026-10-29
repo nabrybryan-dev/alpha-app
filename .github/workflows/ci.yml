@@ -198,5 +198,8 @@ jobs:
       - name: Las notas de llamada las lee y las anota quien entra a la consola (coach o leer_entrenamiento), a su nombre; el asesorado no ve nada
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/214-notas-de-llamada.sql
 
+      - name: El recálculo de lo estandarizado no suma con el microciclo activo, rompe con cue nuevo o RIR fuera de banda, respeta el veto del coach y solo lo ejecuta el servidor
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/220-estandarizado-recalculo.sql
+
       - name: Las observaciones del agente las lee quien entra a la consola; seguridad y prescripciones solo entran para firma, sin fuente no entran, y se firman por la función, a nombre de quien firma
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/215-observaciones-agente.sql
