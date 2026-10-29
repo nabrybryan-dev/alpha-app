@@ -21,7 +21,7 @@ import { salaDeBlenderCargada, suscribirseALaSalaDeBlender } from '../../visor/p
  * volumen, profundidad de campo, grano y formato 9:16. Todo eso es composición y pintura,
  * y todo eso se hace aquí con capas de mezcla:
  *
- * - **negro mate** — el lienzo del visor limpia con el gris del estudio (`FONDO_ESTUDIO`),
+ * - **negro mate** — el lienzo del visor limpia con el gris del estudio (`--salon-3d-lienzo`),
  *   que no es negro. La capa de claroscuro va en `multiply` con un radial casi blanco en
  *   el centro y casi negro en los bordes: el centro se queda como está y el resto de la
  *   habitación cae a negro. Es el mismo resultado que rebajar el `clearColor` del motor,
@@ -144,7 +144,7 @@ export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaPro
             // bordes caen a negro con alfa. Es lo que hace el claroscuro, dicho al derecho
             // en vez de al revés, y no hay modo de composición que pueda fallar.
             background:
-              'radial-gradient(64% 46% at 50% 41%, rgba(5,7,10,0) 0%, rgba(5,7,10,0.12) 30%, rgba(5,7,10,0.45) 56%, rgba(5,7,10,0.8) 78%, rgba(5,7,10,0.96) 100%)',
+              'radial-gradient(64% 46% at 50% 41%, rgb(var(--salon-3d-vineta-rgb) / 0) 0%, rgb(var(--salon-3d-vineta-rgb) / 0.12) 30%, rgb(var(--salon-3d-vineta-rgb) / 0.45) 56%, rgb(var(--salon-3d-vineta-rgb) / 0.8) 78%, rgb(var(--salon-3d-vineta-rgb) / 0.96) 100%)',
           }}
         />
       )}
@@ -200,24 +200,24 @@ export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaPro
             {/* La profundidad de cada plano. Un muro de un tono plano se lee como fondo;
                 con el degradado cayendo hacia la arista se lee como pared que se aleja. */}
             <linearGradient id="salon-muro-izq" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#05070a" stopOpacity="0.72" />
-              <stop offset="1" stopColor="#05070a" stopOpacity="0.05" />
+              <stop offset="0" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0.72" />
+              <stop offset="1" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0.05" />
             </linearGradient>
             <linearGradient id="salon-muro-der" x1="1" y1="0" x2="0" y2="0">
-              <stop offset="0" stopColor="#05070a" stopOpacity="0.72" />
-              <stop offset="1" stopColor="#05070a" stopOpacity="0.05" />
+              <stop offset="0" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0.72" />
+              <stop offset="1" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0.05" />
             </linearGradient>
             <linearGradient id="salon-suelo" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0" stopColor="#05070a" stopOpacity="0.78" />
-              <stop offset="1" stopColor="#05070a" stopOpacity="0" />
+              <stop offset="0" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0.78" />
+              <stop offset="1" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0" />
             </linearGradient>
             <linearGradient id="salon-techo" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#05070a" stopOpacity="0.85" />
-              <stop offset="1" stopColor="#05070a" stopOpacity="0" />
+              <stop offset="0" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0.85" />
+              <stop offset="1" style={{ stopColor: "rgb(var(--salon-3d-vineta-rgb))" }} stopOpacity="0" />
             </linearGradient>
             <radialGradient id="salon-apoyo" cx="0.5" cy="0.5" r="0.5">
-              <stop offset="0" stopColor="#000000" stopOpacity="0.62" />
-              <stop offset="1" stopColor="#000000" stopOpacity="0" />
+              <stop offset="0" style={{ stopColor: "rgb(var(--salon-3d-negro-rgb))" }} stopOpacity="0.62" />
+              <stop offset="1" style={{ stopColor: "rgb(var(--salon-3d-negro-rgb))" }} stopOpacity="0" />
             </radialGradient>
           </defs>
 
