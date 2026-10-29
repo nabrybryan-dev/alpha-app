@@ -96,12 +96,20 @@ function hambreVigente(hoy: string, filas: readonly FilaHambre[]): Map<string, s
       const fecha = diaAtras(hoy, i)
       serie.push({ fecha, hambre: dias.get(fecha) ?? null })
     }
-    const v = evaluarRacha(serie)
-    if (!v.cumplido || !v.tramo) continue
-    // Vigente: la racha no se rompió al final (más días sin ese tramo que la tolerancia).
-    const cola = serie.slice(-(TOLERANCIA_DIAS_SIN_CONFIRMAR + 1))
-    if (cola.every((r) => !enElTramo(r.hambre, v.tramo as string))) continue
-    salida.set(usuario, `Hambre ${v.tramo} sostenida: se cumplieron ${v.diasExigidos} días (desde el ${v.fechaCumplimiento}).`)
+    // Cada tramo se evalúa aparte (los demás días cuentan como sin registrar): así una racha vieja de
+    // un tramo ya cumplido no tapa la racha vigente de otro. Si hay varios vigentes, gana el más intenso.
+    let elegido: { tramo: string; diasExigidos: number; fechaCumplimiento: string } | null = null
+    for (const t of TRAMOS) {
+      const soloEste = serie.map((r) => ({ fecha: r.fecha, hambre: enElTramo(r.hambre, t.etiqueta) ? r.hambre : null }))
+      const v = evaluarRacha(soloEste)
+      if (!v.cumplido || !v.tramo) continue
+      // Vigente: la racha no se rompió al final (más días sin ese tramo que la tolerancia).
+      const cola = soloEste.slice(-(TOLERANCIA_DIAS_SIN_CONFIRMAR + 1))
+      if (cola.every((r) => r.hambre === null)) continue
+      elegido = { tramo: v.tramo, diasExigidos: v.diasExigidos as number, fechaCumplimiento: v.fechaCumplimiento as string }
+    }
+    if (!elegido) continue
+    salida.set(usuario, `Hambre ${elegido.tramo} sostenida: se cumplieron ${elegido.diasExigidos} días (desde el ${elegido.fechaCumplimiento}).`)
   }
   return salida
 }

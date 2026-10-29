@@ -95,6 +95,13 @@ describe('hambre sostenida: los umbrales son los de hambre.ts', () => {
     expect(decidirAlertasNutri(base({ hambre: conDos })).crear).toEqual([])
   })
 
+  it('una racha vieja de otro tramo no tapa la racha vigente', () => {
+    // hambre 10 hace 25-24 días (insostenible cumplido, ya terminado) y hambre 8 los últimos 6 días
+    const d = decidirAlertasNutri(base({ hambre: [...racha(10, 2, U, 24), ...racha(8, 6)] }))
+    expect(d.crear).toHaveLength(1)
+    expect(d.crear[0].detalle).toContain('intensa')
+  })
+
   it('una racha que ya terminó no está vigente: se retira la alerta abierta', () => {
     // cinco días de hambre 8 que acabaron hace 3 días; hoy y ayer sin registro
     const d = decidirAlertasNutri(
