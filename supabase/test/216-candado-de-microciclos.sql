@@ -30,6 +30,7 @@ insert into auth.users (id, email) values
   ('d2000000-0000-0000-0000-000000000004', 'cd-d@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000005', 'cd-e@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000006', 'cd-f@ejemplo.test'),
+  ('d2000000-0000-0000-0000-000000000007', 'cd-g@ejemplo.test'),
   ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test')
 on conflict (id) do nothing;
 
@@ -40,6 +41,7 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('d2000000-0000-0000-0000-000000000004', 'Candado D', 'asesorado', 'CD'),
   ('d2000000-0000-0000-0000-000000000005', 'Candado E', 'asesorado', 'CE'),
   ('d2000000-0000-0000-0000-000000000006', 'Candado F', 'asesorado', 'CF'),
+  ('d2000000-0000-0000-0000-000000000007', 'Candado G', 'asesorado', 'CG'),
   ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
@@ -337,6 +339,44 @@ select pruebas.afirmar(
   (select count(*) from public.microciclos_choques where propuesta_id = 'cd-f-5app' and estado = 'pendiente') = 1,
   'vencer_primer_plan con choque no dejó el aviso'
 );
+
+-- ─ 8b · «Activar igualmente» aprueba el plan en espera por choque (decidido por Bryan, 29-oct) ─
+-- Activar igualmente aprueba el plan: F está en espera_bryan (vencido, bloque 8; su aviso sigue pendiente) por choque (bloque 8). G tiene otro
+-- choque pero su plan espera por OTRO motivo. Ambos los confirma el coach.
+reset role;
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('cd-g-1cad', 'd2000000-0000-0000-0000-000000000007', 5, 'activo', '{}'::jsonb);
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('cd-g-5app', 'd2000000-0000-0000-0000-000000000007', 5, 'propuesto', '{}'::jsonb);
+reset role;
+insert into public.aprobaciones_primer_plan (id, usuario_id, microciclo_id, riesgo, dudas_pendientes, plazo_hasta, estado, motivo_espera) values
+  ('c2000000-0000-0000-0000-000000000007', 'd2000000-0000-0000-0000-000000000007', 'cd-g-5app', 'bajo', '{}', now() + interval '1 day',
+   'espera_bryan', 'Otro motivo: Bryan quiere ver este plan');
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+
+-- Con motivo de choque: queda aprobado por quien confirma, con fecha, y la propuesta activa.
+select public.confirmar_pisar_microciclo('cd-f-5app');
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-f-5app') = 'activo'
+  and (select estado from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') = 'aprobado'
+  and (select decidido_por from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') = 'e2000000-0000-0000-0000-000000000001'
+  and (select decidido_en from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') is not null,
+  'Activar igualmente no aprobó el plan que esperaba por choque (o no lo firmó quien confirma)'
+);
+
+-- Sin motivo de choque (espera por otra causa): se activa la propuesta pero el plan NO se toca.
+select public.confirmar_pisar_microciclo('cd-g-5app');
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-g-5app') = 'activo'
+  and (select estado from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000007') = 'espera_bryan'
+  and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000007') = 'Otro motivo: Bryan quiere ver este plan'
+  and (select decidido_por from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000007') is null,
+  'Activar igualmente aprobó un plan que esperaba por un motivo que no era el choque'
+);
+reset role;
 
 -- ─ 9 · anon no ejecuta NADA de la 0147 (LINEA DE DEFENSA H2) ─────────────
 -- Con uid nulo la guarda `auth.uid() is not null and not es_coach()` DEJA PASAR: lo único que frena a

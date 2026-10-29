@@ -54,6 +54,11 @@
 --   7 · `confirmar_pisar_microciclo` / `descartar_choque_microciclo`: la decisión explícita del
 --       coach. La cadena confirma con `select set_config('alpha.pisar_microciclo','si',true);` en
 --       su misma transacción (ver la plantilla).
+--      Además (decidido por Bryan, 29-oct): «Activar igualmente» sobre un primer plan que quedó en
+--      `espera_bryan` por choque lo pasa a `aprobado` en el mismo paso (aprobado por quien confirma),
+--      solo si la propuesta quedó activa; un plan en espera por otro motivo no se toca.
+-- PLANTILLA DE LA CADENA ante un choque (decidido por Bryan, 29-oct): avisa y devuelve «CHOQUE · ...»,
+-- sin fallar.
 --
 -- NO TOCA nada que ya exista salvo `activar_microciclo` (mismo cuerpo + el candado) y, en el punto 8,
 -- `decidir_primer_plan` / `vencer_primer_plan` (0086), que ahora no dan por activado lo que el candado frenó.
@@ -353,6 +358,20 @@ begin
   update public.microciclos_choques
      set estado = 'confirmado', resuelto_por = auth.uid(), resuelto_en = now()
    where propuesta_id = p_propuesta_id and estado = 'pendiente';
+  -- Decidido por Bryan, 29-oct: si ese choque dejó un primer plan en `espera_bryan` (punto 8), «Activar
+  -- igualmente» lo aprueba EN EL MISMO PASO, porque la propuesta ya quedó activa (se comprobó arriba).
+  -- Mismos campos que la 0086 deja en un plan aprobado: estado, decidido_por (quien confirma),
+  -- decidido_en y motivo (su check exige autor y fecha). Solo el motivo de choque: un plan en espera
+  -- por otra causa no se toca. Con auth.uid() nulo (la cadena, vía service_role) no hay autor humano
+  -- que firme y el check lo rechazaría: ahí el plan se queda como está.
+  if auth.uid() is not null then
+    update public.aprobaciones_primer_plan a
+       set estado = 'aprobado', decidido_por = auth.uid(), decidido_en = now(),
+           motivo = 'Activado igualmente tras el choque de microciclo', actualizado_en = now()
+     where a.microciclo_id = p_propuesta_id
+       and a.estado = 'espera_bryan'
+       and a.motivo_espera like 'Choque de microciclo%';
+  end if;
   perform set_config('alpha.pisar_microciclo', '', true);
 end;
 $$;

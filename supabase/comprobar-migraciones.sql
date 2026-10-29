@@ -2531,6 +2531,8 @@ select '0147 - candado de microciclos: la app y la cadena no se pisan', 'origen 
             when pg_get_functiondef(to_regprocedure('public.vencer_primer_plan()')) not like '%Choque de microciclo%' then 'NO'
             -- confirmar no marca 'confirmado' sin haber activado.
             when pg_get_functiondef(to_regprocedure('public.confirmar_pisar_microciclo(text)')) not like '%no quedó activa%' then 'NO'
+            -- «Activar igualmente» aprueba el plan que esperaba por choque (decidido por Bryan, 29-oct).
+            when pg_get_functiondef(to_regprocedure('public.confirmar_pisar_microciclo(text)')) not like '%update public.aprobaciones_primer_plan%' then 'NO'
             else 'SI' end
 
 order by migracion, senal;

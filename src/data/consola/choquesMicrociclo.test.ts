@@ -209,6 +209,20 @@ describe('0147: estructura que no puede perderse', () => {
     expect(c.indexOf('no quedó activa')).toBeLessThan(c.indexOf("set estado = 'confirmado'"))
   })
 
+  it('29-oct: confirmar_pisar_microciclo aprueba el plan en espera por choque, solo si quedó activa y solo por ese motivo', () => {
+    const c = cuerpoDe(SQL, 'confirmar_pisar_microciclo')
+    const i = c.indexOf('update public.aprobaciones_primer_plan')
+    expect(i).toBeGreaterThan(c.indexOf('no quedó activa'))
+    const upd = c.slice(i, c.indexOf(';', i))
+    expect(upd).toContain("estado = 'aprobado'")
+    expect(upd).toContain('decidido_por = auth.uid()')
+    expect(upd).toContain('decidido_en = now()')
+    expect(upd).toContain("estado = 'espera_bryan'")
+    expect(upd).toContain("motivo_espera like 'Choque de microciclo%'")
+    expect(upd).toContain('microciclo_id = p_propuesta_id')
+    expect(SQL).toContain('decidido por Bryan, 29-oct')
+  })
+
   it('(b): decidir y vencer_primer_plan mandan el choque a espera_bryan, no a aprobado', () => {
     const d = cuerpoDe(SQL, 'decidir_primer_plan')
     expect(d.indexOf('activar_microciclo')).toBeLessThan(d.indexOf("estado = 'aprobado'"))
@@ -240,6 +254,7 @@ describe('0147: estructura que no puede perderse', () => {
     expect(fila).toContain('trg_microciclos_a_origen')
     expect(fila).toContain('trg_microciclos_b_candado')
     expect(fila).toContain("not like '%''cerrado''%'")
+    expect(fila).toContain('update public.aprobaciones_primer_plan%')
   })
 
   it('la prueba 216 cubre cada punto: orden, registro del choque, cerrado, (b), confirmar sin activar y anon', () => {
@@ -250,6 +265,7 @@ describe('0147: estructura que no puede perderse', () => {
       'decidir_primer_plan',
       'vencer_primer_plan',
       'no quedó activa',
+      'Activar igualmente aprueba el plan',
       "has_function_privilege('anon', 'public.descartar_choque_microciclo(uuid)'",
       'set role anon',
     ]) {
