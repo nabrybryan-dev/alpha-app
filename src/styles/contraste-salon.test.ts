@@ -179,3 +179,22 @@ describe('paleta de las tarjetas en tema claro (ámbito del salón y de la sesi�
     expect(fuente('salon/SalonEntrenar.tsx')).toMatch(/data-salon="entrenar"/)
   })
 })
+
+/**
+ * LOS DOS BOTONES REDONDOS DE LA DERECHA (R2-6) llevan el mismo velo y el mismo borde, los
+ * dos por token: antes la cámara tenía su propio rgb(ink-1000 / .6) y un borde rojo, y el
+ * joystick el velo del tema; en claro quedaban dos velos y dos bordes uno junto al otro.
+ */
+describe('botones redondos de la derecha: mismo velo y mismo borde', () => {
+  const src = (r: string) => readFileSync(join(__dirname, '../features/entrenar/salon', r), 'utf8')
+  const camara = src('camara/CamaraDelSalon.tsx')
+  const joystick = src('mando/Joystick.tsx')
+  it.each(['--salon-3d-velo', '--salon-3d-borde-fino'])('los dos usan var(%s)', (token) => {
+    expect(camara).toContain(`var(${token})`)
+    expect(joystick).toContain(`var(${token})`)
+  })
+  it('la cámara ya no fija su propio velo ni su borde', () => {
+    expect(camara).not.toMatch(/rgb\(var\(--ink-1000-rgb\)/)
+    expect(camara).not.toMatch(/borderColor:\s*'rgb\(var\(--accion-rgb\)/)
+  })
+})
