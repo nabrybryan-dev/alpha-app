@@ -50,8 +50,8 @@ describe('0149 · quien recalcula estandarizado_ejercicio', () => {
 
   it('usa la misma racha y la misma banda que el modulo de dominio', () => {
     const s = sql()
-    expect(s).toContain(`ok >= ${RACHA_PARA_ESTANDARIZAR}`)
-    expect(s).toContain(`> ${BANDA_RIR}`)
+    expect(s).toMatch(new RegExp(String.raw`\bok >= ${RACHA_PARA_ESTANDARIZAR}(?!\d)`))
+    expect(s).toMatch(new RegExp(String.raw`peor_desv > ${BANDA_RIR}(?!\d)`))
   })
 
   it('una racha solo suma con el microciclo cerrado (marcar de mas es el error caro)', () => {
