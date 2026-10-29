@@ -76,6 +76,6 @@ describe('SesionPage monta el corte DENTRO de su contenedor [data-sesion]', () =
   const src = readFileSync(join(__dirname, 'SesionPage.tsx'), 'utf8').replace(/\r\n/g, '\n')
   it('<EjercicioCompletado> es hijo directo del cierre del div raíz de la sesión', () => {
     expect(src).toMatch(/return \(\s*(?:\/\/[^\n]*\n\s*)*<div data-sesion="entrenar"/)
-    expect(src).toMatch(/\{exCompletado && <EjercicioCompletado [^\n]*\/>\}\n    <\/div>\n  \)\n\}\n?$/)
+    expect(src).toMatch(/\{exCompletado && <EjercicioCompletado [^\n]*\/>\}\n {4}<\/div>\n {2}\)\n\}\n?$/)
   })
 })
