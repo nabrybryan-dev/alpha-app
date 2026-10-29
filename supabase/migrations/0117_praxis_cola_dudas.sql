@@ -2,9 +2,9 @@
 -- 0117 · Praxis: la cola de dudas del equipo (Fase B, pieza 1)
 -- ============================================================================
 --
--- NO ESTÁ APLICADA. La escribió la rama `praxis/cola-dudas-20261029` el 29-oct-2026 y la aplica Bryan,
--- a mano, en el SQL Editor. Sin ella nada se rompe: `praxis-registro` intenta insertar, falla en silencio
--- (deja una línea `praxis-registro: cola` en el log) y la respuesta a la persona sale igual.
+-- APLICADA el 29-oct-2026 (con el OK de Bryan) antes de desplegar la función que la usa. Si faltara, nada se
+-- rompe: `praxis-registro` intenta insertar, falla en silencio (deja una línea `praxis-registro: cola` en el
+-- log) y la respuesta a la persona sale igual. Comprobarla con su fila en `comprobar-migraciones.sql`.
 --
 -- QUÉ PEDIDO RESUELVE. Decisión de Bryan (28-oct-2026): cuando el portero de fichas no sabe qué ficha
 -- contesta una consulta del equipo (sale `ninguna`, «arriba») o duda entre varias (sale `aclarar`), la FRASE
@@ -13,7 +13,7 @@
 -- nada hasta que Praxis se abra para ellos (P8, Praxis 2).
 --
 -- QUIÉN PUEDE QUÉ.
---   · INSERTA la función `praxis-registro`, con el JWT de la persona del equipo (rol coach o nutricionista):
+--   · INSERTA la función `praxis-registro`, con el JWT de la persona del equipo (rol coach o nutricionista, o el puesto de coach):
 --     `es_staff()` y `usuario_id = auth.uid()`. Nunca service_role.
 --   · LEE solo el equipo (`es_staff()`).
 --   · Nadie actualiza ni borra con sesión. El taller marca `usado_en_taller` con service_role, fuera de la app.
