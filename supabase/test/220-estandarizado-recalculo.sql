@@ -159,12 +159,80 @@ begin
 end
 $$;
 
+-- ── 1c · Tercera persona: series sin RIR, rirObjetivo en texto y cues que solo cambian en tildes o bordes ──
+insert into auth.users (id, email) values
+  ('f2200000-0000-0000-0000-000000000003', 'est-textos@ejemplo.test')
+on conflict (id) do nothing;
+
+insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
+  ('f2200000-0000-0000-0000-000000000003', 'Textos de la estandarizacion', 'asesorado', 'TE')
+on conflict (id) do update set
+  nombre = excluded.nombre, rol = excluded.rol, avatar_iniciales = excluded.avatar_iniciales;
+
+-- Una serie SIN campo rir (una plancha isometrica no tiene repeticiones en reserva).
+create function pg_temp.ej_sin_rir(p_id text, p_cue text, p_objetivo int) returns jsonb
+language sql as $$
+  select jsonb_build_object(
+    'id', p_id, 'nombre', 'Ejercicio ' || p_id, 'cues', p_cue, 'rirObjetivo', p_objetivo,
+    'series', jsonb_build_array(jsonb_build_object('reps', 10, 'cargaKg', 40)));
+$$;
+
+-- rirObjetivo como TEXTO («Control», «RIR 2-3»): hay 79 casos reales.
+create function pg_temp.ej_objetivo_texto(p_id text, p_cue text, p_rir int, p_objetivo text) returns jsonb
+language sql as $$
+  select jsonb_build_object(
+    'id', p_id, 'nombre', 'Ejercicio ' || p_id, 'cues', p_cue, 'rirObjetivo', p_objetivo,
+    'series', jsonb_build_array(jsonb_build_object('rir', p_rir, 'reps', 10, 'cargaKg', 40)));
+$$;
+
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('txt-m1', 'f2200000-0000-0000-0000-000000000003', 1, 'cerrado', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej('ej-i', 'Escapulas atras', 2, 2), pg_temp.ej('ej-j', 'Codos cerca', 2, 2),
+     pg_temp.ej('ej-k', 'Cadera atrás', 2, 2)))),
+  ('txt-m2', 'f2200000-0000-0000-0000-000000000003', 2, 'cerrado', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej('ej-i', 'Escapulas atras', 2, 2), pg_temp.ej_objetivo_texto('ej-j', 'Codos cerca', 3, 'Control'),
+     pg_temp.ej('ej-k', 'cadera atras.', 2, 2)))),
+  ('txt-m3', 'f2200000-0000-0000-0000-000000000003', 3, 'cerrado', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej_sin_rir('ej-i', 'Escapulas atras', 2), pg_temp.ej('ej-j', 'Codos cerca', 2, 2),
+     pg_temp.ej('ej-k', ' ;Cadera ATRÁS,', 2, 2)))),
+  ('txt-m4', 'f2200000-0000-0000-0000-000000000003', 4, 'cerrado', pg_temp.micro(jsonb_build_array(
+     pg_temp.ej('ej-i', 'Escapulas atras', 2, 2), pg_temp.ej('ej-j', 'Codos cerca', 2, 2),
+     pg_temp.ej('ej-k', 'CADERA ATRAS', 2, 2))));
+
+do $$
+declare r record;
+begin
+  perform public.recalcular_estandarizado();
+  -- ej-i: m3 sin RIR queda QUIETO (ni suma ni rompe): m2 y m4 suman -> no/2. Si sumara saldria 3/si; si
+  -- rompiera, 1.
+  select * into r from public.estandarizado_ejercicio
+   where usuario_id = 'f2200000-0000-0000-0000-000000000003' and ejercicio_id = 'ej-i';
+  if r.estado <> 'no' or r.microciclos_ok <> 2 then
+    raise exception 'ej-i con un m3 sin RIR debia ser no/2, salio %/%', r.estado, r.microciclos_ok;
+  end if;
+  -- ej-j: en m2 el objetivo es texto: no hay desviacion que medir, queda quieto (aunque el RIR sea 3).
+  -- m3 y m4 suman -> no/2. Si el texto se leyera como 0 (o rompiera) saldria otra cosa.
+  select * into r from public.estandarizado_ejercicio
+   where usuario_id = 'f2200000-0000-0000-0000-000000000003' and ejercicio_id = 'ej-j';
+  if r.estado <> 'no' or r.microciclos_ok <> 2 then
+    raise exception 'ej-j con rirObjetivo en texto en m2 debia ser no/2, salio %/%', r.estado, r.microciclos_ok;
+  end if;
+  -- ej-k: el cue solo cambia en tildes, mayusculas, puntos, comas, punto y coma y espacios de los bordes:
+  -- no es una nota nueva. m2, m3 y m4 suman -> si/3.
+  select * into r from public.estandarizado_ejercicio
+   where usuario_id = 'f2200000-0000-0000-0000-000000000003' and ejercicio_id = 'ej-k';
+  if r.estado <> 'si' or r.microciclos_ok <> 3 or r.motivo is not null then
+    raise exception 'ej-k con cues que solo cambian en tildes/bordes debia ser si/3/null, salio %/%/%', r.estado, r.microciclos_ok, r.motivo;
+  end if;
+end
+$$;
+
 -- ── 2 · Idempotencia: una segunda pasada seguida no reescribe ninguna fila de esta persona ──
 -- `now()` es el mismo dentro de la transaccion, asi que comparar `actualizado_en` antes y despues no puede
 -- fallar nunca. Se retrocede el sello de las filas a una fecha vieja ANTES de la segunda pasada: si la pasada
 -- reescribe una fila igual (falta la guarda `is distinct from`), el sello salta a now() y se ve.
 update public.estandarizado_ejercicio set actualizado_en = timestamptz '2000-01-01 00:00:00+00'
- where usuario_id in ('f2200000-0000-0000-0000-000000000001', 'f2200000-0000-0000-0000-000000000002');
+ where usuario_id in ('f2200000-0000-0000-0000-000000000001', 'f2200000-0000-0000-0000-000000000002', 'f2200000-0000-0000-0000-000000000003');
 
 do $$
 declare
@@ -173,7 +241,7 @@ declare
 begin
   v_devueltas := public.recalcular_estandarizado();
   select count(*) into v_reescritas from public.estandarizado_ejercicio
-   where usuario_id in ('f2200000-0000-0000-0000-000000000001', 'f2200000-0000-0000-0000-000000000002')
+   where usuario_id in ('f2200000-0000-0000-0000-000000000001', 'f2200000-0000-0000-0000-000000000002', 'f2200000-0000-0000-0000-000000000003')
      and actualizado_en > timestamptz '2000-01-01 00:00:00+00';
   if v_devueltas <> 0 then
     raise exception 'Una pasada sin cambios en el historial debia devolver 0 filas, devolvio %', v_devueltas;
