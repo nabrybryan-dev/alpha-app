@@ -101,22 +101,20 @@ select pruebas.afirmar(
 
 -- H4 por comportamiento: el coach (sesión) inserta DIRECTO un M9 'activo' sobre el M9 'activo' de la
 -- cadena de D. Con el origen ya fijado ('app') eso es un choque. Si el candado se evaluara antes de
--- fijar el origen vería 'cadena' (el valor por defecto), no vería choque y pisaría en silencio.
-do $$
-declare v_msg text;
-begin
-  begin
-    insert into public.microciclos (id, usuario_id, numero, estado, datos)
-    values ('cd-d-9app', 'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb);
-  exception when raise_exception then
-    get stacked diagnostics v_msg = message_text;
-    if v_msg not like 'candado_microciclo:%' then
-      raise exception 'FALLO: error inesperado en el insert directo: %', v_msg;
-    end if;
-    return;
-  end;
-  raise exception 'FALLO: un insert activo con sesión no chocó (¿el candado corre antes de fijar el origen?)';
-end $$;
+-- fijar el origen vería 'cadena' (el valor por defecto), no vería choque y activaría en silencio.
+insert into public.microciclos (id, usuario_id, numero, estado, datos)
+values ('cd-d-9app', 'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb);
+select pruebas.afirmar(
+  (select origen = 'app' and estado = 'propuesto' from public.microciclos where id = 'cd-d-9app')
+  and (select estado from public.microciclos where id = 'cd-d-9') = 'activo',
+  'un insert activo con sesión pisó la semana de la cadena (¿el candado corre antes de fijar el origen?)'
+);
+select pruebas.afirmar(
+  (select count(*) from public.microciclos_choques
+    where propuesta_id = 'cd-d-9app' and estado = 'pendiente'
+      and propuesta_origen = 'app' and existente_id = 'cd-d-9' and existente_origen = 'cadena') = 1,
+  'el insert activo con sesión no dejó su aviso'
+);
 
 -- Un reintento de la cola no duplica el aviso.
 select public.activar_microciclo('cd-b-9app');
@@ -126,36 +124,52 @@ select pruebas.afirmar(
 );
 
 -- ─ 3 · La cadena no pisa lo de la app (insert directo, sin sesión) ──────
+-- H3: NO hay excepción (si la hubiera, el script se pararía aquí por ON_ERROR_STOP) y el choque
+-- queda ESCRITO. A tiene el M9 de la app activo.
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
-do $$
-begin
-  begin
-    -- Lo que hace la plantilla: cierra el activo y abre el suyo. M9 ya es de la app en A.
-    update public.microciclos set estado = 'cerrado' where id = 'cd-a-9';
-    insert into public.microciclos (id, usuario_id, numero, estado, datos)
-    values ('cd-a-9cad', 'd2000000-0000-0000-0000-000000000001', 9, 'activo', '{}'::jsonb);
-    raise exception 'FALLO: la cadena pisó en silencio una semana de la app';
-  exception
-    when others then
-      if sqlerrm like 'FALLO:%' then raise; end if;
-      if sqlerrm not like 'candado_microciclo:%' then raise exception 'FALLO: error inesperado: %', sqlerrm; end if;
-  end;
-end $$;
+insert into public.microciclos (id, usuario_id, numero, estado, datos)
+values ('cd-a-9cad', 'd2000000-0000-0000-0000-000000000001', 9, 'activo', '{}'::jsonb);
 
--- El bloque anónimo es una subtransacción: al fallar, se deshizo también el cierre.
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'cd-a-9') = 'activo'
-  and not exists (select 1 from public.microciclos where id = 'cd-a-9cad'),
-  'tras el candado la semana de la app no sigue activa y entera'
+  (select origen = 'cadena' and estado = 'propuesto' from public.microciclos where id = 'cd-a-9cad')
+  and (select estado from public.microciclos where id = 'cd-a-9') = 'activo',
+  'la cadena pisó en silencio una semana de la app (o su fila quedó activa)'
+);
+select pruebas.afirmar(
+  (select count(*) from public.microciclos_choques
+    where propuesta_id = 'cd-a-9cad' and estado = 'pendiente'
+      and propuesta_origen = 'cadena' and existente_id = 'cd-a-9' and existente_origen = 'app'
+      and existente_por = 'e2000000-0000-0000-0000-000000000001') = 1,
+  'el choque de la cadena no quedó registrado (con quién la cargó)'
+);
+
+-- LINEA DE DEFENSA H1: «cerrado» cuenta. La plantilla vieja cerraba el activo y luego insertaba el
+-- suyo; si alguien quita 'cerrado' de microciclo_choque, esta fila se activaría sin aviso.
+update public.microciclos set estado = 'cerrado' where id = 'cd-a-9';
+insert into public.microciclos (id, usuario_id, numero, estado, datos)
+values ('cd-a-9cad2', 'd2000000-0000-0000-0000-000000000001', 9, 'activo', '{}'::jsonb);
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-a-9cad2') = 'propuesto'
+  and (select count(*) from public.microciclos_choques
+        where propuesta_id = 'cd-a-9cad2' and estado = 'pendiente'
+          and existente_id = 'cd-a-9') = 1
+  and (select estado from public.microciclos where id = 'cd-a-9') = 'cerrado',
+  'una semana de la app YA CERRADA no cuenta como choque (¿alguien quitó cerrado de microciclo_choque?)'
+);
+
+-- Pasar una propuesta a activo con UPDATE también topa con el candado, y sin duplicar el aviso.
+update public.microciclos set estado = 'activo' where id = 'cd-a-9cad';
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-a-9cad') = 'propuesto'
+  and (select count(*) from public.microciclos_choques where propuesta_id = 'cd-a-9cad') = 1,
+  'un UPDATE a activo pisó la semana de la app o duplicó el aviso'
 );
 
 -- ─ 7 · La cadena confirma de forma explícita ────────────────────────────
 select set_config('alpha.pisar_microciclo', 'si', true);
-update public.microciclos set estado = 'cerrado' where id = 'cd-a-9';
-insert into public.microciclos (id, usuario_id, numero, estado, datos)
-values ('cd-a-9cad', 'd2000000-0000-0000-0000-000000000001', 9, 'activo', '{}'::jsonb);
+update public.microciclos set estado = 'activo' where id = 'cd-a-9cad';
 select set_config('alpha.pisar_microciclo', '', true);
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-a-9cad') = 'activo',

@@ -334,6 +334,8 @@ declare
   v_uid uuid; v_num int; v_datos jsonb; v_id text; v_src_id text; v_activos int;
   v_homonimas int;
   v_ambiguas text;
+  v_nuevo jsonb;
+  v_ch record;
 begin
   -- LA PERSONA SE ELIGE POR NOMBRE, y `select into` de plpgsql **no falla con
   -- varias filas: se queda con una cualquiera, en silencio**. Es `R-12`. Dos
@@ -457,10 +459,32 @@ begin
   -- reventaría con un `duplicate key` en vez de repararlo. La red de seguridad de
   -- más abajo ya exigía exactamente uno; ahora el cuerpo hace lo que ella pide.
   -- CANDADO (0147). Si la app ya cargó o activó esa misma semana (o una posterior) para esta
-  -- persona, el insert de abajo FALLA con `candado_microciclo` y esta transacción entera se
-  -- deshace, el cierre de arriba incluido. Es lo que se quiere: no pisar en silencio. Para pisar
-  -- a propósito, con permiso del coach, y en la MISMA transacción, antes de esta función:
+  -- persona, NO se cierra ni se activa nada: la carga se guarda como `propuesto`, queda un aviso
+  -- en `microciclos_choques` para el coach, y esta función devuelve 'CHOQUE · ...' (léelo: no es
+  -- un error, es una carga que NO se activó). Para pisar a propósito, con permiso del coach, y en
+  -- la MISMA transacción, antes de esta función:
   --   select set_config('alpha.pisar_microciclo', 'si', true);
+  -- La comprobación va ANTES del cierre de abajo: si fuera después, la persona se quedaría sin
+  -- activo y la red de seguridad del final deshace la transacción entera, aviso incluido.
+  -- `- 'estado'` se queda como segunda red aunque desde la `0066` ni el blob de origen lleve la
+  -- clave ni el trigger la dejaria entrar. Cuesta nada y cubre el caso de cargar un JSON traido de
+  -- fuera —un export viejo, un pegado a mano— que si la lleve.
+  v_nuevo := (public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes) - 'estado')
+               || jsonb_build_object('id', v_id);
+
+  if coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si' then
+    select * into v_ch from public.microciclo_choque(v_uid, v_id, v_num + 1, 'cadena');
+    if found then
+      insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
+      values (v_id, v_uid, v_num + 1, 'propuesto', v_nuevo, now())
+      on conflict (id) do nothing;
+      perform public.registrar_choque_microciclo(v_id);
+      return 'CHOQUE · ' || p_nombre || ': la app ya cargó su M' || v_ch.numero ||
+             ' (microciclo ' || v_ch.id || '). M' || (v_num + 1) ||
+             ' queda propuesto y hay un aviso para el coach; no se activó nada.';
+    end if;
+  end if;
+
   update public.microciclos
      set estado = 'cerrado'
    where usuario_id = v_uid
@@ -468,14 +492,7 @@ begin
      and estado = 'activo';
 
   insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
-  values (v_id, v_uid, v_num + 1, 'activo',
-          -- `- 'estado'` se queda como segunda red aunque desde la `0066` ni el
-          -- blob de origen lleve la clave ni el trigger la dejaria entrar. Cuesta
-          -- nada y cubre el caso de cargar un JSON traido de fuera —un export
-          -- viejo, un pegado a mano— que si la lleve.
-          (public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes) - 'estado')
-            || jsonb_build_object('id', v_id),
-          now())
+  values (v_id, v_uid, v_num + 1, 'activo', v_nuevo, now())
   on conflict (id) do update
      set datos = excluded.datos, estado = 'activo', actualizado_en = now();
 

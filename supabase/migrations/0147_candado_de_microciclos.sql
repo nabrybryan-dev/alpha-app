@@ -44,8 +44,9 @@
 --   1 · columnas origen / cargado_en / cargado_por en `microciclos`.
 --   2 · trigger que las rellena al insertar.
 --   3 · `microciclo_choque(...)`: la regla.
---   4 · trigger que IMPIDE activar con choque (es lo que frena a la cadena: su transacción entera
---       aborta, también el cierre del anterior). Se salta con la confirmación (punto 7).
+--   4 · trigger que IMPIDE activar con choque (es lo que frena a la cadena) sin levantar excepción:
+--       deja la fila sin activar y otro trigger (AFTER) registra el aviso. Se salta con la
+--       confirmación (punto 7).
 --   5 · tabla `microciclos_choques`: el aviso para el coach (quién, cuándo, qué propuesta).
 --   6 · `activar_microciclo` (misma firma): con choque NO levanta excepción —una excepción pararía
 --       la cola del teléfono, ver 0060—; no activa y deja el aviso en (5).
@@ -135,7 +136,16 @@ $$;
 revoke all on function public.microciclo_choque(uuid, text, int, text) from public, anon;
 grant execute on function public.microciclo_choque(uuid, text, int, text) to authenticated, service_role;
 
--- ── 4 · Nadie activa con choque sin confirmar (frena a la cadena) ──────────
+-- ── 4 · Nadie activa con choque sin confirmar (frena a la cadena Y deja el aviso) ──
+-- DECISION (hallazgo H3): el candado NO levanta excepción. Una excepción deshace la transacción
+-- entera, el aviso incluido (Postgres no tiene transacciones autónomas), y el contrato es «todo
+-- choque queda registrado». Así que el candado BLOQUEA y REGISTRA:
+--   · BEFORE (b_candado): si activar chocaría, el estado nuevo no se aplica (INSERT -> 'propuesto';
+--     UPDATE -> se queda el estado que tenía) y se anota en una variable local de la transacción
+--     qué microciclo quedó bloqueado. Un `raise notice` lo dice a quien corra el SQL a mano.
+--   · AFTER (c_registrar_choque): ya existe la fila (la tabla de avisos la referencia), así que
+--     llama a `registrar_choque_microciclo`. La carga de la cadena termina SIN error y SIN activar;
+--     la plantilla lo comprueba antes de cerrar nada y devuelve «CHOQUE · ...» (ver allí).
 create or replace function public.microciclos_candado()
 returns trigger
 language plpgsql
@@ -148,11 +158,13 @@ begin
     if coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si' then
       select * into v_ch from public.microciclo_choque(new.usuario_id, new.id, new.numero, new.origen);
       if found then
-        raise exception
+        new.estado := case when tg_op = 'INSERT' then 'propuesto' else old.estado end;
+        perform set_config('alpha.choque_bloqueado', new.id, true);
+        raise notice
           'candado_microciclo: la semana M% de esta persona ya la cargó "%" (%, microciclo %, %). '
-          'No se pisa sin confirmar: set_config(''alpha.pisar_microciclo'',''si'',true) en la misma transaccion.',
-          v_ch.numero, v_ch.origen, v_ch.cargado_en, v_ch.id, v_ch.estado
-          using errcode = 'P0001';
+          'M% (%) NO se activó y queda un aviso para el coach. Pisar a propósito: '
+          'set_config(''alpha.pisar_microciclo'',''si'',true) en la misma transaccion.',
+          v_ch.numero, v_ch.origen, v_ch.cargado_en, v_ch.id, v_ch.estado, new.numero, new.id;
       end if;
     end if;
   end if;
@@ -165,6 +177,25 @@ drop trigger if exists trg_microciclos_b_candado on public.microciclos;
 create trigger trg_microciclos_b_candado
   before insert or update of estado on public.microciclos
   for each row execute function public.microciclos_candado();
+
+create or replace function public.microciclos_registrar_choque()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if coalesce(current_setting('alpha.choque_bloqueado', true), '') = new.id then
+    perform set_config('alpha.choque_bloqueado', '', true);
+    perform public.registrar_choque_microciclo(new.id);
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists trg_microciclos_c_registrar_choque on public.microciclos;
+create trigger trg_microciclos_c_registrar_choque
+  after insert or update of estado on public.microciclos
+  for each row execute function public.microciclos_registrar_choque();
 
 -- ── 5 · El aviso para el coach ─────────────────────────────────────────────
 create table if not exists public.microciclos_choques (
