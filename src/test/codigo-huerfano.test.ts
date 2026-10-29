@@ -62,9 +62,10 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'la traza se dibuje desde la demanda y no desde un hueso.',
 
   // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
-  // 2026-08-25. La tabla `estandarizado_ejercicio` (0043) YA existe en produccion y
-  // `comprobar-ids-de-ejercicio.sql` se corrio de nuevo el 2026-10-28 con las cuatro
-  // filas OK (0, 0, 0 y 641 linajes). Lo que sigue sin enchufar es la LECTURA: la tabla
+  // 2026-08-25. La tabla `estandarizado_ejercicio` (0043) existe en produccion. Medido el
+  // 2026-10-28 en produccion, solo lectura, con `comprobar-ids-de-ejercicio.sql`: las
+  // filas 1 a 3 dieron 0 y la fila 4 dio 641 linajes (la salida no se guardo en el repo).
+  // Lo que sigue sin enchufar es la LECTURA: la tabla
   // esta sin recalcular desde el 25-ago (la 0149 pone quien, sin aplicar) y falta la
   // decision de Bryan y Manuela de si la regla «3 microciclos limpios» pasa a ser
   // vinculante antes de mostrarle al asesorado «por que este ejercicio todavia no sube
