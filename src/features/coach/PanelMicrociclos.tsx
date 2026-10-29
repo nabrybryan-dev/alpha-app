@@ -109,6 +109,15 @@ export function PanelMicrociclos() {
     if (r.ok) {
       setErrorChoque(null)
       setChoques((previos) => previos.filter((c) => c.id !== choque.id))
+      if (pisar) {
+        // «Activar igualmente» cambió la semana activa en la nube: sin rehidratar, la copia local
+        // seguiría mostrando la semana vieja hasta la próxima hidratación.
+        try {
+          await hidratarDesdeNube()
+        } catch {
+          // La próxima hidratación del arranque la corrige igual.
+        }
+      }
     } else {
       setErrorChoque(r.error)
     }

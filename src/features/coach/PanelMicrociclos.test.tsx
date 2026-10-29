@@ -268,6 +268,28 @@ describe('PanelMicrociclos', () => {
       await waitFor(() => expect(screen.queryByText(/ya cargó su M9/)).toBeNull())
     })
 
+    it('H8: tras «Activar igualmente» rehidrata para que la copia local no siga con la semana vieja', async () => {
+      vi.stubEnv('VITE_MOTOR_APP_ACTIVO', 'true')
+      choquesMock.mockResolvedValue({ ok: true, choques: [choque] })
+      confirmarMock.mockResolvedValue({ ok: true })
+      await montar()
+      await screen.findByText(/ya cargó su M9/)
+      expect(hidratarMock).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('button', { name: /activar la de la app/i }))
+      await waitFor(() => expect(hidratarMock).toHaveBeenCalledTimes(1))
+    })
+
+    it('H8: si «Activar igualmente» falla no rehidrata y enseña el error', async () => {
+      vi.stubEnv('VITE_MOTOR_APP_ACTIVO', 'true')
+      choquesMock.mockResolvedValue({ ok: true, choques: [choque] })
+      confirmarMock.mockResolvedValue({ ok: false, error: 'no se pudo' })
+      await montar()
+      await screen.findByText(/ya cargó su M9/)
+      fireEvent.click(screen.getByRole('button', { name: /activar la de la app/i }))
+      await screen.findByText(/no se pudo/)
+      expect(hidratarMock).not.toHaveBeenCalled()
+    })
+
     it('dejar la de la cadena cierra el aviso sin activar nada', async () => {
       vi.stubEnv('VITE_MOTOR_APP_ACTIVO', 'true')
       choquesMock.mockResolvedValue({ ok: true, choques: [choque] })
