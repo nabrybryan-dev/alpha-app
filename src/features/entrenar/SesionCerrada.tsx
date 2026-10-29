@@ -17,7 +17,6 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
 
   return (
     <div
-      data-theme="dark"
       // SIN `.entrada` en la raiz, y esto arregla un fallo de composicion: la
       // reflexion llevaba su propia `entrada-3` ANIDADA aqui dentro, asi que su
       // desplazamiento se sumaba al del padre y entraba desde el doble de lejos

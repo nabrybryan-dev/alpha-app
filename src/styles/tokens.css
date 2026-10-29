@@ -120,6 +120,23 @@
   --salon-3d-tierra: #0b0e12;
   --salon-3d-sombra: 0.45;
   --salon-3d-brillo: 0.22;
+  /* Los colores de la INTERFAZ del salón, no de la escena: la pared y el panel salen
+     de los tokens 3D, y el texto y el rojo de acción cambian con el tema. Se miden en
+     `contraste-salon.test.ts` contra la pared y el panel de los dos temas. */
+  --salon-3d-pared: #101114;
+  --salon-3d-zocalo: #181b1f;
+  --salon-3d-marco: #333842;
+  --salon-3d-panel: #070809;
+  --salon-3d-segmento: #ff3d3d;
+  --salon-3d-segmento-apagado: #0e0f11;
+  --salon-3d-texto: #f4f5f6;
+  --salon-3d-tenue: #c2c8cf;
+  --salon-3d-accion: #ff9a9a;
+  --salon-3d-superficie: rgb(var(--ink-800-rgb) / 0.96);
+  --salon-3d-superficie-alta: rgb(var(--ink-900-rgb) / 0.96);
+  --salon-3d-borde: rgb(var(--silver-500-rgb) / 0.45);
+  --salon-3d-velo: rgb(var(--ink-1000-rgb) / 0.62);
+  --salon-3d-sombra-texto: 0 1px 3px rgb(0 0 0 / 0.75);
   /* Tecla 3D (maqueta 7): luz del borde superior, cuatro cantos que se oscurecen hacia abajo y sombra. */
   --pt-luz: rgba(255, 255, 255, 0.14);
   --pt-canto-1: #28282d;
@@ -215,6 +232,23 @@
   --salon-3d-tierra: #8d8a83;
   --salon-3d-sombra: 0.2;
   --salon-3d-brillo: 0;
+  /* La pared del salón en claro: el hueso de la maqueta, no el carbón. El texto
+     vuelve a tinta oscura y el rojo de acción se oscurece para pasar 4,5:1 sobre
+     esa pared. Ver `contraste-salon.test.ts`. */
+  --salon-3d-pared: #f1eee6;
+  --salon-3d-zocalo: #8d8a83;
+  --salon-3d-marco: #a8adb3;
+  --salon-3d-panel: #dfe2e7;
+  --salon-3d-segmento: #c00d12;
+  --salon-3d-segmento-apagado: #c3c7ce;
+  --salon-3d-texto: #111111;
+  --salon-3d-tenue: #3f3e3a;
+  --salon-3d-accion: #8f1119;
+  --salon-3d-superficie: rgb(255 255 255 / 0.94);
+  --salon-3d-superficie-alta: rgb(var(--bg-rgb) / 0.96);
+  --salon-3d-borde: rgb(17 17 17 / 0.16);
+  --salon-3d-velo: rgb(var(--bg-rgb) / 0.7);
+  --salon-3d-sombra-texto: none;
   /* Tecla 3D (maqueta 7): luz del borde superior, cuatro cantos que se oscurecen hacia abajo y sombra. */
   --pt-luz: rgba(255, 255, 255, 0.95);
   --pt-canto-1: #dcdcdf;
@@ -2044,13 +2078,13 @@ body {
   background:
     radial-gradient(
       58% 46% at 50% 34%,
-      rgb(var(--ink-1000-rgb) / 0.82),
-      rgb(var(--ink-1000-rgb) / 0.42) 44%,
+      color-mix(in srgb, var(--salon-3d-pared) 82%, transparent),
+      color-mix(in srgb, var(--salon-3d-pared) 42%, transparent) 44%,
       transparent 72%
     ),
     radial-gradient(
       44% 34% at 50% 10%,
-      rgb(var(--silver-500-rgb) / 0.2),
+      color-mix(in srgb, var(--salon-3d-tenue) 20%, transparent),
       transparent 68%
     );
 }
@@ -2067,8 +2101,8 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(var(--silver-500-rgb) / 0.55) 18%,
-    rgb(var(--silver-500-rgb) / 0.55) 82%,
+    color-mix(in srgb, var(--salon-3d-tenue) 55%, transparent) 18%,
+    color-mix(in srgb, var(--salon-3d-tenue) 55%, transparent) 82%,
     transparent
   );
 }
@@ -2089,7 +2123,7 @@ body {
    Es la diferencia entre lo que está PINTADO en la pared y lo que está
    ENCENDIDO sobre ella, y se nota aunque nadie sepa nombrarla. */
 .muro-rotulo {
-  color: var(--silver-500);
+  color: var(--salon-3d-tenue);
   text-transform: uppercase;
   letter-spacing: 0.22em;
   font-weight: 700;
@@ -2100,8 +2134,8 @@ body {
    no un efecto. Corto a propósito —0,42em— porque una luz que se derrama medio
    metro no ilumina, empasta. */
 .muro-dato {
-  color: var(--silver-100);
-  text-shadow: 0 0 0.42em rgb(var(--silver-500-rgb) / 0.55);
+  color: var(--salon-3d-texto);
+  text-shadow: var(--salon-3d-sombra-texto);
 }
 
 /* La cifra del marcador: rojo profundo y encendido, en la letra de la marca.
@@ -2109,8 +2143,8 @@ body {
    en geometría — lo que no cabe en siete segmentos se dice así. */
 .muro-cifra {
   font-family: var(--font-display);
-  color: var(--accion);
-  text-shadow: 0 0 0.5em rgb(var(--accion-rgb) / 0.45);
+  color: var(--salon-3d-accion);
+  text-shadow: 0 0 0.5em color-mix(in srgb, var(--salon-3d-accion) 45%, transparent);
   letter-spacing: 0.01em;
   line-height: 1;
 }
@@ -2144,13 +2178,13 @@ body {
   background:
     linear-gradient(
       to top,
-      rgb(var(--silver-500-rgb) / 0.05),
-      rgb(var(--silver-500-rgb) / 0.19) 52%,
-      rgb(var(--silver-500-rgb) / 0.24) 88%
+      color-mix(in srgb, var(--salon-3d-tenue) 5%, transparent),
+      color-mix(in srgb, var(--salon-3d-tenue) 19%, transparent) 52%,
+      color-mix(in srgb, var(--salon-3d-tenue) 24%, transparent) 88%
     ),
     radial-gradient(
       64% 46% at 50% 4%,
-      rgb(var(--accion-rgb) / 0.18),
+      color-mix(in srgb, var(--salon-3d-accion) 18%, transparent),
       transparent 72%
     );
 }
@@ -2166,13 +2200,13 @@ body {
   border-radius: 2px;
   background: linear-gradient(
     180deg,
-    rgb(var(--ink-800-rgb) / 0.96),
-    rgb(var(--ink-1000-rgb) / 0.96)
+    var(--salon-3d-superficie-alta),
+    var(--salon-3d-superficie)
   );
   box-shadow:
-    inset 0 1px 0 rgb(var(--silver-500-rgb) / 0.45),
-    inset 0 -1px 0 rgb(var(--ink-1000-rgb) / 0.9),
-    0 0.5em 1.1em -0.5em rgb(var(--ink-1000-rgb) / 0.95);
+    inset 0 1px 0 var(--salon-3d-borde),
+    inset 0 -1px 0 color-mix(in srgb, var(--salon-3d-texto) 8%, transparent),
+    0 0.5em 1.1em -0.5em color-mix(in srgb, var(--salon-3d-pared) 95%, transparent);
 }
 
 /* ===========================================================================
@@ -2348,7 +2382,7 @@ body {
   transform-origin: 50% 100%;
   transform-style: preserve-3d;
   color: transparent;
-  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.42);
+  -webkit-text-stroke: 0.032em color-mix(in srgb, var(--salon-3d-texto) 42%, transparent);
   animation: muro-trazo-letra-entra var(--dur-informativo) var(--muelle-informativo) both;
 }
 
@@ -2363,12 +2397,12 @@ body {
 }
 
 .muro-trazo-eco-1 {
-  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.16);
+  -webkit-text-stroke: 0.032em color-mix(in srgb, var(--salon-3d-texto) 16%, transparent);
   transform: translateZ(-0.55em);
 }
 
 .muro-trazo-eco-2 {
-  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.07);
+  -webkit-text-stroke: 0.032em color-mix(in srgb, var(--salon-3d-texto) 7%, transparent);
   transform: translateZ(-1.1em);
 }
 
@@ -2388,13 +2422,13 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: transparent;
-  -webkit-text-stroke: 0.028em rgb(var(--silver-300-rgb) / 0.42);
+  -webkit-text-stroke: 0.028em color-mix(in srgb, var(--salon-3d-texto) 42%, transparent);
 }
 
 /* En cuenta atrás el trazo se pone en el acento: es lo único de la pared que
    pide algo —parar— y el rojo es la acción. */
 .muro-reloj-vivo {
-  -webkit-text-stroke: 0.028em rgb(var(--accion-rgb) / 0.72);
+  -webkit-text-stroke: 0.028em color-mix(in srgb, var(--salon-3d-accion) 72%, transparent);
 }
 
 /* El filete bajo el reloj, apagándose hacia dentro. Marca el borde del bloque
@@ -2404,7 +2438,7 @@ body {
   width: 3.4em;
   height: 1px;
   margin: 0.32em 0 0 auto;
-  background: linear-gradient(270deg, rgb(var(--silver-500-rgb) / 0.45), transparent);
+  background: linear-gradient(270deg, color-mix(in srgb, var(--salon-3d-tenue) 45%, transparent), transparent);
 }
 
 /* LOS KILOS DEL MURO: en trazo, como el rótulo, y por lo mismo.
@@ -2427,7 +2461,7 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: transparent;
-  -webkit-text-stroke: 0.026em rgb(var(--accion-rgb) / 0.78);
+  -webkit-text-stroke: 0.026em color-mix(in srgb, var(--salon-3d-accion) 78%, transparent);
 }
 
 /* La de la semana pasada es la MISMA cifra, más pequeña y en plata: es un
@@ -2435,7 +2469,7 @@ body {
    que se levantó la semana pasada no es ninguna de las dos cosas. */
 .muro-kilos-previo {
   font-size: 1.03em;
-  -webkit-text-stroke: 0.03em rgb(var(--silver-300-rgb) / 0.34);
+  -webkit-text-stroke: 0.03em color-mix(in srgb, var(--salon-3d-tenue) 34%, transparent);
 }
 
 /* La unidad no compite con la cifra: va a un tercio y separada, que es como se
@@ -2453,13 +2487,13 @@ body {
   width: 4.2em;
   height: 1px;
   margin: 0.4em 0 0 auto;
-  background: linear-gradient(270deg, rgb(var(--silver-500-rgb) / 0.5), transparent);
+  background: linear-gradient(270deg, color-mix(in srgb, var(--salon-3d-tenue) 50%, transparent), transparent);
 }
 
 /* El rótulo del bloque que manda, en el rojo de acción. Solo lo lleva «Carga a
    usar»: es lo único del hueco que pide hacer algo —cargar la barra—. */
 .muro-rotulo-vivo {
-  color: rgb(var(--accion-rgb) / 0.85);
+  color: var(--salon-3d-accion);
 }
 
 /* EL RELEVO DEL HUECO. La carga entra con peso informativo, igual que el dato
@@ -2485,8 +2519,8 @@ body {
   line-height: 0.95;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--texto);
-  text-shadow: 0 1px 0 rgb(0 0 0 / 0.6), 1px 2px 0 #2a2d31, 2px 3px 0 #22252a;
+  color: var(--salon-3d-texto);
+  text-shadow: var(--salon-3d-sombra-texto);
 }
 
 /* EL MATIZ DE LA CIFRA: el rango o la unidad, debajo y en tenue. Ni es la
@@ -2497,7 +2531,7 @@ body {
   font-size: 11px;
   line-height: 1.1;
   letter-spacing: 0.06em;
-  color: var(--gris-marca);
+  color: var(--salon-3d-tenue);
 }
 
 /* ---------------------------------------------------------------------------

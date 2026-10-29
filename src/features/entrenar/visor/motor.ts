@@ -24,7 +24,7 @@ import { compilar, FS, MAX_HUESOS, VS } from './sombreado'
 // quedaban prácticamente del mismo valor y en el móvil solo se leía el sujeto.
 // Un fondo profundo separa el volumen de la habitación y conserva el lenguaje Alpha.
 export const FONDO_ESTUDIO = '#0b0e12'
-const FONDO_RGB: [number, number, number] = [0.043, 0.055, 0.071]
+export const FONDO_RGB_ESTUDIO: [number, number, number] = [0.043, 0.055, 0.071]
 
 const NOMBRES_DE_BUFFER = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx'] as const
 
@@ -37,6 +37,14 @@ interface JuegoDeBuffers {
 }
 
 export class Motor {
+  /** El color con el que se limpia el lienzo: el del tema activo (`fijarFondo`). */
+  private fondo: [number, number, number] = [...FONDO_RGB_ESTUDIO]
+
+  /** Cambia el fondo del lienzo sin reconstruir el motor (cambio de tema). */
+  fijarFondo(rgb: readonly [number, number, number]): void {
+    this.fondo = [rgb[0], rgb[1], rgb[2]]
+  }
+
   private gl: WebGLRenderingContext
   private programa: WebGLProgram
   private buffers: Record<string, WebGLBuffer>
@@ -458,7 +466,7 @@ export class Motor {
     haySuelo: boolean,
   ): void {
     const gl = this.gl
-    gl.clearColor(FONDO_RGB[0], FONDO_RGB[1], FONDO_RGB[2], 1)
+    gl.clearColor(this.fondo[0], this.fondo[1], this.fondo[2], 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.useProgram(this.programa)
 

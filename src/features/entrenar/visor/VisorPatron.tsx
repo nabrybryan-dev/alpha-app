@@ -55,7 +55,9 @@ import type { NivelW } from '../salon/huecos'
 import { NIVEL_POR_W } from '../capas/nivelesAnatomicos'
 import { construirMusculosDeNivel, mallasDelSujeto } from '../capas/mallaDelNivel'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
-import { FONDO_ESTUDIO } from './motor'
+import { paletaDeLaSala, colorACss } from '../escena/paletaDeLaSala'
+import { leerTemaDelDocumento } from '../../../lib/temaDelDocumento'
+import { useTemaDelDocumento } from '../../../app/useTemaDelDocumento'
 import { atlasCache, atlasCargado, atlasPorCapa, cargarPiezas } from './cargaDelAtlas'
 import { DURACION_CICLO, faseDeTiempo, type TempoDeRepeticion } from './controlDelTiempo'
 import { esqueletoDe, huesosDelFantasma, precalculado } from './definicionCorporal'
@@ -118,10 +120,15 @@ function sala(cifras: CifrasDelMuro | undefined, azimutDeEntrada: number, deBlen
   // y dos claves que se parecen demasiado es como se sirve una sala vieja creyendo que es
   // la nueva.
   const marca = cifras ? `${cifras.veces}|${cifras.cuanto}|${cifras.esfuerzo ?? 'apagada'}` : 'sin'
-  const clave = `${marca}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}`
+  // El tema entra en la clave: la sala lleva los colores del tema, y cambiar `data-theme`
+  // tiene que rehacerla (zona 8). Sin esto se serviría la pared del tema anterior.
+  const clave = `${marca}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}|${leerTemaDelDocumento()}`
   if (!salaCache || salaCache.clave !== clave) {
     const malla = new Malla()
-    construirSala(malla, cifras, azimutDeEntrada, deBlender ? { salaDeBlender: SALA_GIMNASIO } : {})
+    construirSala(malla, cifras, azimutDeEntrada, {
+      paleta: paletaDeLaSala(),
+      ...(deBlender ? { salaDeBlender: SALA_GIMNASIO } : {}),
+    })
     salaCache = { clave, malla }
   }
   return salaCache.malla
@@ -446,6 +453,7 @@ export function VisorPatron({
   const [girando, setGirando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reducido = useMovimientoReducido()
+  const tema = useTemaDelDocumento()
   /**
    * La sala y el trípode cuelgan de las dos cosas: sin escenario no hay dónde ponerlos
    * —el explorador mira una articulación sola, sin suelo— y sin que la pantalla la pida
@@ -586,7 +594,7 @@ export function VisorPatron({
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, cuerpo, momentos])
+  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, cuerpo, momentos, tema])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -766,6 +774,8 @@ export function VisorPatron({
         let matrices = conRaiz(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion))
 
         const construir = () => {
+          // El fondo del lienzo sigue el tema (la paleta se guarda por tema: no cuesta por cuadro).
+          motor.fijarFondo(paletaDeLaSala().suelo)
           // LA VISTA DE CUERPO deja fuera todo lo del movimiento (ver `VisorPatronProps.cuerpo`).
           const enCuerpo = estado.current.cuerpo !== undefined
           const esq = esqueletoEnFase(
@@ -839,7 +849,7 @@ export function VisorPatron({
               ? mallasDelCuerpoParaElVisor(atlasPorCapa, estado.current.cuerpo, paletaDelTema(lienzo.closest('[data-theme]')))
               : undefined
           const delAtlas = pintado ? pintado.mallas : capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
-          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`
+          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${leerTemaDelDocumento()}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`
           if (firmaEstaticas !== estaticasSubidas) {
             motor.subirEstaticas([...(quiereSala ? piezasCache : []), ...delAtlas])
             estaticasSubidas = firmaEstaticas
@@ -1240,6 +1250,10 @@ export function VisorPatron({
   /** El nivel de W en el que se está, o `null` cuando el visor se abre sin eje. */
   const nivel = w === undefined ? null : NIVEL_POR_W[w]
 
+  // El tema activo como estado: al cambiar, el fondo CSS se actualiza en este render y el
+  // efecto de arriba rehace la escena (sala, fondo y cuerpo) sin recargar.
+  const fondoDelLienzo = colorACss(paletaDeLaSala().suelo)
+
   // Qué hace cada articulación: se calcula de las poses, no está escrito.
   const acciones = accionesPrincipales(patron)
   const frase = fraseDelPatron(patron)
@@ -1247,7 +1261,7 @@ export function VisorPatron({
   return (
     <div className="flex flex-col gap-3">
       <div className="relative overflow-hidden rounded-xl"
-        style={{ background: FONDO_ESTUDIO }}>
+        style={{ background: fondoDelLienzo }}>
         <canvas
           ref={lienzoRef}
           className="block h-[46vh] max-h-[420px] min-h-[240px] w-full touch-none"

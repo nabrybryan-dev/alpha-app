@@ -204,8 +204,8 @@ export function Joystick({
       onPointerCancel={alSoltarDedo}
       className="press pointer-events-auto grid h-[52px] w-[52px] place-items-center rounded-full border transition-[border-color,background,color] duration-base"
       style={{
-        borderColor: encendido ? 'rgb(var(--accion-rgb) / 0.7)' : 'rgb(255 255 255 / 0.14)',
-        background: encendido ? 'rgb(var(--accion-rgb) / 0.16)' : 'rgb(var(--ink-1000-rgb) / 0.6)',
+        borderColor: encendido ? 'rgb(var(--accion-rgb) / 0.7)' : 'var(--salon-3d-borde)',
+        background: encendido ? 'rgb(var(--accion-rgb) / 0.16)' : 'var(--salon-3d-velo)',
         color: encendido ? 'var(--accion)' : 'var(--texto)',
         touchAction: 'none',
         cursor: agarrado ? 'grabbing' : 'grab',
