@@ -2,7 +2,7 @@
 --
 -- Dos tablas, ambas solo del staff:
 --   alertas_nutricion_ajustes  el interruptor, UNA fila por alerta, APAGADA por defecto. Una alerta
---                              no se puede encender sin firma (check): firmada_por y firmada_en.
+--                              no se puede encender sin firma (check): firmada_por (no vacío) y firmada_en.
 --                              Solo la escribe service_role / Bryan desde el SQL Editor, cuando
 --                              Manuela firma la hoja. Ningún rol de la app la escribe.
 --   alertas_nutricion          las alertas levantadas por la Edge Function avisos-plan. Una ABIERTA
@@ -20,7 +20,7 @@ create table if not exists public.alertas_nutricion_ajustes (
   firmada_en     timestamptz,
   actualizado_en timestamptz not null default now(),
   constraint alertas_nutricion_ajustes_no_sin_firma
-    check (not encendida or (firmada_por is not null and firmada_en is not null))
+    check (not encendida or (length(btrim(coalesce(firmada_por, ''))) > 0 and firmada_en is not null))
 );
 
 insert into public.alertas_nutricion_ajustes (clave) values ('objetivo_insuficiente'), ('hambre_sostenida')
