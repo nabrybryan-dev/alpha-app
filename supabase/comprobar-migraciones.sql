@@ -2498,8 +2498,8 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
 union all
--- La 0116: avisos_checkin_enviados (recordatorio push del check-in de las 6 pm). Solo service_role escribe.
-select '0116 - avisos_checkin_enviados: RLS, solo service_role, un recordatorio por persona y dia', 'avisos_checkin_enviados con RLS; anon y authenticated sin select ni insert; service_role con insert; indice unico por persona y dia',
+-- La 0146: avisos_checkin_enviados (recordatorio push del check-in de las 6 pm). Solo service_role escribe.
+select '0146 - avisos_checkin_enviados: RLS, solo service_role, un recordatorio por persona y dia', 'avisos_checkin_enviados con RLS; anon y authenticated sin select ni insert; service_role con insert; indice unico por persona y dia',
        case when to_regclass('public.avisos_checkin_enviados') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.avisos_checkin_enviados')) then 'NO'
             when has_table_privilege('anon', 'public.avisos_checkin_enviados', 'select')

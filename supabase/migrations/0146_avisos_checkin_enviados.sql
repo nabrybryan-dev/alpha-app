@@ -1,4 +1,4 @@
--- 0116 · Registro del recordatorio de las 6 pm del check-in (Edge Function avisos-plan).
+-- 0146 · Registro del recordatorio de las 6 pm del check-in (Edge Function avisos-plan).
 --
 -- Una fila por persona y día: es el «máximo un recordatorio al día» y sirve para no duplicar aunque dos
 -- corridas del cron se pisen. La función reserva la fila ANTES de enviar (índice único + ignore-duplicates).
@@ -18,7 +18,7 @@ create table if not exists public.avisos_checkin_enviados (
 );
 
 comment on table public.avisos_checkin_enviados is
-  'Recordatorios push del check-in de las 6 pm (0116, 2026-10-28). Uno por persona y día. Solo service_role.';
+  'Recordatorios push del check-in de las 6 pm (0146, 2026-10-28). Uno por persona y día. Solo service_role.';
 
 create unique index if not exists avisos_checkin_enviados_uno_por_persona_y_dia
   on public.avisos_checkin_enviados (usuario_id, fecha_aviso);

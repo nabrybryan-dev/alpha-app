@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   decidirAvisos,
   decidirRecordatoriosCheckin,
+  destinatariosDelPlan,
   minutosDeHora,
   relojLocal,
   type TareaAviso,
@@ -146,5 +147,22 @@ describe('recordatorio de las 6 pm del check-in (desde el servidor)', () => {
 
   it('sin suscritos no hay nada que decidir', () => {
     expect(decidirRecordatoriosCheckin({ ...entrada, suscritos: [] })).toEqual([])
+  })
+})
+
+describe('los avisos del equipo no llegan a los asesorados', () => {
+  const BRYAN = '28c3cfe8-13ef-4f3e-95cc-f23c4f260bce'
+  const MANUELA = 'aa202ff5-74c1-4b76-9140-8ba44dc62f17'
+  const ids = { bryan: BRYAN, manuela: MANUELA }
+
+  it('de todas las suscripciones, solo Bryan y Manuela cuentan como destinatarios del plan', () => {
+    expect(destinatariosDelPlan(['u-asesorado', BRYAN, 'u-otra'], ids)).toEqual(['bryan'])
+    expect(destinatariosDelPlan(['u-asesorado'], ids)).toEqual([])
+    expect(destinatariosDelPlan([MANUELA, BRYAN], ids)).toEqual(['bryan', 'manuela'])
+  })
+
+  it('una tarea del equipo no produce aviso del plan si su dueño no es destinatario (un asesorado suscrito no basta)', () => {
+    const duenos = destinatariosDelPlan(['u-asesorado'], ids)
+    expect(decidirAvisos({ ...base, duenosConSuscripcion: duenos, tareas: [tarea()], ahora: OCHO_Y_MEDIA })).toEqual([])
   })
 })

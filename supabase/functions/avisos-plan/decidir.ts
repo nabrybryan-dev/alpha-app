@@ -184,3 +184,11 @@ export function decidirRecordatoriosCheckin(e: EntradaCheckin): AvisoCheckin[] {
   }
   return salida
 }
+
+/**
+ * Quién recibe los avisos del PLAN (organizador): solo Bryan y Manuela, por su id. `permisos_de_aviso` guarda a todo el
+ * que activó los avisos, asesorados incluidos; sin este filtro un asesorado suscrito podría recibir avisos del equipo.
+ */
+export function destinatariosDelPlan(suscritos: readonly string[], ids: Record<Dueno, string>): Dueno[] {
+  return (Object.keys(ids) as Dueno[]).filter((d) => suscritos.includes(ids[d]))
+}
