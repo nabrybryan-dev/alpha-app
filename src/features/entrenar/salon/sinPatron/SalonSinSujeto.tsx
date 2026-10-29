@@ -122,12 +122,12 @@ function PanelDePared({
     <div
       data-prescripcion={rotulo.toLowerCase()}
       data-tope={TOPE_PARED}
-      className={`rounded-[10px] border border-white/10 bg-ink-900 px-2.5 py-2 ${
+      className={`rounded-[10px] border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900 px-2.5 py-2 ${
         lado === 'izquierda' ? 'origin-left text-left' : 'origin-right text-right'
       }`}
       style={{
         transform: `rotateY(${lado === 'izquierda' ? ESCORZO_DE_PARED.grados : -ESCORZO_DE_PARED.grados}deg)`,
-        boxShadow: '0 6px 18px -12px rgba(0,0,0,.9)',
+        boxShadow: '0 6px 18px -12px var(--salon-3d-sombra-pared)',
       }}
     >
       <dt className="text-xs font-bold uppercase leading-none tracking-[0.16em] text-silver-500">

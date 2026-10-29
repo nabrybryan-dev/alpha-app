@@ -78,7 +78,7 @@ export function DesplegableDeLaSemana({ semana, diaActual, onElegir, onCerrar }:
         style={{
           top: 'calc(46px + 2.6rem)',
           width: 'min(340px, calc(100% - 24px))',
-          boxShadow: '0 18px 40px -12px rgb(0 0 0 / 0.7)',
+          boxShadow: '0 18px 40px -12px var(--salon-3d-sombra-menu)',
         }}
       >
         <p className="px-4 pb-1.5 pt-3 text-xs text-tenue">Toca un día para ver su sesión</p>

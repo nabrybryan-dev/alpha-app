@@ -2497,6 +2497,44 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_cola_dudas: RLS, select/insert solo authenticated, sin anon',
+       case when to_regclass('public.praxis_cola_dudas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_cola_dudas')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'r') <> 1 then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'a') <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd in ('w', 'd')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_cola_dudas', 'select')
+              or has_table_privilege('anon', 'public.praxis_cola_dudas', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'insert') then 'NO'
+            else 'SI' end
+
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'videos_semanales tiene correccion_pedida_por y motivo_version',
+       case when (select count(*) from information_schema.columns
+                   where table_schema = 'public' and table_name = 'videos_semanales'
+                     and column_name in ('correccion_pedida_por', 'motivo_version')) = 2 then 'SI' else 'NO' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'motivo_version solo admite correccion o republicacion_tecnica (o NULL), y solo con version > 1',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = 'public.videos_semanales'::regclass
+                            and conname = 'videos_semanales_motivo_version_check'
+                            and pg_get_constraintdef(oid) like '%republicacion_tecnica%'
+                            and pg_get_constraintdef(oid) like '%version > 1%') then 'SI' else 'NO' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'decidir_revision_semanal guarda quién pidió la corrección y no queda abierta a anon',
+       case when to_regprocedure('public.decidir_revision_semanal(uuid,date,integer,boolean,text)') is null then 'NO'
+            when pg_get_functiondef('public.decidir_revision_semanal(uuid,date,integer,boolean,text)'::regprocedure) not like '%correccion_pedida_por = auth.uid()%' then 'NO'
+            when has_function_privilege('anon', 'public.decidir_revision_semanal(uuid,date,integer,boolean,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'versionar_revision_semanal distingue correccion de republicacion_tecnica',
+       case when to_regprocedure('public.versionar_revision_semanal()') is null then 'NO'
+            when pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%republicacion_tecnica%'
+             and pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%''correccion''%' then 'SI'
+            else 'NO' end
 
 union all
 select '0148 - alertas nutricionales: apagadas hasta que Manuela firme', 'alertas_nutricion_ajustes (2 filas, constraint de firma, las dos apagadas, con RLS, sin anon, sin escritura de authenticated) y alertas_nutricion con RLS y solo lectura para authenticated',

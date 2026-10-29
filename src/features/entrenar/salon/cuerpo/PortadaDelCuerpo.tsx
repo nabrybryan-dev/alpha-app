@@ -147,13 +147,13 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           >
             <p
               className="max-w-full truncate text-[15px] leading-tight"
-              style={{ color: 'var(--texto)', fontWeight: 800, textShadow: '0 1px 6px rgb(0 0 0 / 0.55)' }}
+              style={{ color: 'var(--texto)', fontWeight: 800, textShadow: 'var(--salon-3d-sombra-portada)' }}
             >
               {p.resumen.nombre}
             </p>
             <p
               className="cifras max-w-full truncate text-[12px] leading-tight"
-              style={{ color: 'var(--tenue)', textShadow: '0 1px 6px rgb(0 0 0 / 0.55)' }}
+              style={{ color: 'var(--tenue)', textShadow: 'var(--salon-3d-sombra-portada)' }}
             >
               {p.resumen.cifras}
             </p>
@@ -274,7 +274,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 // debajo del botón del reloj. Los nombres van en `aria-label` y en la hoja, que abre.
                 aria-label={`En rojo, por trabajar: ${rojasLisas.map((id) => NOMBRE_DE_REGION[id]).join(', ')}`}
                 className="press pointer-events-auto mt-0.5 flex min-h-[32px] items-center gap-1.5 text-[12px]"
-                style={{ color: 'var(--texto)', fontWeight: 700, textShadow: '0 1px 6px rgb(0 0 0 / 0.7)' }}
+                style={{ color: 'var(--texto)', fontWeight: 700, textShadow: 'var(--salon-3d-sombra-portada-fuerte)' }}
               >
                 <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--rojo)' }} />
                 Rojo: lo que falta por trabajar
