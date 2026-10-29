@@ -1,6 +1,25 @@
 import { useEffect, useState } from 'react'
-import { decidirRevision, reproducirRevision, revisionesPendientes, type RevisionPendiente } from '../../data/nube/revisiones'
+import { decidirRevision, historialDeFirma, reproducirRevision, revisionesPendientes, type RevisionPendiente } from '../../data/nube/revisiones'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { veredictoDeLaPuerta, type SemanaDeFirma } from '../../domain/aprobacion/puerta'
+import { EstadoDeLaPuerta } from './EstadoDeLaPuerta'
+
+const NOTA_A_MANO = 'Hoy el envío automático no está encendido: la firma sigue siendo a mano.'
+
+/** La puerta de quien firma. Solo se muestra: no decide ni envía nada. */
+function Puerta({ recarga }: { recarga: number }) {
+  const [historial, setHistorial] = useState<SemanaDeFirma[] | null>(null)
+  const [fallo, setFallo] = useState(false)
+  useEffect(() => {
+    let vigente = true
+    historialDeFirma().then(h => { if (vigente) { setHistorial(h); setFallo(false) } })
+      .catch(() => { if (vigente) setFallo(true) })
+    return () => { vigente = false }
+  }, [recarga])
+  if (fallo) return <p role="status" className="text-sm text-tenue">No se pudo calcular la puerta de salida automática. La firma sigue disponible.</p>
+  if (!historial) return null
+  return <EstadoDeLaPuerta veredicto={veredictoDeLaPuerta(historial)} nota={NOTA_A_MANO} />
+}
 
 function Revision({ revision, actualizar }: { revision: RevisionPendiente; actualizar: () => void }) {
   useDbVersion()
@@ -58,6 +77,7 @@ export default function RevisionesPage() {
   return <section className="flex flex-col gap-4">
     <h1 className="text-xl font-bold">Revisiones pendientes</h1>
     <p className="text-sm text-tenue">Cada aprobación permite que la persona vea esta versión. Las correcciones esperan un archivo nuevo.</p>
+    <Puerta recarga={recarga} />
     <button type="button" onClick={actualizar} className="min-h-[44px] underline">Actualizar bandeja</button>
     {error && <p role="alert">{error}</p>}
     {!revisiones && !error && <p role="status">Cargando revisiones…</p>}

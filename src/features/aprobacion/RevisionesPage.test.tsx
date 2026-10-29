@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RevisionesPage from './RevisionesPage'
-import { decidirRevision, reproducirRevision, revisionesPendientes } from '../../data/nube/revisiones'
+import { decidirRevision, historialDeFirma, reproducirRevision, revisionesPendientes } from '../../data/nube/revisiones'
 
-vi.mock('../../data/nube/revisiones', () => ({ decidirRevision: vi.fn(), reproducirRevision: vi.fn(), revisionesPendientes: vi.fn() }))
+vi.mock('../../data/nube/revisiones', () => ({ decidirRevision: vi.fn(), reproducirRevision: vi.fn(), revisionesPendientes: vi.fn(), historialDeFirma: vi.fn() }))
 vi.mock('../../data/dbInstance', () => ({ useDbVersion: () => 0, db: { usuarios: { byId: () => ({ nombre: 'Persona de prueba' }) } } }))
 const revision = { usuario_id: 'prueba', semana: '2026-09-14', path: 'archivo', guion: 'Guion de prueba', tipo: 'video' as const, version: 4, correccion_solicitada: null }
 beforeEach(() => {
@@ -13,6 +13,7 @@ beforeEach(() => {
   vi.mocked(revisionesPendientes).mockResolvedValue([revision])
   vi.mocked(reproducirRevision).mockResolvedValue('https://ejemplo.test/video.mp4')
   vi.mocked(decidirRevision).mockResolvedValue()
+  vi.mocked(historialDeFirma).mockResolvedValue([])
 })
 afterEach(cleanup)
 
@@ -62,5 +63,33 @@ describe('revisiones: la salida', () => {
     render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
     await screen.findByRole('button', { name: 'Aprobar esta versión' })
     expect(screen.queryByRole('link', { name: /Volver/ })).toBeNull()
+  })
+})
+
+describe('revisiones: la puerta de la salida automática', () => {
+  const limpia = (fecha: string) => ({ fecha, borradores: 6, aprobadosSinTocar: 6, corregidos: 0 })
+
+  it('enseña cuántas semanas lleva limpia la firma y por qué sigue cerrada', async () => {
+    vi.mocked(historialDeFirma).mockResolvedValue([limpia('2026-10-05'), limpia('2026-10-12')])
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    expect(await screen.findByText(/Llevas 2 de 4 semanas/)).toBeTruthy()
+    expect(document.querySelector('[data-puerta="cerrada"]')).not.toBeNull()
+  })
+
+  it('aunque esté abierta, dice que el envío automático no está encendido y la firma sigue a mano', async () => {
+    vi.mocked(historialDeFirma).mockResolvedValue(
+      ['2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12'].map(limpia))
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    expect(await screen.findByText(/Abierta desde la semana del 2026-10-12/)).toBeTruthy()
+    expect(screen.getByText(/firma sigue siendo a mano/i)).toBeTruthy()
+    expect(screen.queryByText(/sin que los mires/)).toBeNull()
+    expect(await screen.findByRole('button', { name: 'Aprobar esta versión' })).toBeDisabled()
+  })
+
+  it('si el historial no carga, lo dice y la firma sigue disponible', async () => {
+    vi.mocked(historialDeFirma).mockRejectedValue(new Error('Sin historial'))
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    expect(await screen.findByText(/No se pudo calcular la puerta/)).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Aprobar esta versión' })).toBeTruthy()
   })
 })

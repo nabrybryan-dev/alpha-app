@@ -1,4 +1,6 @@
 import { modoNube, supabase } from '../supabase'
+import { semanasDeFirma, type FilaDeRevision } from '../../domain/aprobacion/historial'
+import type { SemanaDeFirma } from '../../domain/aprobacion/puerta'
 
 export interface RevisionPendiente {
   usuario_id: string
@@ -31,4 +33,17 @@ export async function decidirRevision(revision: RevisionPendiente, aprobar: bool
     p_aprobar: aprobar, p_correccion: correccion ?? null,
   })
   if (error) throw new Error(error.message)
+}
+
+/** Las semanas de firma de QUIEN ESTÁ CONECTADO, para calcular su puerta. */
+export async function historialDeFirma(): Promise<SemanaDeFirma[]> {
+  if (!modoNube) throw new Error('La puerta necesita conexión con Alpha.')
+  const { data: sesion } = await supabase().auth.getUser()
+  const uid = sesion.user?.id
+  if (!uid) throw new Error('No hay sesión para calcular la puerta.')
+  const { data, error } = await supabase().from('videos_semanales')
+    .select('semana, aprobado_en, aprobado_por, correccion_solicitada, version')
+    .order('semana', { ascending: true })
+  if (error) throw new Error(`No se pudo cargar el historial de firma: ${error.message}`)
+  return semanasDeFirma((data ?? []) as FilaDeRevision[], uid)
 }
