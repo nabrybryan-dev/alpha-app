@@ -1,4 +1,5 @@
-import { veredictoDeLaPuerta, type SemanaDeFirma, type MotivoCerrada } from '../../domain/aprobacion/puerta'
+import { veredictoDeLaPuerta, type SemanaDeFirma } from '../../domain/aprobacion/puerta'
+import { EstadoDeLaPuerta } from './EstadoDeLaPuerta'
 
 /** Un borrador esperando firma. Lo que la bandeja necesita para pintarlo, y nada más. */
 export interface BorradorPendiente {
@@ -43,16 +44,6 @@ export interface BandejaAprobacionProps {
  * Y no toca `features/coach/**` ni `features/chat/**`, que son de otra sección.
  */
 
-const EXPLICACION: Record<MotivoCerrada, (n: number) => string> = {
-  'sin-historial': () => 'Todavía no hay ninguna semana con borradores delante.',
-  'faltan-semanas': (n) => `Llevas ${n} de 4 semanas seguidas sin corregir nada.`,
-  'hubo-correccion': () => 'Corregiste algo la última semana, así que la cuenta empieza de nuevo.',
-  'semana-floja': () =>
-    'La última semana tuvo tan pocos borradores que no cuenta como prueba de nada.',
-  'quedaron-sin-mirar': () =>
-    'La última semana quedaron borradores sin abrir, y lo que nadie miró no está aprobado.',
-}
-
 export function BandejaAprobacion({
   pendientes,
   historial,
@@ -66,31 +57,7 @@ export function BandejaAprobacion({
       {/* EL ESTADO DE LA PUERTA. Va arriba porque es lo que cambia el significado de todo
           lo de abajo: firmar con la puerta cerrada es revisar; con la puerta abierta es
           comprobar por encima algo que ya podría haber salido solo. */}
-      <div
-        data-puerta={veredicto.abierta ? 'abierta' : 'cerrada'}
-        className="rounded-tarjeta border border-linea bg-ink-900 px-4 py-3"
-      >
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Salida automática</p>
-        {veredicto.abierta ? (
-          <>
-            <p className="mt-1 text-sm font-semibold text-texto">
-              Abierta desde la semana del {veredicto.desde}
-            </p>
-            {/* Se dice que se puede cerrar, y cómo. Una puerta que se abrió sola y de la que
-                no se sabe salir es peor que no tenerla. */}
-            <p className="mt-1 text-[11px] leading-snug text-tenue">
-              Los borradores pueden salir sin que los mires. Corrige uno y vuelve a cerrarse.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="mt-1 text-sm font-semibold text-texto">Cerrada</p>
-            <p className="mt-1 text-[11px] leading-snug text-tenue">
-              {EXPLICACION[veredicto.motivo](veredicto.semanasLimpias)}
-            </p>
-          </>
-        )}
-      </div>
+      <EstadoDeLaPuerta veredicto={veredicto} />
 
       {/* LOS BORRADORES. Sin ninguno, se dice — y no se deja el hueco en blanco, que se lee
           como que la pantalla no cargó. */}
@@ -104,7 +71,7 @@ export function BandejaAprobacion({
             <li
               key={b.id}
               data-borrador={b.id}
-              className="rounded-tarjeta border border-linea bg-ink-900 px-4 py-3"
+              className="rounded-tarjeta border border-linea bg-surface-1 px-4 py-3"
             >
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
