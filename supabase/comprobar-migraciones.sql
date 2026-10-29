@@ -2498,7 +2498,7 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
 union all
-select '0116 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_cola_dudas: RLS, select/insert solo authenticated, sin anon',
+select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_cola_dudas: RLS, select/insert solo authenticated, sin anon',
        case when to_regclass('public.praxis_cola_dudas') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_cola_dudas')) then 'NO'
             when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'r') <> 1 then 'NO'

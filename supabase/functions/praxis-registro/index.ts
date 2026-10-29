@@ -592,7 +592,7 @@ const PROMPT_JUEZ = [
 ].join('\n')
 
 /**
- * Cola de dudas (migración 0116, decisión de Bryan 28-oct-2026): cuando el portero devuelve `ninguna` («arriba») o
+ * Cola de dudas (migración 0117, decisión de Bryan 28-oct-2026): cuando el portero devuelve `ninguna` («arriba») o
  * `aclarar`, la FRASE COMPLETA de la persona del equipo (coach o nutricionista; de asesorados nada) se guarda con la
  * ficha que elige Haiku del catálogo publicado. Se escribe con el JWT de la persona (RLS `es_staff()`), nunca con
  * service_role. Cualquier fallo (rol, catálogo, juez, insert) NO afecta la respuesta: solo deja una línea

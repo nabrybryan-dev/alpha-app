@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0116 · Praxis: la cola de dudas del equipo (Fase B, pieza 1)
+-- 0117 · Praxis: la cola de dudas del equipo (Fase B, pieza 1)
 -- ============================================================================
 --
 -- NO ESTÁ APLICADA. La escribió la rama `praxis/cola-dudas-20261029` el 29-oct-2026 y la aplica Bryan,
@@ -41,7 +41,7 @@ create table if not exists public.praxis_cola_dudas (
 );
 
 comment on table public.praxis_cola_dudas is
-  'Cola de dudas del equipo para el taller de Praxis (0116, 2026-10-29): frase completa de coach/nutricionista que el portero no resolvió, '
+  'Cola de dudas del equipo para el taller de Praxis (0117, 2026-10-29): frase completa de coach/nutricionista que el portero no resolvió, '
   'con la ficha que eligió el juez. Nunca guarda frases de asesorados. Inserta praxis-registro con el JWT del equipo; el taller marca usado_en_taller con service_role.';
 
 create index if not exists praxis_cola_dudas_pendientes
