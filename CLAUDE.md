@@ -207,11 +207,17 @@ app ya cargó la semana, la cadena no la pisa en silencio.
   pantalla, porque la cadena carga con `plantilla-carga-microciclo.sql` y no pasa por la app.
 - La regla: al activar un microciclo con número N, choca si la persona ya tiene otro de
   **otro origen** (`cadena`/`app`, lo pone un trigger: sesión de usuario = app, servicio =
-  cadena) con número >= N. Un número mayor es el relevo normal y pasa.
-- La app (`activar_microciclo`) no activa y deja un aviso en `microciclos_choques`; el panel lo
-  enseña con dos botones (`confirmar_pisar_microciclo` / `descartar_choque_microciclo`). La cadena
-  (insert directo) aborta con `candado_microciclo` y solo pisa con
-  `select set_config('alpha.pisar_microciclo','si',true)` en su misma transacción.
+  cadena) con número >= N, **activo o cerrado**. Un número mayor es el relevo normal y pasa.
+- Los triggers de `microciclos` se llaman `a_origen`, `b_candado`, `c_registrar_choque` a
+  propósito: Postgres los dispara por orden alfabético y el candado necesita el origen ya fijado.
+  No los renombres sin cambiar el orden comprobado en la prueba 216.
+- Nadie lanza excepción por un choque (deshace también el aviso): la app (`activar_microciclo`)
+  no activa; la cadena (insert/update directo) queda `propuesto`; ambas dejan un aviso en
+  `microciclos_choques`. La plantilla de carga lo comprueba antes de cerrar nada y devuelve
+  `CHOQUE · ...` (léelo). El panel enseña el aviso con dos botones (`confirmar_pisar_microciclo` /
+  `descartar_choque_microciclo`). Solo se pisa con la confirmación del coach o, desde la cadena,
+  con `select set_config('alpha.pisar_microciclo','si',true)` en su misma transacción.
+- Un primer plan cuyo microciclo choca queda `espera_bryan` (no `aprobado`/`vencido_aprobado`).
 - **Orden de encendido:** aplicar la 0147 (a mano, Bryan) ANTES de poner la variable en Vercel y
   reconstruir. Sin la 0147 no hay candado y la bandera reabre el pisado en silencio.
 - Origen de la cadena: comprobado por lectura (la cabecera de la 0147 cita archivo:línea): la
