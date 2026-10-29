@@ -194,6 +194,30 @@ Reglas que quedan:
   necesita `enable row level security` en el mismo paso que el `create table`:
   lleva datos reales y sin RLS queda legible con la anon key.
 
+### Motor de microciclos de la app: encendido CON CANDADO (Bryan, 28-oct-2026)
+
+`PanelMicrociclos` activa microciclos solo si se construye con `VITE_MOTOR_APP_ACTIVO=true`
+(decisión en build, no en runtime; la variable **no** está definida en ningún archivo del repo:
+vive en Vercel o no existe). Decisión de Bryan: se enciende **con candado**. Si la cadena de
+agentes ya cargó o activó la semana de esa persona, la app no la pisa: avisa al coach, dice
+quién la cargó y cuándo, y no hace nada sin su confirmación explícita. Al revés también: si la
+app ya cargó la semana, la cadena no la pisa en silencio.
+
+- El candado está **en la base** (migración `0147_candado_de_microciclos.sql`), no solo en la
+  pantalla, porque la cadena carga con `plantilla-carga-microciclo.sql` y no pasa por la app.
+- La regla: al activar un microciclo con número N, choca si la persona ya tiene otro de
+  **otro origen** (`cadena`/`app`, lo pone un trigger: sesión de usuario = app, servicio =
+  cadena) con número >= N. Un número mayor es el relevo normal y pasa.
+- La app (`activar_microciclo`) no activa y deja un aviso en `microciclos_choques`; el panel lo
+  enseña con dos botones (`confirmar_pisar_microciclo` / `descartar_choque_microciclo`). La cadena
+  (insert directo) aborta con `candado_microciclo` y solo pisa con
+  `select set_config('alpha.pisar_microciclo','si',true)` en su misma transacción.
+- **Orden de encendido:** aplicar la 0147 (a mano, Bryan) ANTES de poner la variable en Vercel y
+  reconstruir. Sin la 0147 no hay candado y la bandera reabre el pisado en silencio.
+- Sin comprobar a la hora de escribir esto: que la cadena entre siempre sin sesión de usuario
+  (si usara una sesión autenticada, quedaría con origen `app`); el SQL no se ejecutó en un
+  Postgres (el test `supabase/test/216-candado-de-microciclos.sql` corre en el CI).
+
 ### Cómo fluyen los datos
 
 - `src/data/dbInstance.ts` expone **un único** `db = crearDbSincronizada(crearMockDb())`:

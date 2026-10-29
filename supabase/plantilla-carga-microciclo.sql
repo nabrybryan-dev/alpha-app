@@ -456,6 +456,11 @@ begin
   -- pasó en producción—, el otro sobrevivía, y con el índice puesto la carga
   -- reventaría con un `duplicate key` en vez de repararlo. La red de seguridad de
   -- más abajo ya exigía exactamente uno; ahora el cuerpo hace lo que ella pide.
+  -- CANDADO (0147). Si la app ya cargó o activó esa misma semana (o una posterior) para esta
+  -- persona, el insert de abajo FALLA con `candado_microciclo` y esta transacción entera se
+  -- deshace, el cierre de arriba incluido. Es lo que se quiere: no pisar en silencio. Para pisar
+  -- a propósito, con permiso del coach, y en la MISMA transacción, antes de esta función:
+  --   select set_config('alpha.pisar_microciclo', 'si', true);
   update public.microciclos
      set estado = 'cerrado'
    where usuario_id = v_uid

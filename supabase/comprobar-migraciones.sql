@@ -2497,5 +2497,19 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0147 - candado de microciclos: la app y la cadena no se pisan', 'origen y cargado_en en microciclos, trigger de candado, avisos con RLS y confirmar solo para authenticated',
+       case when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'microciclos' and column_name = 'origen') then 'NO'
+            when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'microciclos' and column_name = 'cargado_en') then 'NO'
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_candado' and not tgisinternal) then 'NO'
+            when to_regclass('public.microciclos_choques') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.microciclos_choques')) then 'NO'
+            when has_table_privilege('anon', 'public.microciclos_choques', 'select')
+              or has_table_privilege('authenticated', 'public.microciclos_choques', 'insert')
+              or has_table_privilege('authenticated', 'public.microciclos_choques', 'update') then 'NO'
+            when to_regprocedure('public.confirmar_pisar_microciclo(text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.confirmar_pisar_microciclo(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.confirmar_pisar_microciclo(text)', 'execute') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
