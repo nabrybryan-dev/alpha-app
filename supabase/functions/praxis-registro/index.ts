@@ -830,6 +830,18 @@ async function leerRol(d: Dependencias, s: Sesion): Promise<string | undefined> 
   return filas?.[0]?.rol
 }
 
+/**
+ * ¿Ocupa el PUESTO de coach? Es la capacidad `puesto_de_coach` de `capacidades_staff` (migración 0106), la
+ * misma que usa la pantalla (`capacidadesDe`). Se lee con el JWT de la persona: la política `capacidades_staff_lee`
+ * deja leer la fila propia. Si no se puede leer (error, red, respuesta rara) es `false`: se cierra.
+ */
+async function leerPuesto(d: Dependencias, s: Sesion): Promise<boolean> {
+  const filas = await leer<{ capacidad?: string }[]>(
+    d, s, `capacidades_staff?usuario_id=eq.${s.usuarioId}&capacidad=eq.puesto_de_coach&select=capacidad`,
+  ).catch(() => null)
+  return Array.isArray(filas) && filas.some((f) => f?.capacidad === 'puesto_de_coach')
+}
+
 export async function manejar(req: Request, d: Dependencias): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405)
@@ -869,6 +881,8 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
     previa = { usuarioId: a.id, token }
   }
   const rolEnCurso = medir(relojSesion, 'rol', leerRol(d, previa))
+  const puestoEnCurso = medir(relojSesion, 'puesto', leerPuesto(d, previa))
+  puestoEnCurso.catch(() => undefined) // si Auth o el rol cierran la puerta antes, que su fallo no quede suelto
   // El ingreso y la relectura de riesgo no usan el plan de nadie: no se lee.
   const esIngreso = cuerpo.accion === 'ingreso'
   const esRelectura = cuerpo.accion === 'releer_riesgo'
@@ -884,9 +898,12 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   // interruptor es el de la pantalla (`acceso.ts`): antes solo existía allí, y cualquier
   // asesorado con sesión podía llamar a la función y mandar su texto al modelo (revisión del
   // PR #331, A2). Si no se sabe el rol, se cierra.
+  // Praxis se abre por rol del equipo O por puesto (Bryan, 23-oct): su cuenta personal es `asesorado` con
+  // `puesto_de_coach`. El rol NO se reescribe: sigue siendo el que es para todo lo demás. Sin saber el puesto, se cierra.
   const rol = await rolEnCurso
+  const ocupaElPuesto = await puestoEnCurso.catch(() => false)
   const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
-  if (!conocido || !puedeVerPraxis(rol as Rol)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
+  if (!conocido || !puedeVerPraxis(rol as Rol, undefined, ocupaElPuesto)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
   console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
