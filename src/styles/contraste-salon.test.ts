@@ -88,10 +88,10 @@ function crudo(bloque: string, nombre: string): string {
   return v
 }
 
-// En oscuro la leyenda de la retícula conserva su valor de antes (white/35, 3,16:1, no
-// es #rrggbb): excepción declarada, ver «tema oscuro del salón: los valores de antes».
-const sinLeyendaEnOscuro = (nombre: string, tokens: string[]) =>
-  nombre === 'oscuro' ? tokens.filter((t) => t !== 'salon-3d-leyenda') : tokens
+// EXCEPCIÓN FIRMADA POR BRYAN, 29-oct-2026: en oscuro la leyenda pequeña de la retícula pasa
+// de white/35 (3,16:1) a #8a8d91 (5,80:1 sobre el lienzo). Ya es #rrggbb y entra en las
+// comprobaciones de 4,5:1 como cualquier otro token; este filtro queda como identidad.
+const sinLeyendaEnOscuro = (_nombre: string, tokens: string[]) => tokens
 
 describe.each(TEMAS)('el texto del salón también se lee sobre el fondo del lienzo, tema $nombre', ({ nombre, bloque }) => {
   it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-texto', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda', 'salon-3d-arrastre']))(
@@ -128,8 +128,13 @@ describe('tema oscuro del salón: los valores de antes', () => {
     expect(crudo(oscuro, 'salon-3d-borde-fino')).toContain('255 255 255 / 0.14')
     expect(crudo(oscuro, 'salon-3d-accion-suave').toLowerCase()).toBe('#ff4646d9')
   })
-  it('la leyenda de la retícula y la cifra grande no cambiaron en oscuro (R2-5)', () => {
-    expect(crudo(oscuro, 'salon-3d-leyenda')).toBe('rgb(255 255 255 / 0.35)')
+  it('la leyenda de la retícula es #8a8d91 en oscuro: excepción firmada por Bryan el 29-oct-2026 (5,80:1)', () => {
+    expect(crudo(oscuro, 'salon-3d-leyenda').toLowerCase()).toBe('#8a8d91')
+    const c = contraste(color(oscuro, 'salon-3d-leyenda'), color(oscuro, 'salon-3d-lienzo'))
+    expect(Number(c.toFixed(2))).toBe(5.8)
+    expect(css).toContain('Bryan, 29-oct-2026')
+  })
+  it('la cifra grande no cambió en oscuro (R2-5)', () => {
     expect(crudo(oscuro, 'salon-3d-texto').toLowerCase()).toBe('#f2f2f2')
     expect(crudo(oscuro, 'texto-rgb')).toBe('242 242 242')
   })
