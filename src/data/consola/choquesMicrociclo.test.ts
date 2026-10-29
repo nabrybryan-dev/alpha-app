@@ -116,3 +116,144 @@ describe('la migración 0147 y este archivo dicen lo mismo', () => {
     expect(SQL).toContain('create table if not exists public.microciclos_choques')
   })
 })
+
+/**
+ * Pruebas ESTRUCTURALES del SQL (no hay Postgres aquí: el comportamiento lo prueba
+ * `supabase/test/216-candado-de-microciclos.sql` en el CI). Cada comprobador se prueba también contra
+ * una copia MUTADA del SQL, para que se vea que detecta la regresión que dice detectar.
+ */
+const LEER = (...ruta: string[]) => readFileSync(join(process.cwd(), ...ruta), 'utf8')
+const PLANTILLA = LEER('supabase', 'plantilla-carga-microciclo.sql')
+const COMPROBAR = LEER('supabase', 'comprobar-migraciones.sql')
+const PRUEBA_216 = LEER('supabase', 'test', '216-candado-de-microciclos.sql')
+
+/** Funciones normales (no trigger) de la migración. */
+function funcionesLlamables(sql: string): string[] {
+  const re = /create or replace function public\.(\w+)\(([^)]*)\)\s*returns\s+(\w+)/gi
+  return [...sql.matchAll(re)].filter((m) => m[3].toLowerCase() !== 'trigger').map((m) => m[1])
+}
+
+/** Las que NO tienen un `revoke all on function ... from public, anon`. */
+function sinRevokeDeAnon(sql: string): string[] {
+  return funcionesLlamables(sql).filter((nombre) => {
+    const re = new RegExp(`revoke all on function public\\.${nombre}\\([^)]*\\)\\s+from\\s+public,\\s*anon`, 'i')
+    return !re.test(sql)
+  })
+}
+
+function triggersEnOrden(sql: string): { nombre: string; momento: string }[] {
+  const re = /create trigger (\w+)\s+(before|after)\s/gi
+  return [...sql.matchAll(re)].map((m) => ({ nombre: m[1], momento: m[2].toLowerCase() }))
+}
+
+function cuerpoDe(sql: string, funcion: string): string {
+  const i = sql.indexOf(`function public.${funcion}(`)
+  const j = sql.indexOf('$$;', i)
+  return sql.slice(i, j)
+}
+
+describe('0147: estructura que no puede perderse', () => {
+  it('H2: TODAS las funciones llamables de la 0147 hacen revoke a anon', () => {
+    expect(funcionesLlamables(SQL)).toEqual(
+      expect.arrayContaining([
+        'microciclo_choque',
+        'registrar_choque_microciclo',
+        'activar_microciclo',
+        'confirmar_pisar_microciclo',
+        'descartar_choque_microciclo',
+        'decidir_primer_plan',
+        'vencer_primer_plan',
+      ]),
+    )
+    expect(sinRevokeDeAnon(SQL)).toEqual([])
+  })
+
+  it('H2: el comprobador SÍ detecta que a descartar_choque_microciclo le falte anon', () => {
+    const mutada = SQL.replace(
+      'revoke all on function public.descartar_choque_microciclo(uuid) from public, anon;',
+      'revoke all on function public.descartar_choque_microciclo(uuid) from public;',
+    )
+    expect(mutada).not.toBe(SQL)
+    expect(sinRevokeDeAnon(mutada)).toEqual(['descartar_choque_microciclo'])
+  })
+
+  it('H1: la regla cuenta los microciclos activos Y cerrados', () => {
+    expect(cuerpoDe(SQL, 'microciclo_choque')).toMatch(/estado in \('activo', 'cerrado'\)/)
+    const mutada = SQL.replace("m.estado in ('activo', 'cerrado')", "m.estado = 'activo'")
+    expect(mutada).not.toBe(SQL)
+    expect(cuerpoDe(mutada, 'microciclo_choque')).not.toMatch(/'cerrado'/)
+  })
+
+  it('H4: el trigger de origen se dispara antes que el candado y el aviso va después (orden alfabético)', () => {
+    const t = triggersEnOrden(SQL)
+    const alfabetico = t.map((x) => x.nombre).sort()
+    expect(alfabetico).toEqual([
+      'trg_microciclos_a_origen',
+      'trg_microciclos_b_candado',
+      'trg_microciclos_c_registrar_choque',
+    ])
+    // Los dos primeros son BEFORE; el que registra el aviso es AFTER (la fila ya existe).
+    expect(t.find((x) => x.nombre === 'trg_microciclos_a_origen')?.momento).toBe('before')
+    expect(t.find((x) => x.nombre === 'trg_microciclos_b_candado')?.momento).toBe('before')
+    expect(t.find((x) => x.nombre === 'trg_microciclos_c_registrar_choque')?.momento).toBe('after')
+  })
+
+  it('H3: el candado no lanza excepción (se perdería el aviso) y registra con un trigger AFTER', () => {
+    expect(cuerpoDe(SQL, 'microciclos_candado')).not.toMatch(/raise exception/i)
+    expect(cuerpoDe(SQL, 'microciclos_registrar_choque')).toContain('registrar_choque_microciclo(new.id)')
+  })
+
+  it('H7: confirmar_pisar_microciclo comprueba que la propuesta quedó activa ANTES de marcar confirmado', () => {
+    const c = cuerpoDe(SQL, 'confirmar_pisar_microciclo')
+    expect(c.indexOf('no quedó activa')).toBeGreaterThan(-1)
+    expect(c.indexOf('no quedó activa')).toBeLessThan(c.indexOf("set estado = 'confirmado'"))
+  })
+
+  it('(b): decidir y vencer_primer_plan mandan el choque a espera_bryan, no a aprobado', () => {
+    const d = cuerpoDe(SQL, 'decidir_primer_plan')
+    expect(d.indexOf('activar_microciclo')).toBeLessThan(d.indexOf("estado = 'aprobado'"))
+    expect(d).toContain("estado = 'espera_bryan'")
+    const v = cuerpoDe(SQL, 'vencer_primer_plan')
+    expect(v.indexOf('activar_microciclo')).toBeLessThan(v.indexOf("estado = 'vencido_aprobado'"))
+    expect(v).toContain("v_estado_mc = 'activo'")
+  })
+
+  it('la plantilla de la cadena comprueba el choque ANTES de cerrar el activo, y avisa en vez de fallar', () => {
+    const choque = PLANTILLA.indexOf('microciclo_choque(v_uid')
+    const cierre = PLANTILLA.indexOf("set estado = 'cerrado'", choque)
+    expect(choque).toBeGreaterThan(-1)
+    expect(cierre).toBeGreaterThan(choque)
+    expect(PLANTILLA).toContain("'CHOQUE · '")
+  })
+
+  it('comprobar-migraciones vigila el revoke de anon de TODAS las funciones y el orden de los triggers', () => {
+    const fila = COMPROBAR.slice(COMPROBAR.indexOf("select '0147 - candado de microciclos"))
+    for (const f of [
+      'descartar_choque_microciclo(uuid)',
+      'registrar_choque_microciclo(text)',
+      'confirmar_pisar_microciclo(text)',
+      'microciclo_choque(uuid,text,integer,text)',
+      'activar_microciclo(text)',
+    ]) {
+      expect(fila).toContain(`has_function_privilege('anon', 'public.${f}', 'execute')`)
+    }
+    expect(fila).toContain('trg_microciclos_a_origen')
+    expect(fila).toContain('trg_microciclos_b_candado')
+    expect(fila).toContain("not like '%''cerrado''%'")
+  })
+
+  it('la prueba 216 cubre cada punto: orden, registro del choque, cerrado, (b), confirmar sin activar y anon', () => {
+    for (const marca of [
+      'trg_microciclos_a_origen',
+      "propuesta_origen = 'cadena'",
+      'YA CERRADA',
+      'decidir_primer_plan',
+      'vencer_primer_plan',
+      'no quedó activa',
+      "has_function_privilege('anon', 'public.descartar_choque_microciclo(uuid)'",
+      'set role anon',
+    ]) {
+      expect(PRUEBA_216).toContain(marca)
+    }
+  })
+})
