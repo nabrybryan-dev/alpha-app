@@ -1255,7 +1255,7 @@ export function VisorPatron({
           </p>
         )}
         {!error && (
-          <p className="pointer-events-none absolute bottom-2 left-3 text-[9px] uppercase tracking-[0.12em] text-silver-400">
+          <p className="pointer-events-none absolute bottom-2 left-3 text-[9px] uppercase tracking-[0.12em] text-[color:var(--salon-3d-arrastre)]">
             Arrastra para girar
           </p>
         )}
@@ -1314,7 +1314,7 @@ export function VisorPatron({
                 onClick={() => setCapa(c)}
                 aria-pressed={capa === c}
                 className={`press px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-                  capa === c ? 'bg-white/10 text-silver-100' : 'text-silver-400'
+                  capa === c ? 'bg-[rgb(var(--salon-3d-filete-rgb)/0.1)] text-silver-100' : 'text-silver-400'
                 }`}
               >
                 {c === 'ambas' ? 'Ambas' : c === 'musculo' ? 'Músculo' : 'Hueso'}
@@ -1346,7 +1346,7 @@ export function VisorPatron({
         <p className="mb-2 text-xs leading-snug text-silver-200">{frase}.</p>
         <ul className="flex flex-col">
           {acciones.map((r) => (
-            <li key={r.articulacion.id} className="border-b border-white/5">
+            <li key={r.articulacion.id} className="border-b border-[rgb(var(--salon-3d-filete-rgb)/0.05)]">
               <details className="group">
                 <summary className="flex cursor-pointer list-none items-baseline gap-2 py-1.5 text-xs">
                   <span
@@ -1443,7 +1443,7 @@ export function VisorPatron({
             // son la misma cosa y abrirlo repetiría el nombre.
             const desglosa = musculo.porciones.length > 1
             return (
-              <li key={musculo.id} className="border-b border-white/5">
+              <li key={musculo.id} className="border-b border-[rgb(var(--salon-3d-filete-rgb)/0.05)]">
                 <details className="group">
                   <summary className="flex cursor-pointer list-none items-center gap-2 py-1.5 text-xs text-silver-200">
                     {/* El cuadrado lleva el MISMO color que el modelo: el nombre

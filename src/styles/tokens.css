@@ -154,6 +154,12 @@
   --salon-3d-vineta-rgb: 5 7 10;
   --salon-3d-negro-rgb: 0 0 0;
   --salon-3d-borde-fino: rgb(255 255 255 / 0.14);
+  /* Filetes y sombras de los recuadros del salón y la sesión: los valores de antes en oscuro
+     (white/5-10, rgba(0,0,0,.7-.95)); en claro, tinta suave. */
+  --salon-3d-filete-rgb: 255 255 255;
+  --salon-3d-arrastre: #9aa1ab;
+  --salon-3d-sombra-pared: rgb(0 0 0 / 0.9);
+  --salon-3d-sombra-menu: rgb(0 0 0 / 0.7);
   --salon-3d-superficie: rgb(var(--ink-1000-rgb) / 0.96);
   --salon-3d-superficie-alta: rgb(var(--ink-800-rgb) / 0.96);
   --salon-3d-borde: rgb(var(--silver-500-rgb) / 0.45);
@@ -281,6 +287,10 @@
   --salon-3d-vineta-rgb: 176 171 160;
   --salon-3d-negro-rgb: 60 58 54;
   --salon-3d-borde-fino: rgb(17 17 17 / 0.2);
+  --salon-3d-filete-rgb: 17 17 17;
+  --salon-3d-arrastre: #3f3e3a;
+  --salon-3d-sombra-pared: rgb(17 17 17 / 0.22);
+  --salon-3d-sombra-menu: rgb(17 17 17 / 0.22);
   --salon-3d-superficie: rgb(255 255 255 / 0.94);
   --salon-3d-superficie-alta: rgb(var(--bg-rgb) / 0.96);
   --salon-3d-borde: rgb(17 17 17 / 0.16);

@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
@@ -94,7 +94,7 @@ const sinLeyendaEnOscuro = (nombre: string, tokens: string[]) =>
   nombre === 'oscuro' ? tokens.filter((t) => t !== 'salon-3d-leyenda') : tokens
 
 describe.each(TEMAS)('el texto del salón también se lee sobre el fondo del lienzo, tema $nombre', ({ nombre, bloque }) => {
-  it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-texto', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda']))(
+  it.each(sinLeyendaEnOscuro(nombre, ['salon-3d-texto', 'salon-3d-tenue', 'salon-3d-accion', 'salon-3d-rotulo', 'salon-3d-matiz', 'salon-3d-leyenda', 'salon-3d-arrastre']))(
     '%s llega a 4,5:1 sobre --salon-3d-lienzo',
     (token) => {
       const c = contraste(color(bloque, token), color(bloque, 'salon-3d-lienzo'))
@@ -218,5 +218,46 @@ describe('texto tenue dentro de la tarjeta con foto, tema claro', () => {
     const texto: Rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
     const peor = Math.round(255 * 0.28 + 10 * 0.72)
     expect(contraste(texto, [peor, peor, peor])).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+/**
+ * SIN COLORES FIJOS EN EL SALÓN Y LA SESIÓN (H6). Un `border-white/10` o una sombra
+ * `rgba(0,0,0,.9)` escritos a mano no siguen el tema: en claro el filete blanco no se ve y
+ * la sombra negra ensucia el papel. Deben leer los tokens `--salon-3d-*`.
+ */
+describe('el salón y la sesión no llevan filetes blancos ni sombras negras fijos', () => {
+  const raiz = join(__dirname, '../features/entrenar')
+  const archivos: string[] = []
+  const recorrer = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const ruta = join(dir, e.name)
+      if (e.isDirectory()) recorrer(ruta)
+      else if (/\.tsx$/.test(e.name) && !/\.test\./.test(e.name)) archivos.push(ruta)
+    }
+  }
+  recorrer(join(raiz, 'salon'))
+  archivos.push(join(raiz, 'visor/VisorPatron.tsx'), join(raiz, 'SesionPage.tsx'), join(raiz, 'SesionCerrada.tsx'), join(raiz, 'EjercicioCompletado.tsx'))
+  const fijos = /border-white\/|bg-white\/|rgba\(\s*0\s*,\s*0\s*,\s*0|rgb\(\s*0 0 0/
+  it.each(archivos.map((a) => [a.slice(raiz.length + 1).split(sep).join('/'), a] as const))('%s', (_nombre, ruta) => {
+    const lineas = readFileSync(ruta, 'utf8')
+      .split('\n')
+      .filter((l) => fijos.test(l) && !/^\s*(\/\/|\*|\/\*)/.test(l))
+    expect(lineas).toEqual([])
+  })
+})
+
+/**
+ * «ARRASTRA PARA GIRAR» (R2-8) vive en VisorPatron.tsx (hoja del patrón 3D), en mayúsculas
+ * por CSS. Era `text-silver-400` fijo (#9aa1ab, ~2,2:1 sobre el lienzo claro); ahora lee
+ * `--salon-3d-arrastre`: en oscuro el mismo #9aa1ab, en claro tinta. El contraste sobre el
+ * lienzo se mide arriba, con el resto de los tokens de texto.
+ */
+describe('«Arrastra para girar» sigue el tema', () => {
+  it('lee --salon-3d-arrastre y en oscuro conserva #9aa1ab', () => {
+    const f = readFileSync(join(__dirname, '../features/entrenar/visor/VisorPatron.tsx'), 'utf8')
+    expect(f).toContain('text-[color:var(--salon-3d-arrastre)]')
+    expect(f).not.toMatch(/text-silver-400">\s*Arrastra para girar/)
+    expect(crudo(oscuro, 'salon-3d-arrastre').toLowerCase()).toBe('#9aa1ab')
   })
 })
