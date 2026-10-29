@@ -198,3 +198,25 @@ describe('botones redondos de la derecha: mismo velo y mismo borde', () => {
     expect(camara).not.toMatch(/borderColor:\s*'rgb\(var\(--accion-rgb\)/)
   })
 })
+
+/**
+ * «Toca para pausar» DEL CRONÓMETRO DE LA SESIÓN (R2-7). Vive en una `.tarjeta-foto`, que es
+ * oscura (velo rgba(10,10,10,.72-.92) sobre la foto) también en claro. El `text-tenue` del
+ * tema claro (95 94 90) da ~3,05:1 ahí. En claro, dentro de la tarjeta, el tenue pasa a un
+ * gris claro que llega a 4,5:1 en el peor caso: foto blanca bajo el velo más flojo (.72).
+ * En oscuro no se toca nada.
+ */
+describe('texto tenue dentro de la tarjeta con foto, tema claro', () => {
+  const regla = /\[data-theme="light"\]\s+\.tarjeta-foto\s+\.text-tenue\s*\{([^}]*)\}/.exec(css)
+  it('hay una regla de tenue para la tarjeta con foto, solo en claro', () => {
+    expect(regla, 'falta [data-theme="light"] .tarjeta-foto .text-tenue').not.toBeNull()
+  })
+  it('llega a 4,5:1 sobre el peor caso del velo', () => {
+    const hex = /color:\s*#([0-9a-f]{6})/i.exec(regla?.[1] ?? '')?.[1]
+    expect(hex).toBeTruthy()
+    const n = Number.parseInt(hex!, 16)
+    const texto: Rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    const peor = Math.round(255 * 0.28 + 10 * 0.72)
+    expect(contraste(texto, [peor, peor, peor])).toBeGreaterThanOrEqual(4.5)
+  })
+})

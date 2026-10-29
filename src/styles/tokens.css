@@ -694,6 +694,13 @@ body {
   z-index: 1;
 }
 
+/* En claro, el `text-tenue` (95 94 90) caía a ~3,05:1 sobre el velo de la tarjeta, que es
+   oscura también en claro («Toca para pausar» del cronómetro). Gris claro: 4,5:1 aun con
+   foto blanca bajo el velo más flojo. En oscuro no cambia. */
+[data-theme="light"] .tarjeta-foto .text-tenue {
+  color: #d0d3d8;
+}
+
 .tarjeta-foto .kicker {
   color: #ff4d4d;
 }
