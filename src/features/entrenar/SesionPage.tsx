@@ -229,8 +229,8 @@ function SesionEnCurso() {
   if (cerrada) return <SesionCerrada sesion={sesion} />
 
   return (
-    // Entreno es oscura siempre (decisión de diseño), sin importar el tema global.
-    <div data-theme="dark" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
+    // Entreno sigue el tema de la persona (zona 8, decisión de Bryan 28-oct).
+    <div data-sesion="entrenar" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"

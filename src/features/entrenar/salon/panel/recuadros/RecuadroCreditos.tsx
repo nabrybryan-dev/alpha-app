@@ -15,7 +15,7 @@ export function RecuadroCreditos() {
   return (
     <ul className="flex flex-col gap-2">
       {CREDITOS_DEL_GIMNASIO.map((f) => (
-        <li key={f.enlace} className="rounded-bloque border border-white/10 bg-ink-700 px-3.5 py-2.5">
+        <li key={f.enlace} className="rounded-bloque border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-700 px-3.5 py-2.5">
           <a
             href={f.enlace}
             target="_blank"

@@ -1,6 +1,32 @@
 import { useEffect, useState } from 'react'
-import { decidirRevision, reproducirRevision, revisionesPendientes, type RevisionPendiente } from '../../data/nube/revisiones'
+import { decidirRevision, historialDeFirma, reproducirRevision, revisionesPendientes, type RevisionPendiente } from '../../data/nube/revisiones'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { veredictoDeLaPuerta } from '../../domain/aprobacion/puerta'
+import type { HistorialDeFirma } from '../../domain/aprobacion/historial'
+import { EstadoDeLaPuerta } from './EstadoDeLaPuerta'
+
+const NOTA_A_MANO = 'Hoy el envío automático no está encendido: la firma sigue siendo a mano.'
+
+// Límites de los datos (migración 0150): cada firmante carga solo las correcciones que él pidió;
+// las filas anteriores a la 0150 no traen ese dato y no cuentan; las firmas anteriores a la 0081 no
+// dicen quién firmó y tampoco se cuentan.
+const AVISO_DATOS = 'Límites de los datos: cada firmante cuenta solo las correcciones que él pidió, aunque la versión nueva la firme otra persona. Una versión nueva por un cambio técnico, sin corrección pendiente, no cuenta para nadie. Lo anterior a esta regla no dice quién pidió la corrección y no se cuenta, y las firmas anteriores a la identificación del firmante tampoco.'
+
+/** La puerta de quien firma. Solo se muestra: no decide ni envía nada. */
+function Puerta({ recarga }: { recarga: number }) {
+  const [historial, setHistorial] = useState<HistorialDeFirma | null>(null)
+  const [fallo, setFallo] = useState(false)
+  useEffect(() => {
+    let vigente = true
+    historialDeFirma().then(h => { if (vigente) { setHistorial(h); setFallo(false) } })
+      .catch(() => { if (vigente) setFallo(true) })
+    return () => { vigente = false }
+  }, [recarga])
+  if (fallo) return <p role="status" className="text-sm text-tenue">No se pudo calcular la puerta de salida automática. La firma sigue disponible.</p>
+  if (!historial) return null
+  return <EstadoDeLaPuerta veredicto={veredictoDeLaPuerta(historial.semanas)} enCurso={historial.enCurso}
+    nota={NOTA_A_MANO} aviso={AVISO_DATOS} />
+}
 
 function Revision({ revision, actualizar }: { revision: RevisionPendiente; actualizar: () => void }) {
   useDbVersion()
@@ -28,7 +54,7 @@ function Revision({ revision, actualizar }: { revision: RevisionPendiente; actua
     finally { setOcupado(false) }
   }
 
-  return <article className="rounded-tarjeta border border-linea bg-ink-900 p-4">
+  return <article className="rounded-tarjeta border border-linea bg-surface-1 p-4">
     <h2 className="font-semibold">{nombre} · {revision.semana}</h2>
     <p className="my-3 whitespace-pre-line text-sm">{revision.guion}</p>
     <button type="button" disabled={ocupado} onClick={() => void abrir()} className="min-h-[44px] underline">Abrir {revision.tipo}</button>
@@ -58,6 +84,7 @@ export default function RevisionesPage() {
   return <section className="flex flex-col gap-4">
     <h1 className="text-xl font-bold">Revisiones pendientes</h1>
     <p className="text-sm text-tenue">Cada aprobación permite que la persona vea esta versión. Las correcciones esperan un archivo nuevo.</p>
+    <Puerta recarga={recarga} />
     <button type="button" onClick={actualizar} className="min-h-[44px] underline">Actualizar bandeja</button>
     {error && <p role="alert">{error}</p>}
     {!revisiones && !error && <p role="status">Cargando revisiones…</p>}
