@@ -116,7 +116,7 @@ export const RUTAS: readonly RutaApp[] = [
   // Empresa (paso 11): las herramientas de los tres sombreros, según los permisos. También raíz.
   { patron: '/empresa', ejemplo: '/empresa', padre: null, titulo: 'Empresa', guarda: EQUIPO },
   { patron: '/equipo-nutricion', ejemplo: '/equipo-nutricion', padre: '/equipo', titulo: 'Nutrición del equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
-  { patron: '/equipo-nutricion/cifras', ejemplo: '/equipo-nutricion/cifras', padre: '/equipo-nutricion', titulo: 'Cifras', guarda: SOLO_EQUIPO_A_RAIZ },
+  { patron: '/equipo-nutricion/cifras', ejemplo: '/equipo-nutricion/cifras', padre: '/equipo-nutricion', titulo: 'Cifras', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   // Mi plan de Manuela. Los avisos push de Manuela abren ESTA ruta: queda para siempre.
   { patron: '/mi-plan', ejemplo: '/mi-plan', padre: '/', titulo: 'Mi plan', guarda: SOLO_EQUIPO_A_RAIZ },
 
@@ -135,7 +135,7 @@ export const RUTAS: readonly RutaApp[] = [
   // la cartera única `/equipo` (relevo-sin-perdidas). Sus avisos de datos y microciclos viven allí.
   { patron: '/coach/asesorados', ejemplo: '/coach/asesorados', padre: '/', titulo: 'Cartera de asesorados', guarda: { marco: 'coach', redirigeA: '/equipo' } },
   { patron: '/coach/asesorado/:usuarioId', ejemplo: '/coach/asesorado/u-valentina', padre: '/coach/asesorados', titulo: 'Asesorado', guarda: { marco: 'coach' } },
-  { patron: '/coach/chat', ejemplo: '/coach/chat', padre: '/', titulo: 'Chat del coach', guarda: { marco: 'coach' } },
+  { patron: '/coach/chat', ejemplo: '/coach/chat', padre: '/', titulo: 'Mensajes', guarda: { marco: 'coach' } },
   { patron: '/coach/consultas', ejemplo: '/coach/consultas', padre: '/', titulo: 'Consultas', guarda: { marco: 'coach' } },
   { patron: '/coach/consola', ejemplo: '/coach/consola', padre: '/', titulo: 'Consola', guarda: { marco: 'coach', capacidades: ['leer_entrenamiento'] } },
   // La firma de audios y vídeos. `scripts/firmar-revisiones` manda aquí: queda para siempre.

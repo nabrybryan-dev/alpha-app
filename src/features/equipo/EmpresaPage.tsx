@@ -106,6 +106,9 @@ export default function EmpresaPage() {
   }
   entrenador.push({ titulo: 'Mesa del encoder', nota: 'Calibrar y medir la barra; solo el equipo.', a: '/entrenar/encoder' })
   entrenador.push({ titulo: 'Praxis del equipo', nota: 'Probar el cosmos; cerrada a asesorados.', a: '/praxis' })
+  // Antes solo se llegaba escribiendo la dirección (H-10).
+  entrenador.push({ titulo: 'Praxis de ejemplo', nota: 'La maqueta completa con datos de ejemplo; solo el equipo.', a: '/praxis/ejemplo' })
+  entrenador.push({ titulo: 'Prueba de ingreso', nota: 'El cuestionario con cronómetro, hablando o escribiendo; no guarda nada.', a: '/praxis/ingreso-prueba' })
 
   const nutricion: Fila[] = [
     { titulo: 'Nutrición del equipo', nota: 'Adherencia y cifras por persona.', a: '/equipo-nutricion' },

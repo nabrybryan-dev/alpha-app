@@ -96,6 +96,12 @@ describe('la pantalla Empresa', () => {
     expect(screen.getByRole('link', { name: /Praxis del equipo/ })).toHaveAttribute('href', '/praxis')
   })
 
+  it('H-10: las dos pantallas de Praxis que no tenían entrada se abren desde aquí', () => {
+    montar()
+    expect(screen.getByRole('link', { name: /Praxis de ejemplo/ })).toHaveAttribute('href', '/praxis/ejemplo')
+    expect(screen.getByRole('link', { name: /Prueba de ingreso/ })).toHaveAttribute('href', '/praxis/ingreso-prueba')
+  })
+
   it('sin los permisos de administración, no ofrece esas herramientas (el manual de marca no lo pide)', () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     montar()
