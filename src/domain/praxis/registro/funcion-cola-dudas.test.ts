@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { manejar, type Dependencias } from '../../../../supabase/functions/praxis-registro/index.ts'
+import { encolarDuda, FRASE_COLA_MAX, manejar, type Dependencias } from '../../../../supabase/functions/praxis-registro/index.ts'
 import { PROMPT_RIESGO } from '../riesgoModelo.ts'
 
 /**
@@ -156,6 +156,31 @@ describe('praxis-registro: cola de dudas del equipo', () => {
     expect(json.propuesta?.respuesta).toBe('Eso lo decide Bryan con tus números. Le paso la pregunta.')
     expect(json.meta?.portero_resultado).toBe('ninguna')
     expect(lineasCola(log).length).toBeGreaterThan(0)
+    for (const c of log.mock.calls) expect(JSON.stringify(c)).not.toContain('rango de reps')
+  })
+})
+
+describe('encolarDuda directa: la guarda de rol no depende del 403 de manejar (revisión ciega 29-oct)', () => {
+  const lecturaArriba = { decision: 'ninguna' as const, ficha: 'cargas-no-llegue-al-rango', tresPrimeras: ['cargas-no-llegue-al-rango'] }
+
+  it.each([['asesorado'], [undefined], ['desconocido']])('rol %s → ni juez ni insert, aunque Praxis se abra algún día', async (rol) => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const e = entorno()
+    await encolarDuda(e.d, { usuarioId: 'u-cola-1', token: 'jwt-de-la-persona', rol }, FRASE, lecturaArriba)
+    expect(e.inserts()).toHaveLength(0)
+    expect(e.alJuez()).toHaveLength(0)
+  })
+
+  it('coach con frase de 601 caracteres → se guarda recortada a 600 y el log no la lleva', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const e = entorno()
+    const larga = 'rango de reps ' + 'x'.repeat(601)
+    await encolarDuda(e.d, { usuarioId: 'u-cola-1', token: 'jwt-de-la-persona', rol: 'coach' }, larga, lecturaArriba)
+    expect(e.inserts()).toHaveLength(1)
+    const cuerpo = JSON.parse(String(e.inserts()[0].init?.body)) as { frase: string; origen: string; usuario_id: string }
+    expect(cuerpo.frase).toHaveLength(FRASE_COLA_MAX)
+    expect(cuerpo.origen).toBe('arriba')
+    expect(cuerpo.usuario_id).toBe('u-cola-1')
     for (const c of log.mock.calls) expect(JSON.stringify(c)).not.toContain('rango de reps')
   })
 })

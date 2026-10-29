@@ -598,11 +598,16 @@ const PROMPT_JUEZ = [
  * service_role. Cualquier fallo (rol, catálogo, juez, insert) NO afecta la respuesta: solo deja una línea
  * `praxis-registro: cola <motivo>`, sin la frase. No suma al tope de 60 por hora: es parte del mismo mensaje.
  */
+/** Tope de la columna `frase` en `praxis_cola_dudas` (check de la migración 0117). */
+export const FRASE_COLA_MAX = 600
+
 export async function encolarDuda(d: Dependencias, s: Sesion, frase: string, lectura: LecturaPortero): Promise<void> {
   try {
     if (lectura.decision === 'atender') return
     if (s.rol !== 'coach' && s.rol !== 'nutricionista') return
-    const origen = lectura.decision === 'aclarar' ? 'aclarar' : 'arriba'
+    // Exhaustivo a propósito: una decisión nueva del portero no cae como «arriba» sin que nadie lo decida (revisión ciega 29-oct).
+    const origen = lectura.decision === 'aclarar' ? 'aclarar' : lectura.decision === 'ninguna' ? 'arriba' : null
+    if (!origen) return
     const juez = await elegirFichaJuez(d, s, frase)
     const r = await d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/praxis_cola_dudas`, {
       method: 'POST',
@@ -612,7 +617,7 @@ export async function encolarDuda(d: Dependencias, s: Sesion, frase: string, lec
       },
       body: JSON.stringify({
         usuario_id: s.usuarioId,
-        frase,
+        frase: frase.trim().slice(0, FRASE_COLA_MAX), // la tabla acepta hasta 600: una frase más larga no se pierde, se guarda recortada
         origen,
         portero_fichas: { decision: lectura.decision, ficha: lectura.ficha, tres_primeras: lectura.tresPrimeras },
         ficha_juez: juez.ficha,
