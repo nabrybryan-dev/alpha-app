@@ -1,7 +1,7 @@
 // Edge Function avisos-plan: la parte con red de las alertas nutricionales. Nunca lanza: si algo
 // falla devuelve { alertasNutri: 'error' } y el resto de avisos-plan sigue como antes.
 //
-// Con todo apagado (lo normal hasta que Manuela firme) hace UNA lectura (los ajustes) y sale.
+// Con todo apagado (lo normal hasta que Manuela firme) hace DOS lecturas (los ajustes y las alertas abiertas) y sale.
 // Avisa SOLO a Manuela, con un texto neutro; si el teléfono falla, la alerta queda sin `avisada_en`
 // y el próximo cron reintenta (un solo push por corrida, sea cual sea el número de alertas nuevas).
 
