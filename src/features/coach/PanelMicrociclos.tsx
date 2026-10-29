@@ -56,11 +56,20 @@ export function PanelMicrociclos() {
 
   const [choques, setChoques] = useState<ChoqueMicrociclo[]>([])
   const [errorChoque, setErrorChoque] = useState<string | null>(null)
+  // Si la LECTURA de avisos falla no se sabe si hay choques: el panel lo dice. Pintar «sin avisos»
+  // y contar las activaciones como hechas sería afirmar algo que no se comprobó.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null)
 
   useEffect(() => {
     let vivo = true
     void choquesPendientes().then((r) => {
-      if (vivo && r.ok) setChoques(r.choques)
+      if (!vivo) return
+      if (r.ok) {
+        setChoques(r.choques)
+        setErrorCarga(null)
+      } else {
+        setErrorCarga(r.error)
+      }
     })
     return () => {
       vivo = false
@@ -79,11 +88,15 @@ export function PanelMicrociclos() {
 
   // Lo que la app NO activó por el candado no se cuenta como activado.
   const bloqueadas = new Set(choques.map((c) => c.usuarioId))
-  const activadas = filas.filter((f) => f.estado === 'automatica' && !bloqueadas.has(f.usuario.id))
+  // Y si no se pudieron leer los avisos, tampoco se sabe qué se activó de verdad: no se cuenta nada.
+  const sinSaberAvisos = motorActivo && errorCarga !== null
+  const activadas = sinSaberAvisos
+    ? []
+    : filas.filter((f) => f.estado === 'automatica' && !bloqueadas.has(f.usuario.id))
   const enEspera = filas.filter((f) => f.estado === 'revisar')
   // Sin nada vencido no se pinta nada: un panel que dice «0 novedades» todos los
   // días enseña a no mirarlo, y el día que traiga algo tampoco se mirará.
-  if (activadas.length === 0 && enEspera.length === 0 && choques.length === 0) return null
+  if (activadas.length === 0 && enEspera.length === 0 && choques.length === 0 && errorCarga === null) return null
 
   return (
     <Card className="flex flex-col gap-3">
@@ -104,6 +117,13 @@ export function PanelMicrociclos() {
         {enEspera.length > 0 && <Badge tono="ambar">{enEspera.length} por revisar</Badge>}
         {choques.length > 0 && <Badge tono="ambar">{choques.length} sin activar</Badge>}
       </div>
+
+      {errorCarga !== null && (
+        <p role="alert" className="text-xs text-texto">
+          {errorCarga}
+          {sinSaberAvisos ? ' Por eso no se puede confirmar qué semanas se activaron.' : ''}
+        </p>
+      )}
 
       {choques.length > 0 && (
         <section className="flex flex-col gap-2">

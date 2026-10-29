@@ -13,6 +13,7 @@
  * `import`, y sin resetear se leería siempre el de la primera vez.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FilaCartera } from './revisionCartera'
 
@@ -49,7 +50,11 @@ vi.mock('./revisionCartera', async (importOriginal) => {
 async function montar() {
   vi.resetModules()
   const { PanelMicrociclos } = await import('./PanelMicrociclos')
-  return render(<PanelMicrociclos />)
+  return render(
+    <MemoryRouter>
+      <PanelMicrociclos />
+    </MemoryRouter>,
+  )
 }
 
 describe('PanelMicrociclos', () => {
@@ -85,6 +90,26 @@ describe('PanelMicrociclos', () => {
 
     expect(barrerYActivarMock).toHaveBeenCalledTimes(1)
     expect(revisarCarteraMock).not.toHaveBeenCalled()
+  })
+
+  describe('si falla la lectura de avisos', () => {
+    it('lo dice, en vez de pintar «sin avisos» (con el panel vacío, antes no pintaba nada)', async () => {
+      vi.stubEnv('VITE_MOTOR_APP_ACTIVO', 'true')
+      choquesMock.mockResolvedValue({ ok: false, error: 'No se pudieron leer los avisos de microciclos. Vuelve a intentarlo.' })
+      await montar()
+      expect(await screen.findByRole('alert')).toHaveProperty('textContent', expect.stringContaining('No se pudieron leer los avisos'))
+    })
+
+    it('con el motor encendido no cuenta las activaciones como hechas', async () => {
+      vi.stubEnv('VITE_MOTOR_APP_ACTIVO', 'true')
+      const usuario = { id: 'u-1', nombre: 'Persona de prueba' }
+      barrerYActivarMock.mockReturnValue([{ usuario, estado: 'automatica', numeroActual: 8 }] as unknown as FilaCartera[])
+      choquesMock.mockResolvedValue({ ok: false, error: 'No se pudieron leer los avisos de microciclos. Vuelve a intentarlo.' })
+      await montar()
+      await screen.findByRole('alert')
+      expect(screen.queryByText(/1 activado/)).toBeNull()
+      expect(screen.getByRole('alert').textContent).toContain('no se puede confirmar')
+    })
   })
 
   describe('el candado: la cadena ya cargó esa semana', () => {
