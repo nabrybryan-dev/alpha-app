@@ -11,6 +11,7 @@ export const mateo: Usuario = {
 /**
  * Nutricionista FICTICIA del demo: existe solo para poder abrir «Ver la app como» y revisar
  * sus pantallas (/mi-plan, /equipo-nutricion, cifras, bandeja de planes) sin base real.
+ * NO entrena: sin perfil ni microciclo, y `db.usuarios.entrenan()` no la cuenta.
  * Nombre inventado; no corresponde a ninguna persona real.
  */
 export const nutricionistaDemo: Usuario = {
@@ -18,27 +19,6 @@ export const nutricionistaDemo: Usuario = {
   nombre: 'Nutricionista Demo',
   rol: 'nutricionista',
   avatarIniciales: 'ND',
-}
-
-export const perfilNutricionistaDemo: Perfil = {
-  usuarioId: 'u-nutri-demo',
-  objetivos: 'Mantenimiento general / salud',
-  edad: 33,
-  diasEntrenamiento: 3,
-  tiempoSesionMin: 60,
-  somatotipo: 'Mesomorfa',
-  sexo: 'mujer',
-  volumenSemanal: {
-    Glúteo: 'Normal',
-    Espalda: 'Normal',
-    Pecho: 'Normal',
-    Cuádriceps: 'Normal',
-    Isquios: 'Normal',
-    Hombros: 'Normal',
-    Bíceps: 'Bajo',
-    Tríceps: 'Bajo',
-  },
-  medidas: [{ fecha: diasAtras(10), pesoKg: 60.0, alturaCm: 165, perimetros: { 'Abdomen medio': 72.0, Glúteos: 96.0 } }],
 }
 
 export const sara: Usuario = {
@@ -152,17 +132,6 @@ export const microciclosOtros: Microciclo[] = [
     estado: 'activo',
     fechaInicio: diasAtras(9),
     sesiones: [sesionSimple('s-m15-full-a', 'FULL A', 1), sesionSimple('s-m15-full-b', 'FULL B', 2)],
-  },
-  {
-    // La nutricionista del demo también entrena (`db.usuarios.entrenan()` la cuenta): sin un microciclo
-    // activo, todo lo que recorre la cartera de quienes entrenan se caería con ella.
-    id: 'm3-nutri-demo',
-    usuarioId: 'u-nutri-demo',
-    numero: 3,
-    cadenciaDias: 8,
-    estado: 'activo',
-    fechaInicio: diasAtras(3),
-    sesiones: [sesionSimple('s-m3-full-a', 'FULL A', 1), sesionSimple('s-m3-full-b', 'FULL B', 2)],
   },
 ]
 

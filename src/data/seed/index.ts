@@ -31,7 +31,7 @@ import {
   planValentina,
   valentina,
 } from './valentina'
-import { checkinsOtros, mateo, nutricionistaDemo, perfilNutricionistaDemo, microciclosOtros, perfilMateo, perfilSara, sara } from './otros'
+import { checkinsOtros, mateo, nutricionistaDemo, microciclosOtros, perfilMateo, perfilSara, sara } from './otros'
 import { cuestionarios, respuestas } from './cuestionarios'
 import { contenidos } from './contenidos'
 import { mensajes, premiaciones } from './mensajes'
@@ -86,7 +86,7 @@ export interface SeedDb {
 
 export const seedDb: SeedDb = {
   usuarios: [coach, valentina, mateo, sara, nutricionistaDemo],
-  perfiles: [perfilValentina, perfilMateo, perfilSara, perfilNutricionistaDemo],
+  perfiles: [perfilValentina, perfilMateo, perfilSara],
   microciclos: [...microciclosValentina, ...microciclosOtros],
   checkins: [...checkinsValentina, ...checkinsOtros],
   planes: [planValentina],
