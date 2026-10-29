@@ -7,9 +7,10 @@ import { EstadoDeLaPuerta } from './EstadoDeLaPuerta'
 
 const NOTA_A_MANO = 'Hoy el envío automático no está encendido: la firma sigue siendo a mano.'
 
-// Límite de los datos (sin migración): no se sabe quién firmó lo anterior a la 0081, ni de quién
-// es una revisión pendiente de corrección; se cuentan con la lectura prudente (cierran, no abren).
-const AVISO_DATOS = 'Límites de los datos: pedir una corrección borra quién firmó, así que una corrección cuenta contra todos los firmantes; una versión rehecha cuenta como corregida; y las firmas anteriores a la identificación del firmante no se cuentan.'
+// Límites de los datos (migración 0150): cada firmante carga solo las correcciones que él pidió;
+// las filas anteriores a la 0150 no traen ese dato y no cuentan; las firmas anteriores a la 0081 no
+// dicen quién firmó y tampoco se cuentan.
+const AVISO_DATOS = 'Límites de los datos: cada firmante cuenta solo las correcciones que él pidió, aunque la versión nueva la firme otra persona. Una versión nueva por un cambio técnico, sin corrección pendiente, no cuenta para nadie. Lo anterior a esta regla no dice quién pidió la corrección y no se cuenta, y las firmas anteriores a la identificación del firmante tampoco.'
 
 /** La puerta de quien firma. Solo se muestra: no decide ni envía nada. */
 function Puerta({ recarga }: { recarga: number }) {

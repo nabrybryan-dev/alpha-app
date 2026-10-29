@@ -110,11 +110,13 @@ describe('revisiones: la puerta de la salida automática', () => {
     expect(document.querySelector('[data-puerta="abierta"]')).not.toBeNull()
   })
 
-  it('dice en pantalla los límites de los datos: correcciones contra todos, versión rehecha, firmas antiguas', async () => {
+  it('dice en pantalla los límites de los datos: corrección de quien la pidió, cambio técnico, filas y firmas antiguas', async () => {
     render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
     const aviso = await screen.findByText(/anteriores a la identificación del firmante/)
-    expect(aviso.textContent).toMatch(/corrección.*todos los firmantes/)
-    expect(aviso.textContent).toMatch(/versión rehecha cuenta como corregida/)
+    expect(aviso.textContent).toMatch(/cada firmante cuenta solo las correcciones que él pidió/)
+    expect(aviso.textContent).toMatch(/cambio técnico.*no cuenta para nadie/)
+    expect(aviso.textContent).toMatch(/Lo anterior a esta regla.*no se cuenta/)
+    expect(aviso.textContent).not.toMatch(/todos los firmantes/)
   })
 
   it('abierta: dice que una corrección de esta semana cierra la puerta cuando la semana termine', async () => {
