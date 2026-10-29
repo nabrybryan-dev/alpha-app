@@ -13,7 +13,7 @@ beforeEach(() => {
   vi.mocked(revisionesPendientes).mockResolvedValue([revision])
   vi.mocked(reproducirRevision).mockResolvedValue('https://ejemplo.test/video.mp4')
   vi.mocked(decidirRevision).mockResolvedValue()
-  vi.mocked(historialDeFirma).mockResolvedValue([])
+  vi.mocked(historialDeFirma).mockResolvedValue({ semanas: [], enCurso: null })
 })
 afterEach(cleanup)
 
@@ -70,20 +70,49 @@ describe('revisiones: la puerta de la salida automática', () => {
   const limpia = (fecha: string) => ({ fecha, borradores: 6, aprobadosSinTocar: 6, corregidos: 0 })
 
   it('enseña cuántas semanas lleva limpia la firma y por qué sigue cerrada', async () => {
-    vi.mocked(historialDeFirma).mockResolvedValue([limpia('2026-10-05'), limpia('2026-10-12')])
+    vi.mocked(historialDeFirma).mockResolvedValue({ semanas: [limpia('2026-10-05'), limpia('2026-10-12')], enCurso: null })
     render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
     expect(await screen.findByText(/Llevas 2 de 4 semanas/)).toBeTruthy()
     expect(document.querySelector('[data-puerta="cerrada"]')).not.toBeNull()
   })
 
   it('aunque esté abierta, dice que el envío automático no está encendido y la firma sigue a mano', async () => {
-    vi.mocked(historialDeFirma).mockResolvedValue(
-      ['2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12'].map(limpia))
+    vi.mocked(historialDeFirma).mockResolvedValue({
+      semanas: ['2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12'].map(limpia), enCurso: null })
     render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
     expect(await screen.findByText(/Abierta desde la semana del 2026-10-12/)).toBeTruthy()
     expect(screen.getByText(/firma sigue siendo a mano/i)).toBeTruthy()
     expect(screen.queryByText(/sin que los mires/)).toBeNull()
-    expect(await screen.findByRole('button', { name: 'Aprobar esta versión' })).toBeDisabled()
+    // H9: con la puerta abierta NO se envía nada sin clic: ni al cargar, ni al reproducir y
+    // marcar la casilla; solo el clic en «Aprobar» llama a decidirRevision.
+    const aprobar = await screen.findByRole('button', { name: 'Aprobar esta versión' })
+    expect(aprobar).toBeDisabled()
+    expect(decidirRevision).not.toHaveBeenCalled()
+    const usuario = userEvent.setup()
+    await usuario.click(screen.getByRole('button', { name: 'Abrir video' }))
+    fireEvent.play(document.querySelector('video')!)
+    await usuario.click(screen.getByRole('checkbox'))
+    expect(aprobar).toBeEnabled()
+    expect(decidirRevision).not.toHaveBeenCalled()
+    await usuario.click(aprobar)
+    expect(decidirRevision).toHaveBeenCalledTimes(1)
+    expect(decidirRevision).toHaveBeenCalledWith(revision, true, '')
+  })
+
+  it('H5: la semana en curso se enseña como «en curso» y no como «sin mirar»', async () => {
+    vi.mocked(historialDeFirma).mockResolvedValue({
+      semanas: ['2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19'].map(limpia),
+      enCurso: { fecha: '2026-10-26', borradores: 23, aprobadosSinTocar: 10, corregidos: 0 },
+    })
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    expect(await screen.findByText(/Semana en curso.*10 de 23/)).toBeTruthy()
+    expect(screen.queryByText(/sin abrir/)).toBeNull()
+    expect(document.querySelector('[data-puerta="abierta"]')).not.toBeNull()
+  })
+
+  it('H10: avisa de que las firmas anteriores a la 0081 no se cuentan', async () => {
+    render(<MemoryRouter><RevisionesPage /></MemoryRouter>)
+    expect(await screen.findByText(/anteriores a la identificación del firmante/)).toBeTruthy()
   })
 
   it('si el historial no carga, lo dice y la firma sigue disponible', async () => {

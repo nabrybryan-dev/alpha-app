@@ -1,4 +1,4 @@
-import type { MotivoCerrada, VeredictoDeLaPuerta } from '../../domain/aprobacion/puerta'
+import type { MotivoCerrada, SemanaDeFirma, VeredictoDeLaPuerta } from '../../domain/aprobacion/puerta'
 
 const EXPLICACION: Record<MotivoCerrada, (n: number) => string> = {
   'sin-historial': () => 'Todavía no hay ninguna semana con borradores delante.',
@@ -14,11 +14,18 @@ const EXPLICACION: Record<MotivoCerrada, (n: number) => string> = {
  * El estado de la puerta con su motivo. Solo pinta: el veredicto lo calcula `domain/aprobacion/puerta.ts`.
  * `nota` sustituye la frase de «puerta abierta» cuando la pantalla no puede prometer que algo salga solo.
  */
-export function EstadoDeLaPuerta({ veredicto, nota }: { veredicto: VeredictoDeLaPuerta; nota?: string }) {
+export function EstadoDeLaPuerta({ veredicto, nota, enCurso, aviso }: {
+  veredicto: VeredictoDeLaPuerta
+  nota?: string
+  /** La semana que no ha terminado: se enseña, pero no cuenta para la puerta. */
+  enCurso?: SemanaDeFirma | null
+  /** Letra pequeña sobre qué datos no se cuentan. */
+  aviso?: string
+}) {
   return (
   <div
         data-puerta={veredicto.abierta ? 'abierta' : 'cerrada'}
-        className="rounded-tarjeta border border-linea bg-ink-900 px-4 py-3"
+        className="rounded-tarjeta border border-linea bg-surface-1 px-4 py-3"
       >
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Salida automática</p>
         {veredicto.abierta ? (
@@ -42,7 +49,14 @@ export function EstadoDeLaPuerta({ veredicto, nota }: { veredicto: VeredictoDeLa
             </p>
           </>
         )}
+        {enCurso && (
+          <p data-en-curso="" className="mt-2 text-[11px] leading-snug text-tenue">
+            Semana en curso ({enCurso.fecha}): {enCurso.aprobadosSinTocar} de {enCurso.borradores} firmados.
+            Todavía no cuenta para la puerta.
+          </p>
+        )}
         {nota && <p className="mt-2 text-[11px] font-semibold leading-snug text-texto">{nota}</p>}
+        {aviso && <p className="mt-1 text-[11px] leading-snug text-tenue">{aviso}</p>}
       </div>
   )
 }

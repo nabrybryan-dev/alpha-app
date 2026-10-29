@@ -1,6 +1,5 @@
 import { modoNube, supabase } from '../supabase'
-import { semanasDeFirma, type FilaDeRevision } from '../../domain/aprobacion/historial'
-import type { SemanaDeFirma } from '../../domain/aprobacion/puerta'
+import { semanasDeFirma, type FilaDeRevision, type HistorialDeFirma } from '../../domain/aprobacion/historial'
 
 export interface RevisionPendiente {
   usuario_id: string
@@ -35,15 +34,32 @@ export async function decidirRevision(revision: RevisionPendiente, aprobar: bool
   if (error) throw new Error(error.message)
 }
 
-/** Las semanas de firma de QUIEN ESTÁ CONECTADO, para calcular su puerta. */
-export async function historialDeFirma(): Promise<SemanaDeFirma[]> {
+/** Cuántas semanas hacia atrás se piden: de sobra para cuatro limpias y su «desde». */
+const SEMANAS_DE_VENTANA = 26
+
+function fechaLocal(d: Date): string {
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`
+}
+
+/**
+ * El historial de firma de QUIEN ESTÁ CONECTADO, para calcular su puerta.
+ * Se pide de la semana más nueva a la más vieja y con una ventana: si algún día hubiera más
+ * filas que el tope del servidor, lo que se pierde es lo antiguo y no lo reciente.
+ */
+export async function historialDeFirma(ahora: Date = new Date()): Promise<HistorialDeFirma> {
   if (!modoNube) throw new Error('La puerta necesita conexión con Alpha.')
   const { data: sesion } = await supabase().auth.getUser()
   const uid = sesion.user?.id
   if (!uid) throw new Error('No hay sesión para calcular la puerta.')
+  const hoy = fechaLocal(ahora)
+  const desde = new Date(ahora)
+  desde.setDate(desde.getDate() - ((desde.getDay() + 6) % 7) - 7 * SEMANAS_DE_VENTANA)
   const { data, error } = await supabase().from('videos_semanales')
     .select('semana, aprobado_en, aprobado_por, correccion_solicitada, version')
-    .order('semana', { ascending: true })
+    .gte('semana', fechaLocal(desde))
+    .order('semana', { ascending: false })
+    .limit(1000)
   if (error) throw new Error(`No se pudo cargar el historial de firma: ${error.message}`)
-  return semanasDeFirma((data ?? []) as FilaDeRevision[], uid)
+  return semanasDeFirma((data ?? []) as FilaDeRevision[], uid, hoy)
 }

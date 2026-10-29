@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
 import { decidirRevision, historialDeFirma, reproducirRevision, revisionesPendientes, type RevisionPendiente } from '../../data/nube/revisiones'
 import { db, useDbVersion } from '../../data/dbInstance'
-import { veredictoDeLaPuerta, type SemanaDeFirma } from '../../domain/aprobacion/puerta'
+import { veredictoDeLaPuerta } from '../../domain/aprobacion/puerta'
+import type { HistorialDeFirma } from '../../domain/aprobacion/historial'
 import { EstadoDeLaPuerta } from './EstadoDeLaPuerta'
 
 const NOTA_A_MANO = 'Hoy el envío automático no está encendido: la firma sigue siendo a mano.'
 
+// Límite de los datos (sin migración): no se sabe quién firmó lo anterior a la 0081, ni de quién
+// es una revisión pendiente de corrección; se cuentan con la lectura prudente (cierran, no abren).
+const AVISO_DATOS = 'Las firmas anteriores a la identificación del firmante no se cuentan, y una revisión rehecha cuenta como corregida.'
+
 /** La puerta de quien firma. Solo se muestra: no decide ni envía nada. */
 function Puerta({ recarga }: { recarga: number }) {
-  const [historial, setHistorial] = useState<SemanaDeFirma[] | null>(null)
+  const [historial, setHistorial] = useState<HistorialDeFirma | null>(null)
   const [fallo, setFallo] = useState(false)
   useEffect(() => {
     let vigente = true
@@ -18,7 +23,8 @@ function Puerta({ recarga }: { recarga: number }) {
   }, [recarga])
   if (fallo) return <p role="status" className="text-sm text-tenue">No se pudo calcular la puerta de salida automática. La firma sigue disponible.</p>
   if (!historial) return null
-  return <EstadoDeLaPuerta veredicto={veredictoDeLaPuerta(historial)} nota={NOTA_A_MANO} />
+  return <EstadoDeLaPuerta veredicto={veredictoDeLaPuerta(historial.semanas)} enCurso={historial.enCurso}
+    nota={NOTA_A_MANO} aviso={AVISO_DATOS} />
 }
 
 function Revision({ revision, actualizar }: { revision: RevisionPendiente; actualizar: () => void }) {
@@ -47,7 +53,7 @@ function Revision({ revision, actualizar }: { revision: RevisionPendiente; actua
     finally { setOcupado(false) }
   }
 
-  return <article className="rounded-tarjeta border border-linea bg-ink-900 p-4">
+  return <article className="rounded-tarjeta border border-linea bg-surface-1 p-4">
     <h2 className="font-semibold">{nombre} · {revision.semana}</h2>
     <p className="my-3 whitespace-pre-line text-sm">{revision.guion}</p>
     <button type="button" disabled={ocupado} onClick={() => void abrir()} className="min-h-[44px] underline">Abrir {revision.tipo}</button>

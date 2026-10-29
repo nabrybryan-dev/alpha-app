@@ -71,7 +71,7 @@ export function BandejaAprobacion({
             <li
               key={b.id}
               data-borrador={b.id}
-              className="rounded-tarjeta border border-linea bg-ink-900 px-4 py-3"
+              className="rounded-tarjeta border border-linea bg-surface-1 px-4 py-3"
             >
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
