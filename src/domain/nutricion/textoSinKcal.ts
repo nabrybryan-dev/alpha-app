@@ -17,8 +17,11 @@
  * «2100kcal», «1.800 calorías», «TDEE ~2.050», «~450 cal», y a veces la cifra
  * sigue en la frase siguiente sin repetir la unidad («te quedas cerca de 380»).
  * Por eso hay tres disparadores:
- *   - una palabra de energía (kcal, kilocalorías, calorías, cal, TDEE, energía,
- *     déficit, superávit) en la frase;
+ *   - una palabra de kcal (kcal, kilocalorías, calorías, cal, cals) en la frase,
+ *     o una palabra de energía (TDEE, energía, gasto, calórico, hipocalórico,
+ *     déficit, superávit) junto a una cifra que no sea gramos, series, pasos…;
+ *   - una cifra grande «al día» o «diarias» sin unidad («ronda las 1.800
+ *     diarias»): en una nota de nutrición eso solo puede ser energía;
  *   - una cifra pegada a una unidad de energía, aunque la palabra no lleve
  *     espacio delante;
  *   - una cifra suelta en la frase que CONTINÚA una frase de energía. Es el caso
@@ -34,18 +37,18 @@
  * las listas del plan (`whitespace-pre-line`) no pueden perder su forma. El
  * punto decimal (`30.5 g`) no parte la frase.
  */
-const PALABRA_KCAL = /kcal|kilocalor[ií]as?|calor[ií]as?/i
-const PALABRA_CAL = /\bcal\b/i
-const TDEE = /\bTDEE\b/i
-const PALABRA_ENERGIA = /\b(energ[ií]a|energ[ée]tic[oa]s?|d[ée]ficit|super[áa]vit)\b/i
-const CIFRA = /\d[\d.,]*/
+const PALABRA_KCAL = /kcal|kilocalor[ií]as?|calor[ií]as?|(?<!\p{L})cals?(?!\p{L})/iu
+const PALABRA_ENERGIA =
+  /(?<!\p{L})(?:TDEE|energ[ií]a|energ[ée]tic[oa]s?|gasto|\p{L}*cal[oó]ric[oa]s?|d[ée]ficit|super[áa]vit)(?!\p{L})/iu
+/** «1.800 diarias», «2.300 al día»: una cifra grande por día sin unidad delante. */
+const CIFRA_POR_DIA = /(\d[\d.,]*)\s*(?:diari[ao]s?|al\s+d[ií]a|por\s+d[ií]a)(?!\p{L})/giu
 
 /**
  * Unidad que convierte la cifra en algo que NO son calorías. Va sin `^` para
  * poder reutilizarla con el segundo número de un rango.
  */
 const UNIDAD_SEGURA =
-  /^\s*(?:g|gr|gramos?|kg|kilos?|mg|ml|l|litros?|min|mins|minutos?|h|horas?|series?|reps?|repeticiones?|pasos?|porciones?|porci[oó]n|cucharadas?|cucharaditas?|vasos?|tazas?|unidades?|semanas?|d[ií]as?|meses?|años?|%|mm|cm|m|km)\b|^\s*k\s*(?:pasos|m|km)\b/i
+  /^\s*(?:(?:g|gr|gramos?|kg|kilos?|mg|ml|cc|l|litros?|min|mins|minutos?|h|horas?|series?|reps?|repeticiones?|pasos?|porciones?|porci[oó]n|cucharadas?|cucharaditas?|vasos?|tazas?|unidades?|semanas?|d[ií]as?|meses?|años?|lpm|bpm|ppm|grados?|mm|cm|m|km)(?!\p{L})|%|[°º]\s*[CF]?(?!\p{L}))|^\s*k\s*(?:pasos|m|km)(?!\p{L})/iu
 
 interface Trozo {
   /** Lo que se decide conservar o borrar, sin el separador. */
@@ -101,7 +104,10 @@ function trocear(texto: string): Trozo[] {
       const anterior = texto[i - 1] ?? ''
       const siguiente = texto[i + 1] ?? ''
       const decimal = /\d/.test(anterior) && /\d/.test(siguiente)
-      const finDeFrase = !decimal && (siguiente === '' || /\s/.test(siguiente))
+      // «1. Desayuno…»: el número de una lista no cierra frase.
+      const inicioDeLinea = texto.lastIndexOf('\n', i - 1) + 1
+      const numeroDeLista = /^\s*\d+$/.test(texto.slice(inicioDeLinea, i))
+      const finDeFrase = !decimal && !numeroDeLista && (siguiente === '' || /\s/.test(siguiente))
       if (finDeFrase) {
         let fin = i + 1
         while (texto[fin] === ' ' || texto[fin] === '\t') fin++
@@ -117,13 +123,14 @@ function trocear(texto: string): Trozo[] {
   return trozos
 }
 
-/** ¿La frase habla de energía con una cifra, o habla de energía sin más? */
+/** ¿La frase da una cifra de energía? */
 function mencionaEnergia(texto: string): boolean {
   if (PALABRA_KCAL.test(texto)) return true
-  const hayCifra = CIFRA.test(texto)
-  if (TDEE.test(texto) && hayCifra) return true
-  if (PALABRA_CAL.test(texto) && hayCifra) return true
-  if (PALABRA_ENERGIA.test(texto) && hayCifra) return true
+  // «Tienes energía para 3 series» habla de energía, pero su cifra son series.
+  if (PALABRA_ENERGIA.test(texto) && tieneCifraSuelta(texto)) return true
+  for (const encontrada of texto.matchAll(CIFRA_POR_DIA)) {
+    if (Number((encontrada[1] ?? '').replace(/\./g, '').replace(',', '.')) >= 500) return true
+  }
   return false
 }
 
@@ -169,8 +176,9 @@ export function sinCifrasDeKcal(texto: string): string {
       !explicita && contextoDeEnergia && tieneCifraSuelta(trozo.texto)
 
     if (explicita || continuaLaEnergia) {
-      // La frase de energía abre el contexto; la que solo lo continúa lo cierra.
-      contextoDeEnergia = explicita
+      // «Son 450 kcal. Te quedas en 380. Y luego 200 más.»: el contexto sigue
+      // abierto mientras cada frase traiga otra cifra suelta.
+      contextoDeEnergia = true
       continue
     }
 
