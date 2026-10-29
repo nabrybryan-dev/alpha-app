@@ -50,11 +50,13 @@
 --   5 · tabla `microciclos_choques`: el aviso para el coach (quién, cuándo, qué propuesta).
 --   6 · `activar_microciclo` (misma firma): con choque NO levanta excepción —una excepción pararía
 --       la cola del teléfono, ver 0060—; no activa y deja el aviso en (5).
+--   8 · `decidir_primer_plan` / `vencer_primer_plan` redefinidas: un choque deja el plan en `espera_bryan`.
 --   7 · `confirmar_pisar_microciclo` / `descartar_choque_microciclo`: la decisión explícita del
 --       coach. La cadena confirma con `select set_config('alpha.pisar_microciclo','si',true);` en
 --       su misma transacción (ver la plantilla).
 --
--- NO TOCA nada que ya exista salvo `activar_microciclo` (mismo cuerpo + el candado).
+-- NO TOCA nada que ya exista salvo `activar_microciclo` (mismo cuerpo + el candado) y, en el punto 8,
+-- `decidir_primer_plan` / `vencer_primer_plan` (0086), que ahora no dan por activado lo que el candado frenó.
 -- Aplicación: a mano en el SQL Editor, con la casilla de Bryan. NO está aplicada.
 -- Comprobación: `comprobar-migraciones.sql` fila «0147» y `supabase/test/216-candado-de-microciclos.sql`.
 -- ============================================================================
@@ -366,5 +368,178 @@ $$;
 
 revoke all on function public.descartar_choque_microciclo(uuid) from public, anon;
 grant execute on function public.descartar_choque_microciclo(uuid) to authenticated, service_role;
+
+-- ── 8 · Aprobar un primer plan que choca NO lo deja 'aprobado' sin activar ──
+-- (hallazgo (b) de la revisión). La 0086 suponía que `activar_microciclo` activa o falla. Con el
+-- candado de arriba puede NO activar y NO fallar (para no parar la cola, ver 6). Estas dos funciones
+-- son las de la 0086 (mismo cuerpo, misma firma, mismos permisos) con un cambio: tras activar
+-- comprueban que el microciclo quedó `activo`; si no, el plan pasa a `espera_bryan` con el motivo.
+-- Lo hace aquí y no en la 0086 porque la 0086 ya está aplicada.
+
+create or replace function public.decidir_primer_plan(aprobacion_id uuid, decision text, motivo text default null)
+returns public.aprobaciones_primer_plan
+language plpgsql
+security definer
+set search_path = public
+as $$
+#variable_conflict use_variable
+declare
+  quien        uuid := auth.uid();
+  fila         public.aprobaciones_primer_plan%rowtype;
+  v_estado_mc  text;
+  v_motivo     text := nullif(btrim(coalesce(motivo, '')), '');
+begin
+  if quien is null then
+    raise exception 'Falta sesión' using errcode = '28000';
+  end if;
+
+  if not public.tiene_capacidad('aprobar_primer_plan') then
+    raise exception 'No tienes permiso para decidir primeros planes' using errcode = '42501';
+  end if;
+
+  if decision is null or decision not in ('aprobar', 'rechazar') then
+    raise exception 'Decisión desconocida: %', decision using errcode = '22023';
+  end if;
+
+  select a.* into fila
+    from public.aprobaciones_primer_plan a
+   where a.id = aprobacion_id
+   for update;
+  if not found then
+    raise exception 'La aprobación no existe' using errcode = 'P0002';
+  end if;
+
+  if fila.estado not in ('propuesto', 'espera_bryan') then
+    raise exception 'Este plan ya se decidió (estado actual: %)', fila.estado using errcode = '22023';
+  end if;
+
+  if decision = 'rechazar' then
+    if v_motivo is null then
+      raise exception 'Hace falta un motivo para rechazar' using errcode = '22023';
+    end if;
+    update public.aprobaciones_primer_plan a
+       set estado = 'rechazado', decidido_por = quien, decidido_en = now(),
+           motivo = v_motivo, actualizado_en = now()
+     where a.id = aprobacion_id
+    returning * into fila;
+    return fila;
+  end if;
+
+  -- Aprobar. Lo clínico (riesgo alto) y lo que ya venció hacia Bryan solo lo aprueba quien
+  -- tenga `autorizar_excepcion`.
+  if (fila.riesgo = 'alto' or fila.estado = 'espera_bryan')
+     and not public.tiene_capacidad('autorizar_excepcion') then
+    raise exception 'Este plan lo aprueba Bryan (riesgo %, estado %)', fila.riesgo, fila.estado
+      using errcode = '42501';
+  end if;
+
+  select m.estado into v_estado_mc from public.microciclos m where m.id = fila.microciclo_id;
+  if v_estado_mc is distinct from 'propuesto' then
+    raise exception 'El plan propuesto ya no está pendiente (estado del microciclo: %)', v_estado_mc
+      using errcode = '22023';
+  end if;
+
+  -- Publicar: el mismo camino que usa el resto de la app (cierra y abre en una operación).
+  perform public.activar_microciclo(fila.microciclo_id);
+
+  select m.estado into v_estado_mc from public.microciclos m where m.id = fila.microciclo_id;
+  if v_estado_mc is distinct from 'activo' then
+    -- 0147: con choque `activar_microciclo` NO activa y NO levanta excepción (dejó un aviso en
+    -- `microciclos_choques`). Aprobar sin activar dejaba el plan 'aprobado' sobre un microciclo
+    -- 'propuesto' para siempre. Estado que ya existe en la 0086 para «esto lo mira Bryan»:
+    -- `espera_bryan`, con el motivo escrito. Sin autor ni fecha de decisión: nadie lo aprobó
+    -- todavía. Y NO se levanta excepción: deshacería el aviso que acaba de quedar escrito.
+    update public.aprobaciones_primer_plan a
+       set estado = 'espera_bryan',
+           motivo_espera = 'Choque de microciclo: ya hay una semana de otro origen que no se pisa '
+                           'sin confirmar (ver el aviso del panel de Microciclos). Se aprobó, pero NO '
+                           'se activó.',
+           actualizado_en = now()
+     where a.id = aprobacion_id
+    returning * into fila;
+    return fila;
+  end if;
+
+  update public.aprobaciones_primer_plan a
+     set estado = 'aprobado', decidido_por = quien, decidido_en = now(),
+         motivo = v_motivo, actualizado_en = now()
+   where a.id = aprobacion_id
+  returning * into fila;
+
+  return fila;
+end;
+$$;
+
+revoke all on function public.decidir_primer_plan(uuid, text, text) from public, anon;
+grant execute on function public.decidir_primer_plan(uuid, text, text) to authenticated, service_role;
+
+create or replace function public.vencer_primer_plan()
+returns table (aprobados int, a_bryan int)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r           record;
+  v_estado_mc text;
+  n_aprob     int := 0;
+  n_bryan     int := 0;
+  v_espera    text;
+begin
+  for r in
+    select a.*
+      from public.aprobaciones_primer_plan a
+     where a.estado = 'propuesto' and a.plazo_hasta <= now()
+     order by a.plazo_hasta
+     for update skip locked
+  loop
+    select m.estado into v_estado_mc from public.microciclos m where m.id = r.microciclo_id;
+
+    v_espera := case
+      when r.riesgo = 'alto'  then 'Riesgo alto (clínico): nunca pasa sin Bryan.'
+      when r.riesgo = 'medio' then 'Riesgo medio: al vencer el plazo no pasa solo.'
+      when cardinality(r.dudas_pendientes) > 0 then
+        'Dudas pendientes que frenan la progresión: ' || array_to_string(r.dudas_pendientes, '; ')
+      when v_estado_mc is distinct from 'propuesto' then
+        'El microciclo ya no está propuesto (estado: ' || coalesce(v_estado_mc, 'no existe') || ').'
+      else null
+    end;
+
+    if v_espera is null then
+      begin
+        perform public.activar_microciclo(r.microciclo_id);
+        select m.estado into v_estado_mc from public.microciclos m where m.id = r.microciclo_id;
+        if v_estado_mc = 'activo' then
+          update public.aprobaciones_primer_plan
+             set estado = 'vencido_aprobado', decidido_por = null, decidido_en = now(),
+                 motivo = 'Plazo vencido sin objeciones: riesgo bajo y sin dudas pendientes.',
+                 actualizado_en = now()
+           where id = r.id;
+          n_aprob := n_aprob + 1;
+          continue;
+        end if;
+        -- 0147: choque (no se activó, no hubo excepción, el aviso quedó escrito). No cuenta como
+        -- aprobado: baja al `espera_bryan` de abajo con el motivo.
+        v_espera := 'Choque de microciclo: ya hay una semana de otro origen que no se pisa sin '
+                    'confirmar (ver el aviso del panel de Microciclos). No se activó.';
+      exception when others then
+        v_espera := 'No se pudo publicar al vencer: ' || sqlerrm;
+      end;
+    end if;
+
+    update public.aprobaciones_primer_plan
+       set estado = 'espera_bryan', motivo_espera = v_espera, actualizado_en = now()
+     where id = r.id;
+    n_bryan := n_bryan + 1;
+  end loop;
+
+  aprobados := n_aprob;
+  a_bryan := n_bryan;
+  return next;
+end;
+$$;
+
+revoke all on function public.vencer_primer_plan() from public, anon, authenticated;
+grant execute on function public.vencer_primer_plan() to service_role;
 
 commit;

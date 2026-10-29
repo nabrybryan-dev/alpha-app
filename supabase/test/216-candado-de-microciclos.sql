@@ -23,6 +23,8 @@ insert into auth.users (id, email) values
   ('d2000000-0000-0000-0000-000000000002', 'cd-b@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000003', 'cd-c@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000004', 'cd-d@ejemplo.test'),
+  ('d2000000-0000-0000-0000-000000000005', 'cd-e@ejemplo.test'),
+  ('d2000000-0000-0000-0000-000000000006', 'cd-f@ejemplo.test'),
   ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test')
 on conflict (id) do nothing;
 
@@ -31,6 +33,8 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('d2000000-0000-0000-0000-000000000002', 'Candado B', 'asesorado', 'CB'),
   ('d2000000-0000-0000-0000-000000000003', 'Candado C', 'asesorado', 'CC'),
   ('d2000000-0000-0000-0000-000000000004', 'Candado D', 'asesorado', 'CD'),
+  ('d2000000-0000-0000-0000-000000000005', 'Candado E', 'asesorado', 'CE'),
+  ('d2000000-0000-0000-0000-000000000006', 'Candado F', 'asesorado', 'CF'),
   ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
@@ -40,10 +44,18 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos) values
   ('cd-b-8',  'd2000000-0000-0000-0000-000000000002', 8, 'cerrado', '{}'::jsonb),
   ('cd-b-9',  'd2000000-0000-0000-0000-000000000002', 9, 'activo', '{}'::jsonb),
   ('cd-c-8',  'd2000000-0000-0000-0000-000000000003', 8, 'activo', '{}'::jsonb),
-  ('cd-d-9',  'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb);
+  ('cd-d-9',  'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb),
+  ('cd-e-5',  'd2000000-0000-0000-0000-000000000005', 5, 'activo', '{}'::jsonb),
+  ('cd-f-5',  'd2000000-0000-0000-0000-000000000006', 5, 'activo', '{}'::jsonb);
+
+insert into public.capacidades_staff (usuario_id, capacidad) values
+  ('e2000000-0000-0000-0000-000000000001', 'leer_entrenamiento'),
+  ('e2000000-0000-0000-0000-000000000001', 'aprobar_primer_plan'),
+  ('e2000000-0000-0000-0000-000000000001', 'autorizar_excepcion')
+on conflict do nothing;
 
 select pruebas.afirmar(
-  (select count(*) from public.microciclos where id like 'cd-%' and origen = 'cadena') = 5,
+  (select count(*) from public.microciclos where id like 'cd-%' and origen = 'cadena') = 7,
   'lo cargado sin sesión de usuario no quedó con origen cadena'
 );
 
@@ -218,6 +230,49 @@ select pruebas.afirmar(
 select pruebas.afirmar(
   coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si',
   'la confirmación quedó puesta en la sesión'
+);
+
+-- ─ 8 · Un primer plan que choca NO queda 'aprobado' sin activar (riesgo (b)) ─
+-- E y F tienen el M5 de la cadena activo; la app propone su M5 (con sesión: origen 'app').
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('cd-e-5app', 'd2000000-0000-0000-0000-000000000005', 5, 'propuesto', '{}'::jsonb),
+  ('cd-f-5app', 'd2000000-0000-0000-0000-000000000006', 5, 'propuesto', '{}'::jsonb);
+
+reset role;
+delete from public.aprobaciones_primer_plan where microciclo_id in ('cd-e-5app', 'cd-f-5app');
+insert into public.aprobaciones_primer_plan (id, usuario_id, microciclo_id, riesgo, dudas_pendientes, plazo_hasta) values
+  ('c2000000-0000-0000-0000-000000000005', 'd2000000-0000-0000-0000-000000000005', 'cd-e-5app', 'bajo', '{}', now() + interval '1 day'),
+  ('c2000000-0000-0000-0000-000000000006', 'd2000000-0000-0000-0000-000000000006', 'cd-f-5app', 'bajo', '{}', now() - interval '1 minute');
+
+-- decidir_primer_plan: el coach aprueba y la base no activa por el choque.
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar');
+reset role;
+select pruebas.afirmar(
+  (select estado from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000005') = 'espera_bryan'
+  and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000005') like 'Choque de microciclo%'
+  and (select decidido_por from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000005') is null
+  and (select estado from public.microciclos where id = 'cd-e-5app') = 'propuesto'
+  and (select estado from public.microciclos where id = 'cd-e-5') = 'activo',
+  'decidir_primer_plan dejó el plan aprobado con el microciclo sin activar (o activó encima de la cadena)'
+);
+select pruebas.afirmar(
+  (select count(*) from public.microciclos_choques where propuesta_id = 'cd-e-5app' and estado = 'pendiente') = 1,
+  'decidir_primer_plan con choque no dejó el aviso (¿se lanzó una excepción que lo deshizo?)'
+);
+
+-- vencer_primer_plan: lo vencido que choca NO cuenta como vencido_aprobado.
+select * from public.vencer_primer_plan();
+select pruebas.afirmar(
+  (select estado from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') = 'espera_bryan'
+  and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') like 'Choque de microciclo%'
+  and (select estado from public.microciclos where id = 'cd-f-5app') = 'propuesto',
+  'vencer_primer_plan contó como vencido_aprobado un plan que el candado no activó'
+);
+select pruebas.afirmar(
+  (select count(*) from public.microciclos_choques where propuesta_id = 'cd-f-5app' and estado = 'pendiente') = 1,
+  'vencer_primer_plan con choque no dejó el aviso'
 );
 
 \echo 'OK · candado de microciclos (0147)'
