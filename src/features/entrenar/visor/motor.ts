@@ -16,14 +16,13 @@ import type { Malla } from '../../../domain/patrones/malla'
 import { compilar, FS, MAX_HUESOS, VS } from './sombreado'
 
 /**
- * Fondo del estudio. Se exporta porque el mismo color tiene que estar en el
- * `clearColor` del render y en el CSS del lienzo: si se separan, se ve un salto
- * de tono en el borde mientras la escena carga.
+ * Fondo del estudio por omisión (el del tema oscuro). El tema activo lo fija con
+ * `Motor.fijarFondo` desde `--salon-3d-lienzo`; el mismo color va en el CSS del lienzo,
+ * para que no se vea un salto de tono mientras la escena carga.
  */
 // El fondo gris azulado de la versión anterior lavaba la sala: las paredes carbón
 // quedaban prácticamente del mismo valor y en el móvil solo se leía el sujeto.
 // Un fondo profundo separa el volumen de la habitación y conserva el lenguaje Alpha.
-export const FONDO_ESTUDIO = '#0b0e12'
 export const FONDO_RGB_ESTUDIO: [number, number, number] = [0.043, 0.055, 0.071]
 
 const NOMBRES_DE_BUFFER = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx'] as const
@@ -39,6 +38,13 @@ interface JuegoDeBuffers {
 export class Motor {
   /** El color con el que se limpia el lienzo: el del tema activo (`fijarFondo`). */
   private fondo: [number, number, number] = [...FONDO_RGB_ESTUDIO]
+
+  private aclarado = 0
+
+  /** Cuánto se aclara la sala horneada (tema claro). */
+  fijarAclarado(n: number): void {
+    this.aclarado = n
+  }
 
   /** Cambia el fondo del lienzo sin reconstruir el motor (cambio de tema). */
   fijarFondo(rgb: readonly [number, number, number]): void {
@@ -445,6 +451,7 @@ export class Motor {
       gl.bindTexture(gl.TEXTURE_2D, textura ?? this.blanca)
       gl.uniform1f(u('u_conTextura'), textura ? 1 : 0)
       gl.uniform1f(u('u_horneada'), t.horneada ? 1 : 0)
+      gl.uniform1f(u('u_aclarado'), this.aclarado)
       gl.drawElements(gl.TRIANGLES, cuantos, tipoIndice, t.desde * bytes)
     }
     if (tandaActual !== 'opaca') {

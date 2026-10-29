@@ -4,85 +4,59 @@ import { temaDeUnElemento, type Tema } from '../../../lib/temaDelDocumento'
 /**
  * LOS COLORES DE LA SALA 3D, LEÍDOS DEL TEMA ACTIVO.
  *
- * La sala de cajas y el panel del muro se construyen en `sala.ts` con colores fijos
- * de carbón. Eso era correcto mientras el salón forzaba `data-theme="dark"`; al
- * quitar el forzado, en tema claro la pared negra se comía el texto oscuro y el
- * sujeto. Aquí se traducen los tokens `--salon-3d-*` a colores de malla, con los
- * mismos valores de siempre como respaldo cuando no hay DOM (pruebas) o el token
- * falta.
+ * La sala de cajas y el panel del muro se construyen en `sala.ts`, y el lienzo se limpia
+ * con un fondo. Antes eran constantes de carbón; desde la zona 8 salen de los tokens
+ * `--salon-3d-*` del tema que manda sobre el contenedor, y se releen al cambiar
+ * `data-theme`. Se leen al CONSTRUIR, no en cada fotograma: el caché es por elemento y
+ * por tema.
  *
- * No se cachea entre elementos: se llama al CONSTRUIR la sala, no en cada fotograma.
- * El caché es por contenedor y por tema, para que un cambio de `data-theme` se vea
- * sin recargar y para no repetir `getComputedStyle` mientras la cámara orbita.
+ * `TOKENS` es la ÚNICA tabla de colores: nombre del token, valor oscuro y valor claro.
+ * El valor de cada tema sirve de respaldo cuando no hay DOM o el token falta, y
+ * `paletaDeLaSala.test.ts` comprueba que coincide con `tokens.css`: si alguien cambia un
+ * token y no esta tabla, se pone rojo.
  */
 
 export interface PaletaDeLaSala {
   /** La pared: el color que ocupa más superficie. */
   pared: Color
-  /** El zócalo y los marcos: un escalón por debajo de la pared. */
+  /** El zócalo: un escalón por debajo de la pared. */
   zocalo: Color
   /** El panel del marcador, donde van las cifras. */
   panel: Color
   /** El marco de las placas y del material. */
   marco: Color
-  /** Los segmentos encendidos del marcador y el acento de la sala. */
+  /** Los segmentos encendidos del marcador. */
   vivo: Color
   /** Los segmentos apagados: tienen que seguir leyéndose como apagados. */
   apagado: Color
-  /** El suelo. */
-  suelo: Color
-  /** El techo y el fondo del lienzo. */
-  techo: Color
-  /** El texto de la interfaz que va sobre la sala. */
-  texto: Color
-  /** El texto secundario. */
-  tenue: Color
-  /** El rojo de acción, ya corregido para pasar 4,5:1 sobre pared y panel. */
-  accion: Color
+  /** El fondo del lienzo: lo que se ve donde no llega la sala. */
+  lienzo: Color
   /** Cuánto oscurece la viñeta de la esquina (0-1). */
   sombra: number
   /** Cuánto brilla el ambiente (0-1). */
   brillo: number
 }
 
-const OSCURA: PaletaDeLaSala = {
-  pared: [0.062, 0.068, 0.078],
-  zocalo: [0.095, 0.104, 0.12],
-  panel: [0.028, 0.03, 0.036],
-  marco: [0.2, 0.22, 0.26],
-  vivo: [1.0, 0.24, 0.24],
-  apagado: [0.055, 0.058, 0.066],
-  suelo: [0.043, 0.055, 0.071],
-  techo: [0.043, 0.055, 0.071],
-  texto: [0.957, 0.961, 0.965],
-  tenue: [0.761, 0.784, 0.812],
-  accion: [1.0, 0.604, 0.604],
-  sombra: 0.45,
-  brillo: 0.22,
-}
+type ColorDe = Exclude<keyof PaletaDeLaSala, 'sombra' | 'brillo'>
 
-const CLARA: PaletaDeLaSala = {
-  pared: [0.945, 0.933, 0.902],
-  zocalo: [0.553, 0.541, 0.514],
-  panel: [0.875, 0.886, 0.906],
-  marco: [0.659, 0.678, 0.702],
-  vivo: [0.753, 0.051, 0.071],
-  apagado: [0.765, 0.78, 0.808],
-  suelo: [0.553, 0.541, 0.514],
-  techo: [1, 1, 1],
-  texto: [0.067, 0.067, 0.067],
-  tenue: [0.247, 0.243, 0.227],
-  accion: [0.561, 0.067, 0.098],
-  sombra: 0.2,
-  brillo: 0,
+/** campo → [token, oscuro, claro]. */
+export const TOKENS: Record<ColorDe, readonly [string, string, string]> = {
+  pared: ['--salon-3d-pared', '#101114', '#f1eee6'],
+  zocalo: ['--salon-3d-zocalo', '#181b1f', '#8d8a83'],
+  panel: ['--salon-3d-panel', '#070809', '#dfe2e7'],
+  marco: ['--salon-3d-marco', '#333842', '#a8adb3'],
+  vivo: ['--salon-3d-segmento', '#ff3d3d', '#c00d12'],
+  apagado: ['--salon-3d-segmento-apagado', '#0e0f11', '#c3c7ce'],
+  lienzo: ['--salon-3d-lienzo', '#0b0e12', '#e4e1d9'],
 }
+const NUMEROS = { sombra: ['--salon-3d-sombra', 0.45, 0.2], brillo: ['--salon-3d-brillo', 0.22, 0] } as const
 
 /** Convierte «#rrggbb», «r g b» o «rgb(r g b)» a 0-1; si no se entiende, respaldo. */
 export function leerColor(texto: string, respaldo: Color): Color {
   const t = texto.trim()
   const hex = /^#([0-9a-f]{6})$/i.exec(t)
   if (hex) {
-    const n = parseInt(hex[1], 16)
+    const n = parseInt(hex[1]!, 16)
     return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
   }
   const trio = /^(?:rgb\()?\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)\s*\)?$/.exec(t)
@@ -90,35 +64,39 @@ export function leerColor(texto: string, respaldo: Color): Color {
   return respaldo
 }
 
+function deRespaldo(tema: Tema): PaletaDeLaSala {
+  const i = tema === 'light' ? 2 : 1
+  const c = (campo: ColorDe) => leerColor(TOKENS[campo][i] as string, [0, 0, 0])
+  return {
+    pared: c('pared'), zocalo: c('zocalo'), panel: c('panel'), marco: c('marco'),
+    vivo: c('vivo'), apagado: c('apagado'), lienzo: c('lienzo'),
+    sombra: NUMEROS.sombra[i], brillo: NUMEROS.brillo[i],
+  }
+}
+
+export const OSCURA_DE_RESPALDO: PaletaDeLaSala = deRespaldo('dark')
+export const CLARA_DE_RESPALDO: PaletaDeLaSala = deRespaldo('light')
+
 const guardadas = new WeakMap<Element, { tema: Tema; paleta: PaletaDeLaSala }>()
 
 /** La paleta de la sala para el tema que manda sobre `contenedor` (o la raíz). */
 export function paletaDeLaSala(contenedor?: Element | null): PaletaDeLaSala {
-  if (typeof document === 'undefined') return OSCURA
+  if (typeof document === 'undefined') return OSCURA_DE_RESPALDO
   const donde = contenedor ?? document.documentElement
   const tema = temaDeUnElemento(donde)
   const guardada = guardadas.get(donde)
   if (guardada && guardada.tema === tema) return guardada.paleta
 
-  const base = tema === 'light' ? CLARA : OSCURA
+  const base = tema === 'light' ? CLARA_DE_RESPALDO : OSCURA_DE_RESPALDO
   const css = getComputedStyle(donde)
-  const v = (nombre: string, respaldo: Color) => leerColor(css.getPropertyValue(nombre), respaldo)
   const numero = (nombre: string, respaldo: number) => {
     const leido = Number.parseFloat(css.getPropertyValue(nombre))
     return Number.isFinite(leido) ? leido : respaldo
   }
+  const leer = (campo: ColorDe) => leerColor(css.getPropertyValue(TOKENS[campo][0]), base[campo])
   const paleta: PaletaDeLaSala = {
-    pared: v('--salon-3d-pared', base.pared),
-    zocalo: v('--salon-3d-zocalo', base.zocalo),
-    panel: v('--salon-3d-panel', base.panel),
-    marco: v('--salon-3d-marco', base.marco),
-    vivo: v('--salon-3d-segmento', base.vivo),
-    apagado: v('--salon-3d-segmento-apagado', base.apagado),
-    suelo: v('--salon-3d-tierra', base.suelo),
-    techo: v('--salon-3d-cielo', base.techo),
-    texto: v('--salon-3d-texto', base.texto),
-    tenue: v('--salon-3d-tenue', base.tenue),
-    accion: v('--salon-3d-accion', base.accion),
+    pared: leer('pared'), zocalo: leer('zocalo'), panel: leer('panel'), marco: leer('marco'),
+    vivo: leer('vivo'), apagado: leer('apagado'), lienzo: leer('lienzo'),
     sombra: numero('--salon-3d-sombra', base.sombra),
     brillo: numero('--salon-3d-brillo', base.brillo),
   }

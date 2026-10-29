@@ -18,7 +18,7 @@ import {
 } from '../../../domain/patrones/juegoDeHuesos'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type CifrasDelMuro } from '../escena/sala'
+import { elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type CifrasDelMuro } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
 import { anunciarSalaDeBlender, piezasDelAtlas, SALA_GIMNASIO } from './piezas'
@@ -56,6 +56,8 @@ import { NIVEL_POR_W } from '../capas/nivelesAnatomicos'
 import { construirMusculosDeNivel, mallasDelSujeto } from '../capas/mallaDelNivel'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
 import { paletaDeLaSala, colorACss } from '../escena/paletaDeLaSala'
+import { salaDelVisor } from '../escena/salaEnCache'
+import { aclaradoDelTema } from '../escena/piezasDelTema'
 import { leerTemaDelDocumento } from '../../../lib/temaDelDocumento'
 import { useTemaDelDocumento } from '../../../app/useTemaDelDocumento'
 import { atlasCache, atlasCargado, atlasPorCapa, cargarPiezas } from './cargaDelAtlas'
@@ -96,42 +98,9 @@ function laboratorio(soloMarcas: boolean): Malla {
   return laboratorioCache.malla
 }
 
-/**
- * La sala se cachea POR SUS NÚMEROS, no a secas.
- *
- * Las paredes y la estación de grabación no cambian nunca, pero los marcadores llevan
- * cifras de siete segmentos hechas de geometría: cambiar un número es reconstruir esos
- * dígitos. Cachear por el trío evita rehacer la sala entera en cada fotograma y a la
- * vez deja que el marcador reaccione cuando la serie avanza — que es el único momento
- * en que TIENE que cambiar.
- */
-let salaCache: { clave: string; malla: Malla } | null = null
-
 /** La elevación heredada de la cámara anterior, dentro de los topes de la órbita nueva. */
 function limitarElevacion(elevacion: number, orbita: { elevacionMin: number; elevacionMax: number }): number {
   return Math.min(Math.max(elevacion, orbita.elevacionMin), orbita.elevacionMax)
-}
-
-function sala(cifras: CifrasDelMuro | undefined, azimutDeEntrada: number, deBlender: boolean): Malla {
-  // El ángulo entra en la clave: si no, cambiar de ejercicio dejaría el marcador del muro
-  // de enfrente colgado donde lo puso el ejercicio anterior. Y si la sala de Blender ya
-  // llegó: la de cajas se deja de construir y los marcadores cambian de pared.
-  // «sin» y no un hueco vacío: una sala sin marcador es una malla DISTINTA de una con él,
-  // y dos claves que se parecen demasiado es como se sirve una sala vieja creyendo que es
-  // la nueva.
-  const marca = cifras ? `${cifras.veces}|${cifras.cuanto}|${cifras.esfuerzo ?? 'apagada'}` : 'sin'
-  // El tema entra en la clave: la sala lleva los colores del tema, y cambiar `data-theme`
-  // tiene que rehacerla (zona 8). Sin esto se serviría la pared del tema anterior.
-  const clave = `${marca}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}|${leerTemaDelDocumento()}`
-  if (!salaCache || salaCache.clave !== clave) {
-    const malla = new Malla()
-    construirSala(malla, cifras, azimutDeEntrada, {
-      paleta: paletaDeLaSala(),
-      ...(deBlender ? { salaDeBlender: SALA_GIMNASIO } : {}),
-    })
-    salaCache = { clave, malla }
-  }
-  return salaCache.malla
 }
 
 /**
@@ -775,7 +744,8 @@ export function VisorPatron({
 
         const construir = () => {
           // El fondo del lienzo sigue el tema (la paleta se guarda por tema: no cuesta por cuadro).
-          motor.fijarFondo(paletaDeLaSala().suelo)
+          motor.fijarFondo(paletaDeLaSala().lienzo)
+          motor.fijarAclarado(aclaradoDelTema(leerTemaDelDocumento()))
           // LA VISTA DE CUERPO deja fuera todo lo del movimiento (ver `VisorPatronProps.cuerpo`).
           const enCuerpo = estado.current.cuerpo !== undefined
           const esq = esqueletoEnFase(
@@ -828,7 +798,7 @@ export function VisorPatron({
               if (!deBlender) partes.push(suelo())
               // Las piezas NO van aquí: son estáticas y viven en sus propios búferes,
               // subidas una vez cuando llegan. Aquí solo va lo que cambia.
-              partes.push(sala(estado.current.cifras, patron.camara.azimut, deBlender))
+              partes.push(salaDelVisor(estado.current.cifras, patron.camara.azimut, deBlender))
             }
             if (!sin.has('camara') && !enCuerpo) partes.push(tripode(estado.current.colocacion))
           }
@@ -1252,7 +1222,7 @@ export function VisorPatron({
 
   // El tema activo como estado: al cambiar, el fondo CSS se actualiza en este render y el
   // efecto de arriba rehace la escena (sala, fondo y cuerpo) sin recargar.
-  const fondoDelLienzo = colorACss(paletaDeLaSala().suelo)
+  const fondoDelLienzo = colorACss(paletaDeLaSala().lienzo)
 
   // Qué hace cada articulación: se calcula de las poses, no está escrito.
   const acciones = accionesPrincipales(patron)
@@ -1278,9 +1248,9 @@ export function VisorPatron({
             veces— asi que si el paso cambia, la leyenda cambia con el.
             En centimetros porque es la unidad con la que se habla de un recorrido. */}
         {!error && conEscenario && (
-          <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-white/35">
+          <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-[color:var(--salon-3d-leyenda)]">
             retícula {BAHIA.pasoMenor * 100} cm
-            <span className="mx-1 text-white/20">·</span>
+            <span className="mx-1 text-[color:var(--salon-3d-leyenda-tenue)]">·</span>
             {BAHIA.pasoMayor * 100} cm
           </p>
         )}

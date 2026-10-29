@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Malla } from '../../../domain/patrones/malla'
 import { cifrasDeLaSerie, construirSala } from './sala'
-import { paletaDeLaSala } from './paletaDeLaSala'
+import { colorACss, leerColor, paletaDeLaSala, TOKENS } from './paletaDeLaSala'
 
 /**
  * LA ESCENA SIGUE EL TEMA Y LO RELEE AL CAMBIAR, SIN RECARGAR (zona 8).
@@ -69,5 +69,44 @@ describe('paletaDeLaSala', () => {
     expect(alto(oscura)).toBeLessThan(0.1)
     // El panel del marcador también sigue el tema (se compara la sala entera de un color a otro).
     expect(Array.from(clara.color)).not.toEqual(Array.from(oscura.color))
+  })
+})
+
+describe('paletaDeLaSala: leer el token, no caer al respaldo', () => {
+  it('un token con un valor raro llega a la paleta tal cual', () => {
+    const el = document.createElement('div')
+    el.setAttribute('data-theme', 'light')
+    el.style.setProperty('--salon-3d-pared', '#123456')
+    el.style.setProperty('--salon-3d-lienzo', '#654321')
+    document.body.appendChild(el)
+    const p = paletaDeLaSala(el)
+    expect(colorACss(p.pared)).toBe('#123456')
+    expect(colorACss(p.lienzo)).toBe('#654321')
+    el.remove()
+  })
+
+  it('sin token cae al respaldo del tema', () => {
+    const el = document.createElement('div')
+    el.setAttribute('data-theme', 'dark')
+    document.body.appendChild(el)
+    document.documentElement.setAttribute('data-theme', 'dark')
+    estilo.textContent = ''
+    expect(colorACss(paletaDeLaSala(el).pared)).toBe(TOKENS.pared[1])
+    el.remove()
+  })
+})
+
+describe('el respaldo no se desvía de tokens.css', () => {
+  const css = readFileSync(join(__dirname, '../../../styles/tokens.css'), 'utf8').replace(/\r\n/g, '\n')
+  const bloque = (selector: RegExp) => {
+    const i = css.search(selector)
+    return css.slice(i, css.indexOf('\n}', i))
+  }
+  const oscuro = bloque(/:root,\s*\n?\[data-theme="dark"\]\s*\{/)
+  const claro = bloque(/\n\[data-theme="light"\]\s*\{/)
+  it.each(Object.entries(TOKENS))('%s', (_campo, [token, hexOscuro, hexClaro]) => {
+    const leer = (b: string) => new RegExp(`^\\s*${token}:\\s*([^;]+);`, 'm').exec(b)?.[1]?.trim()
+    expect(leerColor(leer(oscuro)!, [9, 9, 9])).toEqual(leerColor(hexOscuro, [8, 8, 8]))
+    expect(leerColor(leer(claro)!, [9, 9, 9])).toEqual(leerColor(hexClaro, [8, 8, 8]))
   })
 })

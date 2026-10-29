@@ -1074,7 +1074,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               className="pointer-events-none absolute inset-0 transition-opacity duration-base ease-salida"
               style={{
                 opacity: enCuerpo ? 0 : w * 0.1,
-                background: 'radial-gradient(90% 70% at 50% 45%, transparent 0%, #05060700 40%, #050607 100%)',
+                background:
+                  'radial-gradient(90% 70% at 50% 45%, transparent 0%, rgb(var(--salon-3d-vineta-rgb) / 0) 40%, rgb(var(--salon-3d-vineta-rgb)) 100%)',
               }}
             />
 
