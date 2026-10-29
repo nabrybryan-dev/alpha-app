@@ -297,7 +297,7 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/nutricion/datosSospechosos.ts#motivoDeLaDuda': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/dia.ts#rangoKcal': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/encuesta.ts#LAS_QUE_VUELVEN_NO_BLOQUEAN': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'la evalúa la Edge Function avisos-plan (supabase/functions/avisos-plan/alertasNutri.ts), que queda fuera de src/ y por eso este análisis no la ve; detrás de un interruptor apagado (migración 0148).',
   'src/domain/nutricion/estado.ts#elegir': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/estado.ts#hayQuePreguntar': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/gastoEjercicio.ts#MET_CAMINAR': 'HEREDADO 2026-08-12, sin revisar.',
@@ -307,8 +307,8 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/ondulacion.ts#fasePeriodizacion': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/ondulacion.ts#sesionOndulada': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/rutaEntrenamiento.ts#requisitosDeNivel': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/senales/hambre.ts#diasExigidos': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/senales/hambre.ts#evaluarRacha': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/senales/hambre.ts#diasExigidos': 'Apoyo interno de evaluarRacha/tramoDeHambre; ver evaluarRacha (alerta hambre_sostenida, Edge Function avisos-plan).',
+  'src/domain/senales/hambre.ts#evaluarRacha': 'la evalúa la Edge Function avisos-plan (supabase/functions/avisos-plan/alertasNutri.ts), que queda fuera de src/ y por eso este análisis no la ve; detrás de un interruptor apagado (migración 0148).',
 }
 
 const huerfanos = buscarHuerfanos({ raizProyecto: process.cwd() })

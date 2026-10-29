@@ -2498,4 +2498,20 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
 
+union all
+select '0148 - alertas nutricionales: apagadas hasta que Manuela firme', 'alertas_nutricion_ajustes (2 filas, con RLS, sin anon, sin escritura de authenticated) y alertas_nutricion con RLS y solo lectura para authenticated',
+       case when to_regclass('public.alertas_nutricion_ajustes') is null or to_regclass('public.alertas_nutricion') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_nutricion_ajustes')) then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_nutricion')) then 'NO'
+            when (select count(*) from public.alertas_nutricion_ajustes) <> 2 then 'NO'
+            when has_table_privilege('anon', 'public.alertas_nutricion_ajustes', 'select')
+              or has_table_privilege('anon', 'public.alertas_nutricion', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.alertas_nutricion_ajustes', 'update')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion_ajustes', 'insert')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion', 'insert')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion', 'update')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.alertas_nutricion', 'select') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

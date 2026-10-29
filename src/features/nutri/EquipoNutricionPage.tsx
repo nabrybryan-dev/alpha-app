@@ -12,6 +12,7 @@ import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
 import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
+import { AlertasNutricionales } from './AlertasNutricionales'
 import { SheetVetados } from './SheetVetados'
 
 function fechaAtras(hoy: string, dias: number): string {
@@ -219,6 +220,9 @@ export default function EquipoNutricionPage() {
           </Link>
         )}
       </section>
+
+      {/* Alertas de seguridad nutricional (H-02): apagadas hasta que Manuela firme; sin filas no pinta nada. */}
+      {persona === null && <AlertasNutricionales />}
 
       {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
           mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}

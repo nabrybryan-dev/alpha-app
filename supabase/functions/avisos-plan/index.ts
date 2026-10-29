@@ -11,6 +11,7 @@
 //
 // Solo acepta la clave de servicio en Authorization. Sin datos de salud: solo título y primer paso.
 
+import { correrAlertasNutri } from './alertasNutriEnvio.ts'
 import { decidirAvisos, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
@@ -55,6 +56,9 @@ async function manejar(req: Request): Promise<Response> {
   const ahora = new Date()
   const { dia } = relojLocal(ahora, ZONA)
   const ids = Object.values(USUARIOS).join(',')
+
+  // Alertas nutricionales (0148): apagadas por defecto; nunca lanza. Ver alertasNutriEnvio.ts.
+  console.log(JSON.stringify(await correrAlertasNutri({ rest, hoy: dia, manuelaId: USUARIOS.manuela, enviar: async (s, c) => { const wp = (await import('npm:web-push@3.6.7')).default; wp.setVapidDetails(env('VAPID_SUBJECT') ?? 'mailto:avisos@alpha.local', vapidPub, vapidPriv); await wp.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, c, { TTL: 60 * 60 * 6 }) } })))
 
   const rSubs = await rest(
     `permisos_de_aviso?usuario_id=in.(${ids})&dijo_si=eq.true&endpoint=not.is.null&p256dh=not.is.null&auth=not.is.null&select=usuario_id,endpoint,p256dh,auth`,
