@@ -23,7 +23,7 @@ function sql(): string {
   expect(existsSync(RUTA), `falta ${RUTA}`).toBe(true)
   // Sin comentarios: lo que se afirma tiene que estar en el codigo, no en la prosa.
   return readFileSync(RUTA, 'utf8')
-    .split('\n')
+    .split(/\r?\n/)
     .map((l) => l.replace(/--.*$/, ''))
     .join('\n')
 }
@@ -67,6 +67,8 @@ describe('0149 · quien recalcula estandarizado_ejercicio', () => {
 
   it('no toca otras tablas: ninguna escritura fuera de estandarizado_ejercicio', () => {
     const s = sql()
-    expect(s).not.toMatch(/(insert into|update|delete from)\s+public\.(?!estandarizado_ejercicio)/)
+    // Con o sin `public.` (el search_path es public): `update microciclos` tambien cuenta. El `do update` del
+    // upsert (la mutacion de estandarizado_ejercicio) se excluye con el lookbehind.
+    expect(s).not.toMatch(/(insert into|delete from|(?<!do )update)\s+(?!(public\.)?estandarizado_ejercicio\b)(public\.)?\w+/)
   })
 })
