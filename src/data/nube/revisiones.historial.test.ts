@@ -5,12 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const consulta = vi.hoisted(() => {
   const llamadas: Array<[string, unknown[]]> = []
+  const datos: { filas: unknown[] } = { filas: [] }
   const q: Record<string, unknown> = {}
   for (const m of ['select', 'gte', 'order', 'limit']) {
     q[m] = (...a: unknown[]) => { llamadas.push([m, a]); return q }
   }
-  q.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(ok)
-  return { llamadas, q }
+  q.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: datos.filas, error: null }).then(ok)
+  return { llamadas, datos, q }
 })
 vi.mock('../supabase', () => ({
   modoNube: true,
@@ -22,7 +23,7 @@ vi.mock('../supabase', () => ({
 
 import { historialDeFirma } from './revisiones'
 
-beforeEach(() => { consulta.llamadas.length = 0 })
+beforeEach(() => { consulta.llamadas.length = 0; consulta.datos.filas = [] })
 
 describe('historialDeFirma: la consulta no pierde lo más reciente', () => {
   it('pide de la semana más nueva a la más vieja, desde una ventana y con tope explícito', async () => {
@@ -41,5 +42,25 @@ describe('historialDeFirma: la consulta no pierde lo más reciente', () => {
     await historialDeFirma(domingoNoche)
     const por = Object.fromEntries(consulta.llamadas.map(([m, a]) => [m, a]))
     expect(por.gte).toEqual(['semana', '2026-04-27']) // lunes 26-oct menos 26 semanas
+  })
+})
+
+describe('historialDeFirma: «hoy» es la fecha local, no la de UTC', () => {
+  const firmadaLaSemanaEnCurso = {
+    semana: '2026-10-26', aprobado_en: '2026-10-30T15:00:00Z', aprobado_por: 'bryan',
+    correccion_solicitada: null, version: 1, correccion_pedida_por: null, motivo_version: null,
+  }
+
+  it('domingo 23:00 en Bogotá (lunes 04:00 UTC): la semana en curso sigue siendo la del lunes 26-oct', async () => {
+    const domingoNoche = new Date('2026-11-02T04:00:00Z') // dom 1-nov 23:00 en Bogotá
+    expect(domingoNoche.getDay()).toBe(0)
+    expect(domingoNoche.getUTCDay()).toBe(1)
+    consulta.datos.filas = [firmadaLaSemanaEnCurso]
+    const h = await historialDeFirma(domingoNoche)
+    // Con «hoy» en UTC (2-nov) la semana se adelantaría al lunes siguiente: la fila pasaría a una
+    // semana cerrada y no habría semana en curso.
+    expect(h.enCurso?.fecha).toBe('2026-10-26')
+    expect(h.enCurso?.firmados).toBe(1)
+    expect(h.semanas).toEqual([])
   })
 })
