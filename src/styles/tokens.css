@@ -705,15 +705,40 @@ body {
   z-index: 1;
 }
 
-/* En claro, el `text-tenue` (95 94 90) caía a ~3,05:1 sobre el velo de la tarjeta, que es
-   oscura también en claro («Toca para pausar» del cronómetro). Gris claro: 4,5:1 aun con
-   foto blanca bajo el velo más flojo. En oscuro no cambia. */
-[data-theme="light"] .tarjeta-foto .text-tenue {
-  color: #d0d3d8;
-}
-
 .tarjeta-foto .kicker {
   color: #ff4d4d;
+}
+
+/* TARJETA DEL CRONÓMETRO DE LA SESIÓN EN TEMA CLARO (decisión de Bryan, 29-oct-2026).
+   Era negra con foto sobre una pantalla clara. En claro sigue el tema: velo hueso espeso
+   sobre la foto, tinta oscura y rojo oscuro. Peor caso (foto negra bajo el alfa mínimo,
+   .86 -> fondo 212): tinta 12,7:1, tenue 7,2:1, rojo #8f1119 6,3:1. El alcance
+   `[data-sesion="entrenar"]` deja intactas las demás `.tarjeta-foto` (Logros): siguen
+   oscuras en los dos temas. En oscuro no cambia nada. Lo fija contraste-salon.test.ts. */
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto {
+  color: #111111;
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto::after {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 247, 245, 0.86) 0%,
+    rgba(247, 247, 245, 0.92) 55%,
+    rgba(247, 247, 245, 0.96) 100%
+  );
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto .text-tenue {
+  color: #3f3e3a;
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto .kicker {
+  color: #8f1119;
+}
+
+/* En pausa la cifra baja a opacity-50: sobre velo claro eso da ~3:1. Sube a .7 (6:1). */
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto .opacity-50 {
+  opacity: 0.7;
 }
 
 /* ---------- Botón rojo translúcido (estilo "Finalizar sesión") ---------- */

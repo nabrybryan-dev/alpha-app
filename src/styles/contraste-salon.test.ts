@@ -205,24 +205,65 @@ describe('botones redondos de la derecha: mismo velo y mismo borde', () => {
 })
 
 /**
- * «Toca para pausar» DEL CRONÓMETRO DE LA SESIÓN (R2-7). Vive en una `.tarjeta-foto`, que es
- * oscura (velo rgba(10,10,10,.72-.92) sobre la foto) también en claro. El `text-tenue` del
- * tema claro (95 94 90) da ~3,05:1 ahí. En claro, dentro de la tarjeta, el tenue pasa a un
- * gris claro que llega a 4,5:1 en el peor caso: foto blanca bajo el velo más flojo (.72).
- * En oscuro no se toca nada.
+ * LA TARJETA DEL CRONÓMETRO DE LA SESIÓN SE ACLARA EN TEMA CLARO (decisión de Bryan, 29-oct-2026).
+ * Era una `.tarjeta-foto` negra sobre una pantalla clara. Ahora, en claro y SOLO dentro de la
+ * sesión (`[data-sesion="entrenar"]`; Logros usa la misma clase y no cambia): velo claro sobre
+ * la foto, tinta oscura y rojo oscuro. Todo a 4,5:1 en el peor caso: foto NEGRA bajo el velo
+ * más flojo (el fondo más oscuro posible bajo un texto oscuro). El oscuro no cambia.
  */
-describe('texto tenue dentro de la tarjeta con foto, tema claro', () => {
-  const regla = /\[data-theme="light"\]\s+\.tarjeta-foto\s+\.text-tenue\s*\{([^}]*)\}/.exec(css)
-  it('hay una regla de tenue para la tarjeta con foto, solo en claro', () => {
-    expect(regla, 'falta [data-theme="light"] .tarjeta-foto .text-tenue').not.toBeNull()
+describe('tarjeta con foto del cronómetro de la sesión, tema claro', () => {
+  const ALCANCE = String.raw`\[data-theme="light"\]\s+\[data-sesion="entrenar"\]\s+\.tarjeta-foto`
+  const regla = (resto: string) => new RegExp(ALCANCE + resto + String.raw`\s*\{([^}]*)\}`).exec(css)?.[1] ?? ''
+  const hexDe = (cuerpo: string, prop = 'color'): Rgb => {
+    const h = new RegExp(String.raw`(?:^|[\s;])` + prop + String.raw`:\s*#([0-9a-f]{6})`, 'i').exec(cuerpo)?.[1]
+    expect(h, `falta ${prop} #rrggbb en «${cuerpo.trim()}»`).toBeTruthy()
+    const n = Number.parseInt(h!, 16)
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  }
+  const velo = regla('::after')
+  const alfas = [...velo.matchAll(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/g)].map((m) => ({
+    rgb: [Number(m[1]), Number(m[2]), Number(m[3])] as Rgb,
+    a: Number(m[4]),
+  }))
+  // Peor caso: foto negra; el velo la tapa solo con su alfa mínimo.
+  const peor = (): Rgb => {
+    const { rgb, a } = alfas.reduce((m, x) => (x.a < m.a ? x : m))
+    return rgb.map((c) => Math.round(c * a)) as Rgb
+  }
+
+  it('hay un velo claro (no oscuro) y espeso, solo en claro y solo en la sesión', () => {
+    expect(alfas.length, 'falta el velo ::after de la tarjeta de la sesión en claro').toBeGreaterThanOrEqual(2)
+    for (const { rgb, a } of alfas) {
+      expect(Math.min(...rgb), 'el velo debe ser claro').toBeGreaterThanOrEqual(235)
+      expect(a, 'el velo debe tapar la foto').toBeGreaterThanOrEqual(0.85)
+    }
   })
-  it('llega a 4,5:1 sobre el peor caso del velo', () => {
-    const hex = /color:\s*#([0-9a-f]{6})/i.exec(regla?.[1] ?? '')?.[1]
-    expect(hex).toBeTruthy()
-    const n = Number.parseInt(hex!, 16)
-    const texto: Rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-    const peor = Math.round(255 * 0.28 + 10 * 0.72)
-    expect(contraste(texto, [peor, peor, peor])).toBeGreaterThanOrEqual(4.5)
+  it.each([
+    ['la tinta del texto (color de la tarjeta)', '', 'color'],
+    ['el tenue de «Toca para pausar»', String.raw` \.text-tenue`, 'color'],
+    ['el rojo del kicker', String.raw` \.kicker`, 'color'],
+  ])('%s llega a 4,5:1 sobre el peor caso del velo', (_n, resto, prop) => {
+    const cuerpo = regla(resto)
+    expect(Number(contraste(hexDe(cuerpo, prop), peor()).toFixed(2))).toBeGreaterThanOrEqual(4.5)
+  })
+  it('la cifra en pausa (opacity-50 sube a 0,7) sigue legible a 4,5:1', () => {
+    const op = Number(/opacity:\s*([\d.]+)/.exec(regla(String.raw` \.opacity-50`))?.[1])
+    expect(op).toBeGreaterThanOrEqual(0.7)
+    const tinta = hexDe(regla(''))
+    const fondo = peor()
+    const mezcla = tinta.map((c, i) => Math.round(c * op + fondo[i]! * (1 - op))) as Rgb
+    expect(Number(contraste(mezcla, fondo).toFixed(2))).toBeGreaterThanOrEqual(4.5)
+  })
+  it('el oscuro y Logros no cambian: la tarjeta base sigue con velo oscuro y texto #f2f2f2', () => {
+    const base = /\n\.tarjeta-foto\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+    expect(base).toContain('color: #f2f2f2')
+    const baseVelo = /\n\.tarjeta-foto::after\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+    expect(baseVelo).toContain('rgba(10, 10, 10, 0.38)')
+    expect(baseVelo).toContain('rgba(10, 10, 10, 0.72)')
+    expect(baseVelo).toContain('rgba(10, 10, 10, 0.92)')
+    // Ninguna regla de claro toca `.tarjeta-foto` sin el alcance de la sesión.
+    const sueltas = [...css.matchAll(/\[data-theme="light"\][^{,]*\.tarjeta-foto[^{,]*\{/g)].map((m) => m[0]).filter((t) => !t.includes('[data-sesion="entrenar"]'))
+    expect(sueltas).toEqual([])
   })
 })
 
