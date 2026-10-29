@@ -58,6 +58,8 @@ export interface Aviso {
 export function revisarItem(
   por100g: Record<string, number | null> | null,
   gramos: number,
+  /** Apagado, el aviso sigue saliendo pero sin cifras de energía. */
+  conKcal = true,
 ): Aviso[] {
   // Misma validación que gramos en porcion.escalar(), letra por letra -si el
   // criterio cambia allá, cambia aquí también (y en kcal100g más abajo, y en
@@ -84,7 +86,11 @@ export function revisarItem(
   const avisos: Aviso[] = []
   if (kcal100g > TOPE_KCAL_100G) {
     avisos.push({
-      mensaje: `${kcal100g.toFixed(0)} kcal por 100 g es imposible: revisa el alimento`,
+      // Con el contador apagado la protección es la misma, pero la frase no
+      // puede devolver la cifra de energía que el interruptor esconde.
+      mensaje: conKcal
+        ? `${kcal100g.toFixed(0)} kcal por 100 g es imposible: revisa el alimento`
+        : 'La energía por 100 g es imposible: revisa el alimento',
       bloquea: true,
     })
   }
@@ -92,7 +98,9 @@ export function revisarItem(
   const kcal = (kcal100g * gramos) / 100
   if (kcal > TOPE_REGISTRO_KCAL) {
     avisos.push({
-      mensaje: `${gramos.toFixed(0)} g son ${kcal.toFixed(0)} kcal en un solo registro. ¿Seguro?`,
+      mensaje: conKcal
+        ? `${gramos.toFixed(0)} g son ${kcal.toFixed(0)} kcal en un solo registro. ¿Seguro?`
+        : `${gramos.toFixed(0)} g en un solo registro es demasiado. ¿Seguro?`,
       bloquea: false,
     })
   }

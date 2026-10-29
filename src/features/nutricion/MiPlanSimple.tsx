@@ -66,53 +66,58 @@ export function MiPlanSimple({
         <section key={menu.tipoDia} className="flex flex-col gap-2">
           <p className="font-display text-base text-texto">{tituloDelMenu(plan, menu, posicion)}</p>
 
-          {menu.comidas.map((comida) => (
-            <div key={comida.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="font-display text-sm text-texto">{comida.titulo}</h3>
-                <span className="cifras shrink-0 text-xs text-tenue">{comida.hora}</span>
+          {menu.comidas.map((comida) => {
+            const nota = verKcal ? comida.nota : sinCifrasDeKcal(comida.nota ?? '')
+            return (
+              <div key={comida.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-display text-sm text-texto">{comida.titulo}</h3>
+                  <span className="cifras shrink-0 text-xs text-tenue">{comida.hora}</span>
+                </div>
+
+                <ul className="mt-2 flex flex-col gap-2">
+                  {comida.alimentos
+                    .filter((a) => !esHora(a))
+                    .map((alimento) => (
+                      <li key={alimento} className="flex items-center justify-between gap-3">
+                        <span className="min-w-0 flex-1 text-sm leading-snug text-texto">
+                          {alimento}
+                        </span>
+                        {/* El alimento va en el nombre accesible: con 50 botones que solo dicen
+                            «Anotar», un lector de pantalla no distingue uno de otro. */}
+                        <button
+                          type="button"
+                          onClick={() => onRegistrar(alimento, comida.titulo)}
+                          aria-label={`Anotar ${alimento}`}
+                          className="press min-h-[44px] shrink-0 rounded-full border border-accion/50 bg-accion/10 px-4 text-xs font-semibold text-accion"
+                        >
+                          Anotar
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+
+                {nota && (
+                  <p className="mt-2 whitespace-pre-line text-xs leading-snug text-tenue">{nota}</p>
+                )}
               </div>
-
-              <ul className="mt-2 flex flex-col gap-2">
-                {comida.alimentos
-                  .filter((a) => !esHora(a))
-                  .map((alimento) => (
-                    <li key={alimento} className="flex items-center justify-between gap-3">
-                      <span className="min-w-0 flex-1 text-sm leading-snug text-texto">
-                        {alimento}
-                      </span>
-                      {/* El alimento va en el nombre accesible: con 50 botones que solo dicen
-                          «Anotar», un lector de pantalla no distingue uno de otro. */}
-                      <button
-                        type="button"
-                        onClick={() => onRegistrar(alimento, comida.titulo)}
-                        aria-label={`Anotar ${alimento}`}
-                        className="press min-h-[44px] shrink-0 rounded-full border border-accion/50 bg-accion/10 px-4 text-xs font-semibold text-accion"
-                      >
-                        Anotar
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-
-              {comida.nota && (
-                <p className="mt-2 text-xs leading-snug text-tenue">
-                  {verKcal ? comida.nota : sinCifrasDeKcal(comida.nota)}
-                </p>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </section>
       ))}
 
-      {plan.seccionesEspeciales.map((especial) => (
-        <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
-          <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
-            {verKcal ? especial.contenido : sinCifrasDeKcal(especial.contenido)}
-          </p>
-        </section>
-      ))}
+      {plan.seccionesEspeciales.map((especial) => {
+        const contenido = verKcal ? especial.contenido : sinCifrasDeKcal(especial.contenido)
+        if (!contenido) return null
+        return (
+          <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
+            <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
+              {contenido}
+            </p>
+          </section>
+        )
+      })}
 
       <button
         type="button"

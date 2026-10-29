@@ -109,8 +109,11 @@ function CuerpoCantidad({
    * dato bueno aunque su composición esté incompleta-.
    */
   const avisos = useMemo(
-    () => (alimento.por100g.kcal === null ? [] : revisarItem(alimento.por100g, gramos)),
-    [alimento, gramos],
+    () =>
+      alimento.por100g.kcal === null
+        ? []
+        : revisarItem(alimento.por100g, gramos, verKcal),
+    [alimento, gramos, verKcal],
   )
 
   const kcal = redondear(escalado.kcal ?? null)
@@ -244,16 +247,15 @@ function CuerpoCantidad({
         </div>
       </div>
 
-      {verKcal &&
-        avisos.map((aviso) => (
-          <p
-            key={aviso.mensaje}
-            role="status"
-            className="mt-4 rounded-2xl border border-ambar/40 bg-ambar/10 p-3 text-xs leading-snug text-texto"
-          >
-            {aviso.mensaje}
-          </p>
-        ))}
+      {avisos.map((aviso) => (
+        <p
+          key={aviso.mensaje}
+          role="status"
+          className="mt-4 rounded-2xl border border-ambar/40 bg-ambar/10 p-3 text-xs leading-snug text-texto"
+        >
+          {aviso.mensaje}
+        </p>
+      ))}
 
       <button
         type="button"

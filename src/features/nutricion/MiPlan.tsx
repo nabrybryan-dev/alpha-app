@@ -148,6 +148,9 @@ export default function MiPlan() {
   }
 
   const menu = plan.menus.find((m) => m.tipoDia === tipoMenu) ?? plan.menus[0]
+  // Si el filtro se lleva la última frase del análisis, no queda un hueco con
+  // «Antes de los números» y un párrafo vacío.
+  const analisisDelPlan = textoDelPlan(plan.analisis)
 
   return (
     <div className="flex flex-col gap-4 pb-6">
@@ -230,12 +233,12 @@ export default function MiPlan() {
         </>
       )}
 
-      {seccion === 'Contexto' && (
+      {seccion === 'Contexto' && analisisDelPlan && (
         <section className="rounded-2xl border border-linea bg-surface-1 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Antes de los números
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-texto">{textoDelPlan(plan.analisis)}</p>
+          <p className="mt-2 text-sm leading-relaxed text-texto">{analisisDelPlan}</p>
         </section>
       )}
 
@@ -374,14 +377,18 @@ export default function MiPlan() {
         </section>
       )}
 
-      {plan.seccionesEspeciales.map((especial) => (
-        <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
-          <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
-            {textoDelPlan(especial.contenido)}
-          </p>
-        </section>
-      ))}
+      {plan.seccionesEspeciales.map((especial) => {
+        const contenido = textoDelPlan(especial.contenido)
+        if (!contenido) return null
+        return (
+          <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
+            <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
+              {contenido}
+            </p>
+          </section>
+        )
+      })}
     </div>
   )
 }
@@ -400,50 +407,53 @@ export function ComidasDelMenu({
 }) {
   return (
     <>
-      {menu.comidas.map((comida) => (
-        <div key={comida.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-display text-sm text-texto">{comida.titulo}</h3>
-            <span className="cifras shrink-0 text-xs text-tenue">{comida.hora}</span>
+      {menu.comidas.map((comida) => {
+        // Si la nota era solo la frase de kcal, se queda vacía y no se pinta un
+        // párrafo en blanco.
+        const nota = verKcal ? comida.nota : sinCifrasDeKcal(comida.nota ?? '')
+        return (
+          <div key={comida.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="font-display text-sm text-texto">{comida.titulo}</h3>
+              <span className="cifras shrink-0 text-xs text-tenue">{comida.hora}</span>
+            </div>
+
+            <ul className="mt-2 flex flex-col gap-1">
+              {comida.alimentos.filter((a) => !esHora(a)).map((alimento) => (
+                <li key={alimento} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 text-sm leading-snug text-texto">{alimento}</span>
+                  {/* «No tengo esto» va ANTES del «+», y no es casual: quien no
+                      tiene el alimento no llega nunca a registrarlo. */}
+                  <button
+                    type="button"
+                    onClick={() => onCambiar(alimento)}
+                    aria-label={`Por qué cambiar ${alimento}`}
+                    className="press grid h-11 w-11 shrink-0 place-items-center"
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-linea text-sm text-tenue" aria-hidden="true">
+                      ⇄
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRegistrar(alimento, comida.titulo)}
+                    aria-label={`Registrar ${alimento}`}
+                    className="press grid h-11 w-11 shrink-0 place-items-center"
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-accion/50 text-sm font-bold text-accion" aria-hidden="true">
+                      +
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {nota && (
+              <p className="mt-2 text-xs leading-snug text-tenue whitespace-pre-line">{nota}</p>
+            )}
           </div>
-
-          <ul className="mt-2 flex flex-col gap-1">
-            {comida.alimentos.filter((a) => !esHora(a)).map((alimento) => (
-              <li key={alimento} className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 text-sm leading-snug text-texto">{alimento}</span>
-                {/* «No tengo esto» va ANTES del «+», y no es casual: quien no
-                    tiene el alimento no llega nunca a registrarlo. */}
-                <button
-                  type="button"
-                  onClick={() => onCambiar(alimento)}
-                  aria-label={`Por qué cambiar ${alimento}`}
-                  className="press grid h-11 w-11 shrink-0 place-items-center"
-                >
-                  <span className="grid h-7 w-7 place-items-center rounded-full border border-linea text-sm text-tenue" aria-hidden="true">
-                    ⇄
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRegistrar(alimento, comida.titulo)}
-                  aria-label={`Registrar ${alimento}`}
-                  className="press grid h-11 w-11 shrink-0 place-items-center"
-                >
-                  <span className="grid h-7 w-7 place-items-center rounded-full border border-accion/50 text-sm font-bold text-accion" aria-hidden="true">
-                    +
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {comida.nota && (
-            <p className="mt-2 text-xs leading-snug text-tenue">
-              {verKcal ? comida.nota : sinCifrasDeKcal(comida.nota)}
-            </p>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </>
   )
 }

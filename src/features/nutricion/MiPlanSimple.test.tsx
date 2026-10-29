@@ -61,6 +61,42 @@ function pintar(plan: PlanNutricional, opciones: { verKcal?: boolean } = {}) {
 }
 
 describe('MiPlanSimple · el título de cada bloque lo pone el plan', () => {
+  it('si la nota era solo la frase de kcal, no deja un párrafo vacío', () => {
+    const plan = planCon([
+      {
+        nombre: 'ALTO',
+        tipoDia: 'ALTO',
+        comidas: [
+          { hora: '13:00', titulo: 'Cena', alimentos: ['2 huevos'], nota: 'Son 200 kcal.' },
+        ],
+      },
+    ])
+    const { container } = pintar(plan, { verKcal: false })
+    expect(screen.getByText('Cena')).toBeInTheDocument()
+    expect(screen.queryByText(/200 kcal/)).toBeNull()
+    expect(container.querySelector('p:empty')).toBeNull()
+  })
+
+  it('una nota con una línea sin kcal conserva esa línea y su salto', () => {
+    const plan = planCon([
+      {
+        nombre: 'ALTO',
+        tipoDia: 'ALTO',
+        comidas: [
+          {
+            hora: '13:00',
+            titulo: 'Cena',
+            alimentos: ['2 huevos'],
+            nota: 'Pesa en crudo.\nSon 200 kcal.',
+          },
+        ],
+      },
+    ])
+    pintar(plan, { verKcal: false })
+    expect(screen.getByText('Pesa en crudo.')).toBeInTheDocument()
+    expect(screen.queryByText(/200 kcal/)).toBeNull()
+  })
+
   it('un menú CHEAT llamado «REFEED · domingo (mantenimiento)» sale con ese nombre, sin «día libre» ni «descanso»', () => {
     const { container } = pintar(planDeKarin)
 

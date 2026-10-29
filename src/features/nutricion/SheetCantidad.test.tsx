@@ -116,6 +116,25 @@ describe('SheetCantidad', () => {
       pintar()
       expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
+
+    it('con el contador apagado el aviso sigue saliendo, sin la cifra de kcal', async () => {
+      // El interruptor esconde cifras, no la protección: quien registra 2 kg
+      // tiene que seguir viendo que es demasiado.
+      pintar({ verKcal: false })
+      await userEvent.clear(campoGramos())
+      await userEvent.type(campoGramos(), '2000')
+      const aviso = screen.getByRole('status')
+      expect(aviso).toHaveTextContent('2000 g')
+      expect(aviso).toHaveTextContent('¿Seguro?')
+      expect(aviso).not.toHaveTextContent(/kcal/i)
+    })
+
+    it('con el contador apagado la energía imposible también avisa, sin cifra', () => {
+      pintar({ verKcal: false, alimento: { ...arroz, por100g: { ...arroz.por100g, kcal: 1200 } } })
+      const aviso = screen.getByRole('status')
+      expect(aviso).toHaveTextContent(/imposible: revisa el alimento/i)
+      expect(aviso).not.toHaveTextContent(/kcal/i)
+    })
   })
 
   describe('cuando el alimento no trae calorías', () => {

@@ -49,6 +49,22 @@ describe('SheetBuscarAlimento', () => {
     expect(screen.getAllByRole('button', { name: /arroz/i }).length).toBeGreaterThan(0)
   })
 
+  it('con el contador apagado no queda pintada la CIFRA aunque se quite la palabra kcal', () => {
+    // La prueba anterior miraba la palabra; esta mira el número. Un cambio que
+    // esconda el rótulo pero deje el 130 sigue siendo una fuga clínica.
+    const candidato = catalogoRepo.buscar('arroz', {}, 60).find((alimento) => {
+      const kcal = Math.round(alimento.por100g.kcal ?? -1)
+      if (kcal <= 0) return false
+      return ![alimento.por100g.proteina_g, alimento.por100g.carbos_g, alimento.por100g.grasa_g].some(
+        (macro) => macro !== null && Math.round(macro) === kcal,
+      )
+    })
+    if (!candidato) throw new Error('no hay un arroz cuya kcal no coincida con un macro')
+    pintar({ verKcal: false, recientes: [candidato.id] })
+    const fila = screen.getByText(candidato.nombre).closest('button') as HTMLElement
+    expect(within(fila).queryByText(String(Math.round(candidato.por100g.kcal!)))).toBeNull()
+  })
+
   it('un filtro deja solo su grupo', async () => {
     pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Grasas' }))
