@@ -2498,4 +2498,29 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
 
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'videos_semanales tiene correccion_pedida_por y motivo_version',
+       case when (select count(*) from information_schema.columns
+                   where table_schema = 'public' and table_name = 'videos_semanales'
+                     and column_name in ('correccion_pedida_por', 'motivo_version')) = 2 then 'SI' else 'NO' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'motivo_version solo admite correccion o republicacion_tecnica (o NULL), y solo con version > 1',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = 'public.videos_semanales'::regclass
+                            and conname = 'videos_semanales_motivo_version_check'
+                            and pg_get_constraintdef(oid) like '%republicacion_tecnica%'
+                            and pg_get_constraintdef(oid) like '%version > 1%') then 'SI' else 'NO' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'decidir_revision_semanal guarda quién pidió la corrección y no queda abierta a anon',
+       case when to_regprocedure('public.decidir_revision_semanal(uuid,date,integer,boolean,text)') is null then 'NO'
+            when pg_get_functiondef('public.decidir_revision_semanal(uuid,date,integer,boolean,text)'::regprocedure) not like '%correccion_pedida_por = auth.uid()%' then 'NO'
+            when has_function_privilege('anon', 'public.decidir_revision_semanal(uuid,date,integer,boolean,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'versionar_revision_semanal distingue correccion de republicacion_tecnica',
+       case when to_regprocedure('public.versionar_revision_semanal()') is null then 'NO'
+            when pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%republicacion_tecnica%'
+             and pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%''correccion''%' then 'SI'
+            else 'NO' end
+
 order by migracion, senal;
