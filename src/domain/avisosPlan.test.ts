@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   decidirAvisos,
+  decidirRecordatoriosCheckin,
   minutosDeHora,
   relojLocal,
   type TareaAviso,
@@ -98,5 +99,52 @@ describe('avisos del organizador', () => {
     })
     expect(a.cuerpo).toContain('Abre Mi plan')
     expect(a.titulo.length).toBeLessThan(100)
+  })
+})
+
+// 2026-09-30 23:30 UTC = 18:30 en Bogotá; 22:30 UTC = 17:30; 2026-10-01 03:30 UTC = 22:30 del día 30.
+const SEIS_Y_MEDIA = new Date('2026-09-30T23:30:00Z')
+const CINCO_Y_MEDIA = new Date('2026-09-30T22:30:00Z')
+const DIEZ_Y_MEDIA = new Date('2026-10-01T03:30:00Z')
+
+describe('recordatorio de las 6 pm del check-in (desde el servidor)', () => {
+  const entrada = {
+    ahora: SEIS_Y_MEDIA,
+    suscritos: ['u-1', 'u-2'],
+    conCheckinHoy: new Set<string>(),
+    enviadosHoy: new Set<string>(),
+  }
+
+  it('avisa después de las 6 pm de Bogotá a quien está suscrito y no ha llenado el check-in', () => {
+    const avisos = decidirRecordatoriosCheckin(entrada)
+    expect(avisos.map((a) => a.usuario_id)).toEqual(['u-1', 'u-2'])
+    expect(avisos[0]).toMatchObject({ fecha_aviso: HOY, url: '/bienestar' })
+  })
+
+  it('no avisa antes de las 6 pm de Bogotá', () => {
+    expect(decidirRecordatoriosCheckin({ ...entrada, ahora: CINCO_Y_MEDIA })).toEqual([])
+  })
+
+  it('no avisa a quien ya llenó el check-in de hoy', () => {
+    const avisos = decidirRecordatoriosCheckin({ ...entrada, conCheckinHoy: new Set(['u-1']) })
+    expect(avisos.map((a) => a.usuario_id)).toEqual(['u-2'])
+  })
+
+  it('un solo aviso por persona y día: lo ya enviado no se repite', () => {
+    const avisos = decidirRecordatoriosCheckin({ ...entrada, enviadosHoy: new Set(['u-2']) })
+    expect(avisos.map((a) => a.usuario_id)).toEqual(['u-1'])
+  })
+
+  it('no avisa de madrugada ni muy entrada la noche', () => {
+    expect(decidirRecordatoriosCheckin({ ...entrada, ahora: DIEZ_Y_MEDIA })).toEqual([])
+  })
+
+  it('el texto no lleva datos de salud', () => {
+    const [a] = decidirRecordatoriosCheckin(entrada)
+    expect(`${a.titulo} ${a.cuerpo}`).not.toMatch(/kg|kcal|peso|sueño|dolor|ánimo|estrés/i)
+  })
+
+  it('sin suscritos no hay nada que decidir', () => {
+    expect(decidirRecordatoriosCheckin({ ...entrada, suscritos: [] })).toEqual([])
   })
 })

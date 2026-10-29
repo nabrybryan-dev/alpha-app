@@ -134,3 +134,53 @@ export function decidirAvisos(e: EntradaDecision): Aviso[] {
   }
   return salida
 }
+
+// ---------------------------------------------------------------------------------------------
+// Recordatorio del check-in de las 6 pm (decisión de Bryan, 28-oct). Antes solo salía una notificación
+// LOCAL con la app abierta (`features/bienestar/recordatorio.ts`); ahora sale del servidor aunque la
+// app esté cerrada. Va a quien tiene una suscripción viva y no ha llenado el check-in de HOY.
+// Como mucho UN aviso por persona y día; sin datos de salud en el texto.
+// ---------------------------------------------------------------------------------------------
+
+export const HORA_CHECKIN = '18:00'
+/** Pasada esta hora ya no se avisa: un recordatorio a las 11 de la noche no ayuda a nadie. */
+export const HORA_TOPE_CHECKIN = '22:00'
+export const URL_CHECKIN = '/bienestar'
+
+export interface AvisoCheckin {
+  usuario_id: string
+  fecha_aviso: string
+  titulo: string
+  cuerpo: string
+  url: string
+}
+
+export interface EntradaCheckin {
+  ahora: Date
+  /** usuario_id de quien tiene una suscripción viva. */
+  suscritos: readonly string[]
+  /** usuario_id de quien ya tiene un check-in con la fecha de hoy. */
+  conCheckinHoy: ReadonlySet<string>
+  /** usuario_id de quien ya recibió hoy este recordatorio. */
+  enviadosHoy: ReadonlySet<string>
+}
+
+export function decidirRecordatoriosCheckin(e: EntradaCheckin): AvisoCheckin[] {
+  const { dia, minutos } = relojLocal(e.ahora)
+  if (minutos < minutosDeHora(HORA_CHECKIN) || minutos >= minutosDeHora(HORA_TOPE_CHECKIN)) return []
+  const vistos = new Set<string>()
+  const salida: AvisoCheckin[] = []
+  for (const id of e.suscritos) {
+    if (vistos.has(id)) continue
+    vistos.add(id)
+    if (e.conCheckinHoy.has(id) || e.enviadosHoy.has(id)) continue
+    salida.push({
+      usuario_id: id,
+      fecha_aviso: dia,
+      titulo: 'Tu check-in te espera',
+      cuerpo: 'Ya pasan de las 6 pm y aún no registras tu día. Toma 1 minuto.',
+      url: URL_CHECKIN,
+    })
+  }
+  return salida
+}
