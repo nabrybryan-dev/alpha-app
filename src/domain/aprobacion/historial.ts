@@ -13,8 +13,7 @@ export interface FilaDeRevision {
   correccion_pedida_por: string | null
   /**
    * Por qué subió la versión (migración 0150). Null = no se sabe: NO cuenta como corrección.
-   * PREGUNTA PARA BRYAN: el corte entre 'correccion' y 'republicacion_tecnica' (hoy: había una
-   * corrección pendiente o no) no está escrito en ningún documento; confirmarlo.
+   * 'correccion' solo si había una corrección pendiente; si no, 'republicacion_tecnica'.
    */
   motivo_version: 'correccion' | 'republicacion_tecnica' | null
 }
@@ -52,7 +51,9 @@ function correccionDeEsteFirmante(f: FilaDeRevision, firmante: string): boolean 
  * Convierte las filas de revisión en el historial de UN firmante para `veredictoDeLaPuerta`.
  *
  * - Una fila cuenta como borrador de este firmante si la firmó él o si nadie la ha firmado
- *   aún. Lo que firmó otra persona no entra: cada firmante tiene su propia puerta.
+ *   aún. Lo que firmó otra persona no entra: cada firmante tiene su propia puerta. Tampoco entra
+ *   una corrección pendiente que pidió otra persona (decisión de Bryan, 29-oct: cada firmante
+ *   carga sus propias devoluciones). Si él la pidió, entra como corregida aunque firme otro.
  * - «Sin tocar» = firmada por él, a la primera versión y sin corrección pedida.
  * - «Corregido» para ESTE firmante = una corrección que ÉL pidió (pendiente, o ya atendida en una
  *   versión nueva con motivo 'correccion'). Una que pidió otra persona pesa en el semáforo de esa
@@ -63,7 +64,7 @@ function correccionDeEsteFirmante(f: FilaDeRevision, firmante: string): boolean 
  *
  * LÍMITES CON LOS DATOS QUE HAY:
  * - Filas anteriores a la 0150 no traen quién pidió ni el motivo: no cuentan como corrección para
- *   nadie (valor por omisión que no cuenta; PREGUNTA PARA BRYAN si prefiere lo contrario).
+ *   nadie (decisión de Bryan, 29-oct).
  * - Una fila firmada antes de la 0081 tiene `aprobado_en` pero no `aprobado_por`: no se sabe
  *   quién firmó y se deja fuera del historial de todos. Esa semana queda más corta o vacía,
  *   y por el hueco la racha se corta (lo prudente).
@@ -83,6 +84,8 @@ export function semanasDeFirma(
     // La corrección que pidió este firmante le pesa a él aunque después firme otra persona.
     const suya = correccionDeEsteFirmante(f, firmante)
     if (!suya && f.aprobado_en && f.aprobado_por !== firmante) continue
+    // Una corrección pendiente que pidió otra persona es de su semáforo: no es «sin mirar» de este.
+    if (!suya && !f.aprobado_en && f.correccion_solicitada !== null && f.correccion_pedida_por !== null) continue
     const lunes = lunesDe(f.semana)
     const abierta = lunes >= lunesHoy
     let s: SemanaDeFirma
