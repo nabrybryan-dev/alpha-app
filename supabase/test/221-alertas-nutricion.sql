@@ -54,19 +54,19 @@ select pruebas.afirmar(
 -- 5 · Lectura: solo la nutricionista. Se siembra como dueño; después cada sesión corre como authenticated.
 reset role;
 insert into auth.users (id, email) values
-  ('f2200000-0000-0000-0000-000000000001', 'an-asesorada@ejemplo.test'),
-  ('f2200000-0000-0000-0000-000000000002', 'an-coach@ejemplo.test'),
-  ('f2200000-0000-0000-0000-000000000003', 'an-nutricionista@ejemplo.test')
+  ('f2210000-0000-0000-0000-000000000001', 'an-asesorada@ejemplo.test'),
+  ('f2210000-0000-0000-0000-000000000002', 'an-coach@ejemplo.test'),
+  ('f2210000-0000-0000-0000-000000000003', 'an-nutricionista@ejemplo.test')
 on conflict (id) do nothing;
 insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
-  ('f2200000-0000-0000-0000-000000000001', 'Asesorada de las alertas', 'asesorado', 'AA'),
-  ('f2200000-0000-0000-0000-000000000002', 'Coach de las alertas', 'coach', 'CA'),
-  ('f2200000-0000-0000-0000-000000000003', 'Nutricionista de las alertas', 'nutricionista', 'NA')
+  ('f2210000-0000-0000-0000-000000000001', 'Asesorada de las alertas', 'asesorado', 'AA'),
+  ('f2210000-0000-0000-0000-000000000002', 'Coach de las alertas', 'coach', 'CA'),
+  ('f2210000-0000-0000-0000-000000000003', 'Nutricionista de las alertas', 'nutricionista', 'NA')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol, avatar_iniciales = excluded.avatar_iniciales;
 insert into public.alertas_nutricion (asesorado_id, clave, detalle)
-values ('f2200000-0000-0000-0000-000000000001', 'hambre_sostenida', 'detalle de prueba');
+values ('f2210000-0000-0000-0000-000000000001', 'hambre_sostenida', 'detalle de prueba');
 
-select pruebas.soy('f2200000-0000-0000-0000-000000000003');
+select pruebas.soy('f2210000-0000-0000-0000-000000000003');
 set role authenticated;
 select pruebas.exigir_rls();
 select pruebas.afirmar(
@@ -75,7 +75,7 @@ select pruebas.afirmar(
 );
 
 reset role;
-select pruebas.soy('f2200000-0000-0000-0000-000000000002');
+select pruebas.soy('f2210000-0000-0000-0000-000000000002');
 set role authenticated;
 select pruebas.exigir_rls();
 select pruebas.afirmar(
