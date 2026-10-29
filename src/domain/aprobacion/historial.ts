@@ -54,7 +54,8 @@ function correccionDeEsteFirmante(f: FilaDeRevision, firmante: string): boolean 
  *   aún. Lo que firmó otra persona no entra: cada firmante tiene su propia puerta. Tampoco entra
  *   una corrección pendiente que pidió otra persona (decisión de Bryan, 29-oct: cada firmante
  *   carga sus propias devoluciones). Si él la pidió, entra como corregida aunque firme otro.
- * - «Sin tocar» = firmada por él, a la primera versión y sin corrección pedida.
+ * - «Sin tocar» = firmada por él, sin corrección que él haya pedido (pendiente o atendida). Cuenta
+ *   también una v2 que corrigió otra persona y firmó él: la corrección de otro no lo mancha.
  * - «Corregido» para ESTE firmante = una corrección que ÉL pidió (pendiente, o ya atendida en una
  *   versión nueva con motivo 'correccion'). Una que pidió otra persona pesa en el semáforo de esa
  *   persona, no en el de este. Una republicación técnica no cuenta para nadie.

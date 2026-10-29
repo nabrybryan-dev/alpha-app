@@ -1,5 +1,5 @@
 -- Comprobación de la 0150 (quién pidió la corrección y por qué cambió la versión). Se corre APARTE, en el
--- SQL Editor: ANTES de aplicarla todas dicen NO, y DESPUÉS, SI. Si alguna dice SI antes o NO después, para y avisa.
+-- SQL Editor: ANTES de aplicarla, las demás señales dicen NO; la de «RLS y anon» ya dice SI antes (la RLS viene de la 0068), así que ese SI no es motivo para parar. DESPUÉS, todas dicen SI. Para y avisa solo si alguna de las otras da SI antes, o si cualquiera da NO después.
 
 select 'las dos columnas existen' as comprueba,
        case when (select count(*) from information_schema.columns
