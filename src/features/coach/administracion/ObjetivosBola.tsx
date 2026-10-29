@@ -19,7 +19,7 @@ const GRUPOS: readonly GrupoObjetivo[] = ['piloto', 'palancas']
 function Fila({ o }: { o: ObjetivoConReal }) {
   const { objetivo, real, fuenteReal } = o
   return (
-    <li aria-label={objetivo.nombre} className="flex flex-col gap-1 rounded-tarjeta border border-linea p-3 text-[13px]">
+    <li aria-label={objetivo.nombre} className="flex flex-col gap-1 rounded-tarjeta border border-linea bg-surface-2 p-3 text-[13px]">
       <span className="font-semibold text-texto">{objetivo.nombre}</span>
       <span className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-2 gap-y-0.5 text-[12.5px]">
         <span className={CLASE_ETIQUETA}>Meta</span>
