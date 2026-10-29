@@ -10,9 +10,9 @@
 --   motivo_version         por qué subió la versión: 'correccion' o 'republicacion_tecnica'.
 --                          NULL = no se sabe (filas anteriores a esta migración): NO cuenta como corrección.
 --
--- PREGUNTA PARA BRYAN (sin criterio escrito): aquí se llama 'correccion' a la nueva versión que llega
--- cuando había una corrección pendiente, y 'republicacion_tecnica' a cualquier otro cambio de archivo.
--- Si ese corte no es el tuyo, se cambia solo en el trigger de abajo.
+-- Corte entre los dos motivos (Bryan, 29-oct): la versión nueva es 'correccion' solo si había una
+-- corrección pendiente; si no, es 'republicacion_tecnica' y no cuenta para nadie. Si una fila ya
+-- corregida se republica después por algo técnico, conserva su motivo y quién pidió la corrección.
 --
 -- No se aplica sola: se corre aparte. Prueba: supabase/migrations/comprobar-0150.sql.
 begin;
@@ -48,6 +48,10 @@ begin
     if old.correccion_solicitada is not null then
       new.motivo_version := 'correccion';
       new.correccion_pedida_por := old.correccion_pedida_por;
+    elsif old.motivo_version = 'correccion' then
+      -- Ya corregida antes: un cambio técnico posterior no borra quién pidió la corrección.
+      new.motivo_version := 'correccion';
+      new.correccion_pedida_por := old.correccion_pedida_por;
     else
       new.motivo_version := 'republicacion_tecnica';
       new.correccion_pedida_por := null;
@@ -56,8 +60,9 @@ begin
   else
     new.version := old.version;
     new.motivo_version := old.motivo_version;
-    -- Solo cambia con una corrección nueva (la fija decidir_revision_semanal), nunca por una edición suelta.
-    if new.correccion_solicitada is not distinct from old.correccion_solicitada then
+    -- Solo cambia cuando decidir_revision_semanal pide una corrección (queda a nombre de quien la pide
+    -- ahora, aunque el texto sea el mismo que ya había), nunca por una edición suelta.
+    if not (new.correccion_solicitada is not null and new.correccion_pedida_por is not distinct from auth.uid()) then
       new.correccion_pedida_por := old.correccion_pedida_por;
     end if;
   end if;
