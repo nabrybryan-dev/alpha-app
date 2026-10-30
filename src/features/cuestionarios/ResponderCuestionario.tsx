@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Chip, ChipGroup } from '../../components/ui/Chip'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import type { Cuestionario } from '../../domain/types'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 interface ResponderCuestionarioProps {
   cuestionario: Cuestionario
@@ -76,14 +77,13 @@ export function ResponderCuestionario({ cuestionario, onEnviar }: ResponderCuest
         </fieldset>
       ))}
 
-      <button
+      <Boton3D bloque
         type="button"
         disabled={respondidas < total}
         onClick={() => onEnviar(valores)}
-        className="rounded-xl bg-rojo py-3 font-display text-sm text-white disabled:opacity-40"
       >
         Enviar respuestas ✓
-      </button>
+      </Boton3D>
     </div>
   )
 }

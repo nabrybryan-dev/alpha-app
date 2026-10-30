@@ -3,6 +3,7 @@ import { tramoDeHambre } from '../../domain/senales/hambre'
 import { tramoDeDolor } from '../../domain/senales/dolor'
 import { Stepper } from '../../components/ui/Stepper'
 import type { CampoAnotable, Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
@@ -270,14 +271,13 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
           Te falta{faltantes === 1 ? '' : 'n'} {faltantes} campo{faltantes === 1 ? '' : 's'} por marcar
         </p>
       )}
-      <button
+      <Boton3D bloque
         type="button"
         onClick={guardar}
-        className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-        style={{ boxShadow: 'var(--glow-accion)' }}
+        className="mt-1"
       >
         Guardar check-in
-      </button>
+      </Boton3D>
     </div>
   )
 }
