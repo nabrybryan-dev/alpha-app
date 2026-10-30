@@ -48,7 +48,7 @@ una fila por persona), no `suscripciones_push`.
    Guardar los secretos de la función:
    `supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:tu@correo`
    Opcionales: `AVISOS_HORA_BRYAN=08:00`, `AVISOS_HORA_MANUELA=08:00`. `SUPABASE_URL` y la service role ya las inyecta Supabase.
-4. Desplegar: `supabase functions deploy avisos-plan` (o pegar `index.ts` y `decidir.ts` en el editor). La función solo acepta la
+4. Desplegar: `supabase functions deploy avisos-plan` desde la raíz del repo (la función importa de `src/domain`; pegar `index.ts` y `decidir.ts` en el editor ya no basta). La función solo acepta la
    service role en `Authorization`.
 5. Cada dueño abre la app desplegada y acepta el aviso (así queda su fila en `permisos_de_aviso` con endpoint).
 6. Programar el cron (pg_cron + pg_net, cada 30 min de 07:00 a 20:00 Bogotá = 12:00 a 01:00 UTC):

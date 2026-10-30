@@ -4,7 +4,8 @@
 //   2. El recordatorio del check-in de las 6 pm (hora de Bogotá) a los asesorados y a la nutricionista que aún no lo ha llenado hoy, aunque la
 //      app esté cerrada. Su registro vive en `avisos_checkin_enviados` (migración 0146; si no está
 //      aplicada, la reserva falla y no se envía nada).
-// La llama un cron (ver organizador-NOTAS.md). Se entrega copiando esta carpeta (index.ts + decidir.ts) a Supabase.
+// La llama un cron (ver organizador-NOTAS.md). Se despliega con `supabase functions deploy avisos-plan` desde la RAÍZ del repo (importa de src/domain;
+// pegar index.ts y decidir.ts en el editor ya no basta).
 //
 // Variables de entorno (ninguna vive en el repo):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   las pone Supabase
@@ -15,6 +16,7 @@
 //
 // Solo acepta la clave de servicio en Authorization. Sin datos de salud: solo título y primer paso.
 
+import { correrAlertasNutri } from './alertasNutriEnvio.ts'
 import { decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, lotesDeIds, ROLES_DEL_RECORDATORIO_CHECKIN, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
@@ -62,6 +64,10 @@ async function manejar(req: Request): Promise<Response> {
   const { dia } = relojLocal(ahora, ZONA)
 
   // Todas las suscripciones vivas (una por persona): los dos dueños y el resto comparten tabla.
+  // Alertas nutricionales (0148): apagadas por defecto; nunca lanza. Ver alertasNutriEnvio.ts.
+  console.log(JSON.stringify(await correrAlertasNutri({ rest, hoy: dia, manuelaId: USUARIOS.manuela, enviar: async (s, c) => { const wp = (await import('npm:web-push@3.6.7')).default; wp.setVapidDetails(env('VAPID_SUBJECT') ?? 'mailto:avisos@alpha.local', vapidPub, vapidPriv); await wp.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, c, { TTL: 60 * 60 * 6 }) } })))
+
+
   const rSubs = await rest(
     'permisos_de_aviso?dijo_si=eq.true&endpoint=not.is.null&p256dh=not.is.null&auth=not.is.null&select=usuario_id,endpoint,p256dh,auth',
   )

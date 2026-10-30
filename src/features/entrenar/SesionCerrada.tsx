@@ -29,7 +29,7 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
       // no se toca: tiene su propia entrada y su propio motivo.
       className="-mx-4 -mt-4 flex min-h-dvh flex-col items-center justify-center gap-4 bg-bg px-4 py-10 text-center"
     >
-      <AguilaInteractiva entrada className="h-24 w-24" />
+      <AguilaInteractiva entrada className="mosaico-logo-claro h-24 w-24" />
       <h2 className="entrada entrada-1 font-display text-3xl text-texto">
         Sesión {sesion.nombre} registrada
       </h2>

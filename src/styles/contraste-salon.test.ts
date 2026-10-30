@@ -445,3 +445,48 @@ describe('«Arrastra para girar» sigue el tema', () => {
     expect(crudo(oscuro, 'salon-3d-arrastre').toLowerCase()).toBe('#9aa1ab')
   })
 })
+
+/**
+ * CIERRE DE Z8, SOLO TEMA CLARO (29-oct-2026, medido sobre capturas de 390x844 del build de demo).
+ *
+ * 1) El texto pequeño de la portada del cuerpo («Aún no hay series anotadas» y la línea de
+ *    «series hoy · cuenta series anotadas…») se pinta sobre el SUELO beige del salón, no sobre
+ *    la pared: el suelo medido en pantalla es #d5cdc5. Con `--tenue` (#5f5e5a) daba 4,13:1 y,
+ *    la segunda línea, con `opacity-85`, menos aún. Se sube con un token propio, definido solo
+ *    en claro (en oscuro no existe: `var(--…, fallback)` deja el color y la opacidad de main).
+ *    Las sublíneas de los botones laterales («series de hoy», «la silueta»…) van sobre el
+ *    botón claro (#e1dfdb a #e4e2de) y ya dan 4,9:1: no se tocan.
+ * 2) El mosaico del logo Alpha de SesionCerrada era `bg-ink-900`, que en claro es casi blanco,
+ *    y el logo es blanco: se pone un mosaico oscuro solo en claro.
+ */
+describe('cierre de Z8 en tema claro: texto sobre el suelo y mosaico del logo', () => {
+  const SUELO_MEDIDO: Rgb = [0xd5, 0xcd, 0xc5]
+  const mezcla = (a: Rgb, b: Rgb, t: number): Rgb => [0, 1, 2].map((i) => a[i]! * t + b[i]! * (1 - t)) as Rgb
+  const portada = readFileSync(join(__dirname, '../features/entrenar/salon/cuerpo/PortadaDelCuerpo.tsx'), 'utf8')
+  const cerrada = readFileSync(join(__dirname, '../features/entrenar/SesionCerrada.tsx'), 'utf8')
+
+  it('--salon-3d-suelo-texto (claro) llega a 4,5:1 sobre el suelo, también con la opacidad de la segunda línea', () => {
+    const texto = color(claro, 'salon-3d-suelo-texto')
+    const opacidad = Number(crudo(claro, 'salon-3d-suelo-opacidad'))
+    expect(Number(contraste(texto, SUELO_MEDIDO).toFixed(2))).toBeGreaterThanOrEqual(4.5)
+    expect(Number(contraste(mezcla(texto, SUELO_MEDIDO, opacidad), SUELO_MEDIDO).toFixed(2))).toBeGreaterThanOrEqual(4.5)
+  })
+  it('el valor viejo (--tenue #5f5e5a) NO cumplía: la medida es la que justifica el cambio', () => {
+    expect(contraste([0x5f, 0x5e, 0x5a], SUELO_MEDIDO)).toBeLessThan(4.5)
+  })
+  it('el oscuro no define el token (queda como main: --tenue y opacidad 0,85)', () => {
+    expect(oscuro).not.toContain('--salon-3d-suelo-')
+    expect(portada).toMatch(/var\(--salon-3d-suelo-texto, var\(--tenue\)\)/)
+    expect(portada).toMatch(/var\(--salon-3d-suelo-opacidad, 0\.85\)/)
+  })
+  it('las dos líneas del suelo de la portada leen el token', () => {
+    expect(portada.match(/--salon-3d-suelo-texto/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('el mosaico del logo en claro es oscuro: el logo blanco llega a 4,5:1 sobre él', () => {
+    const mosaico = color(claro, 'logo-mosaico')
+    expect(Number(contraste([255, 255, 255], mosaico).toFixed(2))).toBeGreaterThanOrEqual(4.5)
+    expect(css).toMatch(/\[data-theme="light"\] \[data-sesion="entrenar"\] \.mosaico-logo-claro\s*\{[^}]*var\(--logo-mosaico\)/)
+    expect(cerrada).toContain('mosaico-logo-claro')
+  })
+})

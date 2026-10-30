@@ -281,6 +281,11 @@
   --salon-3d-matiz: #4d4c48;
   --salon-3d-leyenda: #4d4c48;
   --salon-3d-leyenda-tenue: rgb(17 17 17 / 0.4);
+  /* Texto pequeño sobre el SUELO beige (#d5cdc5 medido): --tenue daba 4,13:1. Solo en claro. */
+  --salon-3d-suelo-texto: #3f3e3a;
+  --salon-3d-suelo-opacidad: 1;
+  /* Mosaico del logo Alpha (SesionCerrada): el logo es blanco; ink-900 en claro es casi blanco. */
+  --logo-mosaico: #15171a;
   --salon-3d-resplandor: none;
   --salon-3d-relieve: none;
   --salon-3d-sombra-portada: none;
@@ -717,6 +722,10 @@ body {
    .86 -> fondo 212): tinta 12,7:1, tenue 7,2:1, rojo #8f1119 6,3:1. El alcance
    `[data-sesion="entrenar"]` deja intactas las demás `.tarjeta-foto` (Logros): siguen
    oscuras en los dos temas. En oscuro no cambia nada. Lo fija contraste-salon.test.ts. */
+[data-theme="light"] [data-sesion="entrenar"] .mosaico-logo-claro {
+  background-color: var(--logo-mosaico);
+}
+
 [data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto {
   color: #111111;
 }
