@@ -13,6 +13,7 @@ import { SeccionMapaDelPlan } from './SeccionMapaDelPlan'
 import { SeccionPautadoVsHecho } from './SeccionPautadoVsHecho'
 import { SeccionTresSemanas } from './SeccionTresSemanas'
 import { SeccionVelocidadTecnica } from './SeccionVelocidadTecnica'
+import { Boton3D } from '../../../components/ui/Boton3D'
 
 interface Props {
   datos: DatosPersona
@@ -35,14 +36,13 @@ export function PresentarAlAsesorado({ datos, historial }: Props) {
 
   return (
     <>
-      <button
+      <Boton3D
         type="button"
         onClick={() => setAbierta(true)}
         aria-haspopup="dialog"
-        className="inline-flex min-h-[44px] items-center justify-center rounded-boton bg-rojo px-5 text-sm font-bold text-white shadow-halo"
       >
         Presentar a {nombre}
-      </button>
+      </Boton3D>
       {abierta && (
         <PantallaCompleta titulo={`Presentación de ${nombre}`} onCerrar={() => setAbierta(false)}>
           <ContenidoDeLaPresentacion datos={datos} historial={historial} nombre={nombre} />

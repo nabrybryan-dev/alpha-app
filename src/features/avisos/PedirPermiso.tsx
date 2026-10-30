@@ -3,6 +3,7 @@ import { guardarDecisionDeAviso } from '../../data/nube/avisos'
 import { pedirPermisoDelNavegador, soportaAvisos, suscribirse } from './suscripcion'
 import { claveVapidPublica } from './clavePublica'
 import { CLAVE_VISTO } from './estadoAvisos'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 
 /** La clave pública del servidor de empuje (por defecto la incrustada; VITE_VAPID_PUBLIC_KEY la sobrescribe). */
@@ -85,13 +86,12 @@ export function PedirPermiso({ usuarioId }: PedirPermisoProps) {
         </p>
       ) : (
         <div className="mt-3 flex gap-2">
-          <button
+          <Boton3D
             type="button"
             onClick={() => void queSi()}
-            className="press rounded-boton bg-accion px-3.5 py-2 text-xs font-bold text-white"
           >
             Sí, avísame
-          </button>
+          </Boton3D>
           <button
             type="button"
             onClick={ahoraNo}

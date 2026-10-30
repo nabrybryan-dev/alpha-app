@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { responderComoStaff } from '../../../data/consola/responderComoStaff'
 import { useCapacidades } from './useCapacidades'
+import { Boton3D } from '../../../components/ui/Boton3D'
 
 /**
  * «Responder como coach» (encargo, punto 4): llama a `responder_como_staff` con el
@@ -78,14 +79,13 @@ export function ResponderComoStaff({ cuestionarioId, nombrePersona }: ResponderC
             onChange={(e) => setTexto(e.target.value)}
           />
           <div className="mt-2 flex gap-2">
-            <button
+            <Boton3D
               type="button"
-              className="tecla-3d rounded-lg bg-accion px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
               disabled={!texto.trim()}
               onClick={() => setPaso('confirmando')}
             >
               Guardar respuesta
-            </button>
+            </Boton3D>
             <button
               type="button"
               className="rounded-lg border border-linea px-3 py-1.5 text-xs font-bold text-tenue"
@@ -108,14 +108,13 @@ export function ResponderComoStaff({ cuestionarioId, nombrePersona }: ResponderC
           <p className="mt-1 whitespace-pre-wrap rounded-lg bg-surface-1 p-2 text-xs text-tenue">{texto}</p>
           {error && <p className="mt-1 text-xs text-rojo">{error}</p>}
           <div className="mt-2 flex gap-2">
-            <button
+            <Boton3D
               type="button"
-              className="tecla-3d rounded-lg bg-accion px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
               disabled={enviando}
               onClick={() => void enviar()}
             >
               {enviando ? 'Enviando…' : 'Confirmar y enviar'}
-            </button>
+            </Boton3D>
             <button
               type="button"
               className="rounded-lg border border-linea px-3 py-1.5 text-xs font-bold text-tenue"
