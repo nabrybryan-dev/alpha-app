@@ -90,7 +90,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const enCuerpo = p.vista === 'cuerpo'
   const lectura = lecturaCorta(p.series)
   const ancla = useRef<HTMLDivElement>(null)
-  const [regionElegida, setRegionElegida] = useRegionElegida(ancla, p.camara, enCuerpo, p.series)
+  const regionElegida = useRegionElegida(ancla, p.camara, enCuerpo, p.series)
   // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
   // como «por trabajar» (revisión ciega, N5).
   const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
@@ -148,22 +148,23 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         {/* A la derecha, las capas: el cuerpo ocupa el centro y los lados quedan libres. */}
         {enCuerpo && (
           <div
-            role="radiogroup"
-            aria-label="Capas del cuerpo"
             className="pointer-events-auto absolute grid gap-2"
             style={{ right: 'max(8px, env(safe-area-inset-right, 0px))', top: '42%', transform: 'translateY(-50%)' }}
           >
-            {CAPAS.map((c) => (
-              <Opcion
-                key={c.id}
-                activa={c.id === p.capa}
-                etiqueta={c.nombre}
-                detalle={c.detalle}
-                onClick={() => p.alCambiarCapa(c.id)}
-              >
-                {c.nombre}
-              </Opcion>
-            ))}
+            <div role="radiogroup" aria-label="Capas del cuerpo" className="grid gap-2">
+              {CAPAS.map((c) => (
+                <Opcion
+                  key={c.id}
+                  activa={c.id === p.capa}
+                  etiqueta={c.nombre}
+                  detalle={c.detalle}
+                  onClick={() => p.alCambiarCapa(c.id)}
+                >
+                  {c.nombre}
+                </Opcion>
+              ))}
+            </div>
+            <BotonDarLaVuelta azimut={p.azimutDelCuerpo} alDarLaVuelta={p.alDarLaVuelta} />
           </div>
         )}
 
@@ -196,7 +197,6 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           >
             {enCuerpo ? 'Movimiento' : 'Cuerpo'}
           </Opcion>
-          {enCuerpo && <BotonDarLaVuelta azimut={p.azimutDelCuerpo} alDarLaVuelta={p.alDarLaVuelta} />}
         </div>
 
         {/* La lectura va corta, encima de la hoja y debajo del cuerpo: no lo tapa. */}
@@ -222,7 +222,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 Aún no hay series anotadas
               </p>
             )}
-            {lectura && <LecturaDeRegion series={p.series} rango={p.rango} elegida={regionElegida} alElegir={setRegionElegida} />}
+            {lectura && <LecturaDeRegion series={p.series} rango={p.rango} elegida={regionElegida} />}
             <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
             </p>

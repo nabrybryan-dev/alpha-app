@@ -1,9 +1,9 @@
-import { caraQueSeVe, destinoDeLaVuelta, etiquetaDeLaVuelta } from '../camara/vueltaDelCuerpo'
-import { Opcion } from './OpcionDeTecla'
+import { destinoDeLaVuelta, etiquetaDeLaVuelta } from '../camara/vueltaDelCuerpo'
 
 /**
- * «DAR LA VUELTA» (maqueta 7): gira el sujeto a la cara contraria a la que se ve. Su nombre
- * accesible dice qué se ve ahora y a dónde lleva. Sin mando (`alDarLaVuelta`) no se pinta.
+ * «DAR LA VUELTA» (maqueta 7, `.sl-vuelta`): tecla redonda de 48 px debajo de las capas, solo
+ * con su icono. Su nombre accesible dice qué se ve ahora y a dónde lleva. Sin mando
+ * (`alDarLaVuelta`) no se pinta.
  */
 export function BotonDarLaVuelta({
   azimut = 0,
@@ -14,14 +14,23 @@ export function BotonDarLaVuelta({
 }) {
   if (!alDarLaVuelta) return null
   return (
-    <Opcion
-      radio={false}
-      activa={false}
-      etiqueta={etiquetaDeLaVuelta(azimut)}
-      detalle={caraQueSeVe(azimut) === 'frente' ? 'ves el frente' : 'ves la espalda'}
+    <button
+      type="button"
+      aria-label={etiquetaDeLaVuelta(azimut)}
       onClick={() => alDarLaVuelta(destinoDeLaVuelta(azimut))}
+      className="press tecla-2 !h-12 !min-h-12 !w-12 justify-self-center !rounded-full !p-0"
+      style={{ color: 'var(--texto)' }}
     >
-      Dar la vuelta
-    </Opcion>
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        className="h-[22px] w-[22px] fill-none stroke-current"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
+      </svg>
+    </button>
   )
 }

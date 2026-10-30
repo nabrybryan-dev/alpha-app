@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { cuentaDeRegion } from './cuentaDeRegion'
 import { LecturaDeRegion } from './LecturaDeRegion'
 import { PortadaDelCuerpo, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
@@ -17,47 +17,45 @@ describe('cuentaDeRegion: lo que dice una región tocada', () => {
   })
 })
 
-describe('LecturaDeRegion: tocar una región lee su cuenta', () => {
-  it('cada región con series es un botón; al tocarla dice su cuenta y se puede soltar', () => {
-    render(<LecturaDeRegion series={{ dors: 2, bic: 1 }} rango="hoy" />)
-    expect(screen.queryByRole('status')?.textContent ?? '').toBe('')
-    fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
-    expect(screen.getByRole('status').textContent).toBe('Dorsal · 2 series hoy')
-    expect(screen.getByRole('button', { name: 'Dorsal' })).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
-    expect(screen.getByRole('status').textContent).toBe('')
+describe('LecturaDeRegion: el dedo elige en el cuerpo, esto solo lee', () => {
+  it('con muchas regiones no pinta botones: Bryan los vio tapando las piernas (30-oct)', () => {
+    render(<LecturaDeRegion series={{ dors: 2, bic: 1, glu: 2, cua: 1, isq: 3, gem: 1 }} rango="hoy" elegida={null} />)
+    expect(screen.queryAllByRole('button')).toEqual([])
   })
-  it('al cambiar a Semana la cuenta de la región elegida cambia con ella', () => {
-    const { rerender } = render(<LecturaDeRegion series={{ dors: 2 }} rango="hoy" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
-    rerender(<LecturaDeRegion series={{ dors: 5 }} rango="semana" />)
+  it('sin elegir, dice que se puede tocar el músculo', () => {
+    render(<LecturaDeRegion series={{ dors: 2 }} rango="hoy" elegida={null} />)
+    expect(screen.getByRole('status').textContent).toBe('Toca un músculo para leer su cuenta')
+  })
+  it('con una región elegida dice su cuenta y sigue al rango', () => {
+    const { rerender } = render(<LecturaDeRegion series={{ dors: 2 }} rango="hoy" elegida="dors" />)
+    expect(screen.getByRole('status').textContent).toBe('Dorsal · 2 series hoy')
+    rerender(<LecturaDeRegion series={{ dors: 5 }} rango="semana" elegida="dors" />)
     expect(screen.getByRole('status').textContent).toBe('Dorsal · 5 series esta semana')
   })
-  it('si la portada decide la región (toque sobre el cuerpo), la lectura la dice igual que con el botón', () => {
-    const { rerender } = render(<LecturaDeRegion series={{ dors: 2, bic: 1 }} rango="hoy" elegida="dors" />)
-    expect(screen.getByRole('status').textContent).toBe('Dorsal · 2 series hoy')
-    expect(screen.getByRole('button', { name: 'Dorsal' })).toHaveAttribute('aria-pressed', 'true')
-    rerender(<LecturaDeRegion series={{ dors: 2, bic: 1 }} rango="hoy" elegida={null} />)
-    expect(screen.getByRole('status').textContent).toBe('')
-  })
-  it('tocar un botón avisa a quien decide, para que el cuerpo y los botones digan lo mismo', () => {
-    const alElegir = vi.fn()
-    render(<LecturaDeRegion series={{ dors: 2 }} rango="hoy" elegida={null} alElegir={alElegir} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
-    expect(alElegir).toHaveBeenCalledWith('dors')
-  })
-  it('sin series no pinta botones', () => {
-    render(<LecturaDeRegion series={{}} rango="hoy" />)
-    expect(screen.queryAllByRole('button')).toEqual([])
+  it('una región elegida que se quedó sin series no inventa cifra', () => {
+    render(<LecturaDeRegion series={{ bic: 1 }} rango="hoy" elegida="dors" />)
+    expect(screen.getByRole('status').textContent).toBe('Toca un músculo para leer su cuenta')
   })
 })
 
-it('la portada trae las regiones tocables en la vista de cuerpo', () => {
+it('la portada no trae botones de región: la lista completa sigue en «Ver series por región»', () => {
   const p: PortadaDelCuerpoProps = {
     vista: 'cuerpo', capa: 'musculo', rango: 'hoy', series: { dors: 2 }, doloridas: [],
     alCambiarCapa: () => {}, alCambiarRango: () => {}, alCambiarVista: () => {},
   }
   render(<PortadaDelCuerpo {...p} />)
-  fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
-  expect(screen.getByRole('status').textContent).toBe('Dorsal · 2 series hoy')
+  expect(screen.queryByRole('button', { name: 'Dorsal' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Ver series por región' }))
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+})
+
+it('«Dar la vuelta» va con las capas, redondo, como en la maqueta', () => {
+  const p: PortadaDelCuerpoProps = {
+    vista: 'cuerpo', capa: 'musculo', rango: 'hoy', series: {}, doloridas: [],
+    alCambiarCapa: () => {}, alCambiarRango: () => {}, alCambiarVista: () => {}, azimutDelCuerpo: 0, alDarLaVuelta: () => {},
+  }
+  render(<PortadaDelCuerpo {...p} />)
+  const vuelta = screen.getByRole('button', { name: /Dar la vuelta/ })
+  expect(vuelta.parentElement?.querySelector('[aria-label="Capas del cuerpo"]')).not.toBeNull()
+  expect(vuelta.textContent).toBe('')
 })
