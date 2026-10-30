@@ -23,7 +23,6 @@ import type {
 } from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
-import { ENCUADRE_SALA } from '../escena/sala'
 import type { CamaraDelSalon as EstadoDeCamara } from './paredes/geometriaDeCuadro'
 import { implementosDeSesion } from './implementos/implementosDeSesion'
 import { capaTrasArrastre } from '../capas/gestoVertical'
@@ -37,9 +36,8 @@ import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
-import { cifrasDelCardio } from './estaciones/estacionesDelCardio'
 import { BANDA_DE_SESION, SUELO_DE_LOS_CARTELES } from './estaciones/sitioDelCartel'
-import { cifrasDeLaSerie } from '../escena/sala'
+import { cifrasDeLaSerie, ENCUADRE_SALA } from '../escena/sala'
 import { huellaDeReferencia } from './paredes/huellaDeReferencia'
 import { leerHuellaArticular } from '../encoder/huellasArticulares'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
@@ -60,9 +58,10 @@ import { useCapaDelSalon } from './momentos/useCapaDelSalon'
 import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 import { cifrasEnUnaLinea } from './cuerpo/cifrasEnUnaLinea'
+import { useVueltaDelCuerpo } from './camara/useVueltaDelCuerpo'
 import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
 import type { CapaDelCuerpo } from '../sujeto/pintura'
-import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
+import { cifrasDelCardio, estacionesDelCardio } from './estaciones/estacionesDelCardio'
 import { cargaAnterior } from './paredes/cargaAnterior'
 import { regionesConDolor, regionesDirectas, regionesPorTrabajar, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
 import type { IdDeRegion } from '../sujeto/regiones'
@@ -597,6 +596,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   }))
   const [lienzo, setLienzo] = useState({ ancho: 414, alto: 736 })
   const marcoRef = useRef<HTMLDivElement>(null)
+  const { vuelta, darLaVuelta } = useVueltaDelCuerpo()
   /**
    * EL CUERPO EN LA PANTALLA, tal como lo avisa el visor en cada fotograma. Va en un ref y
    * no en estado: cambia sesenta veces por segundo con la animación y nadie tiene que
@@ -925,7 +925,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
                 // lado pasa de ejercicio. Y desde el 2026-09-06, FUERA del cuerpo un dedo
                 // orbita, como en cualquier visor 3D; dos dedos siguen siendo la cámara.
-                orbitaConUnDedo={modoDeLaCamara}
+                orbitaConUnDedo={modoDeLaCamara} vuelta={vuelta}
                 superficieDeGesto={marcoRef}
                 // La sala se retira al 88 % con la lectura arriba (1 / 0,88 = 1,136 de
                 // distancia) y se acerca un 4 % con el dedo dentro. Se componen.
@@ -1296,7 +1296,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             porTrabajar={porTrabajar}
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
-            alCambiarVista={setVista}
+            alCambiarVista={setVista} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta}
             resumen={resumenDeLaPortada}
             reloj={
               contenido

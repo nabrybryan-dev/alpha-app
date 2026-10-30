@@ -34,7 +34,7 @@ const ARCHIVOS_LARGOS: Record<string, number> = {
   'src/features/entrenar/encoder/nucleo/analisis.js': 1126,
   'src/features/entrenar/encoder/nucleo/disco.js': 1435,
   'src/features/entrenar/salon/SalonEntrenar.tsx': 1345,
-  'src/features/entrenar/visor/VisorPatron.tsx': 1513,
+  'src/features/entrenar/visor/VisorPatron.tsx': 1510,
   'src/features/entrenar/visor/motor.ts': 870,
   'supabase/functions/praxis-registro/index.ts': 1048,
 }
