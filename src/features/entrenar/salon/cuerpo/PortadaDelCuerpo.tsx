@@ -164,7 +164,6 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 </Opcion>
               ))}
             </div>
-            <BotonDarLaVuelta azimut={p.azimutDelCuerpo} alDarLaVuelta={p.alDarLaVuelta} />
           </div>
         )}
 
@@ -197,6 +196,8 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           >
             {enCuerpo ? 'Movimiento' : 'Cuerpo'}
           </Opcion>
+          {/* A este lado y no bajo las capas, como la maqueta: a 715 px de alto ahí cae la cámara. */}
+          {enCuerpo && <BotonDarLaVuelta azimut={p.azimutDelCuerpo} alDarLaVuelta={p.alDarLaVuelta} />}
         </div>
 
         {/* La lectura va corta, encima de la hoja y debajo del cuerpo: no lo tapa. */}
@@ -212,7 +213,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 type="button"
                 aria-label="Ver series por región"
                 onClick={() => setHojaAbierta(true)}
-                className="press pointer-events-auto max-w-full truncate text-[15px] leading-tight"
+                className="press pointer-events-auto max-w-full truncate text-[13px] leading-tight"
                 style={{ color: 'var(--texto)', fontWeight: 800 }}
               >
                 {lectura}
@@ -224,7 +225,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             )}
             {lectura && <LecturaDeRegion series={p.series} rango={p.rango} elegida={regionElegida} />}
             <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
-              {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
+              {p.rango === 'hoy' ? 'series hoy' : 'de la semana'} · anotadas, no estímulo
             </p>
             {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
                 lo que duele. En Piel lo pendiente no se pinta, así que tampoco se dice. */}

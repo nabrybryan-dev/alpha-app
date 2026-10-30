@@ -38,13 +38,13 @@ describe('la portada del cuerpo: capas, lectura y dolor', () => {
   it('la lectura nombra las series anotadas y avisa de que no cuenta el estimulo', () => {
     render(<PortadaDelCuerpo {...props()} />)
     expect(screen.getByText('Dorsal 2 · Bíceps 1 · Trapecio 1')).toBeInTheDocument()
-    expect(screen.getByText(/series hoy · cuenta series anotadas, no el estímulo/)).toBeInTheDocument()
+    expect(screen.getByText(/series hoy · anotadas, no estímulo/)).toBeInTheDocument()
   })
 
   it('con rango semana lo dice, y Hoy/Semana se cambia con un toque', () => {
     const p = props({ rango: 'semana' })
     render(<PortadaDelCuerpo {...p} />)
-    expect(screen.getByText(/series de la semana · cuenta series anotadas/)).toBeInTheDocument()
+    expect(screen.getByText(/de la semana · anotadas, no estímulo/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('radio', { name: 'Hoy' }))
     expect(p.alCambiarRango).toHaveBeenCalledWith('hoy')
   })
