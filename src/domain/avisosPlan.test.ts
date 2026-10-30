@@ -3,6 +3,7 @@ import {
   decidirAvisos,
   decidirRecordatoriosCheckin,
   destinatariosDelPlan,
+  autorizarLlamada,
   lotesDeIds,
   ROLES_DEL_RECORDATORIO_CHECKIN,
   minutosDeHora,
@@ -195,5 +196,32 @@ describe('lotesDeIds: la URL de las consultas no crece sin tope', () => {
   })
   it('no repite ids', () => {
     expect(lotesDeIds(['a', 'b', 'a'], 10)).toEqual([['a', 'b']])
+  })
+})
+
+describe('autorizarLlamada: solo una clave de servicio despierta la función', () => {
+  const esServicio = (token: string) => Promise.resolve(token === 'otra-de-servicio')
+  it('la clave idéntica a la que inyecta Supabase pasa sin preguntar', async () => {
+    let preguntas = 0
+    const r = await autorizarLlamada('Bearer clave', 'clave', async () => { preguntas++; return false })
+    expect(r).toBe(true)
+    expect(preguntas).toBe(0)
+  })
+  it('otra clave de servicio válida (la del cron en Vault) pasa si Auth la reconoce', async () => {
+    expect(await autorizarLlamada('Bearer otra-de-servicio', 'clave', esServicio)).toBe(true)
+  })
+  it('una clave que Auth no reconoce como de servicio no pasa', async () => {
+    expect(await autorizarLlamada('Bearer anon', 'clave', esServicio)).toBe(false)
+  })
+  it('sin cabecera, o sin Bearer, no pasa y no pregunta', async () => {
+    let preguntas = 0
+    const contar = async () => { preguntas++; return true }
+    expect(await autorizarLlamada(null, 'clave', contar)).toBe(false)
+    expect(await autorizarLlamada('clave', 'clave', contar)).toBe(false)
+    expect(await autorizarLlamada('Bearer ', 'clave', contar)).toBe(false)
+    expect(preguntas).toBe(0)
+  })
+  it('si preguntar a Auth falla, no pasa', async () => {
+    expect(await autorizarLlamada('Bearer x', 'clave', () => Promise.reject(new Error('red')))).toBe(false)
   })
 })

@@ -62,15 +62,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'la traza se dibuje desde la demanda y no desde un hueso.',
 
   // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
-  // 2026-08-25 y sin enchufar a proposito: se apoya en la tabla
-  // `estandarizado_ejercicio` (migracion 0043), y esa migracion NO se aplica
-  // hasta que `supabase/comprobar-ids-de-ejercicio.sql` confirme contra la base
-  // que los ejercicio.id son unicos dentro de una persona. Que persisten entre
-  // microciclos ya esta verificado contra el codigo; que no se repiten, no puede
-  // saberse leyendo codigo.
+  // 2026-08-25. La tabla `estandarizado_ejercicio` (0043) existe en produccion. Medido el
+  // 2026-10-28 en produccion, solo lectura, con `comprobar-ids-de-ejercicio.sql`: las
+  // filas 1 a 3 dieron 0 y la fila 4 dio 641 linajes (la salida no se guardo en el repo).
+  // Lo que sigue sin enchufar es la LECTURA: la tabla
+  // esta sin recalcular desde el 25-ago (la 0149 pone quien, sin aplicar) y falta la
+  // decision de Bryan y Manuela de si la regla «3 microciclos limpios» pasa a ser
+  // vinculante antes de mostrarle al asesorado «por que este ejercicio todavia no sube
+  // carga». Hidratar la tabla en la app es ademas un cambio de `hidratar`/`firma`.
   'src/domain/estandarizacion.ts':
-    'Deriva si la tecnica de un ejercicio esta asentada. Espera a la migracion 0043, ' +
-    'que a su vez espera a comprobar-ids-de-ejercicio.sql. Ver ' +
+    'Deriva si la tecnica de un ejercicio esta asentada. Espera a aplicar la 0149 (quien ' +
+    'recalcula la tabla) y la decision de la regla vinculante. Ver ' +
     'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4.',
 
   // Las dos escaleras preautorizadas de un ejercicio (§8 punto 1 del supuesto del

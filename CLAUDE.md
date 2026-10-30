@@ -194,6 +194,8 @@ Reglas que quedan:
   necesita `enable row level security` en el mismo paso que el `create table`:
   lleva datos reales y sin RLS queda legible con la anon key.
 
+- **Regla de dominio, definitiva (Bryan, 2026-10-29): un ejercicio está estandarizado tras 3 microciclos limpios seguidos** (`src/domain/estandarizacion.ts`, `recalcular_estandarizado()` en la 0149); solo cuentan los microciclos entrenados, no los `propuesto`. La pantalla se conecta después de aplicar la 0149 y medir.
+
 ### Motor de microciclos de la app: encendido CON CANDADO (Bryan, 28-oct-2026)
 
 `PanelMicrociclos` activa microciclos solo si se construye con `VITE_MOTOR_APP_ACTIVO=true`
