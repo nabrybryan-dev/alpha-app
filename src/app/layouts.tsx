@@ -1,9 +1,7 @@
-import { useEffect } from 'react'
-import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
-import { db, hoyIso } from '../data/dbInstance'
-import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
+import { db } from '../data/dbInstance'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import {
@@ -12,6 +10,7 @@ import {
   puedeVerCreadores,
   puedeVerEstrategias,
 } from './accesoPanel'
+import { buscarRuta } from './rutas'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
@@ -32,11 +31,14 @@ const titulos: Record<string, string> = {
   '/mi-entreno': 'Mi entreno',
   '/equipo-nutricion': 'Nutrición',
   '/mi-plan': 'Mi plan',
+  '/yo': 'Yo',
 }
 
 function tituloDe(ruta: string, esStaff = false): string {
   const base = `/${ruta.split('/')[1] ?? ''}`
   if (esStaff && base === '/') return 'Mi día'
+  // La pestaña «Yo» del equipo es Mi entreno: su pantalla de cuenta se llama «Mi cuenta» (como en `rutas.ts`).
+  if (esStaff && base === '/yo') return 'Mi cuenta'
   return titulos[base] ?? 'Alpha'
 }
 
@@ -59,6 +61,7 @@ function esRutaPropiaDelCoach(ruta: string): boolean {
     ruta === '/bandeja' ||
     ruta === '/empresa' ||
     ruta === '/equipo-nutricion' ||
+    ruta === '/equipo-nutricion/cifras' ||
     ruta === '/marca' ||
     ruta === '/entrenar' ||
     ruta.startsWith('/entrenar/')
@@ -68,18 +71,6 @@ function esRutaPropiaDelCoach(ruta: string): boolean {
 /** La barra del equipo es la misma para Manuela y para Bryan (maqueta 7, pasos 9-11). */
 function barraDelStaff() {
   return <BottomNav espacios="staff" />
-}
-
-/** Una salida del panel, con el mismo cuerpo de tecla que los chips de sombreros. */
-function EnlaceDelPanel({ a, children }: { a: string; children: string }) {
-  return (
-    <Link
-      to={a}
-      className="press inline-flex min-h-[44px] shrink-0 items-center rounded-full border border-linea bg-surface-1 px-3.5 text-xs font-bold text-tenue"
-    >
-      {children}
-    </Link>
-  )
 }
 
 /**
@@ -113,26 +104,8 @@ export function AsesoradoLayout() {
   const { pathname } = useLocation()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
 
-  // Recordatorio de las 6 pm: al abrir la app, al volver a ella y cada 10 min
-  // mientras esté abierta. Solo dispara si falta el check-in de hoy.
-  useEffect(() => {
-    if (usuario.rol === 'coach') return
-    const revisar = () => {
-      const hoy = hoyIso()
-      const hecho = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
-      void revisarRecordatorioBienestar(hecho, hoy)
-    }
-    revisar()
-    const alVolver = () => {
-      if (document.visibilityState === 'visible') revisar()
-    }
-    document.addEventListener('visibilitychange', alVolver)
-    const id = window.setInterval(revisar, 10 * 60 * 1000)
-    return () => {
-      document.removeEventListener('visibilitychange', alVolver)
-      window.clearInterval(id)
-    }
-  }, [usuario.id, usuario.rol])
+  // El recordatorio de las 6 pm del check-in ya no se dispara aquí: sale del servidor (Edge Function `avisos-plan`), así
+  // llega aunque la app esté cerrada. Se enciende en «Yo» (decisión de Bryan, 28-oct).
 
   // Dos cuentas de Bryan (0106). La cuenta «Alpha» (rol coach + `solo_tablero`) no tiene espacios: solo el
   // tablero. La PERSONAL sigue siendo `asesorado` (entrena, está en la cartera) y lleva el puesto de coach
@@ -258,30 +231,9 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin })} />
-      {/* La consola trae sus propias salidas en la hoja «Herramientas»: aquí no se repite la
-          fila de enlaces de texto que el rediseño retira. En el resto del panel se conservan,
-          ahora como teclas, para que ninguna salida se pierda. */}
-      {!enConsola && (
-        <nav aria-label="Herramientas del panel" className="mx-auto flex max-w-3xl gap-1.5 overflow-x-auto px-4 pt-3 [scrollbar-width:none]">
-          {esCoach ? (
-            <>
-              <EnlaceDelPanel a="/coach/revisiones">Revisar audios y vídeos</EnlaceDelPanel>
-              <EnlaceDelPanel a="/equipo">Cartera de asesorados</EnlaceDelPanel>
-              <EnlaceDelPanel a="/tablero">Tablero</EnlaceDelPanel>
-              <EnlaceDelPanel a="/coach/creadores">Creadores</EnlaceDelPanel>
-              <EnlaceDelPanel a="/coach/mi-plan">Mi plan</EnlaceDelPanel>
-              <EnlaceDelPanel a="/praxis">Praxis (solo equipo)</EnlaceDelPanel>
-            </>
-          ) : (
-            <>
-              {/* La salida de todas las pantallas del equipo la da el «‹» único de la cabecera
-                  (padre declarado en `rutas.ts`): aquí no se repite ningún «Volver a…» de texto. */}
-              <EnlaceDelPanel a="/praxis">Praxis (solo equipo)</EnlaceDelPanel>
-            </>
-          )}
-        </nav>
-      )}
+      <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin }, pathname)} />
+      {/* Sin segunda navegación (H-08): la salida de cada pantalla es el «‹» de la cabecera (padre en
+          `rutas.ts`) y las herramientas, Empresa y la hoja «Herramientas» de la consola. */}
       {(esCoach || enCreadores || enAdmin || enEstrategias) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
@@ -301,12 +253,14 @@ export function CoachLayout() {
 function tituloCoachLayout(
   esCoach: boolean,
   en: { enConsola: boolean; enEstrategias: boolean; enCreadores: boolean; enAdmin: boolean },
+  pathname: string,
 ): string {
   if (esCoach) {
     if (en.enConsola) return 'Consola'
     if (en.enEstrategias || en.enCreadores) return 'Estrategia'
     if (en.enAdmin) return 'Administración'
-    return 'Panel del coach'
+    // «Panel del coach» se truncaba en la cabecera (H-16): cada pantalla lleva su propio nombre de `rutas.ts`.
+    return buscarRuta(pathname)?.titulo ?? 'Panel'
   }
   if (en.enEstrategias) return 'Estrategias'
   if (en.enAdmin) return 'Área administrativa'

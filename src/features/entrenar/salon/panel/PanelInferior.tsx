@@ -278,13 +278,13 @@ export function PanelInferior(props: PanelInferiorProps) {
         // desenfoque no aportaba nada que se viera; lo que se ve es la sala, quieta y
         // nítida, por debajo del borde de la hoja.
         className={`pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t ${
-          conHoja ? 'border-white/10 bg-ink-900/95' : 'border-transparent bg-transparent'
+          conHoja ? 'border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900/95' : 'border-transparent bg-transparent'
         }`}
         style={{
           maxHeight: abierto ? '84dvh' : undefined,
           transform: `translateY(${seguimiento}px)`,
           transition: arrastrando ? 'none' : 'transform var(--dur-base) var(--ease-salida)',
-          boxShadow: conHoja ? '0 -18px 40px -24px rgba(0,0,0,.95)' : 'none',
+          boxShadow: conHoja ? '0 -18px 40px -24px var(--salon-3d-sombra-caja)' : 'none',
         }}
       >
         {/* EL TIRADOR. Sin una letra: el nombre va en `aria-label`, que no es un nodo de
@@ -305,7 +305,7 @@ export function PanelInferior(props: PanelInferiorProps) {
           <span
             aria-hidden="true"
             className={`h-1 w-11 rounded-full transition-colors duration-base ${
-              conHoja ? 'bg-silver-500/60' : 'bg-silver-200 shadow-[0_0_0_3px_rgba(0,0,0,.35)]'
+              conHoja ? 'bg-silver-500/60' : 'bg-silver-200 shadow-[0_0_0_3px_rgb(var(--salon-3d-negro-rgb)/0.35)]'
             }`}
           />
         </button>

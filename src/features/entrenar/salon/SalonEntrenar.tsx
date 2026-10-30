@@ -856,10 +856,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // encima: una pantalla que se come la navegación deja al asesorado sin salida.
     <div
       data-salon="entrenar"
-      // EL SALON ES UNA SALA OSCURA EN LOS DOS TEMAS (suelo y muros de Blender). Los tokens de
-      // color de todo lo que se lee encima —sesion, cifras, lectura, botones— salen aqui del
-      // tema oscuro, o en tema claro la tinta oscura caia sobre un muro negro y no se leia.
-      data-theme="dark"
+      // EL SALON SIGUE EL TEMA DE LA PERSONA (zona 8, decision de Bryan 28-oct): ya no fuerza
+      // `data-theme`. La escena relee los `--salon-3d-*` al cambiar el tema (`paletaDeLaSala`).
       data-w={w}
       // La cámara, legible desde fuera: el testigo mide si un gesto orbitó o no sin
       // adivinarlo por los píxeles. Solo se escribe cuando cambia (ver `alMirar`).
@@ -1076,7 +1074,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               className="pointer-events-none absolute inset-0 transition-opacity duration-base ease-salida"
               style={{
                 opacity: enCuerpo ? 0 : w * 0.1,
-                background: 'radial-gradient(90% 70% at 50% 45%, transparent 0%, #05060700 40%, #050607 100%)',
+                background:
+                  'radial-gradient(90% 70% at 50% 45%, transparent 0%, rgb(var(--salon-3d-vineta-rgb) / 0) 40%, rgb(var(--salon-3d-vineta-rgb)) 100%)',
               }}
             />
 

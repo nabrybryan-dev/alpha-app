@@ -17,7 +17,7 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
 
   return (
     <div
-      data-theme="dark"
+      data-sesion="entrenar"
       // SIN `.entrada` en la raiz, y esto arregla un fallo de composicion: la
       // reflexion llevaba su propia `entrada-3` ANIDADA aqui dentro, asi que su
       // desplazamiento se sumaba al del padre y entraba desde el doble de lejos
@@ -29,7 +29,7 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
       // no se toca: tiene su propia entrada y su propio motivo.
       className="-mx-4 -mt-4 flex min-h-dvh flex-col items-center justify-center gap-4 bg-bg px-4 py-10 text-center"
     >
-      <AguilaInteractiva entrada className="h-24 w-24" />
+      <AguilaInteractiva entrada className="mosaico-logo-claro h-24 w-24" />
       <h2 className="entrada entrada-1 font-display text-3xl text-texto">
         Sesión {sesion.nombre} registrada
       </h2>

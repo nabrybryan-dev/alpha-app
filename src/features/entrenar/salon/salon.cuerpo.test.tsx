@@ -283,9 +283,9 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
     expect(document.querySelector('[data-hueco="paredes"]')).not.toBeNull()
   })
 
-  it('el salon es una sala oscura en los dos temas: lo que se lee encima usa los tokens oscuros', () => {
+  it('el salon sigue el tema de la persona: no fuerza data-theme (zona 8, decision de Bryan 28-oct)', () => {
     montar({ seriesHechas: 1 })
-    expect(document.querySelector('[data-salon="entrenar"]')?.getAttribute('data-theme')).toBe('dark')
+    expect(document.querySelector('[data-salon="entrenar"]')?.hasAttribute('data-theme')).toBe(false)
   })
 
   it('arriba, en pequeno, el nombre del ejercicio y sus cifras (series · reps · descanso · RIR), tambien en el cuerpo', () => {

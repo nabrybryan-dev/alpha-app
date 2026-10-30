@@ -18,7 +18,7 @@ import {
 } from '../../../domain/patrones/juegoDeHuesos'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type CifrasDelMuro } from '../escena/sala'
+import { elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type CifrasDelMuro } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
 import { anunciarSalaDeBlender, piezasDelAtlas, SALA_GIMNASIO } from './piezas'
@@ -55,7 +55,11 @@ import type { NivelW } from '../salon/huecos'
 import { NIVEL_POR_W } from '../capas/nivelesAnatomicos'
 import { construirMusculosDeNivel, mallasDelSujeto } from '../capas/mallaDelNivel'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
-import { FONDO_ESTUDIO } from './motor'
+import { paletaDeLaSala, colorACss } from '../escena/paletaDeLaSala'
+import { salaDelVisor } from '../escena/salaEnCache'
+import { aclaradoDelTema } from '../escena/piezasDelTema'
+import { leerTemaDelDocumento } from '../../../lib/temaDelDocumento'
+import { useTemaDelDocumento } from '../../../app/useTemaDelDocumento'
 import { atlasCache, atlasCargado, atlasPorCapa, cargarPiezas } from './cargaDelAtlas'
 import { DURACION_CICLO, faseDeTiempo, type TempoDeRepeticion } from './controlDelTiempo'
 import { esqueletoDe, huesosDelFantasma, precalculado } from './definicionCorporal'
@@ -94,37 +98,9 @@ function laboratorio(soloMarcas: boolean): Malla {
   return laboratorioCache.malla
 }
 
-/**
- * La sala se cachea POR SUS NÚMEROS, no a secas.
- *
- * Las paredes y la estación de grabación no cambian nunca, pero los marcadores llevan
- * cifras de siete segmentos hechas de geometría: cambiar un número es reconstruir esos
- * dígitos. Cachear por el trío evita rehacer la sala entera en cada fotograma y a la
- * vez deja que el marcador reaccione cuando la serie avanza — que es el único momento
- * en que TIENE que cambiar.
- */
-let salaCache: { clave: string; malla: Malla } | null = null
-
 /** La elevación heredada de la cámara anterior, dentro de los topes de la órbita nueva. */
 function limitarElevacion(elevacion: number, orbita: { elevacionMin: number; elevacionMax: number }): number {
   return Math.min(Math.max(elevacion, orbita.elevacionMin), orbita.elevacionMax)
-}
-
-function sala(cifras: CifrasDelMuro | undefined, azimutDeEntrada: number, deBlender: boolean): Malla {
-  // El ángulo entra en la clave: si no, cambiar de ejercicio dejaría el marcador del muro
-  // de enfrente colgado donde lo puso el ejercicio anterior. Y si la sala de Blender ya
-  // llegó: la de cajas se deja de construir y los marcadores cambian de pared.
-  // «sin» y no un hueco vacío: una sala sin marcador es una malla DISTINTA de una con él,
-  // y dos claves que se parecen demasiado es como se sirve una sala vieja creyendo que es
-  // la nueva.
-  const marca = cifras ? `${cifras.veces}|${cifras.cuanto}|${cifras.esfuerzo ?? 'apagada'}` : 'sin'
-  const clave = `${marca}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}`
-  if (!salaCache || salaCache.clave !== clave) {
-    const malla = new Malla()
-    construirSala(malla, cifras, azimutDeEntrada, deBlender ? { salaDeBlender: SALA_GIMNASIO } : {})
-    salaCache = { clave, malla }
-  }
-  return salaCache.malla
 }
 
 /**
@@ -446,6 +422,7 @@ export function VisorPatron({
   const [girando, setGirando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reducido = useMovimientoReducido()
+  const tema = useTemaDelDocumento()
   /**
    * La sala y el trípode cuelgan de las dos cosas: sin escenario no hay dónde ponerlos
    * —el explorador mira una articulación sola, sin suelo— y sin que la pantalla la pida
@@ -586,7 +563,7 @@ export function VisorPatron({
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, cuerpo, momentos])
+  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, cuerpo, momentos, tema])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -766,6 +743,9 @@ export function VisorPatron({
         let matrices = conRaiz(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion))
 
         const construir = () => {
+          // El fondo del lienzo sigue el tema (la paleta se guarda por tema: no cuesta por cuadro).
+          motor.fijarFondo(paletaDeLaSala().lienzo)
+          motor.fijarAclarado(aclaradoDelTema(leerTemaDelDocumento()))
           // LA VISTA DE CUERPO deja fuera todo lo del movimiento (ver `VisorPatronProps.cuerpo`).
           const enCuerpo = estado.current.cuerpo !== undefined
           const esq = esqueletoEnFase(
@@ -818,7 +798,7 @@ export function VisorPatron({
               if (!deBlender) partes.push(suelo())
               // Las piezas NO van aquí: son estáticas y viven en sus propios búferes,
               // subidas una vez cuando llegan. Aquí solo va lo que cambia.
-              partes.push(sala(estado.current.cifras, patron.camara.azimut, deBlender))
+              partes.push(salaDelVisor(estado.current.cifras, patron.camara.azimut, deBlender))
             }
             if (!sin.has('camara') && !enCuerpo) partes.push(tripode(estado.current.colocacion))
           }
@@ -839,7 +819,7 @@ export function VisorPatron({
               ? mallasDelCuerpoParaElVisor(atlasPorCapa, estado.current.cuerpo, paletaDelTema(lienzo.closest('[data-theme]')))
               : undefined
           const delAtlas = pintado ? pintado.mallas : capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
-          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`
+          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${leerTemaDelDocumento()}|${capasDelAtlas.join(',')}|${atlasCache.length}|${pintado?.firma ?? ''}`
           if (firmaEstaticas !== estaticasSubidas) {
             motor.subirEstaticas([...(quiereSala ? piezasCache : []), ...delAtlas])
             estaticasSubidas = firmaEstaticas
@@ -1240,6 +1220,10 @@ export function VisorPatron({
   /** El nivel de W en el que se está, o `null` cuando el visor se abre sin eje. */
   const nivel = w === undefined ? null : NIVEL_POR_W[w]
 
+  // El tema activo como estado: al cambiar, el fondo CSS se actualiza en este render y el
+  // efecto de arriba rehace la escena (sala, fondo y cuerpo) sin recargar.
+  const fondoDelLienzo = colorACss(paletaDeLaSala().lienzo)
+
   // Qué hace cada articulación: se calcula de las poses, no está escrito.
   const acciones = accionesPrincipales(patron)
   const frase = fraseDelPatron(patron)
@@ -1247,7 +1231,7 @@ export function VisorPatron({
   return (
     <div className="flex flex-col gap-3">
       <div className="relative overflow-hidden rounded-xl"
-        style={{ background: FONDO_ESTUDIO }}>
+        style={{ background: fondoDelLienzo }}>
         <canvas
           ref={lienzoRef}
           className="block h-[46vh] max-h-[420px] min-h-[240px] w-full touch-none"
@@ -1264,14 +1248,14 @@ export function VisorPatron({
             veces— asi que si el paso cambia, la leyenda cambia con el.
             En centimetros porque es la unidad con la que se habla de un recorrido. */}
         {!error && conEscenario && (
-          <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-white/35">
+          <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-[color:var(--salon-3d-leyenda)]">
             retícula {BAHIA.pasoMenor * 100} cm
-            <span className="mx-1 text-white/20">·</span>
+            <span className="mx-1 text-[color:var(--salon-3d-leyenda-tenue)]">·</span>
             {BAHIA.pasoMayor * 100} cm
           </p>
         )}
         {!error && (
-          <p className="pointer-events-none absolute bottom-2 left-3 text-[9px] uppercase tracking-[0.12em] text-silver-400">
+          <p className="pointer-events-none absolute bottom-2 left-3 text-[9px] uppercase tracking-[0.12em] text-[color:var(--salon-3d-arrastre)]">
             Arrastra para girar
           </p>
         )}
@@ -1330,7 +1314,7 @@ export function VisorPatron({
                 onClick={() => setCapa(c)}
                 aria-pressed={capa === c}
                 className={`press px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-                  capa === c ? 'bg-white/10 text-silver-100' : 'text-silver-400'
+                  capa === c ? 'bg-[rgb(var(--salon-3d-filete-rgb)/0.1)] text-silver-100' : 'text-silver-400'
                 }`}
               >
                 {c === 'ambas' ? 'Ambas' : c === 'musculo' ? 'Músculo' : 'Hueso'}
@@ -1362,7 +1346,7 @@ export function VisorPatron({
         <p className="mb-2 text-xs leading-snug text-silver-200">{frase}.</p>
         <ul className="flex flex-col">
           {acciones.map((r) => (
-            <li key={r.articulacion.id} className="border-b border-white/5">
+            <li key={r.articulacion.id} className="border-b border-[rgb(var(--salon-3d-filete-rgb)/0.05)]">
               <details className="group">
                 <summary className="flex cursor-pointer list-none items-baseline gap-2 py-1.5 text-xs">
                   <span
@@ -1459,7 +1443,7 @@ export function VisorPatron({
             // son la misma cosa y abrirlo repetiría el nombre.
             const desglosa = musculo.porciones.length > 1
             return (
-              <li key={musculo.id} className="border-b border-white/5">
+              <li key={musculo.id} className="border-b border-[rgb(var(--salon-3d-filete-rgb)/0.05)]">
                 <details className="group">
                   <summary className="flex cursor-pointer list-none items-center gap-2 py-1.5 text-xs text-silver-200">
                     {/* El cuadrado lleva el MISMO color que el modelo: el nombre

@@ -95,7 +95,7 @@ describe('direcciones que la app promete abrir', () => {
   it('los avisos push, avisos-plan y firmar-revisiones citan las rutas que sus avisos ya mandaron', () => {
     const rutas = avisos.map((c) => c.ruta)
     // Si esta lista cambia, un aviso que ya salió puede estar apuntando a una pantalla que no existe.
-    expect(new Set(rutas)).toEqual(new Set(['/mi-plan', '/coach/mi-plan', '/coach/revisiones']))
+    expect(new Set(rutas)).toEqual(new Set(['/mi-plan', '/coach/mi-plan', '/coach/revisiones', '/bienestar']))
     expect(avisos.some((c) => c.origen === 'public/push-sw.js')).toBe(true)
     expect(avisos.some((c) => c.origen.endsWith('avisos-plan/decidir.ts'))).toBe(true)
     expect(avisos.some((c) => c.origen === 'scripts/firmar-revisiones.mjs')).toBe(true)

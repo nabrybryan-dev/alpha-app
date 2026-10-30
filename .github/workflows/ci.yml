@@ -203,3 +203,9 @@ jobs:
 
       - name: Las observaciones del agente las lee quien entra a la consola; seguridad y prescripciones solo entran para firma, sin fuente no entran, y se firman por la función, a nombre de quien firma
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/215-observaciones-agente.sql
+
+      - name: Las alertas nutricionales no se encienden sin firma completa y su detalle solo lo lee la nutricionista
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/221-alertas-nutricion.sql
+
+      - name: El trigger de la revision semanal guarda quien pidio la correccion (gana el ultimo), distingue republicacion tecnica y no cambia el solicitante en una edicion suelta
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/252-trigger-revision-quien-pidio.sql
