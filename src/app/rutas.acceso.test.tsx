@@ -45,7 +45,6 @@ vi.mock('../data/consola/capacidadesStaff', async (original) => ({
 }))
 vi.mock('../components/ui/TopBar', () => ({ TopBar: ({ titulo }: { titulo: string }) => <h1>{titulo}</h1> }))
 vi.mock('../features/plan/BannerPlanHoy', () => ({ BannerPlanHoy: () => null }))
-vi.mock('../features/bienestar/recordatorio', () => ({ revisarRecordatorioBienestar: () => Promise.resolve() }))
 vi.mock('../features/praxis/PraxisCosmos', () => ({ PraxisCosmos: () => <p>Pantalla: Praxis</p> }))
 
 // Las pantallas sin puerta propia: un marcador. Las puertas de arriba (layouts) siguen siendo las reales.
@@ -170,6 +169,8 @@ describe('lo que prometen los avisos y los scripts llega a una pantalla', () => 
     '/mi-plan': ['nutricionista (Manuela)'],
     '/coach/mi-plan': ['coach', 'cuenta personal de Bryan (puesto_de_coach)'],
     '/coach/revisiones': ['coach', 'cuenta personal de Bryan (puesto_de_coach)'],
+    // El recordatorio del check-in de las 6 pm (avisos-plan): lo recibe quien hace check-in, o sea todo el que no es rol coach.
+    '/bienestar': ['asesorado', 'nutricionista (Manuela)', 'cuenta personal de Bryan (puesto_de_coach)'],
   }
   const citas = [...new Map(citasDeAvisosYScripts().map((c) => [c.ruta, c])).values()]
 

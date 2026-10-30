@@ -27,7 +27,6 @@ vi.mock('../features/coach/consola/useCapacidades', () => ({
 vi.mock('../components/ui/TopBar', () => ({ TopBar: ({ titulo }: { titulo: string }) => <h1>{titulo}</h1> }))
 // Con marca visible para poder afirmar que el aviso aparece o NO aparece (en `/entrenar`, no).
 vi.mock('../features/plan/BannerPlanHoy', () => ({ BannerPlanHoy: () => <p>Aviso del plan de hoy</p> }))
-vi.mock('../features/bienestar/recordatorio', () => ({ revisarRecordatorioBienestar: () => Promise.resolve() }))
 
 const { AsesoradoLayout, TableroLayout } = await import('./layouts')
 

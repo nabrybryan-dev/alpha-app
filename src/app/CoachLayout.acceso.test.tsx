@@ -60,6 +60,7 @@ function en(ruta: string) {
         <Route path="/tablero" element={<p>Tablero a pantalla completa</p>} />
         <Route path="/coach" element={<CoachLayout />}>
           <Route index element={<p>Cartera del coach</p>} />
+          <Route path="chat" element={<p>Contenido del chat</p>} />
           <Route path="consola" element={<p>Contenido de la consola</p>} />
           <Route path="estrategias" element={<p>Contenido de estrategias</p>} />
           <Route path="administracion" element={<p>Contenido de administracion</p>} />
@@ -120,7 +121,23 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.rol = 'coach'
     en('/coach')
     expect(screen.getByText('Cartera del coach')).toBeInTheDocument()
-    expect(screen.getByText('Revisar audios y vídeos')).toBeInTheDocument()
+  })
+
+  it('H-08: el coach no tiene una segunda navegación encima de la barra de cinco espacios', () => {
+    estado.rol = 'coach'
+    en('/coach/chat')
+    expect(screen.getByText('Contenido del chat')).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Herramientas del panel' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Revisar audios y vídeos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Praxis (solo equipo)')).not.toBeInTheDocument()
+    // La barra de cinco espacios sigue.
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
+  })
+
+  it('H-16: la cabecera de /coach/chat dice «Mensajes», no «Panel del coach» (que se truncaba)', () => {
+    estado.rol = 'coach'
+    en('/coach/chat')
+    expect(screen.getByRole('heading', { level: 1, name: 'Mensajes' })).toBeInTheDocument()
   })
 
   it('el coach con ver_administracion ve Administración; sin ella, «sin permiso» y la barra lleva a Empresa', () => {

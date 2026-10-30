@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useHistoriaInterna } from '../../app/historiaInternaContexto'
 import { buscarRuta, padreDe, tituloDeRuta } from '../../app/rutas'
 import { useSesion } from '../../app/SessionProvider'
@@ -78,6 +78,18 @@ export function TopBar({ titulo }: TopBarProps) {
 
   const noLeidos = db.mensajes.noLeidosPara(usuario.id)
 
+  // «Yo» (avisos, comentarios y clave): la cuenta con rol coach (la de Alpha, solo tablero) no entra, así que no se le ofrece.
+  const enlaceYo =
+    usuario.rol === 'coach' ? null : (
+      <Link
+        to="/yo"
+        onClick={() => setMenuAbierto(false)}
+        className="press mt-1 flex min-h-[44px] w-full items-center rounded-xl px-3 py-2 text-left text-sm text-texto active:bg-surface-2"
+      >
+        {tituloDeRuta('/yo', esEquipo) ?? 'Yo'}
+      </Link>
+    )
+
   const elegirUsuario = (id: string) => {
     cambiarUsuario(id)
     setMenuAbierto(false)
@@ -131,6 +143,7 @@ export function TopBar({ titulo }: TopBarProps) {
             {menuAbierto && esNube && (
               <div className="entrada glass glass-blur absolute right-0 top-12 w-56 rounded-panel p-2 shadow-xl">
                 <p className="px-3 py-1 text-xs font-bold text-texto">{usuario.nombre}</p>
+                {enlaceYo}
                 <button
                   type="button"
                   onClick={cerrarSesion}
@@ -145,6 +158,7 @@ export function TopBar({ titulo }: TopBarProps) {
                 <p className="px-3 py-1 text-xs uppercase tracking-widest text-tenue">
                   Ver la app como
                 </p>
+                {enlaceYo}
                 {db.usuarios.list().map((u) => (
                   <button
                     key={u.id}

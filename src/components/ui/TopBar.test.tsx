@@ -13,12 +13,12 @@ import type { Rol } from '../../domain/types'
  * con `navigate(-1)` y la etiqueta dice cuál es. Si se entró por un enlace o un aviso, o ya se volvió una vez
  * con `replace`, va al padre declarado: nunca saca a la persona de la app.
  */
-const estado = { rol: 'asesorado' as Rol, capacidades: new Set<string>(), cargando: false }
+const estado = { rol: 'asesorado' as Rol, capacidades: new Set<string>(), cargando: false, nube: false }
 
 vi.mock('../../app/SessionProvider', () => ({
   useSesion: () => ({
     usuario: { id: 'u-valentina', nombre: 'Persona', rol: estado.rol, avatarIniciales: 'PE' },
-    esNube: false,
+    esNube: estado.nube,
     cambiarUsuario: () => {},
     cerrarSesion: () => {},
   }),
@@ -82,6 +82,7 @@ const volver = () => screen.queryByRole('button', { name: /^Volver a / })
 const ruta = () => screen.getByLabelText('ruta actual').textContent
 
 afterEach(() => {
+  estado.nube = false
   estado.rol = 'asesorado'
   estado.capacidades = new Set()
   estado.cargando = false
@@ -299,5 +300,38 @@ describe('TopBar: el «‹» único', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Cambiar a tema/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cambiar usuario' })).toBeInTheDocument()
+  })
+
+  describe('el menú de cuenta lleva a «Yo»', () => {
+    it('en la nube, el asesorado ve «Yo» y lleva a /yo', async () => {
+      estado.nube = true
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      await userEvent.click(screen.getByRole('link', { name: 'Yo' }))
+      expect(screen.getByLabelText('ruta actual')).toHaveTextContent('/yo')
+    })
+
+    it('en demo también, junto al selector de «Ver la app como»', async () => {
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      expect(screen.getByRole('link', { name: 'Yo' })).toHaveAttribute('href', '/yo')
+    })
+
+    it('el equipo la ve como «Mi cuenta» (su pestaña «Yo» es Mi entreno)', async () => {
+      estado.nube = true
+      estado.rol = 'nutricionista'
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      expect(screen.getByRole('link', { name: 'Mi cuenta' })).toHaveAttribute('href', '/yo')
+    })
+
+    it('la cuenta con rol coach (solo tablero) no la ve: la ruta la devolvería a «/»', async () => {
+      estado.nube = true
+      estado.rol = 'coach'
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      expect(screen.queryByRole('link', { name: 'Yo' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Mi cuenta' })).not.toBeInTheDocument()
+    })
   })
 })
