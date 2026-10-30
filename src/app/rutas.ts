@@ -104,6 +104,9 @@ export const RUTAS: readonly RutaApp[] = [
   { patron: '/cuestionarios', ejemplo: '/cuestionarios', padre: '/', titulo: 'Cuestionarios', guarda: ASESORADO },
   { patron: '/contenidos', ejemplo: '/contenidos', padre: '/', titulo: 'Contenidos', guarda: ASESORADO },
   { patron: '/logros', ejemplo: '/logros', padre: '/', titulo: 'Logros', guarda: ASESORADO },
+  // «Yo» (decisión de Bryan, 28-oct): avisos, buzón de comentarios y cambio de clave. Nada de salud. Se llega
+  // desde el menú de cuenta de la cabecera. La cuenta con rol coach (la de Alpha, solo tablero) no entra.
+  { patron: '/yo', ejemplo: '/yo', padre: '/', titulo: 'Yo', tituloEquipo: 'Mi cuenta', guarda: ASESORADO },
   { patron: '/marca', ejemplo: '/marca', padre: '/', titulo: 'Marca', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   // Espacios del equipo (pestañas de su barra, sin «‹»): la propia pantalla manda al asesorado a su sitio.
   { patron: '/mi-entreno', ejemplo: '/mi-entreno', padre: null, titulo: 'Mi entreno', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/entrenar' } } },
@@ -116,7 +119,7 @@ export const RUTAS: readonly RutaApp[] = [
   // Empresa (paso 11): las herramientas de los tres sombreros, según los permisos. También raíz.
   { patron: '/empresa', ejemplo: '/empresa', padre: null, titulo: 'Empresa', guarda: EQUIPO },
   { patron: '/equipo-nutricion', ejemplo: '/equipo-nutricion', padre: '/equipo', titulo: 'Nutrición del equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
-  { patron: '/equipo-nutricion/cifras', ejemplo: '/equipo-nutricion/cifras', padre: '/equipo-nutricion', titulo: 'Cifras', guarda: SOLO_EQUIPO_A_RAIZ },
+  { patron: '/equipo-nutricion/cifras', ejemplo: '/equipo-nutricion/cifras', padre: '/equipo-nutricion', titulo: 'Cifras', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   // Mi plan de Manuela. Los avisos push de Manuela abren ESTA ruta: queda para siempre.
   { patron: '/mi-plan', ejemplo: '/mi-plan', padre: '/', titulo: 'Mi plan', guarda: SOLO_EQUIPO_A_RAIZ },
 
@@ -135,17 +138,20 @@ export const RUTAS: readonly RutaApp[] = [
   // la cartera única `/equipo` (relevo-sin-perdidas). Sus avisos de datos y microciclos viven allí.
   { patron: '/coach/asesorados', ejemplo: '/coach/asesorados', padre: '/', titulo: 'Cartera de asesorados', guarda: { marco: 'coach', redirigeA: '/equipo' } },
   { patron: '/coach/asesorado/:usuarioId', ejemplo: '/coach/asesorado/u-valentina', padre: '/coach/asesorados', titulo: 'Asesorado', guarda: { marco: 'coach' } },
-  { patron: '/coach/chat', ejemplo: '/coach/chat', padre: '/', titulo: 'Chat del coach', guarda: { marco: 'coach' } },
+  { patron: '/coach/chat', ejemplo: '/coach/chat', padre: '/', titulo: 'Mensajes', guarda: { marco: 'coach' } },
   { patron: '/coach/consultas', ejemplo: '/coach/consultas', padre: '/', titulo: 'Consultas', guarda: { marco: 'coach' } },
   { patron: '/coach/consola', ejemplo: '/coach/consola', padre: '/', titulo: 'Consola', guarda: { marco: 'coach', capacidades: ['leer_entrenamiento'] } },
   // La firma de audios y vídeos. `scripts/firmar-revisiones` manda aquí: queda para siempre.
   { patron: '/coach/revisiones', ejemplo: '/coach/revisiones', padre: '/', titulo: 'Revisiones', guarda: { marco: 'coach' } },
   { patron: '/coach/creadores', ejemplo: '/coach/creadores', padre: '/', titulo: 'Creadores', guarda: { marco: 'coach', capacidades: ['revisar_creadores'] } },
-  { patron: '/coach/estrategias', ejemplo: '/coach/estrategias', padre: null, titulo: 'Estrategias', guarda: { marco: 'coach', capacidades: ['responder_mercadeo', 'revisar_creadores'] } },
+  // Estrategias y Administración son herramientas del sombrero de Administración: Empresa las
+  // agrupa y las enlaza, así que su «‹» vuelve allí. La barra del equipo sigue teniendo «Mi día»,
+  // de modo que la salida de siempre no se pierde (zona 6 del plan 14).
+  { patron: '/coach/estrategias', ejemplo: '/coach/estrategias', padre: '/empresa', titulo: 'Estrategias', guarda: { marco: 'coach', capacidades: ['responder_mercadeo', 'revisar_creadores'] } },
   {
     patron: '/coach/administracion',
     ejemplo: '/coach/administracion',
-    padre: null,
+    padre: '/empresa',
     titulo: 'Administración',
     guarda: { marco: 'coach', capacidades: ['organizar_plan', 'decisiones_compartidas', 'ver_administracion'], coachNecesita: 'ver_administracion' },
   },

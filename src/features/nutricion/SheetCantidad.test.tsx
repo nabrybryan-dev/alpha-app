@@ -49,6 +49,24 @@ describe('SheetCantidad', () => {
     expect(screen.getByText(/137 kcal/)).toBeInTheDocument()
   })
 
+  it('con el contador apagado no enseña ninguna kcal y sí los macros', () => {
+    pintar({ verKcal: false })
+    expect(screen.queryByText(/kcal/i)).toBeNull()
+    // P 2,4 g × 100 g = 2,4 -> redondeo 2. Lo que no es energía no se esconde.
+    expect(screen.getByText(/P 2/)).toBeInTheDocument()
+  })
+
+  it('en la pregunta de crudo o cocido tampoco hay kcal con el contador apagado', () => {
+    pintar({
+      verKcal: false,
+      preguntarEstado: [
+        { alimento: { ...arroz, id: 'arroz-crudo' }, etiqueta: 'Crudo', pista: 'Lo pesas antes de cocinar' },
+      ],
+    })
+    expect(screen.queryByText(/kcal/i)).toBeNull()
+    expect(screen.getByRole('button', { name: /crudo/i })).toBeInTheDocument()
+  })
+
   it('deja registrar más de un kilo: 1,5 L de agua son 1.500 g', async () => {
     // El Stepper limita a 999 por defecto y aquí eso recortaría el vaso de agua
     // sin decir nada. El tope de verdad va en calorías, no en gramos.
@@ -97,6 +115,25 @@ describe('SheetCantidad', () => {
     it('con una cantidad normal no molesta', () => {
       pintar()
       expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('con el contador apagado el aviso sigue saliendo, sin la cifra de kcal', async () => {
+      // El interruptor esconde cifras, no la protección: quien registra 2 kg
+      // tiene que seguir viendo que es demasiado.
+      pintar({ verKcal: false })
+      await userEvent.clear(campoGramos())
+      await userEvent.type(campoGramos(), '2000')
+      const aviso = screen.getByRole('status')
+      expect(aviso).toHaveTextContent('2000 g')
+      expect(aviso).toHaveTextContent('¿Seguro?')
+      expect(aviso).not.toHaveTextContent(/kcal/i)
+    })
+
+    it('con el contador apagado la energía imposible también avisa, sin cifra', () => {
+      pintar({ verKcal: false, alimento: { ...arroz, por100g: { ...arroz.por100g, kcal: 1200 } } })
+      const aviso = screen.getByRole('status')
+      expect(aviso).toHaveTextContent(/imposible: revisa el alimento/i)
+      expect(aviso).not.toHaveTextContent(/kcal/i)
     })
   })
 

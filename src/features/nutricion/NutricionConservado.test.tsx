@@ -113,7 +113,6 @@ describe('la vista de la semana', () => {
             verContadorKcal: true,
             estado: 'automatico',
           }}
-          onVolver={() => {}}
           onElegirDia={() => {}}
         />
       </MemoryRouter>,

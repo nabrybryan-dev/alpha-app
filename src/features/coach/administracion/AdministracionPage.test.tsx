@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ultimoCortePorSeccion, type FilaAdminTablero, type SeccionLeida } from '../../../domain/adminTablero'
 
@@ -52,10 +52,16 @@ const cruda = (seccion: string, semaforo: string, extra: Partial<FilaAdminTabler
   ...extra,
 })
 
-function montar() {
+function VerRuta() {
+  const { pathname, search } = useLocation()
+  return <p data-testid="ruta">{pathname + search}</p>
+}
+
+function montar(rutaInicial = '/coach/administracion') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[rutaInicial]}>
       <AdministracionPage />
+      <VerRuta />
     </MemoryRouter>,
   )
 }
@@ -289,5 +295,40 @@ describe('AdministracionPage · tablero de la migración 0102', () => {
     const p = await screen.findByRole('region', { name: 'Plataforma Alpha y estudio' })
     await u.click(within(p).getByRole('button', { name: /FALTA/ }))
     expect(within(p).getByRole('link', { name: /buzón de comentarios/ })).toHaveAttribute('href', '/mi-entreno')
+  })
+})
+
+describe('AdministracionPage · cabecera y filtro en la URL', () => {
+  it('el filtro vive en la URL: entra por ?filtro=accion y deja fuera lo que no pide acción', async () => {
+    montar('/coach/administracion?filtro=accion')
+    await screen.findByRole('region', { name: 'Finanzas' })
+    expect(screen.getByTestId('ruta')).toHaveTextContent('/coach/administracion?filtro=accion')
+    expect(screen.queryByRole('region', { name: 'Plan estratégico' })).toBeNull()
+    expect(screen.getByRole('button', { name: /Requiere acción · 4/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('tocar los chips escribe el filtro en la URL, con replace, y «Todo» la deja limpia', async () => {
+    const u = userEvent.setup()
+    montar()
+    await screen.findByRole('region', { name: 'Finanzas' })
+    expect(screen.getByTestId('ruta')).toHaveTextContent(/^\/coach\/administracion$/)
+    await u.click(screen.getByRole('button', { name: /Requiere acción · 4/ }))
+    expect(screen.getByTestId('ruta')).toHaveTextContent('/coach/administracion?filtro=accion')
+    await u.click(screen.getByRole('button', { name: 'Todo' }))
+    expect(screen.getByTestId('ruta')).toHaveTextContent(/^\/coach\/administracion$/)
+  })
+
+  it('un valor de filtro que no conoce no rompe: se queda en «Todo»', async () => {
+    montar('/coach/administracion?filtro=lo-que-sea')
+    await screen.findByRole('region', { name: 'Finanzas' })
+    expect(screen.getByRole('button', { name: 'Todo' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('region', { name: 'Plan estratégico' })).toBeInTheDocument()
+  })
+
+  it('la salida es el «‹» de la cabecera: no repite un «Volver a Mi día» de texto', async () => {
+    montar()
+    await screen.findByRole('region', { name: 'Finanzas' })
+    expect(screen.queryByRole('link', { name: /Volver a Mi día/i })).toBeNull()
+    expect(screen.queryByText(/Volver a Mi día/i)).toBeNull()
   })
 })

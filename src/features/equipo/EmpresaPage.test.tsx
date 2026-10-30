@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { reiniciarFiltroParaPruebas } from './filtroSombreros'
+import { ponerFiltro, reiniciarFiltroParaPruebas } from './filtroSombreros'
 
 /**
  * EMPRESA (maqueta 7, paso 11): las herramientas de cada sombrero, según los permisos. No se
@@ -94,6 +94,34 @@ describe('la pantalla Empresa', () => {
   it('la mesa del encoder y Praxis quedan del lado del equipo', () => {
     montar()
     expect(screen.getByRole('link', { name: /Praxis del equipo/ })).toHaveAttribute('href', '/praxis')
+  })
+
+  it('H-10: las dos pantallas de Praxis que no tenían entrada se abren desde aquí', () => {
+    montar()
+    expect(screen.getByRole('link', { name: /Praxis de ejemplo/ })).toHaveAttribute('href', '/praxis/ejemplo')
+    expect(screen.getByRole('link', { name: /Prueba de ingreso/ })).toHaveAttribute('href', '/praxis/ingreso-prueba')
+  })
+
+  it('29-oct: la nutricionista ve Praxis también con el filtro «Nutrición», sin filas repetidas', () => {
+    ponerFiltro('nutricion')
+    montar()
+    expect(screen.getByRole('link', { name: /Praxis del equipo/ })).toHaveAttribute('href', '/praxis')
+    expect(screen.getAllByRole('link', { name: /Praxis del equipo/ })).toHaveLength(1)
+  })
+
+  it('29-oct: con el filtro «todo» (el de por defecto) la nutricionista ve cada Praxis una sola vez', () => {
+    montar()
+    expect(screen.getAllByRole('link', { name: /Praxis del equipo/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: /Praxis de ejemplo/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: /Prueba de ingreso/ })).toHaveLength(1)
+  })
+
+  it('29-oct: un asesorado no ve Praxis en Empresa (vuelve a la portada)', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set()
+    montar()
+    expect(screen.queryByRole('link', { name: /Praxis/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Ruta: /')).toBeInTheDocument()
   })
 
   it('sin los permisos de administración, no ofrece esas herramientas (el manual de marca no lo pide)', () => {

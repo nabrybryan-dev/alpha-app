@@ -229,8 +229,8 @@ function SesionEnCurso() {
   if (cerrada) return <SesionCerrada sesion={sesion} />
 
   return (
-    // Entreno es oscura siempre (decisión de diseño), sin importar el tema global.
-    <div data-theme="dark" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
+    // Entreno sigue el tema de la persona (zona 8, decisión de Bryan 28-oct).
+    <div data-sesion="entrenar" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"
@@ -347,11 +347,14 @@ function SesionEnCurso() {
       )}
 
       {/* Espacio para que el CTA fijo no tape el contenido inferior.
-          Reserva la barra de navegación + el CTA + un margen. Estaba en `h-16`
-          (64 px) cuando la franja tapada mide 124 px, así que al final de la página
-          quedaban 60 px de contenido imposibles de ver. */}
+          Reserva la barra de navegación + el CTA + un margen. Con el motivo
+          visible el bloque crece, así que el hueco también: antes eran 60 px
+          de contenido imposibles de ver al final de la página. */}
       {mostrarCTA && (
-        <div aria-hidden="true" style={{ height: 'calc(var(--tope-nav) + 5rem)' }} />
+        <div
+          aria-hidden="true"
+          style={{ height: puedeGuardar ? 'calc(var(--tope-nav) + 5rem)' : 'calc(var(--tope-nav) + 8.5rem)' }}
+        />
       )}
 
       {todasRegistradas && !sesion.testPost && (
@@ -452,7 +455,13 @@ function SesionEnCurso() {
                   onClick={() => registroRef.current?.guardar()}
                   disabled={!puedeGuardar}
                   aria-describedby={puedeGuardar ? undefined : 'motivo-sin-confirmar'}
-                  className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
+                  className={`press w-full rounded-boton py-4 font-display text-base uppercase tracking-wide ${
+                    puedeGuardar
+                      ? 'bg-accion text-white'
+                      : // Apagado NO es rojo translúcido: ese estado dejaba el rótulo
+                        // gris sobre rojo oscuro y no se leía (H-06 de la auditoría).
+                        'border border-linea bg-surface-2 text-tenue'
+                  }`}
                   style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
                 >
                   Guardar serie {ordenActual}
@@ -461,7 +470,7 @@ function SesionEnCurso() {
                   <MotivoSinConfirmar
                     id="motivo-sin-confirmar"
                     motivo={motivoSinGuardar ?? undefined}
-                    className="rounded-boton bg-ink-900/90 px-2 py-1"
+                    className="rounded-boton border border-linea bg-surface-1/95 px-2 py-1"
                   />
                 )}
               </>

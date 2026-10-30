@@ -19,7 +19,7 @@
   --tenue-rgb: 168 168 173;
   --tenue: rgb(var(--tenue-rgb));
   --gris-marca: #7a7a7a;
-  --rojo-rgb: 255 30 30;
+  --rojo-rgb: 255 70 70;
   --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
   /* "Logrado/completado" = plata neutro (reemplaza el verde; decisión de marca) */
@@ -120,6 +120,52 @@
   --salon-3d-tierra: #0b0e12;
   --salon-3d-sombra: 0.45;
   --salon-3d-brillo: 0.22;
+  /* Los colores de la INTERFAZ del salón, no de la escena: la pared y el panel salen
+     de los tokens 3D, y el texto y el rojo de acción cambian con el tema. Se miden en
+     `contraste-salon.test.ts` contra la pared y el panel de los dos temas. */
+  --salon-3d-pared: #101114;
+  --salon-3d-zocalo: #181b1f;
+  --salon-3d-marco: #333842;
+  --salon-3d-panel: #070809;
+  --salon-3d-segmento: #ff3d3d;
+  --salon-3d-segmento-apagado: #0e0f11;
+  --salon-3d-texto: #f2f2f2;
+  --salon-3d-tenue: #c2c8cf;
+  --salon-3d-accion: #ff4646;
+  --salon-3d-accion-suave: #ff4646d9;
+  /* El fondo del lienzo (lo que hay donde no llega la sala) y el resto de tonos que lee la
+     interfaz del salón. En oscuro son los valores de main (0b015bab); la única
+     excepción es la leyenda pequeña (abajo); el rótulo (#6f7782), el matiz (#7a7a7a) y el dato (#f4f5f6) son los de main.
+     La leyenda de la retícula (white/35, 3,16:1 sobre el lienzo, 9 px decorativos) y la cifra
+     grande (--texto, #f2f2f2) se quedan EXACTAMENTE como estaban: el contrato dice «oscuro
+     igual». EXCEPCIÓN FIRMADA (Bryan, 29-oct-2026): la leyenda pequeña del salón en oscuro
+     pasa de white/35 a #8a8d91 (5,80:1 sobre el lienzo); la cifra grande no se toca. */
+  --salon-3d-lienzo: #0b0e12;
+  --salon-3d-plata: #6f7782;
+  --salon-3d-dato: #f4f5f6;
+  --salon-3d-rotulo: #6f7782;
+  --salon-3d-matiz: #7a7a7a;
+  --salon-3d-leyenda: #8a8d91;
+  --salon-3d-leyenda-tenue: rgb(255 255 255 / 0.2);
+  --salon-3d-resplandor: 0 0 0.42em rgb(111 119 130 / 0.55);
+  --salon-3d-relieve: 0 1px 0 rgb(0 0 0 / 0.6), 1px 2px 0 #2a2d31, 2px 3px 0 #22252a;
+  --salon-3d-sombra-portada: 0 1px 6px rgb(0 0 0 / 0.55);
+  --salon-3d-sombra-portada-fuerte: 0 1px 6px rgb(0 0 0 / 0.7);
+  --salon-3d-filo-bajo: rgb(0 0 0 / 0.9);
+  --salon-3d-sombra-caja: rgb(0 0 0 / 0.95);
+  --salon-3d-vineta-rgb: 5 7 10;
+  --salon-3d-negro-rgb: 0 0 0;
+  --salon-3d-borde-fino: rgb(255 255 255 / 0.14);
+  /* Filetes y sombras de los recuadros del salón y la sesión: los valores de antes en oscuro
+     (white/5-10, rgba(0,0,0,.7-.95)); en claro, tinta suave. */
+  --salon-3d-filete-rgb: 255 255 255;
+  --salon-3d-arrastre: #9aa1ab;
+  --salon-3d-sombra-pared: rgb(0 0 0 / 0.9);
+  --salon-3d-sombra-menu: rgb(0 0 0 / 0.7);
+  --salon-3d-superficie: rgb(var(--ink-1000-rgb) / 0.96);
+  --salon-3d-superficie-alta: rgb(var(--ink-800-rgb) / 0.96);
+  --salon-3d-borde: rgb(var(--silver-500-rgb) / 0.45);
+  --salon-3d-velo: rgb(var(--ink-1000-rgb) / 0.6);
   /* Tecla 3D (maqueta 7): luz del borde superior, cuatro cantos que se oscurecen hacia abajo y sombra. */
   --pt-luz: rgba(255, 255, 255, 0.14);
   --pt-canto-1: #28282d;
@@ -147,13 +193,20 @@
   --tenue-rgb: 95 94 90;
   --tenue: rgb(var(--tenue-rgb));
   --gris-marca: #7a7a7a;
-  --rojo-rgb: 213 18 22;
+  /* Los tres tonos de estado se oscurecieron el 28-oct para que el rótulo de un
+     Badge (texto del tono sobre su propio tinte al 15 %) llegue a 4,5:1, mínimo
+     de la casa. Medidos en claro sobre surface-1 y sobre bg: rojo 4,90 · 4,61,
+     verde 4,99 · 4,70, ámbar 5,21 · 4,91. El fondo del tinte rojo es
+     `--rojo-relleno` (bg-rojo/15), no el rojo de texto. Antes daban
+     4,12 / 3,79 / 3,56 en surface-1, que es el 3,5–3,7 que cazó la auditoría en
+     los rótulos de Bienestar; el ámbar sobre bg se quedaba en 4,48. */
+  --rojo-rgb: 192 13 18;
   --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
-  /* "Logrado/completado" = plata neutro (gris medio para contraste en claro) */
-  --verde-rgb: 111 119 130;
+  /* "Logrado/completado" = plata neutro (gris oscuro para contraste en claro) */
+  --verde-rgb: 90 98 108;
   --verde: rgb(var(--verde-rgb));
-  --ambar-rgb: 168 110 7;
+  --ambar-rgb: 130 84 0;
   --ambar: rgb(var(--ambar-rgb));
   --azul-rgb: 20 98 184;
   --azul: rgb(var(--azul-rgb));
@@ -208,6 +261,48 @@
   --salon-3d-tierra: #8d8a83;
   --salon-3d-sombra: 0.2;
   --salon-3d-brillo: 0;
+  /* La pared del salón en claro: el hueso de la maqueta, no el carbón. El texto
+     vuelve a tinta oscura y el rojo de acción se oscurece para pasar 4,5:1 sobre
+     esa pared. Ver `contraste-salon.test.ts`. */
+  --salon-3d-pared: #f1eee6;
+  --salon-3d-zocalo: #8d8a83;
+  --salon-3d-marco: #a8adb3;
+  --salon-3d-panel: #dfe2e7;
+  --salon-3d-segmento: #c00d12;
+  --salon-3d-segmento-apagado: #c3c7ce;
+  --salon-3d-texto: #111111;
+  --salon-3d-tenue: #3f3e3a;
+  --salon-3d-accion: #8f1119;
+  --salon-3d-accion-suave: #8f1119;
+  --salon-3d-lienzo: #e4e1d9;
+  --salon-3d-plata: #3f3e3a;
+  --salon-3d-dato: #111111;
+  --salon-3d-rotulo: #3f3e3a;
+  --salon-3d-matiz: #4d4c48;
+  --salon-3d-leyenda: #4d4c48;
+  --salon-3d-leyenda-tenue: rgb(17 17 17 / 0.4);
+  /* Texto pequeño sobre el SUELO beige (#d5cdc5 medido): --tenue daba 4,13:1. Solo en claro. */
+  --salon-3d-suelo-texto: #3f3e3a;
+  --salon-3d-suelo-opacidad: 1;
+  /* Mosaico del logo Alpha (SesionCerrada): el logo es blanco; ink-900 en claro es casi blanco. */
+  --logo-mosaico: #15171a;
+  --salon-3d-resplandor: none;
+  --salon-3d-relieve: none;
+  --salon-3d-sombra-portada: none;
+  --salon-3d-sombra-portada-fuerte: none;
+  --salon-3d-filo-bajo: rgb(17 17 17 / 0.08);
+  --salon-3d-sombra-caja: rgb(17 17 17 / 0.25);
+  --salon-3d-vineta-rgb: 176 171 160;
+  --salon-3d-negro-rgb: 60 58 54;
+  --salon-3d-borde-fino: rgb(17 17 17 / 0.2);
+  --salon-3d-filete-rgb: 17 17 17;
+  --salon-3d-arrastre: #3f3e3a;
+  --salon-3d-sombra-pared: rgb(17 17 17 / 0.22);
+  --salon-3d-sombra-menu: rgb(17 17 17 / 0.22);
+  --salon-3d-superficie: rgb(255 255 255 / 0.94);
+  --salon-3d-superficie-alta: rgb(var(--bg-rgb) / 0.96);
+  --salon-3d-borde: rgb(17 17 17 / 0.16);
+  --salon-3d-velo: rgb(var(--bg-rgb) / 0.7);
   /* Tecla 3D (maqueta 7): luz del borde superior, cuatro cantos que se oscurecen hacia abajo y sombra. */
   --pt-luz: rgba(255, 255, 255, 0.95);
   --pt-canto-1: #dcdcdf;
@@ -356,11 +451,15 @@
   --bone-300: #dcd8cf;
   --paper: #ffffff;
 
-  /* Semánticos: acción = rojo Alpha (pop 5%); logrado = plata neutro.
-     Canales RGB para poder usar opacidad en Tailwind (bg-accion/15, etc.). */
-  --accion: #ff1e1e;
-  --accion-rgb: 255 30 30;
+  /* Acción = rojo Alpha. El tono de TEXTO sube en oscuro para pasar 4,5:1
+     sobre las superficies; el de RELLENO baja para que el blanco del botón
+     también pase. Son dos tokens porque un solo rojo no puede hacer las dos
+     cosas: cuanto más claro para leerse sobre negro, peor para el blanco
+     encima. Los valores están medidos en `contraste-tokens.test.ts`. */
+  --accion: #ff4646;
+  --accion-rgb: 255 70 70;
   --accion-osc: #c8121a;
+  --accion-relleno-rgb: 213 18 22;
   --logrado: var(--silver-300);
   --silver-300-rgb: 194 200 207;
   /* Oro: reservado al nivel Élite de la Escala Alfa. No es un acento de uso
@@ -615,6 +714,42 @@ body {
 
 .tarjeta-foto .kicker {
   color: #ff4d4d;
+}
+
+/* TARJETA DEL CRONÓMETRO DE LA SESIÓN EN TEMA CLARO (decisión de Bryan, 29-oct-2026).
+   Era negra con foto sobre una pantalla clara. En claro sigue el tema: velo hueso espeso
+   sobre la foto, tinta oscura y rojo oscuro. Peor caso (foto negra bajo el alfa mínimo,
+   .86 -> fondo 212): tinta 12,7:1, tenue 7,2:1, rojo #8f1119 6,3:1. El alcance
+   `[data-sesion="entrenar"]` deja intactas las demás `.tarjeta-foto` (Logros): siguen
+   oscuras en los dos temas. En oscuro no cambia nada. Lo fija contraste-salon.test.ts. */
+[data-theme="light"] [data-sesion="entrenar"] .mosaico-logo-claro {
+  background-color: var(--logo-mosaico);
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto {
+  color: #111111;
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto::after {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 247, 245, 0.86) 0%,
+    rgba(247, 247, 245, 0.92) 55%,
+    rgba(247, 247, 245, 0.96) 100%
+  );
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto .text-tenue {
+  color: #3f3e3a;
+}
+
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto .kicker {
+  color: #8f1119;
+}
+
+/* En pausa la cifra baja a opacity-50: sobre velo claro eso da ~3:1. Sube a .7 (6:1). */
+[data-theme="light"] [data-sesion="entrenar"] .tarjeta-foto .opacity-50 {
+  opacity: 0.7;
 }
 
 /* ---------- Botón rojo translúcido (estilo "Finalizar sesión") ---------- */
@@ -1485,9 +1620,23 @@ body {
   animation: subir-hoja var(--dur-transicional) var(--muelle-transicional) both;
 }
 
+/* La semana del salón cae desde el botón del día, arriba a la derecha (25-oct). */
+@keyframes desplegar-semana {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
+.desplegar-semana {
+  transform-origin: top right;
+  animation: desplegar-semana var(--dur-transicional) var(--ease-salida) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scrim-entra,
-  .subir-hoja {
+  .subir-hoja,
+  .desplegar-semana {
     animation-duration: 1ms;
   }
 }
@@ -2019,13 +2168,13 @@ body {
   background:
     radial-gradient(
       58% 46% at 50% 34%,
-      rgb(var(--ink-1000-rgb) / 0.82),
-      rgb(var(--ink-1000-rgb) / 0.42) 44%,
+      rgb(var(--salon-3d-negro-rgb) / 0.82),
+      rgb(var(--salon-3d-negro-rgb) / 0.42) 44%,
       transparent 72%
     ),
     radial-gradient(
       44% 34% at 50% 10%,
-      rgb(var(--silver-500-rgb) / 0.2),
+      color-mix(in srgb, var(--salon-3d-plata) 20%, transparent),
       transparent 68%
     );
 }
@@ -2042,8 +2191,8 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(var(--silver-500-rgb) / 0.55) 18%,
-    rgb(var(--silver-500-rgb) / 0.55) 82%,
+    color-mix(in srgb, var(--salon-3d-plata) 55%, transparent) 18%,
+    color-mix(in srgb, var(--salon-3d-plata) 55%, transparent) 82%,
     transparent
   );
 }
@@ -2064,7 +2213,7 @@ body {
    Es la diferencia entre lo que está PINTADO en la pared y lo que está
    ENCENDIDO sobre ella, y se nota aunque nadie sepa nombrarla. */
 .muro-rotulo {
-  color: var(--silver-500);
+  color: var(--salon-3d-rotulo);
   text-transform: uppercase;
   letter-spacing: 0.22em;
   font-weight: 700;
@@ -2075,8 +2224,8 @@ body {
    no un efecto. Corto a propósito —0,42em— porque una luz que se derrama medio
    metro no ilumina, empasta. */
 .muro-dato {
-  color: var(--silver-100);
-  text-shadow: 0 0 0.42em rgb(var(--silver-500-rgb) / 0.55);
+  color: var(--salon-3d-dato);
+  text-shadow: var(--salon-3d-resplandor);
 }
 
 /* La cifra del marcador: rojo profundo y encendido, en la letra de la marca.
@@ -2084,8 +2233,8 @@ body {
    en geometría — lo que no cabe en siete segmentos se dice así. */
 .muro-cifra {
   font-family: var(--font-display);
-  color: var(--accion);
-  text-shadow: 0 0 0.5em rgb(var(--accion-rgb) / 0.45);
+  color: var(--salon-3d-accion);
+  text-shadow: 0 0 0.5em color-mix(in srgb, var(--salon-3d-accion) 45%, transparent);
   letter-spacing: 0.01em;
   line-height: 1;
 }
@@ -2119,13 +2268,13 @@ body {
   background:
     linear-gradient(
       to top,
-      rgb(var(--silver-500-rgb) / 0.05),
-      rgb(var(--silver-500-rgb) / 0.19) 52%,
-      rgb(var(--silver-500-rgb) / 0.24) 88%
+      color-mix(in srgb, var(--salon-3d-plata) 5%, transparent),
+      color-mix(in srgb, var(--salon-3d-plata) 19%, transparent) 52%,
+      color-mix(in srgb, var(--salon-3d-plata) 24%, transparent) 88%
     ),
     radial-gradient(
       64% 46% at 50% 4%,
-      rgb(var(--accion-rgb) / 0.18),
+      color-mix(in srgb, var(--salon-3d-accion) 18%, transparent),
       transparent 72%
     );
 }
@@ -2141,13 +2290,13 @@ body {
   border-radius: 2px;
   background: linear-gradient(
     180deg,
-    rgb(var(--ink-800-rgb) / 0.96),
-    rgb(var(--ink-1000-rgb) / 0.96)
+    var(--salon-3d-superficie-alta),
+    var(--salon-3d-superficie)
   );
   box-shadow:
-    inset 0 1px 0 rgb(var(--silver-500-rgb) / 0.45),
-    inset 0 -1px 0 rgb(var(--ink-1000-rgb) / 0.9),
-    0 0.5em 1.1em -0.5em rgb(var(--ink-1000-rgb) / 0.95);
+    inset 0 1px 0 var(--salon-3d-borde),
+    inset 0 -1px 0 var(--salon-3d-filo-bajo),
+    0 0.5em 1.1em -0.5em var(--salon-3d-sombra-caja);
 }
 
 /* ===========================================================================
@@ -2323,7 +2472,7 @@ body {
   transform-origin: 50% 100%;
   transform-style: preserve-3d;
   color: transparent;
-  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.42);
+  -webkit-text-stroke: 0.032em color-mix(in srgb, var(--salon-3d-tenue) 42%, transparent);
   animation: muro-trazo-letra-entra var(--dur-informativo) var(--muelle-informativo) both;
 }
 
@@ -2338,12 +2487,12 @@ body {
 }
 
 .muro-trazo-eco-1 {
-  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.16);
+  -webkit-text-stroke: 0.032em color-mix(in srgb, var(--salon-3d-tenue) 16%, transparent);
   transform: translateZ(-0.55em);
 }
 
 .muro-trazo-eco-2 {
-  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.07);
+  -webkit-text-stroke: 0.032em color-mix(in srgb, var(--salon-3d-tenue) 7%, transparent);
   transform: translateZ(-1.1em);
 }
 
@@ -2363,13 +2512,13 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: transparent;
-  -webkit-text-stroke: 0.028em rgb(var(--silver-300-rgb) / 0.42);
+  -webkit-text-stroke: 0.028em color-mix(in srgb, var(--salon-3d-tenue) 42%, transparent);
 }
 
 /* En cuenta atrás el trazo se pone en el acento: es lo único de la pared que
    pide algo —parar— y el rojo es la acción. */
 .muro-reloj-vivo {
-  -webkit-text-stroke: 0.028em rgb(var(--accion-rgb) / 0.72);
+  -webkit-text-stroke: 0.028em color-mix(in srgb, var(--salon-3d-accion) 72%, transparent);
 }
 
 /* El filete bajo el reloj, apagándose hacia dentro. Marca el borde del bloque
@@ -2379,7 +2528,7 @@ body {
   width: 3.4em;
   height: 1px;
   margin: 0.32em 0 0 auto;
-  background: linear-gradient(270deg, rgb(var(--silver-500-rgb) / 0.45), transparent);
+  background: linear-gradient(270deg, color-mix(in srgb, var(--salon-3d-plata) 45%, transparent), transparent);
 }
 
 /* LOS KILOS DEL MURO: en trazo, como el rótulo, y por lo mismo.
@@ -2402,7 +2551,7 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: transparent;
-  -webkit-text-stroke: 0.026em rgb(var(--accion-rgb) / 0.78);
+  -webkit-text-stroke: 0.026em color-mix(in srgb, var(--salon-3d-accion) 78%, transparent);
 }
 
 /* La de la semana pasada es la MISMA cifra, más pequeña y en plata: es un
@@ -2410,7 +2559,7 @@ body {
    que se levantó la semana pasada no es ninguna de las dos cosas. */
 .muro-kilos-previo {
   font-size: 1.03em;
-  -webkit-text-stroke: 0.03em rgb(var(--silver-300-rgb) / 0.34);
+  -webkit-text-stroke: 0.03em color-mix(in srgb, var(--salon-3d-tenue) 34%, transparent);
 }
 
 /* La unidad no compite con la cifra: va a un tercio y separada, que es como se
@@ -2428,13 +2577,13 @@ body {
   width: 4.2em;
   height: 1px;
   margin: 0.4em 0 0 auto;
-  background: linear-gradient(270deg, rgb(var(--silver-500-rgb) / 0.5), transparent);
+  background: linear-gradient(270deg, color-mix(in srgb, var(--salon-3d-plata) 50%, transparent), transparent);
 }
 
 /* El rótulo del bloque que manda, en el rojo de acción. Solo lo lleva «Carga a
    usar»: es lo único del hueco que pide hacer algo —cargar la barra—. */
 .muro-rotulo-vivo {
-  color: rgb(var(--accion-rgb) / 0.85);
+  color: var(--salon-3d-accion-suave);
 }
 
 /* EL RELEVO DEL HUECO. La carga entra con peso informativo, igual que el dato
@@ -2460,8 +2609,8 @@ body {
   line-height: 0.95;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--texto);
-  text-shadow: 0 1px 0 rgb(0 0 0 / 0.6), 1px 2px 0 #2a2d31, 2px 3px 0 #22252a;
+  color: var(--salon-3d-texto);
+  text-shadow: var(--salon-3d-relieve);
 }
 
 /* EL MATIZ DE LA CIFRA: el rango o la unidad, debajo y en tenue. Ni es la
@@ -2472,7 +2621,7 @@ body {
   font-size: 11px;
   line-height: 1.1;
   letter-spacing: 0.06em;
-  color: var(--gris-marca);
+  color: var(--salon-3d-matiz);
 }
 
 /* ---------------------------------------------------------------------------
@@ -3903,6 +4052,11 @@ body.praxis-sala-abierta { overflow:hidden; }
 :root,
 [data-theme="dark"] {
   --rojo-relleno: rgb(213 18 22);
+  --rojo-relleno-rgb: 213 18 22;
+  /* El rojo de una cifra sobre la foto nocturna de Logros: el rojo de texto del
+     tema claro (#c00d12) se queda en 3,15:1 sobre la calle. Este es fijo porque
+     la foto es oscura en los dos temas. */
+  --rojo-foto: #ff6b6b;
   --on-rojo: #ffffff;
   --hero-a: #4a0f14;
   --hero-b: #161616;
@@ -3931,6 +4085,10 @@ body.praxis-sala-abierta { overflow:hidden; }
   --canto: #c9c6bd;
   --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --sombra-card: 0 4px 14px rgba(0, 0, 0, 0.12);
+  /* En claro el rojo de marca ya pasa sobre las dos superficies; el que no
+     pasaba era el #ff1e1e heredado de la maqueta (3,59 sobre bg). */
+  --accion: #c00d12;
+  --accion-rgb: 192 13 18;
 }
 
 /* ---------- Botón 3D (Boton3D) ---------- */
@@ -4222,4 +4380,41 @@ body.praxis-sala-abierta { overflow:hidden; }
   color: var(--tenue);
   font-weight: 700;
   line-height: 1.15;
+}
+
+/* ===========================================================================
+   EL SALÓN Y LA SESIÓN EN TEMA CLARO (zona 8, ronda 2).
+   Las tarjetas de estas pantallas usan la paleta `ink-*` / `silver-*`, que es fija y
+   oscura. Con el tema claro el texto de tema (oscuro) caía sobre esas tarjetas negras.
+   Dentro de estos dos ámbitos, y SOLO en claro, la paleta se invierte: las tarjetas
+   pasan a papel y la plata a tinta. En oscuro no cambia nada. `contraste-salon.test.ts`
+   mide cada par silver-* sobre ink-* a 4,5:1.
+   =========================================================================== */
+[data-theme="light"] [data-salon="entrenar"],
+[data-theme="light"] [data-sesion="entrenar"] {
+  --ink-1000-rgb: 255 255 255;
+  --ink-900-rgb: 250 250 248;
+  --ink-800-rgb: 245 244 241;
+  --ink-700-rgb: 238 237 233;
+  --ink-600-rgb: 228 227 222;
+  --ink-500-rgb: 215 214 208;
+  --ink-400-rgb: 196 195 188;
+  --silver-100: #16181c;
+  --silver-200: #23262c;
+  --silver-300: #353a42;
+  --silver-400: #474c55;
+  --silver-500-rgb: 86 92 102;
+  --silver-300-rgb: 53 58 66;
+  --silver-100-rgb: 22 24 28;
+  --silver-200-rgb: 35 38 44;
+  --silver-400-rgb: 71 76 85;
+}
+
+/* El botón principal deshabilitado: en claro, el rojo al 40 % con letra blanca no se
+   lee. Pasa a papel con tinta, que es como se ve un control apagado. */
+[data-theme="light"] [data-salon="entrenar"] .bg-accion:disabled,
+[data-theme="light"] [data-sesion="entrenar"] .bg-accion:disabled {
+  opacity: 1;
+  background-color: rgb(var(--ink-600-rgb));
+  color: var(--silver-400);
 }

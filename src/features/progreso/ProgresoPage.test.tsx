@@ -180,6 +180,13 @@ describe('Progreso · lo que absorbe (historial, medidas, logros y fatiga)', () 
     const caja = bloque('fatiga')
     expect(within(caja).getByLabelText('Fatiga por grupo muscular')).toBeInTheDocument()
   })
+
+  it('sigue el tema de la persona: ni el cuerpo ni sus bloques fuerzan data-theme', () => {
+    // Decisión de Bryan (28-oct): Progreso no puede pintar negro dentro de una app
+    // clara. El tema lo pone `documentElement` y la pantalla solo lee los tokens.
+    const { container } = renderizar()
+    expect(container.querySelector('[data-theme]')).toBeNull()
+  })
 })
 
 describe('Progreso — las competencias de un microciclo que no cubre hoy (A023)', () => {

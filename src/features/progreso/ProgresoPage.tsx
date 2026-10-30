@@ -76,18 +76,18 @@ export default function ProgresoPage() {
   ]
 
   return (
-    // Superficie oscura, como Entrenar: los gráficos se leen mejor y así lo
-    // pide el diseño.
-    <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-3.5 bg-ink-900 px-4 pb-4 pt-3">
+    // Sigue el tema de la persona (decisión de Bryan, 28-oct). Antes forzaba
+    // oscuro en el cuerpo y la app quedaba partida en dos al mirarla en claro.
+    <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-3.5 bg-bg px-4 pb-4 pt-3">
       <header className="entrada entrada-1">
         {/* Aquí había una banda de la pieza E encima del título. Ya no: la pieza
             bajó DENTRO del gráfico, recortada por la propia curva, en
             `ProgresoEvolucion`. Una banda decorativa arriba y un gráfico abajo eran
             dos cosas que no se hablaban; ahora son la misma. */}
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">
           Cómo vas
         </p>
-        <h2 className="mt-1.5 font-display text-2xl leading-[1.05] text-silver-100">Tu progreso</h2>
+        <h2 className="mt-1.5 font-display text-2xl leading-[1.05] text-texto">Tu progreso</h2>
       </header>
 
       <div className="entrada entrada-2">
@@ -95,22 +95,22 @@ export default function ProgresoPage() {
       </div>
 
       {/* EL HISTORIAL DE CHECK-INS, que antes vivía en Bienestar. */}
-      <div data-bloque="checkins" data-theme="dark" className="entrada entrada-3">
+      <div data-bloque="checkins" className="entrada entrada-3">
         <HistorialDeCheckins checkins={checkins} verPeso={verPeso} />
       </div>
 
       {/* LAS MEDIDAS: se registran aquí, no en una pestaña aparte. */}
-      <section data-bloque="medidas" data-theme="dark" aria-label="Medidas y peso" className="entrada entrada-3">
+      <section data-bloque="medidas" aria-label="Medidas y peso" className="entrada entrada-3">
         <p className="kicker mb-2">Medidas y peso</p>
         <MedidasCard usuarioId={usuario.id} verPeso={verPeso} />
       </section>
 
       {/* LOS LOGROS: nivel, XP, rachas y medallas. El ranking y las historias siguen en /logros. */}
-      <section data-bloque="logros" data-theme="dark" aria-label="Tus logros" className="entrada entrada-3 flex flex-col gap-3">
+      <section data-bloque="logros" aria-label="Tus logros" className="entrada entrada-3 flex flex-col gap-3">
         <p className="kicker">Tu nivel</p>
-        <div className="rounded-tarjeta border border-ink-500 bg-ink-900 p-4">
-          <p className="font-display text-2xl text-silver-100">{juego.nivel.nombre}</p>
-          <p className="cifras mt-1 text-sm text-silver-400">
+        <div className="rounded-tarjeta border border-linea bg-surface-1 p-4">
+          <p className="font-display text-2xl text-texto">{juego.nivel.nombre}</p>
+          <p className="cifras mt-1 text-sm text-tenue">
             <CifraAnimada valor={juego.xp} /> XP acumulados
           </p>
           <div className="mt-3">
@@ -124,7 +124,7 @@ export default function ProgresoPage() {
             <Medalla key={logro.id} logro={logro} />
           ))}
         </div>
-        <Link to="/logros" className="text-xs font-semibold text-silver-300 underline underline-offset-2">
+        <Link to="/logros" className="text-xs font-semibold text-tenue underline underline-offset-2">
           Ver el ranking y las historias
         </Link>
       </section>
@@ -143,7 +143,7 @@ export default function ProgresoPage() {
 
       {/* EL MAPA DE FATIGA, que antes vivía en Hoy: es «cómo voy», no «qué toca hoy». */}
       {microciclo && (
-        <section data-bloque="fatiga" data-theme="dark" aria-label="Fatiga por grupo muscular" className="entrada entrada-3">
+        <section data-bloque="fatiga" aria-label="Fatiga por grupo muscular" className="entrada entrada-3">
           <p className="kicker mb-2">Fatiga por grupo muscular</p>
           <MapaFatiga microciclo={microciclo} />
         </section>

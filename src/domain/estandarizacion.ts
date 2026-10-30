@@ -20,6 +20,9 @@ export const RACHA_PARA_ESTANDARIZAR = 3
 /** Desviación de RIR que todavía se considera técnica estable. */
 export const BANDA_RIR = 1
 
+/** Estado del microciclo que contiene el ejercicio (el mismo que `Microciclo.estado`). */
+export type EstadoMicrociclo = 'activo' | 'cerrado' | 'propuesto'
+
 export type OrigenEstandarizado = 'derivado' | 'veto_coach'
 
 export interface EstadoEstandarizado {
@@ -96,9 +99,15 @@ export function siguienteEstado(
   anterior: EstadoEstandarizado,
   previo: EjercicioPrescrito | undefined,
   actual: EjercicioPrescrito,
+  estadoMicrociclo?: EstadoMicrociclo,
 ): EstadoEstandarizado {
   // El veto del coach congela. Es la regla del método, no una preferencia.
   if (anterior.origen === 'veto_coach') return anterior
+
+  // «Solo lo entrenado» (Bryan, 2026-10-29): un microciclo propuesto todavía no se vivió, así que ni suma ni
+  // rompe la racha. Es lo mismo que hace la 0149 al dejarlo fuera del historial. (Los estados son activo,
+  // cerrado y propuesto: no existe `borrador`.) `previo` debe ser el último ejercicio VIVIDO, no el propuesto.
+  if (estadoMicrociclo === 'propuesto') return anterior
 
   const romper = (motivo: string): EstadoEstandarizado => ({
     estado: 'no',
@@ -119,6 +128,9 @@ export function siguienteEstado(
     return { ...anterior, motivo: 'sin RIR registrado' }
   }
   if (desviacion > BANDA_RIR) return romper('rir fuera de banda')
+
+  // Como la 0149: el activo está a medias, así que puede romper pero no suma hasta cerrarse.
+  if (estadoMicrociclo === 'activo') return { ...anterior, motivo: 'microciclo en curso' }
 
   const microciclosOk = anterior.microciclosOk + 1
   return {

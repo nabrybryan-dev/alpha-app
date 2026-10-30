@@ -33,7 +33,10 @@ function Podio({
   propia: boolean
 }) {
   const primero = puesto === 1
-  const medalla = puesto === 1 ? 'text-ambar' : puesto === 2 ? 'text-texto/80' : 'text-rojo-osc'
+  // El 3.º iba en `rojo-osc`, que sobre el fondo oscuro daba 2,05:1 (H-09).
+  // La plata y el bronce no necesitan dos rojos distintos: el 2.º va en texto y
+  // el 3.º en tenue, y los dos llegan al mínimo de la casa en ambos temas.
+  const medalla = puesto === 1 ? 'text-ambar' : puesto === 2 ? 'text-texto/80' : 'text-tenue'
   return (
     <div className={`flex flex-col items-center gap-1 ${primero ? '' : 'mt-6'}`}>
       <div

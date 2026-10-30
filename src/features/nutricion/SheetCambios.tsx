@@ -61,10 +61,12 @@ const MINIMO_QUE_SE_DICE: Record<MacroDeLaDeriva, number> = {
 interface SheetCambiosProps {
   /** La línea del plan, tal cual está escrita. `null` cierra la hoja. */
   linea: string | null
+  /** Con el contador apagado no se enseña la deriva de kcal (los macros sí). */
+  verKcal?: boolean
   onCerrar: () => void
 }
 
-export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
+export function SheetCambios({ linea, verKcal = true, onCerrar }: SheetCambiosProps) {
   const { usuario } = useSesion()
   useDbVersion()
 
@@ -117,7 +119,7 @@ export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
 
           <ul className="mt-3 flex flex-col gap-2">
             {cambios.map((cambio) => (
-              <FilaCambio key={cambio.alimento.id} cambio={cambio} />
+              <FilaCambio key={cambio.alimento.id} cambio={cambio} verKcal={verKcal} />
             ))}
           </ul>
 
@@ -133,8 +135,11 @@ export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
   )
 }
 
-function FilaCambio({ cambio }: { cambio: Cambio }) {
+function FilaCambio({ cambio, verKcal }: { cambio: Cambio; verKcal: boolean }) {
   const movimientos = (Object.keys(cambio.deriva) as MacroDeLaDeriva[])
+    // La kcal es el único macro que el interruptor clínico puede callar. La
+    // proteína, los carbos y la grasa no son calorías y siguen explicando el cambio.
+    .filter((macro) => verKcal || macro !== 'kcal')
     .filter((macro) => Math.abs(cambio.deriva[macro] ?? 0) >= MINIMO_QUE_SE_DICE[macro])
     .map((macro) => {
       const valor = cambio.deriva[macro] ?? 0

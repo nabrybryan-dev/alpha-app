@@ -256,7 +256,7 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
       <button
         type="button"
         onClick={() => onConfirmar?.({ dist, altura, desvio })}
-        className="min-h-11 w-full rounded-full bg-[var(--rojo)] py-3 font-display text-[15px] font-bold text-white"
+        className="min-h-11 w-full rounded-full bg-rojo py-3 font-display text-[15px] font-bold text-white"
       >
         {COPY.encuadre_cta}
       </button>

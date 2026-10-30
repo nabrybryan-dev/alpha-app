@@ -101,7 +101,8 @@ describe('rutas del asesorado', () => {
     // Esperando la navegación, este test afirmaba sobre un `<main>` que todavía
     // decía "Cargando…" y fallaba o pasaba según lo rápido que resolviera el
     // import. Puso `main` en rojo de forma intermitente.
-    await screen.findByText('Escríbele a tu coach')
+    // Con la nutricionista del demo en el equipo, el título pasa a «…o a tu nutricionista».
+    await screen.findByText(/Escríbele a tu coach/)
     const alChat = screen.getAllByRole('link').filter((a) => a.getAttribute('href') === '/chat')
     expect(alChat.length).toBeGreaterThan(0)
   })

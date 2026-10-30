@@ -113,6 +113,7 @@ export function BloqueActual({
   perfil,
   pauta,
   simple = false,
+  verKcal = true,
 }: {
   perfil?: Perfil
   pauta?: PautaDelBloque
@@ -122,6 +123,8 @@ export function BloqueActual({
    * del coach: se quedan en su consola, no en la portada de quien pidió una app sin tecnicismos.
    */
   simple?: boolean
+  /** El interruptor de kcal: apagado, el gasto por pasos no se pinta (son todo kcal). */
+  verKcal?: boolean
 }) {
   if (!perfil) return null
 
@@ -152,7 +155,7 @@ export function BloqueActual({
   // mitad: sin las kcal, «sube los pasos» no dice cuánto vale subirlos. Siempre
   // marcado como estimado — sale de una fórmula, no de un acelerómetro.
   const neat = perfil.neat
-  if (!simple && (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined)) {
+  if (!simple && verKcal && (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined)) {
     const hoy = neat.kcalDia
     const meta = neat.kcalDiaEnMeta
     const valor =

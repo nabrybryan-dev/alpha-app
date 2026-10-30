@@ -44,7 +44,7 @@ function BloquePesoEstimado({ e }: { e: PesoEstimado }) {
       aria-label="Peso de hoy, estimado"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="kicker text-xs">Peso de hoy, estimado</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Peso de hoy, estimado</p>
         <p className={`text-xs font-bold ${confianza.clase}`}>{confianza.texto}</p>
       </div>
       <p className="cifras mt-1 text-2xl font-bold leading-tight text-texto">

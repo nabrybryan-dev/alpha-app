@@ -209,7 +209,7 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
         )}
 
         <div className="px-[18px] py-4">
-          <button type="button" onClick={cerrar} className="press w-full rounded-full bg-accion py-3 text-[13px] font-bold uppercase tracking-wide text-ink-900">
+          <button type="button" onClick={cerrar} className="press w-full rounded-full bg-accion py-3 text-[13px] font-bold uppercase tracking-wide text-white">
             Empezar la semana
           </button>
         </div>

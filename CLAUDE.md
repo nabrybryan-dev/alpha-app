@@ -78,7 +78,7 @@ dentro de otro cambio; van en su propia tanda **con tests**.
 | `src/domain/` | Lógica pura: fatiga, ranking, readiness, cumplimiento, gamificación, ritmo de sesión, fichas, calendario | **Sin React, sin I/O.** Cada módulo con su `.test.ts` al lado. **Aquí va toda regla de negocio nueva.** |
 | `src/data/` | Acceso a datos: `repos.ts` (interfaz `Db`), `mockDb.ts`, `nube/sync.ts`, `nube/hidratar.ts`, `seed/` | Patrón repositorio. La UI **nunca** habla con Supabase directamente. |
 | `src/features/<dominio>/` | Pantallas y componentes por dominio de negocio | Un dominio no importa de otro; lo común sube a `components/ui/`. |
-| `src/components/ui/` | Primitivas reutilizables (16 archivos; `MacroPill` está sin uso desde el rediseño de julio) | Sin lógica de negocio. |
+| `src/components/ui/` | Primitivas reutilizables | Sin lógica de negocio. |
 | `src/app/` | Router, `SessionProvider`, `ThemeProvider`, `ErrorBoundary`, layouts | |
 | `src/styles/tokens.css` | Tokens de marca | **El diseño se hace con Tailwind + estos tokens.** No añadir CSS-in-JS, CSS Modules ni Bootstrap. |
 | `supabase/migrations/` | Migraciones numeradas (`0001`…`0023`) | Nueva migración = número siguiente, nunca editar una aplicada. **Mira la carpeta antes de elegir número:** dos ramas cogieron `0020` a la vez y una tuvo que renumerarse a `0021` después de estar aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
@@ -193,6 +193,8 @@ Reglas que quedan:
 - Cualquier tabla auxiliar que se cree para una limpieza (respaldos, alcance)
   necesita `enable row level security` en el mismo paso que el `create table`:
   lleva datos reales y sin RLS queda legible con la anon key.
+
+- **Regla de dominio, definitiva (Bryan, 2026-10-29): un ejercicio está estandarizado tras 3 microciclos limpios seguidos** (`src/domain/estandarizacion.ts`, `recalcular_estandarizado()` en la 0149); solo cuentan los microciclos entrenados, no los `propuesto`. La pantalla se conecta después de aplicar la 0149 y medir.
 
 ### Cómo fluyen los datos
 

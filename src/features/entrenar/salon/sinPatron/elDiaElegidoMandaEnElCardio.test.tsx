@@ -18,7 +18,7 @@ import {
 import { SalonEntrenar } from '../SalonEntrenar'
 
 /**
- * EL DÍA QUE SE ELIGE EN EL TAMBOR MANDA TAMBIÉN EN EL CARDIO.
+ * EL DÍA QUE SE ELIGE EN LA SEMANA MANDA TAMBIÉN EN EL CARDIO.
  *
  * Nace **en rojo** el 2026-09-10. Todo el salón se pinta con `sesionEnPantalla` —la sesión
  * del día al que se ha viajado— menos dos cosas, que leían `sesion`, la de HOY:
@@ -35,7 +35,7 @@ import { SalonEntrenar } from '../SalonEntrenar'
  * Y al revés, que es peor porque no se nota: parado en el día metabólico, cualquier otro día
  * sin ejercicio elegido heredaría el corredor de hoy.
  *
- * Se entra por el tambor y no escribiendo `diaElegido` a mano: el fallo está justo en el
+ * Se entra por la semana desplegada (antes un tambor) y no escribiendo `diaElegido` a mano: el fallo está justo en el
  * camino entre elegir el día y pintar el centro, así que saltárselo sería probar otra cosa.
  */
 
@@ -53,8 +53,8 @@ function montarEnUnDiaDeFuerza() {
   //
   // Con `hoyIso()` esta prueba dependía del calendario y fallaba UN día de cada siete. El
   // seed reparte LEG A · UPPER A · LEG B · UPPER B · FULL C · METABÓLICO A · descanso, así
-  // que **el sábado el día metabólico ES hoy** — y el tambor, al elegir hoy, pone el día
-  // en «ninguno» a propósito (`setDiaElegido(esHoy ? null : i)`): volver a hoy es dejar de
+  // que **el sábado el día metabólico ES hoy** — y la semana, al elegir el día que ya se ve,
+  // pone el día en «ninguno» a propósito: volver a él es dejar de
   // viajar. Entonces el salón cae en la sesión del prop `sesion`, que aquí es una de
   // FUERZA, y la prueba veía «HIP THRUST CON BARRA» donde esperaba «CARRERA».
   //
@@ -93,22 +93,20 @@ function montarEnUnDiaDeFuerza() {
   return { microciclo, sesion }
 }
 
-/** Viaja al día del tambor cuya fila nombre esa sesión. */
+/** Viaja al día de la semana cuya fila nombre esa sesión. */
 async function viajarA(nombreDeSesion: string) {
   const usuario = userEvent.setup()
   const chip = document.querySelector('[data-barra="sesion"] button') as HTMLButtonElement
   expect(chip, 'el chip del día no está en la banda').not.toBeNull()
   await usuario.click(chip)
-  const tambor = await screen.findByRole('dialog')
-  const fila = within(tambor)
+  const semana = await screen.findByRole('dialog')
+  const fila = within(semana)
     .getAllByRole('button')
     .find((b) => (b.textContent ?? '').toUpperCase().includes(nombreDeSesion))
-  expect(fila, `el tambor no ofrece ${nombreDeSesion}`).toBeDefined()
+  expect(fila, `la semana no ofrece ${nombreDeSesion}`).toBeDefined()
   await usuario.click(fila!)
-  // PULSAR NO ES HABER LLEGADO, y aquí no hay una sola señal fiable de que se llegó: el
-  // tambor NO se cierra al elegir —se probó a esperar a que desapareciera y las cuatro
-  // pruebas murieron por timeout—. Así que quien espera es cada aserción, que es además
-  // lo correcto: lo que hay que esperar no es el viaje, es lo que el día nuevo pinta.
+  // PULSAR NO ES HABER LLEGADO: quien espera es cada aserción, que es lo correcto —lo
+  // que hay que esperar no es el viaje, es lo que el día nuevo pinta—.
 }
 
 describe('el día elegido manda también en el cardio', () => {

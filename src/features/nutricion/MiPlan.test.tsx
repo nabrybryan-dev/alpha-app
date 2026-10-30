@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import MiPlan from './MiPlan'
@@ -150,10 +150,12 @@ describe('MiPlan', () => {
     expect(screen.queryByText(/tu plan nutricional/i)).not.toBeInTheDocument()
   })
 
-  it('vuelve al diario', async () => {
+  it('no trae un volver propio: el «‹» de la cabecera es el único', () => {
     pintar()
-    await userEvent.click(screen.getByRole('button', { name: /volver al diario/i }))
-    expect(screen.getByText(/diario de comidas/i)).toBeInTheDocument()
+    // Decisión del 28-oct: el «‹» de `TopBar` vuelve a `/nutricion` (padre en
+    // `rutas.ts`). Un segundo «Volver al diario» debajo eran dos vueltas.
+    expect(screen.queryByRole('button', { name: /volver al diario/i })).toBeNull()
+    expect(screen.queryByText('←')).toBeNull()
   })
 
   /**
@@ -308,9 +310,9 @@ describe('MiPlan', () => {
       expect(screen.queryByText('Lo que comes esta semana')).toBeNull()
       expect(screen.queryByRole('button', { name: ver })).toBeNull()
       const volver = screen.getByRole('button', { name: 'Volver a la lista sencilla' })
-      const principio = screen.getByRole('button', { name: 'Volver al diario' })
       // «Arriba del todo»: antes que el resto de los botones de la pantalla.
-      expect(volver.compareDocumentPosition(principio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      const primero = screen.getByRole('button', { name: 'Mercado' })
+      expect(volver.compareDocumentPosition(primero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
       await usuario.click(volver)
 
@@ -338,5 +340,68 @@ describe('MiPlan', () => {
     expect(screen.getByRole('button', { name: 'Mercado' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Volver a la lista sencilla' })).toBeNull()
     expect(screen.queryByRole('button', { name: /Ver mercado, suplementos/ })).toBeNull()
+  })
+
+  /**
+   * H-03 de la auditoría del 26-oct: con los tres interruptores apagados, el
+   * Diario y la vista Semana se quedaban sin kcal, pero el Plan seguía
+   * enseñando «TDEE estimado en 2050 kcal», «2.100 / 1.750 / 2.400 kcal» en sus
+   * pestañas. El interruptor es clínico y no admite una pantalla que lo ignore.
+   */
+  describe('con el contador de kcal apagado', () => {
+    function apagarKcal() {
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: false,
+        verObjetivoCalorico: false,
+        verContadorKcal: false,
+        estado: 'decidido',
+      })
+    }
+
+    it('Contexto: el análisis del plan pierde la frase de kcal y conserva el objetivo', async () => {
+      apagarKcal()
+      pintar()
+      await irA('Contexto')
+
+      expect(screen.queryByText(/kcal/i)).toBeNull()
+      // Lo que no era una cifra de energía sigue ahí, firmado por el coach.
+      expect(screen.getByText(/recomposición/i)).toBeInTheDocument()
+    })
+
+    it('Ondulación: los tres tipos de día conservan sus macros y pierden la cifra de energía', async () => {
+      apagarKcal()
+      pintar()
+      await irA('Ondulación')
+
+      expect(screen.queryByText(/kcal/i)).toBeNull()
+      expect(screen.queryByText('2.100')).toBeNull()
+      // Los macros no son calorías: la proteína sigue siendo la misma.
+      expect(screen.getAllByText(/P 115/).length).toBeGreaterThan(0)
+    })
+
+    it('Menús: las pestañas de tipo de día ya no llevan «kcal» debajo', async () => {
+      apagarKcal()
+      pintar()
+      await irA('Menús')
+
+      expect(screen.queryByText(/kcal/i)).toBeNull()
+      expect(screen.getByText('ALTO')).toBeInTheDocument()
+    })
+
+    it('el cambio de un alimento no enseña la deriva de kcal, y sí los gramos', async () => {
+      apagarKcal()
+      const usuario = userEvent.setup()
+      pintar()
+      await irA('Menús')
+
+      await usuario.click(
+        screen.getByRole('button', { name: /^por qué cambiar 70 g avena$/i }),
+      )
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/i)).toBeNull()
+      expect(within(hoja).getAllByText(/g$/).length).toBeGreaterThan(0)
+    })
   })
 })
