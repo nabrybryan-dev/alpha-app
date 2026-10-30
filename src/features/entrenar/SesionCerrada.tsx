@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Sesion } from '../../domain/types'
 import { AguilaInteractiva } from './AguilaInteractiva'
 import { reflexionSesion } from './reflexionSesion'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * Pantalla de cierre, justo después de guardar el test post-sesión. Es lo último
@@ -47,12 +47,12 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
       </p>
       {/* Tocable desde el primer fotograma: `both` solo mueve opacidad y
           desplazamiento, nunca el area de contacto. */}
-      <Link
+      <Boton3D
         to="/"
-        className="entrada entrada-4 press mt-2 rounded-full bg-rojo px-8 py-3 font-display text-sm text-white"
+        className="entrada entrada-4 mt-2"
       >
         Volver a Hoy →
-      </Link>
+      </Boton3D>
     </div>
   )
 }

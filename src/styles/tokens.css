@@ -4178,12 +4178,16 @@ body.praxis-sala-abierta { overflow:hidden; }
   stroke-linejoin: round;
   flex: none;
 }
+/* Apagado NO es rojo translúcido (H-06 de la auditoría): el rótulo gris sobre rojo oscuro no se leía.
+   Pasa a la superficie neutra con el rótulo en --tenue, sin canto ni inclinación. */
 .btn-3d[aria-disabled="true"],
 .btn-3d:disabled {
-  filter: grayscale(1);
-  opacity: 0.55;
+  background: var(--surface-3);
+  color: var(--tenue);
+  text-shadow: none;
   transform: none;
   box-shadow: var(--sombra-alzado);
+  cursor: not-allowed;
   pointer-events: none;
 }
 /* Movimiento reducido: el botón se queda quieto y plano; al pulsar cambia sin hundirse animado. */

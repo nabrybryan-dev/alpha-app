@@ -80,7 +80,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/features/coach/consola/ConsolaCoachPage.tsx:Consola': 30,
   'src/features/coach/consola/ficha/SeccionPerfil.tsx:SeccionPerfil': 24,
   'src/features/coach/presentacion/escena3d/RigCamara.tsx:(anonima)': 22,
-  'src/features/entrenar/SesionPage.tsx:SesionEnCurso': 49,
+  'src/features/entrenar/SesionPage.tsx:SesionEnCurso': 47,
   'src/features/entrenar/encoder/EncoderPage.tsx:(anonima)': 25,
   'src/features/entrenar/encoder/importarMedida.ts:importarMedida': 23,
   'src/features/entrenar/encoder/nucleo/analisis.js:analizarSerie': 28,

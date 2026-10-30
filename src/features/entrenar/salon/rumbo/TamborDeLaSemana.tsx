@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as R
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
 import { movimientoReducido } from '../../../../components/ui/movimientoReducido'
 import { COLOR_DEL_ESTADO, estadoDelDia } from './estadoDelDia'
+import { Boton3D } from '../../../../components/ui/Boton3D'
 import {
   ALTO_FILA,
   diaEnLectura,
@@ -278,13 +279,12 @@ export function TamborDeLaSemana({ semana, diaActual, onElegir, onCerrar }: Tamb
         </div>
 
         <div className="mt-2 flex flex-col gap-2 px-3">
-          <button
+          <Boton3D bloque
             type="button"
             onClick={() => onElegir(diaEnLectura(centro.current, n))}
-            className="press min-h-[48px] w-full rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white"
           >
             Mirar este día
-          </button>
+          </Boton3D>
           <div className="flex gap-2">
             {hoy !== -1 && (
               <button
