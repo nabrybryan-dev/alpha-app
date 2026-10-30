@@ -148,7 +148,7 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.capacidades = new Set(['ver_administracion', 'revisar_creadores'])
     en('/coach/estrategias')
     const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(barra.textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Yo/)
+    expect(barra.textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Praxis.*Yo/)
     expect(screen.queryByRole('navigation', { name: 'Alpha' })).not.toBeInTheDocument()
     // La barra no se esconde por ancho: ningún ancestro lleva `lg:hidden`.
     expect(barra.closest('.lg\\:hidden')).toBeNull()
@@ -188,7 +188,7 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion'])
     en('/coach/administracion')
     expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Yo/)
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Praxis.*Yo/)
   })
 
   it('…y sin esa capacidad un asesorado vuelve a la portada; mientras se consulta, no se decide nada', () => {
@@ -208,7 +208,7 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.capacidades = new Set(['leer_entrenamiento', 'ver_administracion'])
     en('/coach/consola')
     const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(barra.textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Yo/)
+    expect(barra.textContent).toMatch(/Mi día.*Equipo.*Bandeja.*Empresa.*Praxis.*Yo/)
   })
 
   it('un asesorado nunca entra a la consola', () => {
