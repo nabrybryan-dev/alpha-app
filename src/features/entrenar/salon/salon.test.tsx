@@ -902,9 +902,10 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     const lista = screen.getByRole('dialog', { name: 'Tu semana' })
-    expect(within(lista).getAllByRole('button')).toHaveLength(7)
+    expect(within(lista).getAllByRole('button', { name: /^(domingo|lunes|martes|miércoles|jueves|viernes|sábado)/i })).toHaveLength(7)
 
     fireEvent.click(within(lista).getAllByRole('button')[otro])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
 
     expect(screen.queryByRole('dialog', { name: 'Tu semana' })).toBeNull()
     const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
@@ -920,12 +921,14 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[otro])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
     expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).toBeNull()
     expect(screen.queryByRole('link', { name: /(Empezar|Continuar) sesión|Ver resumen/ })).toBeNull()
 
     const hoy = semana.findIndex((d) => d.sesionId === sesion.id)
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[hoy])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
     expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).not.toBeNull()
   })
 
@@ -937,6 +940,7 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[descanso])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
 
     const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
     expect(banda).toHaveTextContent(/sin sesión/i)
@@ -954,6 +958,7 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[otro])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
 
     const primero = sesionOtra.ejercicios.find((e) => e.series.length < (e.sets ?? 1)) ?? sesionOtra.ejercicios[0]
     expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toHaveTextContent(primero.nombre)

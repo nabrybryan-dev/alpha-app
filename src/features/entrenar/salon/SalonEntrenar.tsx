@@ -49,7 +49,7 @@ import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './ma
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
-import { DesplegableDeLaSemana } from './rumbo/DesplegableDeLaSemana'
+import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { diaEnPantalla } from './rumbo/diaEnPantalla'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
@@ -1162,12 +1162,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* LA SEMANA, DESPLEGADA. Se abre tocando el día y se cierra al elegir uno, al tocar
-            fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
+        {/* LA SEMANA, EN UN TAMBOR (30-oct). Se abre tocando el día; tocar un día lo centra y «Mirar
+            este día» lo elige; se cierra al elegir, al tocar fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
             Elegir el día que ya se ve sin elegir nada vuelve a «sin elegir». */}
         {semanaAbierta && (
-          <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-elevado)' }}>
-            <DesplegableDeLaSemana
+          <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-superpuesto)' }}>
+            <TamborDeLaSemana
               semana={props.semana}
               diaActual={diaEnPantalla(props.semana, sesionEnPantalla?.id, diaElegido)}
               onElegir={(i) => {
