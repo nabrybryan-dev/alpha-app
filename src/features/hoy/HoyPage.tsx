@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
+import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { diaDeSesion, semanaDelAnio } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
@@ -400,7 +401,12 @@ export default function HoyPage() {
 
   const bloqueActual = (
     <div className="entrada entrada-4">
-      <BloqueActual perfil={perfil} pauta={pauta} simple={simple} />
+      <BloqueActual
+        perfil={perfil}
+        pauta={pauta}
+        simple={simple}
+        verKcal={visibilidadDelAsesorado(usuario.id).verContadorKcal}
+      />
     </div>
   )
   const album = (

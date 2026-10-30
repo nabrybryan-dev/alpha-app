@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { Receta } from '../../data/recetas'
+import { TODAS_LAS_RECETAS, type Receta } from '../../data/recetas'
 import { RecetasCarousel } from './RecetasCarousel'
 import type { RecetaRegistro } from './RecetaSheet'
 
@@ -216,6 +216,36 @@ describe('RecetasCarousel', () => {
       // Las dos veces que se cocinó se ven, sin cifra.
       const lista = screen.getByRole('list', { name: /cocinadas hoy/i })
       expect(within(lista).getAllByText('Brownie de avena')).toHaveLength(2)
+    })
+
+    /**
+     * H-03: las notas de la receta son prosa del coach y llevan la cifra dentro
+     * («148 de las 445 kcal»), y la frase siguiente continúa con una cifra
+     * suelta («te quedas cerca de 380»). Con el interruptor apagado no puede
+     * quedar NINGUNA de las tres: la prueba mira las cifras, no la palabra.
+     * H-10: un «—» de Instagram no es una métrica.
+     */
+    it('los consejos de la receta no dejan ni una cifra de kcal y el «—» de vistas no se pinta', () => {
+      const real = TODAS_LAS_RECETAS.find((r) => r.id === 'rollitos-zanahoria-atun')
+      if (!real) throw new Error('falta la receta real de los rollitos')
+      const conProsa: Receta = {
+        ...real,
+        social: { views: '—', likes: '—', guardados: '—' },
+      }
+
+      render(<RecetasCarousel recetas={[conProsa]} verKcal={false} />)
+      fireEvent.click(screen.getByText('Rollitos bajos en hidratos'))
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/i)).toBeNull()
+      for (const cifra of ['148', '445', '380']) {
+        expect(within(hoja).queryByText(new RegExp(cifra))).toBeNull()
+      }
+      // El consejo que no era una cifra sigue firmado y visible.
+      expect(within(hoja).getByText(/Cena redonda: 37 g de proteína/)).toBeInTheDocument()
+      expect(within(hoja).getByText(/Extiende la mezcla sin dejar agujeros/)).toBeInTheDocument()
+      expect(within(hoja).queryByText(/de vistas/)).toBeNull()
+      expect(within(hoja).queryByText(/me gusta/)).toBeNull()
     })
   })
 

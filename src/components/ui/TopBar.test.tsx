@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useEffect, useState } from 'react'
 import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Rol } from '../../domain/types'
@@ -12,12 +13,12 @@ import type { Rol } from '../../domain/types'
  * con `navigate(-1)` y la etiqueta dice cuál es. Si se entró por un enlace o un aviso, o ya se volvió una vez
  * con `replace`, va al padre declarado: nunca saca a la persona de la app.
  */
-const estado = { rol: 'asesorado' as Rol, capacidades: new Set<string>(), cargando: false }
+const estado = { rol: 'asesorado' as Rol, capacidades: new Set<string>(), cargando: false, nube: false }
 
 vi.mock('../../app/SessionProvider', () => ({
   useSesion: () => ({
     usuario: { id: 'u-valentina', nombre: 'Persona', rol: estado.rol, avatarIniciales: 'PE' },
-    esNube: false,
+    esNube: estado.nube,
     cambiarUsuario: () => {},
     cerrarSesion: () => {},
   }),
@@ -30,6 +31,7 @@ vi.mock('../../features/coach/consola/useCapacidades', () => ({
 const { TopBar } = await import('./TopBar')
 const { ThemeProvider } = await import('../../app/ThemeProvider')
 const { HistoriaInterna } = await import('../../app/HistoriaInterna')
+const { useVolverInterno } = await import('../../app/volverInternoContexto')
 
 function Sonda() {
   const { pathname } = useLocation()
@@ -80,6 +82,7 @@ const volver = () => screen.queryByRole('button', { name: /^Volver a / })
 const ruta = () => screen.getByLabelText('ruta actual').textContent
 
 afterEach(() => {
+  estado.nube = false
   estado.rol = 'asesorado'
   estado.capacidades = new Set()
   estado.cargando = false
@@ -231,10 +234,104 @@ describe('TopBar: el «‹» único', () => {
     expect(volver()).toBeNull()
   })
 
+  it('un estado interno (detalle de comida, semana del diario) usa el MISMO «‹»', async () => {
+    // `/nutricion` no tiene padre en `rutas.ts`: sin este registro, el detalle de
+    // una comida y la vista Semana se quedaban con su propio «←» o sin vuelta.
+    function DetalleInterno() {
+      const { registrar } = useVolverInterno()
+      const [abierto, setAbierto] = useState(true)
+      useEffect(() => {
+        if (abierto) {
+          registrar(() => setAbierto(false), 'Diario')
+          return () => registrar(null)
+        }
+        registrar(null)
+      }, [abierto, registrar])
+      return abierto ? <p>detalle abierto</p> : <p>diario</p>
+    }
+
+    const usuario = userEvent.setup()
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/nutricion']}>
+          <HistoriaInterna>
+            <TopBar titulo="Nutrición" />
+            <DetalleInterno />
+          </HistoriaInterna>
+        </MemoryRouter>
+      </ThemeProvider>,
+    )
+
+    expect(screen.getByText('detalle abierto')).toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Volver a Diario' }))
+    expect(screen.getByText('diario')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Volver a Diario' })).toBeNull()
+  })
+
+  it('el título del volver interno lo pone quien registra el estado, no la cabecera', () => {
+    // Antes `TopBar` escribía siempre «Diario». El siguiente estado interno
+    // —la semana del diario, una hoja abierta dentro de una pestaña— habría
+    // mentido sobre a dónde vuelve.
+    function EstadoInterno() {
+      const { registrar } = useVolverInterno()
+      useEffect(() => {
+        registrar(() => {}, 'Semana del diario')
+        return () => registrar(null)
+      }, [registrar])
+      return <p>semana abierta</p>
+    }
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/nutricion']}>
+          <HistoriaInterna>
+            <TopBar titulo="Nutrición" />
+            <EstadoInterno />
+          </HistoriaInterna>
+        </MemoryRouter>
+      </ThemeProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Volver a Semana del diario' })).toBeInTheDocument()
+  })
+
   it('conserva el título, el tema y el menú de la cuenta', () => {
     montar('/chat', { titulo: 'Chat' })
     expect(screen.getByRole('heading', { level: 1, name: 'Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Cambiar a tema/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cambiar usuario' })).toBeInTheDocument()
+  })
+
+  describe('el menú de cuenta lleva a «Yo»', () => {
+    it('en la nube, el asesorado ve «Yo» y lleva a /yo', async () => {
+      estado.nube = true
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      await userEvent.click(screen.getByRole('link', { name: 'Yo' }))
+      expect(screen.getByLabelText('ruta actual')).toHaveTextContent('/yo')
+    })
+
+    it('en demo también, junto al selector de «Ver la app como»', async () => {
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      expect(screen.getByRole('link', { name: 'Yo' })).toHaveAttribute('href', '/yo')
+    })
+
+    it('el equipo la ve como «Mi cuenta» (su pestaña «Yo» es Mi entreno)', async () => {
+      estado.nube = true
+      estado.rol = 'nutricionista'
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      expect(screen.getByRole('link', { name: 'Mi cuenta' })).toHaveAttribute('href', '/yo')
+    })
+
+    it('la cuenta con rol coach (solo tablero) no la ve: la ruta la devolvería a «/»', async () => {
+      estado.nube = true
+      estado.rol = 'coach'
+      montar('/chat', { titulo: 'Chat' })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar usuario' }))
+      expect(screen.queryByRole('link', { name: 'Yo' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Mi cuenta' })).not.toBeInTheDocument()
+    })
   })
 })

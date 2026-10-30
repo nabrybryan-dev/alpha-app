@@ -86,6 +86,7 @@ const pestanasAsesorado = [
  *   · Bandeja (/bandeja): tareas, mensajes y firmas.
  *   · Empresa (/empresa): las herramientas de los tres sombreros, según sus permisos
  *     (dentro siguen vivas Estrategias y Administración, que antes eran pestañas propias).
+ *   · Praxis (/praxis): la charla con Praxis, que hoy solo abre el equipo.
  *   · Yo (/mi-entreno): su propio entreno. Se conserva con el nombre de la maqueta.
  *
  * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
@@ -120,6 +121,19 @@ const pestanasStaff = [
       <Icono>
         <rect x="4" y="3" width="12" height="18" rx="1.5" />
         <path d="M16 9h4v12h-4M8 7h4M8 11h4M8 15h4" />
+      </Icono>
+    ),
+  },
+  // Praxis (solo equipo) solo tenía salida desde el panel del coach o escribiendo la dirección:
+  // en el teléfono no había cómo llegar (Bryan, 29-oct). Toda la barra del staff puede abrirla
+  // (`puedeVerPraxis`: rol coach o nutricionista, o el puesto de coach).
+  {
+    ruta: '/praxis',
+    etiqueta: 'Praxis',
+    icono: (
+      <Icono>
+        <path d="M4 5h16v11H9l-5 4z" />
+        <path d="M9 10h6M12 7.5v5" />
       </Icono>
     ),
   },

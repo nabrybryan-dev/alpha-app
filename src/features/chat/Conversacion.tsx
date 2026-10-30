@@ -136,7 +136,10 @@ export function Conversacion({ yoId, otroId, titulo = 'Conversación con tu coac
             const piel = deAlpha
               ? 'border border-linea bg-bg text-texto'
               : mio
-                ? 'bg-accion text-white'
+                ? // El rojo de marca (#ff1e1e) deja el texto blanco en 3,85:1 y la
+                  // hora al 70 % en 2,4:1. La burbuja propia va al rojo hondo de la
+                  // casa: blanco 9,28:1 y hora 5,15:1 (H-09 de la auditoría).
+                  'bg-rojo-osc text-white'
                 : 'border border-linea bg-surface-1 text-texto shadow-sm'
             return (
               <div
