@@ -17,7 +17,7 @@
 // Solo acepta la clave de servicio en Authorization. Sin datos de salud: solo título y primer paso.
 
 import { correrAlertasNutri } from './alertasNutriEnvio.ts'
-import { decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, lotesDeIds, ROLES_DEL_RECORDATORIO_CHECKIN, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
+import { autorizarLlamada, decidirAvisos, decidirRecordatoriosCheckin, destinatariosDelPlan, lotesDeIds, ROLES_DEL_RECORDATORIO_CHECKIN, relojLocal, ZONA, type Dueno, type TareaAviso } from './decidir.ts'
 
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
 
@@ -47,7 +47,10 @@ async function manejar(req: Request): Promise<Response> {
   const vapidPub = env('VAPID_PUBLIC_KEY')
   const vapidPriv = env('VAPID_PRIVATE_KEY')
   if (!base || !clave || !vapidPub || !vapidPriv) return json({ error: 'falta configuración' }, 500)
-  if (req.headers.get('Authorization') !== `Bearer ${clave}`) return json({ error: 'no autorizado' }, 401)
+  // Solo Auth acepta listar usuarios con una clave de servicio: es la pregunta, sin leer datos de nadie.
+  const esClaveDeServicio = async (t: string) =>
+    (await fetch(`${base}/auth/v1/admin/users?page=1&per_page=1`, { headers: { apikey: t, Authorization: `Bearer ${t}` } })).ok
+  if (!(await autorizarLlamada(req.headers.get('Authorization'), clave, esClaveDeServicio))) return json({ error: 'no autorizado' }, 401)
 
   const rest = (ruta: string, init: RequestInit = {}) =>
     fetch(`${base}/rest/v1/${ruta}`, {

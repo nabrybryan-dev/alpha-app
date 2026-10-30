@@ -206,3 +206,24 @@ export function lotesDeIds(ids: readonly string[], tope: number = TOPE_IDS_POR_C
   for (let i = 0; i < unicos.length; i += tope) lotes.push(unicos.slice(i, i + tope))
   return lotes
 }
+
+/**
+ * ¿Puede esta llamada despertar la función? Solo con una clave de servicio. Primero se compara con la
+ * que inyecta Supabase (SUPABASE_SERVICE_ROLE_KEY), sin red. Si no coincide, se pregunta a Auth con
+ * `esClaveDeServicio`: el proyecto puede tener otra service_role igual de válida (la que el cron lee
+ * de Vault) y la igualdad exacta la rechazaba con 401. Sin Bearer, o si preguntar falla, no pasa.
+ */
+export async function autorizarLlamada(
+  cabecera: string | null,
+  clave: string,
+  esClaveDeServicio: (token: string) => Promise<boolean>,
+): Promise<boolean> {
+  const m = cabecera?.match(/^Bearer\s+(\S+)\s*$/)
+  if (!m) return false
+  if (m[1] === clave) return true
+  try {
+    return await esClaveDeServicio(m[1])
+  } catch {
+    return false
+  }
+}
