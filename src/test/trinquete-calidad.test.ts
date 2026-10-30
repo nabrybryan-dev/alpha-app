@@ -103,7 +103,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/features/equipo/EquipoPage.tsx:EquipoPage': 39,
   'src/features/equipo/FormularioDecision.tsx:entradaDeBorrador': 31,
   'src/features/hoy/BloqueActual.tsx:BloqueActual': 33,
-  'src/features/hoy/HoyPage.tsx:HoyPage': 77,
+  'src/features/hoy/HoyPage.tsx:HoyPage': 76,
   'src/features/logros/ProgresoEvolucion.tsx:ProgresoEvolucion': 27,
   'src/features/nutri/EquipoNutricionPage.tsx:EquipoNutricionPage': 24,
   'src/features/nutricion/DiarioDia.tsx:DiarioDia': 21,
