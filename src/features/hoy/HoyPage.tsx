@@ -38,6 +38,7 @@ import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { PreguntaDelCoach } from './PreguntaDelCoach'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
+import { EnlaceVerSemana } from './EnlaceVerSemana'
 import { ElResto } from './ElResto'
 import { TarjetaSesionDeHoy } from './TarjetaSesionDeHoy'
 import { RadarAlfa } from './RadarAlfa'
@@ -245,6 +246,11 @@ export default function HoyPage() {
       <CabeceraSemanal diseno={diseno}>
         <TarjetaDeLaSemana nombre={primerNombre} resumen={resumen} diseno={diseno} />
         {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
+        <EnlaceVerSemana
+          diseno={diseno}
+          cumplimiento={cumplimientoSemana}
+          cuestionariosPendientes={cuestionariosPendientes.length}
+        />
       </CabeceraSemanal>
     </div>
   )
