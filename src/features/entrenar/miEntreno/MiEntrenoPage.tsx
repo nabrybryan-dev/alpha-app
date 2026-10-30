@@ -145,7 +145,7 @@ export default function MiEntrenoPage() {
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
           {microciclo ? `Microciclo M${microciclo.numero} · cadencia ${microciclo.cadenciaDias} días` : 'Sin microciclo activo'}
         </p>
-        <h2 className="font-display text-3xl leading-none text-texto">Mi entrenamiento</h2>
+        <h2 className="font-display text-2xl leading-none text-texto sm:text-3xl">Mi entrenamiento</h2>
       </header>
 
       {microciclo ? (
