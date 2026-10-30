@@ -1,8 +1,7 @@
 import { destinoDeLaVuelta, etiquetaDeLaVuelta } from '../camara/vueltaDelCuerpo'
 
 /**
- * «DAR LA VUELTA» (maqueta 7, `.sl-vuelta`): tecla redonda de 48 px debajo de las capas, solo
- * con su icono. Su nombre accesible dice qué se ve ahora y a dónde lleva. Sin mando
+ * «DAR LA VUELTA» (maqueta 7, `.sl-vuelta`): tecla redonda de 48 px, solo con su icono. Su nombre accesible dice qué se ve ahora y a dónde lleva. Sin mando
  * (`alDarLaVuelta`) no se pinta.
  */
 export function BotonDarLaVuelta({

@@ -49,13 +49,13 @@ it('la portada no trae botones de región: la lista completa sigue en «Ver seri
   expect(screen.getByRole('dialog')).toBeInTheDocument()
 })
 
-it('«Dar la vuelta» va con las capas, redondo, como en la maqueta', () => {
+it('«Dar la vuelta» es redondo y no va con las capas: a 715 px de alto caería sobre la cámara', () => {
   const p: PortadaDelCuerpoProps = {
     vista: 'cuerpo', capa: 'musculo', rango: 'hoy', series: {}, doloridas: [],
     alCambiarCapa: () => {}, alCambiarRango: () => {}, alCambiarVista: () => {}, azimutDelCuerpo: 0, alDarLaVuelta: () => {},
   }
   render(<PortadaDelCuerpo {...p} />)
   const vuelta = screen.getByRole('button', { name: /Dar la vuelta/ })
-  expect(vuelta.parentElement?.querySelector('[aria-label="Capas del cuerpo"]')).not.toBeNull()
+  expect(vuelta.parentElement?.querySelector('[aria-label="Qué series se cuentan"]')).not.toBeNull()
   expect(vuelta.textContent).toBe('')
 })
