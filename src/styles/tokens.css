@@ -4113,7 +4113,8 @@ body.praxis-sala-abierta { overflow:hidden; }
   letter-spacing: 0.06em;
   text-decoration: none;
   text-shadow: 0 1px 0 var(--btn-texto-sombra);
-  transform: perspective(var(--perspectiva)) rotateX(8deg);
+  /* translateZ: dentro de un `preserve-3d` la inclinación lo mandaría detrás del padre, sin toque. */
+  transform: perspective(var(--perspectiva)) translateZ(10px) rotateX(8deg);
   transform-origin: 50% 100%;
   box-shadow:
     inset 0 1px 0 var(--btn-luz),
@@ -4133,7 +4134,7 @@ body.praxis-sala-abierta { overflow:hidden; }
 }
 @media (hover: hover) {
   .btn-3d:hover {
-    transform: perspective(var(--perspectiva)) rotateX(5deg) translateY(-1px);
+    transform: perspective(var(--perspectiva)) translateZ(10px) rotateX(5deg) translateY(-1px);
   }
 }
 .btn-3d:active {
