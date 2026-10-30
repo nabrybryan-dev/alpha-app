@@ -7,7 +7,7 @@ import {
 } from './medios'
 
 let fila: { path: string; grabado_el: string | null } | null
-let filaPropia: { path: string; semana: string; tipo: 'audio' | 'video' } | null
+let filaPropia: { path: string; semana: string; tipo: 'audio' | 'video'; guion?: string } | null
 let errorPropio: { code: string; message: string } | null
 /** A quién pidió la fila del vídeo: tiene que ser SU id, no «lo que devuelva». */
 let pidioPara: string | undefined
@@ -130,6 +130,17 @@ describe('el vídeo de cada quien', () => {
     return miVideoDeLaSemana().then((v) => {
       expect(v).toEqual({ url: 'https://storage/firmada', grabadoEl: '2026-09-07', tipo: 'video' })
     })
+  })
+
+  it('trae también el texto de su revisión (el guion firmado), para «Leer el resumen»', async () => {
+    filaPropia = { path: 'u-1/2026-09-07.mp3', semana: '2026-09-07', tipo: 'audio', guion: 'Esta semana subiste la carga.' }
+    const v = await miVideoDeLaSemana()
+    expect(v?.guion).toBe('Esta semana subiste la carga.')
+  })
+
+  it('sin texto en la fila, no hay guion (no se inventa)', async () => {
+    const v = await miVideoDeLaSemana()
+    expect(v?.guion).toBeUndefined()
   })
 
   it('pide EL SUYO, no lo que devuelva la política', async () => {
