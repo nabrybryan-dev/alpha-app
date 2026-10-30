@@ -58,12 +58,12 @@ insert into public.capacidades_staff (usuario_id, capacidad) values
 on conflict do nothing;
 
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-pp-1', 'a1000000-0000-0000-0000-000000000001', 1, 'propuesto', '{}'::jsonb),
-  ('m-pp-2', 'a1000000-0000-0000-0000-000000000002', 1, 'propuesto', '{}'::jsonb),
-  ('m-pp-3', 'a1000000-0000-0000-0000-000000000003', 1, 'propuesto', '{}'::jsonb),
-  ('m-pp-4', 'a1000000-0000-0000-0000-000000000004', 1, 'propuesto', '{}'::jsonb),
-  ('m-pp-5', 'a1000000-0000-0000-0000-000000000005', 1, 'propuesto', '{}'::jsonb),
-  ('m-pp-6', 'a1000000-0000-0000-0000-000000000006', 1, 'propuesto', '{}'::jsonb)
+  ('m-pp-bajo-1', 'a1000000-0000-0000-0000-000000000001', 1, 'propuesto', '{}'::jsonb),
+  ('m-pp-alto-1', 'a1000000-0000-0000-0000-000000000002', 1, 'propuesto', '{}'::jsonb),
+  ('m-pp-vence-bajo-1', 'a1000000-0000-0000-0000-000000000003', 1, 'propuesto', '{}'::jsonb),
+  ('m-pp-vence-medio-1', 'a1000000-0000-0000-0000-000000000004', 1, 'propuesto', '{}'::jsonb),
+  ('m-pp-vence-dudas-1', 'a1000000-0000-0000-0000-000000000005', 1, 'propuesto', '{}'::jsonb),
+  ('m-pp-no-vence-1', 'a1000000-0000-0000-0000-000000000006', 1, 'propuesto', '{}'::jsonb)
 on conflict (id) do nothing;
 
 -- Desde la 0107 el trigger de `microciclos` ya creó una fila (riesgo medio) al insertar cada
@@ -72,20 +72,20 @@ delete from public.aprobaciones_primer_plan where microciclo_id like 'm-pp-%';
 
 -- Como dueño de la tabla (lo que haría la cola con service_role).
 insert into public.aprobaciones_primer_plan (id, usuario_id, microciclo_id, riesgo, dudas_pendientes, plazo_hasta) values
-  ('c1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'm-pp-1', 'bajo', '{}', now() + interval '1 day'),
-  ('c1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 'm-pp-2', 'alto', '{}', now() + interval '1 day'),
-  ('c1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000003', 'm-pp-3', 'bajo', '{}', now() - interval '1 minute'),
-  ('c1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000004', 'm-pp-4', 'medio', '{}', now() - interval '1 minute'),
-  ('c1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000005', 'm-pp-5', 'bajo',
+  ('c1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'm-pp-bajo-1', 'bajo', '{}', now() + interval '1 day'),
+  ('c1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 'm-pp-alto-1', 'alto', '{}', now() + interval '1 day'),
+  ('c1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000003', 'm-pp-vence-bajo-1', 'bajo', '{}', now() - interval '1 minute'),
+  ('c1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000004', 'm-pp-vence-medio-1', 'medio', '{}', now() - interval '1 minute'),
+  ('c1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000005', 'm-pp-vence-dudas-1', 'bajo',
    array['¿puede cargar la rodilla operada?'], now() - interval '1 minute'),
-  ('c1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-000000000006', 'm-pp-6', 'bajo', '{}', now() + interval '1 day');
+  ('c1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-000000000006', 'm-pp-no-vence-1', 'bajo', '{}', now() + interval '1 day');
 
 -- 5 · El trigger de alta: no se puede apuntar al microciclo de OTRA persona.
 do $$
 begin
   begin
     insert into public.aprobaciones_primer_plan (usuario_id, microciclo_id, riesgo)
-    values ('a1000000-0000-0000-0000-000000000001', 'm-pp-6', 'bajo');
+    values ('a1000000-0000-0000-0000-000000000001', 'm-pp-no-vence-1', 'bajo');
     raise exception 'FALLO: se creó una aprobación con el microciclo de otra persona';
   exception
     when others then
@@ -117,7 +117,7 @@ select pruebas.afirmar(
 );
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-pp-1') = 'activo',
+  (select estado from public.microciclos where id = 'm-pp-bajo-1') = 'activo',
   'aprobar no activó el microciclo propuesto'
 );
 
@@ -163,7 +163,7 @@ select pruebas.afirmar(
 );
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-pp-2') = 'propuesto',
+  (select estado from public.microciclos where id = 'm-pp-alto-1') = 'propuesto',
   'el microciclo de riesgo alto se activó sin Bryan'
 );
 
@@ -182,7 +182,7 @@ do $$
 begin
   begin
     insert into public.aprobaciones_primer_plan (usuario_id, microciclo_id, riesgo)
-    values ('a1000000-0000-0000-0000-000000000006', 'm-pp-6', 'bajo');
+    values ('a1000000-0000-0000-0000-000000000006', 'm-pp-no-vence-1', 'bajo');
     raise exception 'FALLO: Manuela insertó una aprobación desde el navegador';
   exception when insufficient_privilege then
     null;
@@ -212,7 +212,7 @@ select pruebas.afirmar(
 );
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-pp-2') = 'activo',
+  (select estado from public.microciclos where id = 'm-pp-alto-1') = 'activo',
   'la aprobación de Bryan no activó el microciclo'
 );
 
@@ -284,13 +284,13 @@ select pruebas.afirmar(
 );
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-pp-3') = 'activo',
+  (select estado from public.microciclos where id = 'm-pp-vence-bajo-1') = 'activo',
   'el plan vencido y aprobado no se publicó'
 );
 
 select pruebas.afirmar(
   (select estado from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000004') = 'espera_bryan'
-  and (select estado from public.microciclos where id = 'm-pp-4') = 'propuesto',
+  and (select estado from public.microciclos where id = 'm-pp-vence-medio-1') = 'propuesto',
   'el riesgo medio pasó solo al vencer'
 );
 

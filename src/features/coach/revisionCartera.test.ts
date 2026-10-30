@@ -227,6 +227,46 @@ describe('activarAutomaticas', () => {
   })
 
   /**
+   * LA NUMERACIÓN SE REINICIA Y EL ID DE LA REGLA YA ES DE UNA SEMANA ENTRENADA.
+   *
+   * Con `m-<slug>-<numero>` (2026-09-15), el M23 del bloque nuevo tiene el mismo id que
+   * el M23 del bloque viejo. La subida es un upsert por id: activar aquí escribiría la
+   * propuesta encima de la semana cerrada, sin error. No se activa, no se cuenta como
+   * activada, y el motivo llega al resumen que lee Bryan.
+   */
+  it('no pisa una semana ya entrenada con el mismo id: no la activa y dice por qué', () => {
+    const { db, usuario, activo } = partida()
+    const conSlug = { ...usuario, slug: 'valentina' }
+    // Un bloque viejo que llegó al M23, y uno nuevo que vuelve a ir por el M22.
+    db.microciclos.guardarPropuesta({ ...activo, id: 'm-valentina-23', numero: 23 })
+    db.microciclos.activarPropuesta('m-valentina-23')
+    db.microciclos.guardarPropuesta({ ...activo, id: 'm-bloque-nuevo-22', numero: 22 })
+    db.microciclos.activarPropuesta('m-bloque-nuevo-22')
+    const semanaVieja = () => db.microciclos.byUsuario('u-valentina').find((m) => m.id === 'm-valentina-23')
+    const antes = JSON.stringify(semanaVieja())
+    expect(semanaVieja()?.estado).toBe('cerrado')
+
+    const bloqueos: string[] = []
+    const hechas = activarAutomaticas(db, [filaAutomatica(conSlug, 22)], undefined, (_fila, motivo) =>
+      bloqueos.push(motivo),
+    )
+
+    expect(JSON.stringify(semanaVieja())).toBe(antes)
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos.map((m) => m.id)).toEqual(['m-bloque-nuevo-22'])
+    expect(hechas).toHaveLength(0)
+    expect(bloqueos).toHaveLength(1)
+    expect(bloqueos[0]).toContain('m-valentina-23')
+  })
+
+  it('con slug, el microciclo que activa sigue la regla m-<slug>-<numero>', () => {
+    const { db, usuario, activo } = partida()
+    activarAutomaticas(db, [filaAutomatica({ ...usuario, slug: 'valentina' }, activo.numero)])
+    const nuevo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    expect(nuevo?.id).toBe(`m-valentina-${activo.numero + 1}`)
+  })
+
+  /**
    * ✅ REGRESIÓN. El microciclo nuevo nacía con la `fechaInicio` del viejo, o sea
    * ya vencido, y el barrido siguiente le proponía otro encima de uno recién
    * creado y vacío. Visto en el panel del coach, no en un test: «M10: 0 suben · 0

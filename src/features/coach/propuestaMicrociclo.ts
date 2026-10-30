@@ -42,6 +42,7 @@ import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import { componerPrescripcion } from '../../domain/prescripcion'
 import { desalineadosDe } from '../../domain/alineacion'
+import { idDeMicrocicloNuevo } from '../../domain/idDeMicrociclo'
 import { volumenDelMicrociclo, type VolumenDeGrupo } from '../../domain/progresionDeVolumen'
 import type { EjercicioPrescrito, Microciclo, NivelVolumen, Sesion } from '../../domain/types'
 
@@ -321,14 +322,22 @@ function arranqueQueRespetaLosDias(
 
 export function microcicloPropuesto(
   origen: Microciclo,
-  opciones: { incrementoKg?: number; hoy?: string; fechaInicio?: string } = {},
+  opciones: {
+    incrementoKg?: number
+    hoy?: string
+    fechaInicio?: string
+    /** `usuarios_app.slug` de la persona. Sin él, el id de siempre (ver `idDeMicrociclo.ts`). */
+    slug?: string
+    /** Sus microciclos conocidos, para no pisar uno ya entrenado con el mismo id. */
+    existentes?: readonly Microciclo[]
+  } = {},
 ): Microciclo {
-  const { incrementoKg = 2.5, hoy, fechaInicio } = opciones
+  const { incrementoKg = 2.5, hoy, fechaInicio, slug, existentes = [] } = opciones
   const prs = prsMasReciente(origen)
   const finAnterior = sumarDias(origen.fechaInicio, origen.cadenciaDias)
   return {
     ...origen,
-    id: `${origen.id}-prop${origen.numero + 1}`,
+    id: idDeMicrocicloNuevo({ slug, numero: origen.numero + 1, origenId: origen.id, existentes }),
     numero: origen.numero + 1,
     estado: 'propuesto',
     // Comparación de cadenas ISO: ordena bien sin construir fechas.
