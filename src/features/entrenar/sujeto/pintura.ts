@@ -1,5 +1,6 @@
 import type { Color, Malla } from '../../../domain/patrones/malla'
 import { colocar } from '../escena/piezas3d'
+import { temaDeUnElemento, type Tema } from '../../../lib/temaDelDocumento'
 import { regionDeMusculo, type IdDeRegion } from './regiones'
 import type { TinteDeRegion, TinteDelCuerpo } from './tinte'
 
@@ -174,14 +175,14 @@ const PALETA_OSCURA: Paleta = {
   tendon: [0.85, 0.83, 0.78],
 }
 
-const paletasGuardadas = new WeakMap<Element, { cuando: number; paleta: Paleta }>()
+const paletasGuardadas = new WeakMap<Element, { cuando: number; tema: Tema; paleta: Paleta }>()
 
 /**
  * La paleta del tema, leida del CONTENEDOR que se le pase (el salon) y no de `:root`.
  *
- * El salon fuerza `data-theme="dark"` (su sala es oscura en los dos temas); si se leyera de
- * `:root` en tema claro, la «luz» seria oscura y la «base» clara, y el tinte saldria
- * INVERTIDO: lo trabajado, mas apagado que lo que no. Sin DOM (pruebas) devuelve la oscura.
+ * El salon sigue el tema de la persona; se lee del contenedor para que, si alguna
+ * pantalla vuelve a fijar su propio tema, la «luz» y la «base» no salgan invertidas y lo
+ * trabajado no quede mas apagado que lo que no. Sin DOM (pruebas) devuelve la oscura.
  */
 export function paletaDelTema(contenedor?: Element | null): Paleta {
   if (typeof document === 'undefined') return PALETA_OSCURA
@@ -189,9 +190,11 @@ export function paletaDelTema(contenedor?: Element | null): Paleta {
   // `getComputedStyle` en cada cuadro costaria; el tema cambia de a uno por sesion.
   const ahora = Date.now()
   const guardada = paletasGuardadas.get(donde)
-  if (guardada && ahora - guardada.cuando < 500) return guardada.paleta
+  // Cambiar de tema invalida la guardada: durante medio segundo el cuerpo se pintaba con la del tema anterior.
+  const tema = temaDeUnElemento(donde)
+  if (guardada && guardada.tema === tema && ahora - guardada.cuando < 500) return guardada.paleta
   const paleta = leerPaleta(donde)
-  paletasGuardadas.set(donde, { cuando: ahora, paleta })
+  paletasGuardadas.set(donde, { cuando: ahora, tema, paleta })
   return paleta
 }
 

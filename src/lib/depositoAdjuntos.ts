@@ -80,8 +80,3 @@ export async function pendientesDe(usuarioId: string): Promise<string[]> {
 export function vaciarDeposito(): Promise<unknown> {
   return conAlmacen('readwrite', (a) => a.clear())
 }
-
-/** Si el navegador no lo soporta o está lleno, el texto tiene que seguir funcionando. */
-export function depositoDisponible(): boolean {
-  return typeof indexedDB !== 'undefined'
-}

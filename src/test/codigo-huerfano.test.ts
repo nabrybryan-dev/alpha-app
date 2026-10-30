@@ -200,14 +200,14 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/interesados/formulario.ts#puedePedirSalud':
     'Contrato de la autorización v0.3: lo consumirá quien pregunte salud después de la ' +
     'autorización, que todavía no existe. El formulario de interesados no pregunta salud.',
-  // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume la bandeja de
+  // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume Revisiones (solo la muestra) y la bandeja de
   // firma; `puedeSalirSola` es el CONTRATO que consumira quien envie —hoy nadie, porque el
   // envio automatico todavia no existe (`empuje-y-disparador`, sin escribir)—. Se deja
   // porque es el nombre y la forma que el encargo fijo, con sus casos de aceptacion ya
   // probados, y porque el dia que se escriba el envio la pregunta se hace en UN sitio.
   'src/domain/aprobacion/puerta.ts#puedeSalirSola':
     'Contrato del encargo `aprobacion-y-puerta`: lo consumira el envio automatico, que ' +
-    'todavia no esta escrito. La bandeja usa veredictoDeLaPuerta, que es el mismo calculo.',
+    'todavia no esta escrito. Revisiones y la bandeja usan veredictoDeLaPuerta, que es el mismo calculo.',
   // El equilibrio es un CONTRATO, no una función de la app: `desequilibrio`
   // mide cuántos centímetros se sale el peso del apoyo y lo consume la batería
   // de gravedad, que es quien exige que todos los patrones de pie se sostengan.
@@ -297,7 +297,7 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/nutricion/datosSospechosos.ts#motivoDeLaDuda': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/dia.ts#rangoKcal': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/encuesta.ts#LAS_QUE_VUELVEN_NO_BLOQUEAN': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'la evalúa la Edge Function avisos-plan (supabase/functions/avisos-plan/alertasNutri.ts), que queda fuera de src/ y por eso este análisis no la ve; detrás de un interruptor apagado (migración 0148).',
   'src/domain/nutricion/estado.ts#elegir': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/estado.ts#hayQuePreguntar': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/gastoEjercicio.ts#MET_CAMINAR': 'HEREDADO 2026-08-12, sin revisar.',
@@ -307,8 +307,8 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/ondulacion.ts#fasePeriodizacion': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/ondulacion.ts#sesionOndulada': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/rutaEntrenamiento.ts#requisitosDeNivel': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/senales/hambre.ts#diasExigidos': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/senales/hambre.ts#evaluarRacha': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/senales/hambre.ts#diasExigidos': 'Apoyo interno de evaluarRacha/tramoDeHambre; ver evaluarRacha (alerta hambre_sostenida, Edge Function avisos-plan).',
+  'src/domain/senales/hambre.ts#evaluarRacha': 'la evalúa la Edge Function avisos-plan (supabase/functions/avisos-plan/alertasNutri.ts), que queda fuera de src/ y por eso este análisis no la ve; detrás de un interruptor apagado (migración 0148).',
 }
 
 const huerfanos = buscarHuerfanos({ raizProyecto: process.cwd() })

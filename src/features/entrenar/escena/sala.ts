@@ -1,6 +1,7 @@
 import { grados, V, type Vec3 } from '../../../domain/patrones/algebra'
 import { Malla, type Color } from '../../../domain/patrones/malla'
 import { cuadro } from './piezas'
+import { paletaDeLaSala, type PaletaDeLaSala } from './paletaDeLaSala'
 import { construirMobiliario, construirRellenoDeMuro } from './mobiliario'
 import { BAHIA } from '../../../domain/escenario/laboratorio'
 
@@ -84,20 +85,15 @@ const ALTO_PANEL = 1.36
 // La primera versión usaba valores casi negros: en un móvil el contraste del canvas
 // aplastaba paredes, paneles y material contra el fondo y solo se distinguía el sujeto.
 // Estos valores siguen siendo carbón, pero dejan leer el volumen de la sala y sus bordes.
-const PARED: Color = [0.062, 0.068, 0.078]
-const ZOCALO: Color = [0.095, 0.104, 0.12]
-const PANEL: Color = [0.028, 0.03, 0.036]
-const MARCO: Color = [0.2, 0.22, 0.26]
+// Desde la zona 8 viven en `paletaDeLaSala.ts` (por tema, leídos de los tokens `--salon-3d-*`).
 // El segmento encendido. Sube de 0,86 a 1,0 el 2026-09-03: estas cifras dejaron de ser
 // decorado del fondo y pasaron a ser LO QUE SE LEE —la prescripción de la serie ya no se
 // escribe en el DOM—, así que tienen que ganarle al mapeo de tonos igual que se lo gana
 // un display de verdad en una sala a oscuras.
-const SEGMENTO_VIVO: Color = [1.0, 0.24, 0.24]
 // El segmento APAGADO baja de 0,115 a 0,055 el 2026-09-03. No es un ajuste de gusto: el
 // contraste de un display es la distancia entre lo encendido y lo apagado, y sobre el muro
 // hay un degradado de luz que sube el negro. Con el apagado tan claro, las cifras se leían
 // como una textura del fondo en vez de como un número.
-const SEGMENTO_APAGADO: Color = [0.055, 0.058, 0.066]
 
 // ---------------------------------------------------------------------------
 // La estación de grabación
@@ -154,16 +150,16 @@ function losa(m: Malla, x0: number, z0: number, x1: number, z1: number, y: numbe
  * Solo la cara interior. La exterior no se ve nunca —la cámara no sale de aquí— y
  * dibujarla sería pagar la mitad de los triángulos de la sala para nada.
  */
-function pared(m: Malla, n = 96): void {
+function pared(m: Malla, p: PaletaDeLaSala, n = 96): void {
   const base = m.vertices
   for (let i = 0; i <= n; i++) {
     const a = (i / n) * Math.PI * 2
     const co = Math.cos(a)
     const si = Math.sin(a)
     const haciaDentro: Vec3 = [-co, 0, -si]
-    m.vertice([co * RADIO_SALA, 0, si * RADIO_SALA], haciaDentro, ZOCALO, 0)
-    m.vertice([co * RADIO_SALA, 0.35, si * RADIO_SALA], haciaDentro, ZOCALO, 0)
-    m.vertice([co * RADIO_SALA, ALTO_SALA, si * RADIO_SALA], haciaDentro, PARED, 0)
+    m.vertice([co * RADIO_SALA, 0, si * RADIO_SALA], haciaDentro, p.zocalo, 0)
+    m.vertice([co * RADIO_SALA, 0.35, si * RADIO_SALA], haciaDentro, p.zocalo, 0)
+    m.vertice([co * RADIO_SALA, ALTO_SALA, si * RADIO_SALA], haciaDentro, p.pared, 0)
   }
   for (let i = 0; i < n; i++) {
     const k = base + i * 3
@@ -216,6 +212,7 @@ function digito(
   alto: number,
   colocar: (x: number, y: number) => Vec3,
   normal: Vec3,
+  p: PaletaDeLaSala,
 ): void {
   const encendidos = SEGMENTOS[valor] ?? ''
   const g = alto * 0.115 // grosor del segmento
@@ -234,7 +231,7 @@ function digito(
   }
 
   for (const [nombre, [x0, y0, x1, y1]] of Object.entries(trazos)) {
-    const c = encendidos.includes(nombre) ? SEGMENTO_VIVO : SEGMENTO_APAGADO
+    const c = encendidos.includes(nombre) ? p.vivo : p.apagado
     cara(m, [colocar(x0, y0), colocar(x1, y0), colocar(x1, y1), colocar(x0, y1)], normal, c)
   }
 }
@@ -259,7 +256,8 @@ function marcador(
    * que el rayo encuentra en esa dirección, PARALELO a ese muro —un panel tangente al
    * cilindro atraviesa una pared plana por las puntas— y sin salirse por la esquina.
    */
-  rect?: { medioAncho: number; medioFondo: number },
+  rect: { medioAncho: number; medioFondo: number } | undefined,
+  p: PaletaDeLaSala,
 ): void {
   const a = grados(anguloGrados)
   const co = Math.cos(a)
@@ -332,19 +330,19 @@ function marcador(
   const u1 = anchoTotal / 2 + margen
   const v0 = ALTO_PANEL - margen
   const v1 = ALTO_PANEL + alto + margen
-  cara(m, [pon(u0, v0, 0.01), pon(u1, v0, 0.01), pon(u1, v1, 0.01), pon(u0, v1, 0.01)], haciaDentro, PANEL)
+  cara(m, [pon(u0, v0, 0.01), pon(u1, v0, 0.01), pon(u1, v1, 0.01), pon(u0, v1, 0.01)], haciaDentro, p.panel)
   // Filete inferior: da borde sin construir cuatro lados.
   cara(
     m,
     [pon(u0, v0, 0.014), pon(u1, v0, 0.014), pon(u1, v0 + 0.012, 0.014), pon(u0, v0 + 0.012, 0.014)],
     haciaDentro,
-    MARCO,
+    p.marco,
   )
 
   let u = -anchoTotal / 2
   for (const g of grupos) {
     for (const ch of g.texto) {
-      digito(m, ch, alto, (x, y) => pon(u + x, ALTO_PANEL + y, 0.02), haciaDentro)
+      digito(m, ch, alto, (x, y) => pon(u + x, ALTO_PANEL + y, 0.02), haciaDentro, p)
       u += alto * 0.56 + alto * 0.16
     }
     u += hueco - alto * 0.16
@@ -442,6 +440,11 @@ export interface OpcionesDeSala {
    * de esa sala, a la distancia que toque en cada dirección, en vez de en el cilindro.
    */
   salaDeBlender?: { medioAncho: number; medioFondo: number }
+  /**
+   * Los colores del tema activo. Sin ellos se leen de los tokens en el momento de
+   * construir; se puede pasar ya leída para no repetir la lectura en cada marcador.
+   */
+  paleta?: PaletaDeLaSala
 }
 
 /**
@@ -532,7 +535,8 @@ export function construirSala(
   opciones: OpcionesDeSala = {},
 ): void {
   const blender = opciones.salaDeBlender
-  if (!blender) pared(m)
+  const paleta = opciones.paleta ?? paletaDeLaSala()
+  if (!blender) pared(m, paleta)
   // TRES MARCADORES FIJOS, COMO EN UN PABELLÓN — más uno en el muro que se está mirando.
   //
   // Los tres de siempre cuelgan a 90°, 210° y 330°, que son ángulos de la SALA y no del
@@ -551,7 +555,7 @@ export function construirSala(
     // el muro de enfrente, y los 90 traducen entre las dos convenciones.
     angulos.push(90 - (azimutDeEntrada + 180))
   }
-  if (cifras) for (const a of angulos) marcador(m, a, cifras, blender)
+  if (cifras) for (const a of angulos) marcador(m, a, cifras, blender, paleta)
   estacion(m)
   // EL HIERRO. Va el último porque es lo que menos cambia: la pared y los marcadores se
   // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato.

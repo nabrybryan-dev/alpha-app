@@ -42,6 +42,7 @@ const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'
 const PraxisPage = lazy(() => import('../features/praxis/PraxisPage'))
 const PraxisEjemploPage = lazy(() => import('../features/praxis/PraxisEjemploPage'))
 const IngresoPruebaPage = lazy(() => import('../features/praxis/IngresoPruebaPage'))
+const YoPage = lazy(() => import('../features/yo/YoPage'))
 const NoEncontradaPage = lazy(() => import('../features/noEncontrada/NoEncontradaPage'))
 
 function Cargando() {
@@ -107,6 +108,8 @@ export function AppRouter() {
         <Route path="cuestionarios" element={envolver(<CuestionariosPage />)} />
         <Route path="contenidos" element={envolver(<ContenidosPage />)} />
         <Route path="logros" element={envolver(<LogrosPage />)} />
+        {/* «Yo» (28-oct): avisos, buzón de comentarios y clave; se llega desde el menú de cuenta. */}
+        <Route path="yo" element={envolver(<YoPage />)} />
         <Route path="marca" element={envolver(<SoloEquipo><MarcaPage /></SoloEquipo>)} />
         {/* Espacios de Manuela (maqueta aprobada 28-sep): «Mi entreno» presenta la semana y
             lleva al salón (/entrenar, que no cambia); «Equipo» reúne cartera y aprobaciones. */}

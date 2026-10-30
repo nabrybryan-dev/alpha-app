@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { IconoCampana } from '../../components/ui/Icono'
@@ -6,19 +7,31 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
+import { leerEstadoAvisos, type EstadoAvisos } from '../avisos/estadoAvisos'
 import { CheckinForm } from './CheckinForm'
 import { filasCheckin } from './filasCheckin'
 import { HistorialDeCheckins } from './HistorialDeCheckins'
 import { MedidasCard } from './MedidasCard'
 import { MensajesVidaBandeja } from './MensajesVidaBandeja'
 import { TarjetaVidaCard } from './TarjetaVidaCard'
-import { activarRecordatorios, permisoActual } from './recordatorio'
 
 export default function BienestarPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
-  const [permiso, setPermiso] = useState(permisoActual())
+  // La tarjeta depende del estado REAL de los avisos, no solo del permiso del navegador: quien los apagó en «Yo»
+  // conserva el permiso pero no la suscripción, y sin la tarjeta no se enteraría de que no recibe el recordatorio.
+  // Sin soporte, bloqueado o sin preguntar también se ofrece «Yo» (que lo explica); solo `activo` no la necesita.
+  const [avisos, setAvisos] = useState<EstadoAvisos | null>(null)
+  useEffect(() => {
+    let vivo = true
+    void leerEstadoAvisos().then((e) => {
+      if (vivo) setAvisos(e)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
@@ -41,7 +54,8 @@ export default function BienestarPage() {
         </p>
       </header>
 
-      {permiso === 'default' && (
+      {/* El recordatorio de las 6 pm sale del servidor y se enciende en «Yo»: aquí solo se avisa a quien no lo tiene. */}
+      {avisos !== null && avisos !== 'activo' && (
         <Card className="entrada entrada-2 flex items-center justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-sm font-bold text-texto">
@@ -49,25 +63,16 @@ export default function BienestarPage() {
               Recordatorio de las 6 pm
             </p>
             <p className="mt-0.5 text-xs text-tenue">
-              Si a las 6 pm no has llenado tu check-in, te avisamos con una notificación.
+              Si a las 6 pm no has llenado tu check-in, te avisamos al teléfono aunque la app esté cerrada. Se enciende en Yo.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void activarRecordatorios().then((r) => setPermiso(r))
-            }}
-            className="press min-h-11 shrink-0 rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
+          <Link
+            to="/yo"
+            className="press inline-flex min-h-11 shrink-0 items-center rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
           >
-            Activar
-          </button>
+            Ir a Yo
+          </Link>
         </Card>
-      )}
-      {permiso === 'denied' && (
-        <p className="entrada entrada-2 text-center text-xs text-tenue">
-          Las notificaciones están bloqueadas en tu navegador — actívalas en la configuración del
-          sitio para recibir el recordatorio de las 6 pm.
-        </p>
       )}
 
       {deHoy ? (
