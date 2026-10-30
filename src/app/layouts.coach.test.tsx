@@ -67,7 +67,7 @@ describe('AsesoradoLayout · el coach', () => {
     en('/')
     expect(screen.getByText('Inicio')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Mi día' })).toBeInTheDocument()
-    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/mi-entreno'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 
   it('la cuenta personal ve lo mismo en escritorio y en teléfono: «/» no depende del ancho', () => {
@@ -75,7 +75,7 @@ describe('AsesoradoLayout · el coach', () => {
     estado.capacidades = new Set(['ver_administracion'])
     en('/')
     expect(screen.getByText('Inicio')).toBeInTheDocument()
-    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/mi-entreno'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 
   it('la cuenta «Alpha» (solo_tablero): «/» y Mi entreno la llevan al tablero, sin barra de espacios', () => {
@@ -110,7 +110,7 @@ describe('AsesoradoLayout · el coach', () => {
 
   it('sin capacidad de administración ni de estrategia, la barra no esconde espacios: Empresa dice qué puede', () => {
     en('/')
-    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/mi-entreno'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 })
 
@@ -119,7 +119,7 @@ describe('AsesoradoLayout · la cuenta personal de Bryan (asesorado con puesto_d
     estado.rol = 'asesorado'
     estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion', 'revisar_creadores'])
     en('/')
-    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/mi-entreno'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
     const r = en('/nutricion')
     expect(screen.getByText('Nutrición asesorado')).toBeInTheDocument()
     r.unmount()
@@ -145,7 +145,7 @@ describe('AsesoradoLayout · los demás', () => {
   it('Manuela conserva sus cinco espacios, sin mirar capacidades', () => {
     estado.rol = 'nutricionista'
     en('/')
-    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/mi-entreno'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 
   it('el asesorado nunca ve nada de staff', () => {
