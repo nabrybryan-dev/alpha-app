@@ -256,11 +256,11 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 {lectura}
               </button>
             ) : (
-              <p className="text-[15px] leading-tight" style={{ color: 'var(--tenue)' }}>
+              <p className="text-[15px] leading-tight" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))' }}>
                 Aún no hay series anotadas
               </p>
             )}
-            <p className="text-[10.5px] opacity-85" style={{ color: 'var(--tenue)' }}>
+            <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
             </p>
             {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
