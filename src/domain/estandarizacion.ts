@@ -129,6 +129,9 @@ export function siguienteEstado(
   }
   if (desviacion > BANDA_RIR) return romper('rir fuera de banda')
 
+  // Como la 0149: el activo está a medias, así que puede romper pero no suma hasta cerrarse.
+  if (estadoMicrociclo === 'activo') return { ...anterior, motivo: 'microciclo en curso' }
+
   const microciclosOk = anterior.microciclosOk + 1
   return {
     estado: microciclosOk >= RACHA_PARA_ESTANDARIZAR ? 'si' : 'no',
