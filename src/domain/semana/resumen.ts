@@ -134,3 +134,9 @@ export function resumirLaSemana(cuenta: CuentaDeLaSemana): ResumenDeLaSemana {
           : `${hechas} de ${total} hechas esta semana`,
   }
 }
+
+/** El enlace de Hoy hacia la Semana: con la cuenta de lo que queda por hacer, si queda algo. */
+export function etiquetaVerSemana(pendientes: number): string {
+  const n = entero(pendientes)
+  return n > 0 ? `Ver toda tu semana (${n} por hacer)` : 'Ver toda tu semana'
+}
