@@ -90,7 +90,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const enCuerpo = p.vista === 'cuerpo'
   const lectura = lecturaCorta(p.series)
   const ancla = useRef<HTMLDivElement>(null)
-  const [regionElegida, setRegionElegida] = useRegionElegida(ancla, p.camara, enCuerpo && Boolean(lectura), p.series)
+  const [regionElegida, setRegionElegida] = useRegionElegida(ancla, p.camara, enCuerpo, p.series)
   // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
   // como «por trabajar» (revisión ciega, N5).
   const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
