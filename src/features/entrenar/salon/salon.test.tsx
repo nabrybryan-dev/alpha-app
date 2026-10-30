@@ -289,6 +289,15 @@ describe('/entrenar es el salón', () => {
       ).toEqual([])
     })
 
+    it('lo que vive en el suelo se apoya encima de la hoja plegada, no debajo de ella', async () => {
+      // La hoja plegada creció con el resumen y tapó los puntos de ejercicio, la leyenda y medio
+      // mando del reloj. jsdom no maqueta: aquí se fija el ancla; la medida se vio en el navegador.
+      renderizarEntrenar()
+      await esperarAlSalon()
+      const puntos = screen.getByRole('button', { name: /Sentadilla goblet/ }).parentElement?.parentElement
+      expect(puntos?.getAttribute('style')).toContain('--tope-hoja')
+    })
+
     it('con el panel bajado la hoja plegada dice la sesión y ofrece empezarla (maqueta 7)', async () => {
       // Antes el panel bajado no escribía ni una letra. La maqueta 7 aprobada pide lo contrario:
       // plegada, la hoja dice «Torso B · hoy», cuántos ejercicios y «Empezar sesión». El texto

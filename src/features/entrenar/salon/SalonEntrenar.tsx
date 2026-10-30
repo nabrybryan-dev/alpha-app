@@ -1204,7 +1204,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // se pintaban debajo de él. Un elemento que está en el DOM, tiene tamaño y no se
           // ve es el fallo más callado que hay, y solo lo dice preguntarle al navegador
           // quién manda en ese píxel.
-          style={{ bottom: 'calc(var(--tope-nav) + 3.4rem)' }}
+          style={{ bottom: 'var(--tope-hoja)' }}
         >
           <PuntosDeEjercicio
             sesion={sesionEnPantalla}
@@ -1228,7 +1228,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // materia y el mismo tamaño. Todo lo demás se lee.
           // Por encima de las estaciones (z-contenido): un poste del suelo caia sobre la camara y se comia el toque.
           <div
-            className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5"
+            className="absolute bottom-[calc(var(--tope-hoja)+0.5rem)] right-3 flex flex-col items-center gap-2.5"
             style={{ zIndex: 'var(--z-elevado)' }}
           >
             <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />

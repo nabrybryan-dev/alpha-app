@@ -314,7 +314,7 @@ export function PanelInferior(props: PanelInferiorProps) {
           className="flex shrink-0 items-center gap-3 px-5 pb-3"
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-[19px] font-black leading-tight text-texto">{resumen.titulo}</p>
+            <p className="line-clamp-2 font-display text-[15px] font-black leading-tight text-texto">{resumen.titulo}</p>
             <p className="truncate text-[13px] text-tenue">{resumen.detalle}</p>
           </div>
           {resumen.boton && (

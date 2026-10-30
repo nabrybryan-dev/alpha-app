@@ -94,7 +94,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         {enCuerpo && p.resumen && (
           <div
             data-testigo="resumen-del-ejercicio"
-            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
+            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-16 text-center"
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.4rem)' }}
           >
             <p
@@ -195,8 +195,8 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           <div
             // `pointer-events-none`: la franja es de ancho completo y, si recibiera toques, taparia el
             // joystick y la camara que viven en las esquinas. Solo el boton de la lectura los recibe.
-            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
-            style={{ bottom: 'calc(var(--tope-nav) + 5.4rem)' }}
+            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-16 text-center"
+            style={{ bottom: 'calc(var(--tope-hoja) + 2.75rem)', zIndex: 'var(--z-elevado)' }}
           >
             {lectura ? (
               <button
