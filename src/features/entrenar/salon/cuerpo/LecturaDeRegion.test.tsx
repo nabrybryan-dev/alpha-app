@@ -59,3 +59,15 @@ it('«Dar la vuelta» es redondo y no va con las capas: a 715 px de alto caería
   expect(vuelta.parentElement?.querySelector('[aria-label="Qué series se cuentan"]')).not.toBeNull()
   expect(vuelta.textContent).toBe('')
 })
+
+it('la lista de regiones se abre con una tecla de verdad, también sin series', () => {
+  const p: PortadaDelCuerpoProps = {
+    vista: 'cuerpo', capa: 'musculo', rango: 'hoy', series: {}, doloridas: [],
+    alCambiarCapa: () => {}, alCambiarRango: () => {}, alCambiarVista: () => {},
+  }
+  render(<PortadaDelCuerpo {...p} />)
+  const abrir = screen.getByRole('button', { name: 'Ver series por región' })
+  expect(abrir.className).toContain('tecla-2')
+  fireEvent.click(abrir)
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+})

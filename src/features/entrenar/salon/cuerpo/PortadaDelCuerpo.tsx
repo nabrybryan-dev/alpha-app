@@ -208,21 +208,19 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
             className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-16 text-center"
             style={{ bottom: 'calc(var(--tope-hoja) + 2.75rem)', zIndex: 'var(--z-elevado)' }}
           >
-            {lectura ? (
-              <button
-                type="button"
-                aria-label="Ver series por región"
-                onClick={() => setHojaAbierta(true)}
-                className="press pointer-events-auto max-w-full truncate text-[13px] leading-tight"
-                style={{ color: 'var(--texto)', fontWeight: 800 }}
-              >
-                {lectura}
-              </button>
-            ) : (
-              <p className="text-[15px] leading-tight" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))' }}>
-                Aún no hay series anotadas
-              </p>
-            )}
+            {/* La puerta a la lista de regiones: tecla de verdad y siempre disponible (Bryan, 30-oct). */}
+            <button
+              type="button"
+              aria-label="Ver series por región"
+              onClick={() => setHojaAbierta(true)}
+              className="press tecla-2 pointer-events-auto max-w-full !px-3 text-[13px] font-extrabold"
+              style={{ color: 'var(--texto)' }}
+            >
+              <span className="truncate">{lectura || 'Aún no hay series anotadas'}</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0 fill-none stroke-current" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
             {lectura && <LecturaDeRegion series={p.series} rango={p.rango} elegida={regionElegida} />}
             <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'de la semana'} · anotadas, no estímulo
