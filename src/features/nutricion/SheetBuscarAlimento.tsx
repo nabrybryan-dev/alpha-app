@@ -46,6 +46,8 @@ interface SheetBuscarAlimentoProps {
   /** Con qué llega escrito el campo. Lo usa "registrar lo que pauta el plan":
    *  llega con el nombre puesto y el asesorado solo confirma cuál es. */
   consultaInicial?: string
+  /** El interruptor clínico: apagado, la lista no enseña kcal/100 g. */
+  verKcal?: boolean
   onCerrar: () => void
   onElegir: (alimento: AlimentoIndice) => void
 }
@@ -71,6 +73,7 @@ function CuerpoBuscar({
   abierto,
   recientes = [],
   consultaInicial = '',
+  verKcal = true,
   onCerrar,
   onElegir,
 }: SheetBuscarAlimentoProps) {
@@ -160,14 +163,16 @@ function CuerpoBuscar({
                   </span>
                 </span>
               </span>
-              <span className="shrink-0 text-right">
-                <span className="cifras block text-base font-bold text-texto">
-                  {cifra(alimento.por100g.kcal)}
+              {verKcal && (
+                <span className="shrink-0 text-right">
+                  <span className="cifras block text-base font-bold text-texto">
+                    {cifra(alimento.por100g.kcal)}
+                  </span>
+                  <span className="block text-xs uppercase tracking-wide text-tenue">
+                    kcal/100 g
+                  </span>
                 </span>
-                <span className="block text-xs uppercase tracking-wide text-tenue">
-                  kcal/100 g
-                </span>
-              </span>
+              )}
             </button>
           )
         })}

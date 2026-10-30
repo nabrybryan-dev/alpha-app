@@ -1,5 +1,6 @@
 import { aportesDeCategoria, type Grupo } from '../../../domain/taxonomia'
-import type { CheckinDiario, Sesion } from '../../../domain/types'
+import { ejercicioCompleto } from '../../../domain/cumplimiento'
+import type { CheckinDiario, EjercicioPrescrito, Sesion } from '../../../domain/types'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from './regiones'
 
 /**
@@ -102,14 +103,66 @@ export function regionesConDolor(checkin: Pick<CheckinDiario, 'dolor' | 'dolorDo
   return REGIONES.map((r) => r.id).filter((id) => salida.has(id))
 }
 
-export type TinteDelCuerpo = Record<IdDeRegion, { k: number; dolor: boolean }>
+export interface TinteDeRegion {
+  k: number
+  dolor: boolean
+  /** La sesión la trabaja de forma directa y aún le queda algún ejercicio: se pinta en rojo. */
+  pendiente?: boolean
+  /** Cuándo (ms, `Date.now()`) se terminó su último ejercicio en esta visita: arranca la transición. */
+  trabajadaEn?: number
+}
 
-/** El tinte de las 15 regiones: intensidad por series y marca de dolor, siempre aparte. */
-export function tinteDelCuerpo(series: SeriesPorRegion, doloridas: readonly IdDeRegion[]): TinteDelCuerpo {
+export type TinteDelCuerpo = Record<IdDeRegion, TinteDeRegion>
+
+/**
+ * Las regiones que un ejercicio trabaja DE FORMA DIRECTA: grupo con factor 1 y región con peso
+ * 1. Lo indirecto (el tríceps de un press, el trapecio de un remo) no se enciende como «por
+ * trabajar»: pintado en rojo, medio cuerpo saldría pendiente por cualquier ejercicio.
+ */
+export function regionesDirectas(ejercicio: Pick<EjercicioPrescrito, 'categoria' | 'nombre'>): IdDeRegion[] {
+  const salida = new Set<IdDeRegion>()
+  for (const { grupo, factor } of aportesDeCategoria(ejercicio.categoria, ejercicio.nombre)) {
+    if (factor < 1) continue
+    for (const { region, peso } of GRUPO_A_REGIONES[grupo]) if (peso >= 1) salida.add(region)
+  }
+  return REGIONES.map((r) => r.id).filter((id) => salida.has(id))
+}
+
+/**
+ * Lo que la sesión deja POR TRABAJAR (Bryan, 25-oct): las regiones directas de sus ejercicios
+ * que no están terminados. Una región trabajada por dos ejercicios sigue pendiente hasta que
+ * se terminan los dos.
+ */
+export function regionesPorTrabajar(sesion: Pick<Sesion, 'ejercicios'> | undefined): IdDeRegion[] {
+  if (!sesion) return []
+  const salida = new Set<IdDeRegion>()
+  for (const e of sesion.ejercicios) {
+    if (ejercicioCompleto(e)) continue
+    for (const r of regionesDirectas(e)) salida.add(r)
+  }
+  return REGIONES.map((r) => r.id).filter((id) => salida.has(id))
+}
+
+/**
+ * El tinte de las 15 regiones: intensidad por series, lo que queda por trabajar y la marca
+ * de dolor, siempre aparte. `trabajadasEn` dice cuándo se cerró cada región en esta visita.
+ */
+export function tinteDelCuerpo(
+  series: SeriesPorRegion,
+  doloridas: readonly IdDeRegion[],
+  pendientes: readonly IdDeRegion[] = [],
+  trabajadasEn: Partial<Record<IdDeRegion, number>> = {},
+): TinteDelCuerpo {
   const maximo = Math.max(0, ...Object.values(series))
   const duele = new Set(doloridas)
+  const falta = new Set(pendientes)
   return Object.fromEntries(
-    REGIONES.map(({ id }) => [id, { k: intensidadDeRegion(series[id] ?? 0, maximo), dolor: duele.has(id) }]),
+    REGIONES.map(({ id }) => {
+      const t: TinteDeRegion = { k: intensidadDeRegion(series[id] ?? 0, maximo), dolor: duele.has(id) }
+      if (falta.has(id)) t.pendiente = true
+      else if (trabajadasEn[id] !== undefined) t.trabajadaEn = trabajadasEn[id]
+      return [id, t]
+    }),
   ) as TinteDelCuerpo
 }
 

@@ -149,4 +149,12 @@ describe('Semana · la bandeja', () => {
     await screen.findByRole('heading', { level: 2, name: 'Semana' })
     expect(screen.queryByRole('heading', { name: 'Check-in diario' })).not.toBeInTheDocument()
   })
+
+  it('sigue el tema de la persona: no fuerza data-theme en su cuerpo', async () => {
+    // Decisión de Bryan (28-oct): Semana no puede ser una app clara dentro de una
+    // app oscura. La cabecera y la barra ya siguen el tema del documento.
+    const { container } = pintar()
+    await screen.findByRole('heading', { level: 2, name: 'Semana' })
+    expect(container.querySelector('[data-theme]')).toBeNull()
+  })
 })

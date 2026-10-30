@@ -54,8 +54,6 @@ const EMOJI_PERMITIDO: Record<string, string> = {
     '«… del podio 💪» en el ranking del equipo. Cierra la frase.',
   'features/nutricion/AdherenciaDia.tsx':
     '«Racha: N 🔥» en el diario de adherencia. Cierra la frase.',
-  'features/bienestar/recordatorio.ts':
-    'Cuerpo de la notificación push. Lo pinta el sistema operativo de todas formas.',
   'features/coach/AsesoradoDetallePage.tsx':
     '«Generar microciclo ⚡» en el botón del coach. Remate de la frase, no icono de la acción.',
   'features/entrenar/encoder/motivosEncuadre.ts':

@@ -59,7 +59,7 @@ export function ReelPlayer({ media, handle }: { media: Receta['media']; handle: 
           aria-label="Reproducir reel"
           className="press absolute inset-0 grid place-items-center bg-ink-900/35"
         >
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-accion text-ink-900">
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-accion text-white">
             <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-6 w-6">
               <path d="m8 5 11 7-11 7Z" />
             </svg>

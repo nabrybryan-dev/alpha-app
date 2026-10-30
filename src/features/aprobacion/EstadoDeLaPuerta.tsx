@@ -1,0 +1,62 @@
+import type { MotivoCerrada, SemanaDeFirma, VeredictoDeLaPuerta } from '../../domain/aprobacion/puerta'
+
+const EXPLICACION: Record<MotivoCerrada, (n: number) => string> = {
+  'sin-historial': () => 'Todavía no hay ninguna semana con borradores delante.',
+  'faltan-semanas': (n) => `Llevas ${n} de 4 semanas seguidas sin corregir nada.`,
+  'hubo-correccion': () => 'Corregiste algo la última semana, así que la cuenta empieza de nuevo.',
+  'semana-floja': () =>
+    'La última semana tuvo tan pocos borradores que no cuenta como prueba de nada.',
+  'quedaron-sin-mirar': () =>
+    'La última semana quedaron borradores sin abrir, y lo que nadie miró no está aprobado.',
+}
+
+/**
+ * El estado de la puerta con su motivo. Solo pinta: el veredicto lo calcula `domain/aprobacion/puerta.ts`.
+ * `nota` sustituye la frase de «puerta abierta» cuando la pantalla no puede prometer que algo salga solo.
+ */
+export function EstadoDeLaPuerta({ veredicto, nota, enCurso, aviso }: {
+  veredicto: VeredictoDeLaPuerta
+  nota?: string
+  /** La semana que no ha terminado: se enseña, pero no cuenta para la puerta. */
+  enCurso?: (SemanaDeFirma & { firmados: number }) | null
+  /** Letra pequeña sobre qué datos no se cuentan. */
+  aviso?: string
+}) {
+  return (
+  <div
+        data-puerta={veredicto.abierta ? 'abierta' : 'cerrada'}
+        className="rounded-tarjeta border border-linea bg-surface-1 px-4 py-3"
+      >
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Salida automática</p>
+        {veredicto.abierta ? (
+          <>
+            <p className="mt-1 text-sm font-semibold text-texto">
+              Abierta desde la semana del {veredicto.desde}
+            </p>
+            {/* Se dice que se puede cerrar, y cómo. Una puerta que se abrió sola y de la que
+                no se sabe salir es peor que no tenerla. */}
+            <p className="mt-1 text-[11px] leading-snug text-tenue">
+              {nota
+                ? 'Cumple las cuatro semanas limpias. Si corriges una revisión esta semana, la puerta se cierra cuando la semana termine.'
+                : 'Los borradores pueden salir sin que los mires. Corrige uno y vuelve a cerrarse.'}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-sm font-semibold text-texto">Cerrada</p>
+            <p className="mt-1 text-[11px] leading-snug text-tenue">
+              {EXPLICACION[veredicto.motivo](veredicto.semanasLimpias)}
+            </p>
+          </>
+        )}
+        {enCurso && (
+          <p data-en-curso="" className="mt-2 text-[11px] leading-snug text-tenue">
+            Semana en curso ({enCurso.fecha}): {enCurso.firmados} de {enCurso.borradores} firmados.
+            Todavía no cuenta para la puerta.
+          </p>
+        )}
+        {nota && <p className="mt-2 text-[11px] font-semibold leading-snug text-texto">{nota}</p>}
+        {aviso && <p className="mt-1 text-[11px] leading-snug text-tenue">{aviso}</p>}
+      </div>
+  )
+}

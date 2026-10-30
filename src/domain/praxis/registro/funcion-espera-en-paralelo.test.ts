@@ -211,14 +211,14 @@ describe('las tres lecturas arrancan a la vez', () => {
     } finally { process.off('unhandledRejection', alSuelta) }
   })
 
-  it('se mantienen los cronómetros: tiempos-sesion con auth, rol y plan, y tiempos con riesgo, registro y total', async () => {
+  it('se mantienen los cronómetros: tiempos-sesion con auth, rol, puesto y plan, y tiempos con riesgo, registro y total', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const e = entorno({ tarda: { auth: 10, rol: 5, plan: 5 } })
     const c = await (await manejar(post(jwtDe(YO)), e.d)).json()
     expect(Object.keys(c.meta.tiempos_ms).sort()).toEqual(['plan', 'registro', 'riesgo', 'total'])
     const sesion = log.mock.calls.map((x) => String(x[0]) + ' ' + String(x[1])).find((l) => l.includes('tiempos-sesion'))!
     const t = JSON.parse(sesion.slice(sesion.indexOf('{')))
-    expect(Object.keys(t).sort()).toEqual(['auth', 'plan', 'rol'])
+    expect(Object.keys(t).sort()).toEqual(['auth', 'plan', 'puesto', 'rol'])
   })
 
   it('el filtro de riesgo sigue antes del modelo: una frase de vida no llama a nadie', async () => {

@@ -175,7 +175,8 @@ function EtiquetaEstado({ estado, esHoy }: { estado: DiaRuta['estado']; esHoy: b
       className={
         'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-[0.06em] ' +
         (esHoy
-          ? 'bg-accion text-texto'
+          ? // Blanco sobre el rojo de relleno: con `text-texto`, en claro bajaba a 3,5:1.
+            'bg-accion text-white'
           : estado === 'completada'
             ? 'bg-placa/20 text-placa'
             : estado === 'descanso'

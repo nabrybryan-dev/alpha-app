@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { Malla, type Color } from '../../../domain/patrones/malla'
-import { CuerpoPintado, colorDeRegion, paletaDelTema, type Paleta } from './pintura'
+import {
+  BANDA_DEL_DOLOR,
+  CuerpoPintado,
+  TRANSICION_MS,
+  colorDeRegion,
+  colorDeTinte,
+  paletaDelTema,
+  type Paleta,
+} from './pintura'
 import { tinteDelCuerpo } from './tinte'
 
 const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 0.8], rojo: [0.9, 0.1, 0.1], tendon: [0.85, 0.85, 0.85] }
@@ -119,5 +127,53 @@ describe('la paleta sale del contenedor del salon, no de :root', () => {
     salon.remove()
     document.documentElement.style.removeProperty('--salon-3d-luz')
     document.documentElement.style.removeProperty('--salon-3d-apagada')
+  })
+})
+
+/**
+ * LOS DOS ROJOS (Bryan, 25-oct): liso = por trabajar, que pasa a «trabajado» en una
+ * transición al terminar; a rayas = dolor. No se pueden leer igual.
+ */
+describe('por trabajar, la transición y las rayas del dolor', () => {
+  it('lo pendiente es rojo liso; en Piel no se pinta', () => {
+    expect(colorDeTinte({ k: 0, dolor: false, pendiente: true }, PALETA, 'musculo', 0)).toEqual(PALETA.rojo)
+    expect(colorDeTinte({ k: 0, dolor: false, pendiente: true }, PALETA, 'piel', 0)).toEqual(PALETA.base)
+  })
+
+  it('al terminar pasa del rojo a su color de trabajada en TRANSICION_MS, sin saltos', () => {
+    const t = { k: 1, dolor: false, trabajadaEn: 1000 }
+    expect(colorDeTinte(t, PALETA, 'musculo', 1000)).toEqual(PALETA.rojo)
+    const medio = colorDeTinte(t, PALETA, 'musculo', 1000 + TRANSICION_MS / 2)
+    expect(medio[1]).toBeCloseTo((PALETA.rojo[1] + PALETA.luz[1]) / 2)
+    expect(colorDeTinte(t, PALETA, 'musculo', 1000 + TRANSICION_MS)).toEqual(PALETA.luz)
+  })
+
+  it('la firma cambia durante la transición y se queda quieta al acabar', () => {
+    const { cuerpo } = armar()
+    const tinte = { ...tinteDelCuerpo({ dors: 2 }, []), dors: { k: 1, dolor: false, trabajadaEn: 0 } }
+    const a = cuerpo.firma(tinte, 'musculo', 100)
+    const b = cuerpo.firma(tinte, 'musculo', 700)
+    expect(a).not.toBe(b)
+    expect(cuerpo.firma(tinte, 'musculo', TRANSICION_MS + 1)).toBe(cuerpo.firma(tinte, 'musculo', TRANSICION_MS + 5000))
+  })
+
+  it('el dolor va a rayas: dos alturas en bandas vecinas salen de dos rojos distintos', () => {
+    const m = new Malla()
+    m.verticeSuelto(0, BANDA_DEL_DOLOR * 0.5, 0, 0, 0, 1, [0.5, 0.2, 0.2], 0)
+    m.verticeSuelto(0, BANDA_DEL_DOLOR * 1.5, 0, 0, 0, 1, [0.5, 0.2, 0.2], 0)
+    m.verticeSuelto(1, BANDA_DEL_DOLOR * 0.5, 0, 0, 0, 1, [0.5, 0.2, 0.2], 0)
+    m.triangulo(0, 1, 2)
+    const cuerpo = new CuerpoPintado([{ malla: m, nombre: 'Latissimus dorsi muscle.l' }])
+    cuerpo.pintar(tinteDelCuerpo({}, ['dors']), PALETA, 'musculo', 0)
+    const copia = cuerpo.musculos[0]
+    expect(rgb(copia, 0)).toEqual(PALETA.rojo.map((x) => Math.round(x * 1000) / 1000))
+    expect(rgb(copia, 1)).not.toEqual(rgb(copia, 0))
+    expect(rgb(copia, 1)[0]).toBeGreaterThan(0)
+  })
+
+  it('lo pendiente pinta en rojo también el tendón, que de otro modo queda blanco', () => {
+    const { cuerpo } = armar()
+    cuerpo.pintar(tinteDelCuerpo({}, [], ['dors']), PALETA, 'musculo', 0)
+    expect(rgb(cuerpo.musculos[0], 1)).toEqual(PALETA.rojo.map((x) => Math.round(x * 1000) / 1000))
   })
 })

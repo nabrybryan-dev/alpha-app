@@ -34,7 +34,7 @@ export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSegu
       // siga registrando series del ejercicio equivocado—, o sea que no necesita que
       // se vea el fondo: el velo va opaco. Un velo opaco además hace el escorzo del
       // panel más legible, no menos.
-      style={{ background: 'var(--ink-900)', zIndex: 'var(--z-scrim)' }}
+      style={{ background: 'rgb(var(--ink-900-rgb))', zIndex: 'var(--z-scrim)' }}
       role="dialog"
       aria-label="Ejercicio completado"
     >

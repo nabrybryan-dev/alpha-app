@@ -33,10 +33,12 @@ import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
 interface PanelCalibracionProps {
   pruebas: Prueba[]
   diasPesando: number
+  /** El interruptor clínico: apagado, su buscador tampoco enseña kcal/100 g. */
+  verKcal?: boolean
   onRegistrar: (prueba: { alimentoId: string; estimados: number; reales: number }) => void
 }
 
-export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCalibracionProps) {
+export function PanelCalibracion({ pruebas, diasPesando, verKcal = true, onRegistrar }: PanelCalibracionProps) {
   const [buscando, setBuscando] = useState(false)
   const [alimento, setAlimento] = useState<AlimentoIndice | null>(null)
 
@@ -127,6 +129,7 @@ export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCal
 
       <SheetBuscarAlimento
         abierto={buscando && alimento === null}
+        verKcal={verKcal}
         onCerrar={() => setBuscando(false)}
         onElegir={setAlimento}
       />

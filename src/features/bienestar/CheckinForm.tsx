@@ -43,8 +43,11 @@ function CampoPills({
 }) {
   return (
     <fieldset className="rounded-tarjeta border border-linea bg-surface-1 p-3.5 shadow-sm">
-      <legend className="mb-2.5 text-sm font-bold text-texto">{titulo}</legend>
-      <div className="flex gap-2">
+      {/* `legend` nativo se dibuja ENCIMA del borde del fieldset. Con `float`
+          vuelve al flujo de dentro de la tarjeta y el borde queda entero; el
+          `clear` de las opciones evita que se monten sobre el rótulo. */}
+      <legend className="float-left mb-2.5 w-full text-sm font-bold text-texto">{titulo}</legend>
+      <div className="clear-both flex gap-2">
         {opciones.map((o) => {
           const sel = valor === o
           return (
@@ -193,8 +196,11 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Peso ayunas + Pasos como steppers en tarjetas paper */}
-      <div className={pedirPeso ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
+      {/* Peso ayunas + Pasos como steppers en tarjetas paper.
+          En 390 px van uno debajo del otro: a dos columnas, los 44 px de cada
+          tecla dejaban al valor sin sitio y «59 kg» se montaba sobre la unidad
+          o «8.800» se leía «880» (H-08). Desde `sm` vuelven a la pareja. */}
+      <div className={`grid grid-cols-1 gap-3 ${pedirPeso ? 'sm:grid-cols-2' : ''}`}>
         {pedirPeso && (
           <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
             <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />

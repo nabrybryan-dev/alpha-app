@@ -23,12 +23,13 @@ describe('BottomNav', () => {
     ])
   })
 
-  it('el staff ve los cinco espacios de la maqueta 7, en su orden', () => {
+  it('el staff ve los cinco espacios de la maqueta 7 y Praxis, en su orden', () => {
     expect(etiquetas('staff')).toEqual([
       ['Mi día', '/'],
       ['Equipo', '/equipo'],
       ['Bandeja', '/bandeja'],
       ['Empresa', '/empresa'],
+      ['Praxis', '/praxis'],
       ['Yo', '/mi-entreno'],
     ])
   })
@@ -39,7 +40,7 @@ describe('BottomNav', () => {
         <BottomNav espacios="staff" />
       </MemoryRouter>,
     )
-    for (const nombre of ['Mi día', 'Equipo', 'Bandeja', 'Empresa', 'Yo']) {
+    for (const nombre of ['Mi día', 'Equipo', 'Bandeja', 'Empresa', 'Praxis', 'Yo']) {
       expect(screen.getByRole('link', { name: nombre })).toBeInTheDocument()
     }
   })

@@ -59,7 +59,7 @@ export function RecuadroPatron({ patron }: { patron: Patron | undefined }) {
         {acciones.map((resumen) => {
           const segmentos = segmentosDe(patron, resumen.articulacion.id)
           return (
-            <li key={resumen.articulacion.id} className="border-b border-white/5 py-1.5">
+            <li key={resumen.articulacion.id} className="border-b border-[rgb(var(--salon-3d-filete-rgb)/0.05)] py-1.5">
               <div className="flex items-baseline gap-2 text-[12px]">
                 {/* MUEVE o SUJETA, con el nombre que le da el dominio. El que mueve va en
                     ámbar porque es el que hay que sentir; el que sujeta, en gris, porque

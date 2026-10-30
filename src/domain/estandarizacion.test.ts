@@ -154,4 +154,31 @@ describe('el veto del coach', () => {
     const roto = ejercicio({ ...limpio, cues: 'OTRA COSA' })
     expect(siguienteEstado(avalado, limpio, roto)).toEqual(avalado)
   })
+
+  // Decisión de Bryan (2026-10-29): «solo lo entrenado». Un microciclo propuesto todavía no se vivió.
+  it('un microciclo PROPUESTO no cuenta: ni suma ni rompe la racha', () => {
+    const ya: EstadoEstandarizado = { estado: 'no', origen: 'derivado', microciclosOk: 2 }
+    const corregido = ejercicio({ cues: 'Codo a 45 grados', rirObjetivo: 2, series: [serie(1, 2)] })
+    const fuera = ejercicio({ rirObjetivo: 2, series: [serie(1, 2 + BANDA_RIR + 1)] })
+    expect(siguienteEstado(ya, limpio, corregido, 'propuesto')).toEqual(ya)
+    expect(siguienteEstado(ya, limpio, fuera, 'propuesto')).toEqual(ya)
+    expect(siguienteEstado(ya, limpio, limpio, 'propuesto')).toEqual(ya)
+    expect(siguienteEstado(SIN_ESTANDARIZAR, undefined, limpio, 'propuesto')).toEqual(SIN_ESTANDARIZAR)
+  })
+
+  it('un microciclo cerrado se evalúa como siempre', () => {
+    const ya: EstadoEstandarizado = { estado: 'no', origen: 'derivado', microciclosOk: 2 }
+    expect(siguienteEstado(ya, limpio, limpio, 'cerrado')).toMatchObject({ estado: 'si', microciclosOk: 3 })
+    expect(siguienteEstado(ya, limpio, limpio)).toMatchObject({ estado: 'si', microciclosOk: 3 })
+  })
+
+  // Igual que la 0149: el activo está a medias. Puede romper la racha, pero no suma hasta cerrarse.
+  it('un microciclo ACTIVO rompe la racha pero no la suma', () => {
+    const ya: EstadoEstandarizado = { estado: 'no', origen: 'derivado', microciclosOk: 2 }
+    const corregido = ejercicio({ cues: 'Codo a 45 grados', rirObjetivo: 2, series: [serie(1, 2)] })
+    const fuera = ejercicio({ rirObjetivo: 2, series: [serie(1, 2 + BANDA_RIR + 1)] })
+    expect(siguienteEstado(ya, limpio, limpio, 'activo')).toMatchObject({ estado: 'no', microciclosOk: 2 })
+    expect(siguienteEstado(ya, limpio, corregido, 'activo')).toMatchObject({ estado: 'no', microciclosOk: 0 })
+    expect(siguienteEstado(ya, limpio, fuera, 'activo')).toMatchObject({ estado: 'no', microciclosOk: 0 })
+  })
 })

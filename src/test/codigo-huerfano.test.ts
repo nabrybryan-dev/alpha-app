@@ -39,6 +39,8 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+  'src/domain/praxis/consultas/portero.ts':
+    'Consultas del equipo contestadas con una ficha (Bryan, 25-oct-2026); lo consume la Edge Function praxis-registro, no la app.',
 
   // La condicion del cero (Bryan, 1-oct-2026): con {rir} = 0 las respuestas de Praxis usan
   // FRASES-DEL-CERO en vez de «te quedaban 0 mas». Sin enchufar porque alpha-app todavia no
@@ -60,15 +62,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'la traza se dibuje desde la demanda y no desde un hueso.',
 
   // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
-  // 2026-08-25 y sin enchufar a proposito: se apoya en la tabla
-  // `estandarizado_ejercicio` (migracion 0043), y esa migracion NO se aplica
-  // hasta que `supabase/comprobar-ids-de-ejercicio.sql` confirme contra la base
-  // que los ejercicio.id son unicos dentro de una persona. Que persisten entre
-  // microciclos ya esta verificado contra el codigo; que no se repiten, no puede
-  // saberse leyendo codigo.
+  // 2026-08-25. La tabla `estandarizado_ejercicio` (0043) existe en produccion. Medido el
+  // 2026-10-28 en produccion, solo lectura, con `comprobar-ids-de-ejercicio.sql`: las
+  // filas 1 a 3 dieron 0 y la fila 4 dio 641 linajes (la salida no se guardo en el repo).
+  // Lo que sigue sin enchufar es la LECTURA: la tabla
+  // esta sin recalcular desde el 25-ago (la 0149 pone quien, sin aplicar) y falta la
+  // decision de Bryan y Manuela de si la regla «3 microciclos limpios» pasa a ser
+  // vinculante antes de mostrarle al asesorado «por que este ejercicio todavia no sube
+  // carga». Hidratar la tabla en la app es ademas un cambio de `hidratar`/`firma`.
   'src/domain/estandarizacion.ts':
-    'Deriva si la tecnica de un ejercicio esta asentada. Espera a la migracion 0043, ' +
-    'que a su vez espera a comprobar-ids-de-ejercicio.sql. Ver ' +
+    'Deriva si la tecnica de un ejercicio esta asentada. Espera a aplicar la 0149 (quien ' +
+    'recalcula la tabla) y la decision de la regla vinculante. Ver ' +
     'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4.',
 
   // Las dos escaleras preautorizadas de un ejercicio (§8 punto 1 del supuesto del
@@ -198,14 +202,14 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/interesados/formulario.ts#puedePedirSalud':
     'Contrato de la autorización v0.3: lo consumirá quien pregunte salud después de la ' +
     'autorización, que todavía no existe. El formulario de interesados no pregunta salud.',
-  // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume la bandeja de
+  // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume Revisiones (solo la muestra) y la bandeja de
   // firma; `puedeSalirSola` es el CONTRATO que consumira quien envie —hoy nadie, porque el
   // envio automatico todavia no existe (`empuje-y-disparador`, sin escribir)—. Se deja
   // porque es el nombre y la forma que el encargo fijo, con sus casos de aceptacion ya
   // probados, y porque el dia que se escriba el envio la pregunta se hace en UN sitio.
   'src/domain/aprobacion/puerta.ts#puedeSalirSola':
     'Contrato del encargo `aprobacion-y-puerta`: lo consumira el envio automatico, que ' +
-    'todavia no esta escrito. La bandeja usa veredictoDeLaPuerta, que es el mismo calculo.',
+    'todavia no esta escrito. Revisiones y la bandeja usan veredictoDeLaPuerta, que es el mismo calculo.',
   // El equilibrio es un CONTRATO, no una función de la app: `desequilibrio`
   // mide cuántos centímetros se sale el peso del apoyo y lo consume la batería
   // de gravedad, que es quien exige que todos los patrones de pie se sostengan.
@@ -295,7 +299,7 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/nutricion/datosSospechosos.ts#motivoDeLaDuda': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/dia.ts#rangoKcal': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/encuesta.ts#LAS_QUE_VUELVEN_NO_BLOQUEAN': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'la evalúa la Edge Function avisos-plan (supabase/functions/avisos-plan/alertasNutri.ts), que queda fuera de src/ y por eso este análisis no la ve; detrás de un interruptor apagado (migración 0148).',
   'src/domain/nutricion/estado.ts#elegir': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/estado.ts#hayQuePreguntar': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/nutricion/gastoEjercicio.ts#MET_CAMINAR': 'HEREDADO 2026-08-12, sin revisar.',
@@ -305,8 +309,8 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/ondulacion.ts#fasePeriodizacion': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/ondulacion.ts#sesionOndulada': 'HEREDADO 2026-08-12, sin revisar.',
   'src/domain/rutaEntrenamiento.ts#requisitosDeNivel': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/senales/hambre.ts#diasExigidos': 'HEREDADO 2026-08-12, sin revisar.',
-  'src/domain/senales/hambre.ts#evaluarRacha': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/senales/hambre.ts#diasExigidos': 'Apoyo interno de evaluarRacha/tramoDeHambre; ver evaluarRacha (alerta hambre_sostenida, Edge Function avisos-plan).',
+  'src/domain/senales/hambre.ts#evaluarRacha': 'la evalúa la Edge Function avisos-plan (supabase/functions/avisos-plan/alertasNutri.ts), que queda fuera de src/ y por eso este análisis no la ve; detrás de un interruptor apagado (migración 0148).',
 }
 
 const huerfanos = buscarHuerfanos({ raizProyecto: process.cwd() })

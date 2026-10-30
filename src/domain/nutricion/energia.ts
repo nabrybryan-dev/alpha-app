@@ -27,8 +27,8 @@
  * compara las dos herramientas y ve 1.352 contra 1.317, esto es el porqué.
  */
 
-import type { Genero } from './composicion'
-import { HOMBRE, MUJER } from './composicion'
+import type { Genero } from './composicion.ts'
+import { HOMBRE, MUJER } from './composicion.ts'
 
 /**
  * Redondeo estilo Excel: la mitad SIEMPRE hacia arriba.
