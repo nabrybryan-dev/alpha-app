@@ -111,6 +111,7 @@ export async function retirarControles(): Promise<void> {
   S.montar = null
   if (c.firstChild && tieneAnimate() && !reducido()) {
     const a = c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: DUR.toque, easing: EASE.salida, fill: 'forwards' })
+    /* `finished` rechaza si la animación se cancela a mitad: se sigue y se limpia igual. */
     await a.finished.catch(() => {})
     a.cancel()
     /* La seguridad va por delante: si mientras salían llegó la Quieta (o una pregunta de cuidado, o se cerró la sala), lo que hay ahora en #controles es

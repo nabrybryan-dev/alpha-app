@@ -2498,6 +2498,43 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
 union all
+select '0147 - candado de microciclos: la app y la cadena no se pisan', 'origen y cargado_en en microciclos, triggers a_origen < b_candado < c_registrar_choque, regla con cerrado, avisos con RLS, ninguna de sus funciones para anon y decidir/vencer_primer_plan sin aprobar un choque',
+       case when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'microciclos' and column_name = 'origen') then 'NO'
+            when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'microciclos' and column_name = 'cargado_en') then 'NO'
+            -- Los tres triggers con los nombres que fuerzan el orden (Postgres: alfabético). Si alguien los
+            -- renombra y el candado queda antes que el origen, evalúa con el origen por defecto.
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_a_origen' and not tgisinternal) then 'NO'
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_b_candado' and not tgisinternal) then 'NO'
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_c_registrar_choque' and not tgisinternal) then 'NO'
+            when exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname in ('trg_microciclos_poner_origen', 'trg_microciclos_candado') and not tgisinternal) then 'NO'
+            -- La regla cuenta los 'cerrado' (la plantilla cierra el activo antes de insertar el suyo).
+            when to_regprocedure('public.microciclo_choque(uuid,text,integer,text)') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.microciclo_choque(uuid,text,integer,text)')) not like '%''cerrado''%' then 'NO'
+            when to_regclass('public.microciclos_choques') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.microciclos_choques')) then 'NO'
+            when has_table_privilege('anon', 'public.microciclos_choques', 'select')
+              or has_table_privilege('authenticated', 'public.microciclos_choques', 'insert')
+              or has_table_privilege('authenticated', 'public.microciclos_choques', 'update') then 'NO'
+            when to_regprocedure('public.confirmar_pisar_microciclo(text)') is null then 'NO'
+            when to_regprocedure('public.descartar_choque_microciclo(uuid)') is null then 'NO'
+            when to_regprocedure('public.registrar_choque_microciclo(text)') is null then 'NO'
+            -- Ninguna función de la 0147 para anon (un uid nulo pasa la guarda `auth.uid() is not null and ...`).
+            when has_function_privilege('anon', 'public.confirmar_pisar_microciclo(text)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.descartar_choque_microciclo(uuid)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.registrar_choque_microciclo(text)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.microciclo_choque(uuid,text,integer,text)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.activar_microciclo(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.confirmar_pisar_microciclo(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.descartar_choque_microciclo(uuid)', 'execute') then 'NO'
+            -- decidir/vencer_primer_plan ya no dan por activado lo que el candado frenó.
+            when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%Choque de microciclo%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.vencer_primer_plan()')) not like '%Choque de microciclo%' then 'NO'
+            -- confirmar no marca 'confirmado' sin haber activado.
+            when pg_get_functiondef(to_regprocedure('public.confirmar_pisar_microciclo(text)')) not like '%no quedó activa%' then 'NO'
+            -- «Activar igualmente» aprueba el plan que esperaba por choque (decidido por Bryan, 29-oct).
+            when pg_get_functiondef(to_regprocedure('public.confirmar_pisar_microciclo(text)')) not like '%update public.aprobaciones_primer_plan%' then 'NO'
+            else 'SI' end
+union all
 -- La 0149: quien recalcula lo estandarizado. Se mira lo que HACE la función: security definer con ruta fija,
 -- sin anon ni authenticated, con service_role, y que su cuerpo respete el veto del coach.
 select '0149 - estandarizado se recalcula', 'recalcular_estandarizado: security definer con search_path fijo, solo service_role, respeta el veto',

@@ -19,9 +19,10 @@ select 'motivo_version solo admite correccion o republicacion_tecnica (o NULL), 
 union all
 select 'la tabla sigue con RLS y anon no lee ni escribe',
        case when not (select relrowsecurity from pg_class where oid = 'public.videos_semanales'::regclass) then 'NO'
-            when has_table_privilege('anon', 'public.videos_semanales', 'select')
-              or has_table_privilege('anon', 'public.videos_semanales', 'insert')
-              or has_table_privilege('anon', 'public.videos_semanales', 'update') then 'NO'
+            -- Se mira el efecto, no el GRANT: Supabase da GRANT a anon en toda tabla de public por defecto,
+            -- y lo que lo frena es la RLS. Con RLS activa, anon no ve ni escribe nada si ninguna política lo nombra.
+            when exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'videos_semanales'
+                           and roles && array['anon', 'public']::name[]) then 'NO'
             else 'SI' end,
        'SI'
 

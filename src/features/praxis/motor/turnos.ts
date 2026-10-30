@@ -344,6 +344,7 @@ const TURNOS: Record<string, (tok: number) => Promise<void>> = {
     const invita = tu('¿Quieres contarme ', '¿Quiere contarme ') + (dosDias ? 'qué está pasando?' : duele ? 'cómo pasó?' : 'qué pasó anoche?')
     salto('Pregunto un poco más porque ' + (dosDias ? 'es el segundo día seguido con estrés alto.' : duele ? 'hoy hay dolor de 4 o más.' : tu('dormiste 5 horas o menos.', 'durmió 5 horas o menos.')))
     const pd = decir(razon + ' ' + invita, tok)
+    // `decir` rechaza cuando el turno caduca (vigilar): se atiende en el `await` de abajo; aquí solo se evita que quede suelto.
     pd.catch(() => {})
     await Promise.race([pd, esperar(reducido() ? 0 : 400)]); vigilar(tok)
     montar(() => chips([['Sí', 'si'], ['Ahora no', 'no']], (v) => emitir({ tipo: 'prof', v }), null, 'prof'))
@@ -367,6 +368,7 @@ const TURNOS: Record<string, (tok: number) => Promise<void>> = {
   async nota(tok) {
     S.turno = 'nota'; Cab.arma()
     const pd = decir(tu('Una más, si quieres: ¿anoche usaste el celular en la cama?', 'Una más, si quiere: ¿anoche usó el celular en la cama?'), tok)
+    // `decir` rechaza cuando el turno caduca (vigilar): se atiende en el `await` de abajo; aquí solo se evita que quede suelto.
     pd.catch(() => {})
     await Promise.race([pd, esperar(reducido() ? 0 : 400)]); vigilar(tok)
     montar(() => chips<string | boolean>([['Sí', true], ['No', false], ['Saltar', 'saltar']], (v) => emitir({ tipo: 'nota', v }), null, 'nota'))

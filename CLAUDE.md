@@ -196,6 +196,38 @@ Reglas que quedan:
 
 - **Regla de dominio, definitiva (Bryan, 2026-10-29): un ejercicio está estandarizado tras 3 microciclos limpios seguidos** (`src/domain/estandarizacion.ts`, `recalcular_estandarizado()` en la 0149); solo cuentan los microciclos entrenados, no los `propuesto`. La pantalla se conecta después de aplicar la 0149 y medir.
 
+### Motor de microciclos de la app: encendido CON CANDADO (Bryan, 28-oct-2026)
+
+`PanelMicrociclos` activa microciclos solo si se construye con `VITE_MOTOR_APP_ACTIVO=true`
+(decisión en build, no en runtime; la variable **no** está definida en ningún archivo del repo:
+vive en Vercel o no existe). Decisión de Bryan: se enciende **con candado**. Si la cadena de
+agentes ya cargó o activó la semana de esa persona, la app no la pisa: avisa al coach, dice
+quién la cargó y cuándo, y no hace nada sin su confirmación explícita. Al revés también: si la
+app ya cargó la semana, la cadena no la pisa en silencio.
+
+- El candado está **en la base** (migración `0147_candado_de_microciclos.sql`), no solo en la
+  pantalla, porque la cadena carga con `plantilla-carga-microciclo.sql` y no pasa por la app.
+- La regla: al activar un microciclo con número N, choca si la persona ya tiene otro de
+  **otro origen** (`cadena`/`app`, lo pone un trigger: sesión de usuario = app, servicio =
+  cadena) con número >= N, **activo o cerrado**. Un número mayor es el relevo normal y pasa.
+- Los triggers de `microciclos` se llaman `a_origen`, `b_candado`, `c_registrar_choque` a
+  propósito: Postgres los dispara por orden alfabético y el candado necesita el origen ya fijado.
+  No los renombres sin cambiar el orden comprobado en la prueba 216.
+- Nadie lanza excepción por un choque (deshace también el aviso): la app (`activar_microciclo`)
+  no activa; la cadena (insert/update directo) queda `propuesto`; ambas dejan un aviso en
+  `microciclos_choques`. La plantilla de carga lo comprueba antes de cerrar nada y devuelve
+  `CHOQUE · ...` (léelo). El panel enseña el aviso con dos botones (`confirmar_pisar_microciclo` /
+  `descartar_choque_microciclo`). Solo se pisa con la confirmación del coach o, desde la cadena,
+  con `select set_config('alpha.pisar_microciclo','si',true)` en su misma transacción.
+- Un primer plan cuyo microciclo choca queda `espera_bryan` (no `aprobado`/`vencido_aprobado`).
+- **Orden de encendido:** aplicar la 0147 (a mano, Bryan) ANTES de poner la variable en Vercel y
+  reconstruir. Sin la 0147 no hay candado y la bandera reabre el pisado en silencio.
+- Origen de la cadena: comprobado por lectura (la cabecera de la 0147 cita archivo:línea): la
+  tubería genera SQL que se corre con psql, execute_sql o `supabase db query` (auth.uid() nulo),
+  sin `signIn`. Un uso manual futuro con sesión de usuario quedaría con origen `app`.
+- El SQL no se ejecutó en un Postgres: el test `supabase/test/216-candado-de-microciclos.sql`
+  corre en el CI.
+
 ### Cómo fluyen los datos
 
 - `src/data/dbInstance.ts` expone **un único** `db = crearDbSincronizada(crearMockDb())`:
