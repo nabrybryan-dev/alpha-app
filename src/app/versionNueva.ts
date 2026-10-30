@@ -92,6 +92,7 @@ export function vigilarVersionAlVolver(ahora: () => number = Date.now): () => vo
       void navigator.serviceWorker
         ?.getRegistration?.()
         .then((registro) => registro?.update())
+        // Actualizar es un intento de cortesía: si rechaza, se queda la versión actual.
         .catch(() => {})
     } catch {
       // Sin service worker o sin permiso: no hay nada que actualizar.

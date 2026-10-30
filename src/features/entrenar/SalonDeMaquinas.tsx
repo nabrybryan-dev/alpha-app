@@ -90,6 +90,7 @@ function Insignia({ ejercicios }: { ejercicios: readonly EjercicioPrescrito[] })
   const compartir = () => {
     // El nombre de los ejercicios NO viaja: es su programación. Va el recuento.
     if (navigator.share) {
+      // Cerrar el cuadro de compartir rechaza la promesa: es decisión de la persona, no un fallo.
       void navigator.share({ text: texto }).catch(() => {})
       return
     }
@@ -99,6 +100,7 @@ function Insignia({ ejercicios }: { ejercicios: readonly EjercicioPrescrito[] })
         setCopiado(true)
         setTimeout(() => setCopiado(false), 2200)
       })
+      // Sin permiso de portapapeles no se marca «copiado»: la persona ve que no pasó y puede reintentar.
       .catch(() => {})
   }
 
