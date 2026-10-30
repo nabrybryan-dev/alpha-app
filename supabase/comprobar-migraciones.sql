@@ -2498,6 +2498,20 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
 union all
+-- La 0149: quien recalcula lo estandarizado. Se mira lo que HACE la función: security definer con ruta fija,
+-- sin anon ni authenticated, con service_role, y que su cuerpo respete el veto del coach.
+select '0149 - estandarizado se recalcula', 'recalcular_estandarizado: security definer con search_path fijo, solo service_role, respeta el veto',
+       case when to_regprocedure('public.recalcular_estandarizado()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.recalcular_estandarizado()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.recalcular_estandarizado()')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.recalcular_estandarizado()', 'execute')
+              or has_function_privilege('authenticated', 'public.recalcular_estandarizado()', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.recalcular_estandarizado()', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.recalcular_estandarizado()')) not like '%origen = ''derivado''%' then 'NO'
+            else 'SI' end
+union all
 -- La 0146: avisos_checkin_enviados (recordatorio push del check-in de las 6 pm). Solo service_role escribe.
 select '0146 - avisos_checkin_enviados: RLS, solo service_role, un recordatorio por persona y dia', 'avisos_checkin_enviados con RLS; anon y authenticated sin select, insert, update ni delete; service_role con insert; indice unico por persona y dia',
        case when to_regclass('public.avisos_checkin_enviados') is null then 'NO'
