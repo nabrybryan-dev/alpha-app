@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Sheet } from '../../../../components/ui/Sheet'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
@@ -6,6 +6,8 @@ import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
 import { BotonDarLaVuelta } from './BotonDarLaVuelta'
 import { Opcion } from './OpcionDeTecla'
 import { LecturaDeRegion } from './LecturaDeRegion'
+import { useRegionElegida } from './useRegionElegida'
+import type { CamaraDelSalon } from '../paredes/geometriaDeCuadro'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
 import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
@@ -38,6 +40,11 @@ export interface PortadaDelCuerpoProps {
   alCambiarVista: (vista: VistaDelSalon) => void
   /** Hacia dónde mira la cámara (grados) y qué hace «Dar la vuelta»; sin lo segundo no hay botón. */
   azimutDelCuerpo?: number
+  /**
+   * La cámara con la que se dibuja el cuerpo. Con ella, un toque corto SOBRE el sujeto elige la región
+   * bajo el dedo, igual que su botón; sin ella, solo quedan los botones.
+   */
+  camara?: CamaraDelSalon
   alDarLaVuelta?: (azimut: number) => void
   /** Lo que toca, para la linea de arriba: nombre y cifras. Sin nada que decir no hay linea. */
   resumen?: { nombre: string; cifras: string }
@@ -82,13 +89,15 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const [hojaAbierta, setHojaAbierta] = useState(false)
   const enCuerpo = p.vista === 'cuerpo'
   const lectura = lecturaCorta(p.series)
+  const ancla = useRef<HTMLDivElement>(null)
+  const [regionElegida, setRegionElegida] = useRegionElegida(ancla, p.camara, enCuerpo && Boolean(lectura), p.series)
   // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
   // como «por trabajar» (revisión ciega, N5).
   const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
 
   return (
     <>
-      <div data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
+      <div ref={ancla} data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
         {/* ARRIBA, EN PEQUENO: que ejercicio toca y sus cifras (decision de Bryan). Los cuadros
             grandes de la pared y el reloj son de la vista de movimiento. */}
         {enCuerpo && p.resumen && (
@@ -213,7 +222,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 Aún no hay series anotadas
               </p>
             )}
-            {lectura && <LecturaDeRegion series={p.series} rango={p.rango} />}
+            {lectura && <LecturaDeRegion series={p.series} rango={p.rango} elegida={regionElegida} alElegir={setRegionElegida} />}
             <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
             </p>

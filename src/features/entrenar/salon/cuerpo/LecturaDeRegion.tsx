@@ -12,8 +12,28 @@ import type { RangoDeLectura } from './PortadaDelCuerpo'
  * `role="status"`, «Dorsal · 2 series hoy» (o «esta semana»); tocarla otra vez la suelta. La
  * elegida sigue al rango: al pasar de Hoy a Semana la cifra cambia sin tocar de nuevo.
  */
-export function LecturaDeRegion({ series, rango }: { series: SeriesPorRegion; rango: RangoDeLectura }) {
-  const [elegida, setElegida] = useState<IdDeRegion | null>(null)
+export function LecturaDeRegion({
+  series,
+  rango,
+  elegida: elegidaDeFuera,
+  alElegir,
+}: {
+  series: SeriesPorRegion
+  rango: RangoDeLectura
+  /**
+   * La región elegida cuando la decide quien monta esto (la portada, que también la elige al
+   * tocar el músculo sobre el cuerpo 3D, 30-oct). Sin ella, la lleva el propio componente.
+   */
+  elegida?: IdDeRegion | null
+  alElegir?: (id: IdDeRegion | null) => void
+}) {
+  const [propia, setPropia] = useState<IdDeRegion | null>(null)
+  const elegida = elegidaDeFuera !== undefined ? elegidaDeFuera : propia
+  const setElegida = (f: (e: IdDeRegion | null) => IdDeRegion | null) => {
+    const nueva = f(elegida)
+    setPropia(nueva)
+    alElegir?.(nueva)
+  }
   const conSeries = REGIONES.filter((r) => (series[r.id] ?? 0) > 0)
   return (
     <div className="pointer-events-none flex max-w-full flex-col items-center">

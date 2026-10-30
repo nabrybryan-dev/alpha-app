@@ -1296,7 +1296,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             porTrabajar={porTrabajar}
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
-            alCambiarVista={setVista} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta}
+            alCambiarVista={setVista} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta} camara={camara}
             resumen={resumenDeLaPortada}
             reloj={
               contenido

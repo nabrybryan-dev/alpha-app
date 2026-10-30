@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { cuentaDeRegion } from './cuentaDeRegion'
 import { LecturaDeRegion } from './LecturaDeRegion'
 import { PortadaDelCuerpo, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
@@ -32,6 +32,19 @@ describe('LecturaDeRegion: tocar una región lee su cuenta', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
     rerender(<LecturaDeRegion series={{ dors: 5 }} rango="semana" />)
     expect(screen.getByRole('status').textContent).toBe('Dorsal · 5 series esta semana')
+  })
+  it('si la portada decide la región (toque sobre el cuerpo), la lectura la dice igual que con el botón', () => {
+    const { rerender } = render(<LecturaDeRegion series={{ dors: 2, bic: 1 }} rango="hoy" elegida="dors" />)
+    expect(screen.getByRole('status').textContent).toBe('Dorsal · 2 series hoy')
+    expect(screen.getByRole('button', { name: 'Dorsal' })).toHaveAttribute('aria-pressed', 'true')
+    rerender(<LecturaDeRegion series={{ dors: 2, bic: 1 }} rango="hoy" elegida={null} />)
+    expect(screen.getByRole('status').textContent).toBe('')
+  })
+  it('tocar un botón avisa a quien decide, para que el cuerpo y los botones digan lo mismo', () => {
+    const alElegir = vi.fn()
+    render(<LecturaDeRegion series={{ dors: 2 }} rango="hoy" elegida={null} alElegir={alElegir} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Dorsal' }))
+    expect(alElegir).toHaveBeenCalledWith('dors')
   })
   it('sin series no pinta botones', () => {
     render(<LecturaDeRegion series={{}} rango="hoy" />)
