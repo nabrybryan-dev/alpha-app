@@ -204,6 +204,9 @@ jobs:
       - name: Las observaciones del agente las lee quien entra a la consola; seguridad y prescripciones solo entran para firma, sin fuente no entran, y se firman por la función, a nombre de quien firma
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/215-observaciones-agente.sql
 
+      - name: El candado de microciclos - la app y la cadena no se pisan en silencio, y confirmar es del coach
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216-candado-de-microciclos.sql
+
       - name: Las alertas nutricionales no se encienden sin firma completa y su detalle solo lo lee la nutricionista
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/221-alertas-nutricion.sql
 
