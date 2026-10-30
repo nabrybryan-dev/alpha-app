@@ -1335,7 +1335,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           ritmo={ritmo}
           sesion={sesionEnPantalla}
           patron={patron}
-          onAvance={setAvanceDelPanel}
+          onAvance={setAvanceDelPanel} diaElegido={diaElegido}
         />
       </div>
     </div>
