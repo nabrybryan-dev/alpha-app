@@ -1277,7 +1277,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         {ejercicio && (
           <CajonDeSerie
             microcicloId={props.microciclo.id}
-            ejercicio={ejercicio}
+            ejercicio={ejercicio} soloMirar={diaElegido !== null}
             abierto={fichaAbierta}
             onAbrir={() => setFichaAbierta(true)}
             onCerrar={() => setFichaAbierta(false)}

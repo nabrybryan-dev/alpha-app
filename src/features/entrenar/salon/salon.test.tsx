@@ -903,6 +903,23 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
     expect(within(banda).getByRole('button', { name: /cambiar de día/i })).toHaveTextContent(semana[otro].dia)
   })
 
+  it('mirando otro día no se ofrece anotar: la ficha de la serie no existe, y al volver a hoy reaparece', () => {
+    const { microciclo, sesion } = montarConFuerza()
+    const semana = armarSemana(microciclo, hoyIso())
+    const otro = semana.findIndex((d) => d.sesionId !== undefined && d.sesionId !== sesion.id)
+    expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[otro])
+    expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).toBeNull()
+    expect(screen.queryByRole('link', { name: /(Empezar|Continuar) sesión|Ver resumen/ })).toBeNull()
+
+    const hoy = semana.findIndex((d) => d.sesionId === sesion.id)
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[hoy])
+    expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).not.toBeNull()
+  })
+
   it('elegir un día de descanso no enseña la sesión de otro día', () => {
     const { microciclo } = montarConFuerza()
     const semana = armarSemana(microciclo, hoyIso())
