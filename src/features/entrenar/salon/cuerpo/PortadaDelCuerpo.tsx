@@ -3,6 +3,7 @@ import { Sheet } from '../../../../components/ui/Sheet'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
 import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
+import { LecturaDeRegion } from './LecturaDeRegion'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
 import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
@@ -260,6 +261,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
                 Aún no hay series anotadas
               </p>
             )}
+            {lectura && <LecturaDeRegion series={p.series} rango={p.rango} />}
             <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
               {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
             </p>
