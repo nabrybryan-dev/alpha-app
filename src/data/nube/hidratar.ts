@@ -770,7 +770,7 @@ export async function hidratarDesdeNube(): Promise<void> {
       ? armarComidas(comidas.data ?? [], items.data ?? [])
       : (local?.registrosComida ?? []),
     preferenciasEstado: preferencias.error
-      ? (local?.preferenciasEstado ?? [])
+      ? (instantaneaLocal().preferenciasEstado ?? [])
       : (preferencias.data ?? []).map(
       (f): PreferenciaEstado => ({
         usuarioId: f.asesorado_id as string,
