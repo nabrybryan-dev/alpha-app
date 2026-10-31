@@ -212,3 +212,6 @@ jobs:
 
       - name: El trigger de la revision semanal guarda quien pidio la correccion (gana el ultimo), distingue republicacion tecnica y no cambia el solicitante en una edicion suelta
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/252-trigger-revision-quien-pidio.sql
+
+      - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), no la persona; solo service_role escribe y el upsert por version es idempotente
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql
