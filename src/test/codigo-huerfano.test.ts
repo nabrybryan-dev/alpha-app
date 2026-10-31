@@ -135,13 +135,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/mercadeoManuela.ts#normalizarUrl':
     'Contrato del buzón de mercadeo (0096): lo consumirá el formulario de referencias cuando ' +
     'avise de un enlace repetido antes de enviarlo; la base ya lo normaliza al insertar.',
-  // La traducción de una marca de riesgo a la propuesta que devuelve el servidor. La usa
-  // SOLO la Edge Function `praxis-registro`, que vive fuera de src/ y por eso este análisis
-  // no la ve. Va en el dominio, junto al filtro, para que pantalla y función compartan una
-  // sola regla (revisión del PR #331, A3).
-  'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
-    'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
-    'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
   // El aviso al coach (3-oct, migración 0108): de la marca de riesgo al TIPO de señal que se guarda.
   // Lo llama SOLO la Edge Function praxis-registro (el resto del módulo lo usa la consola).
   'src/domain/praxis/aviso.ts#nivelDeMarca':
