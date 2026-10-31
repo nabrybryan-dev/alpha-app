@@ -186,38 +186,42 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);   -- servicio: sin sesión de usuario
 
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-alta-1', 'd7000000-0000-0000-0000-000000000001', 1, 'propuesto', '{}'::jsonb);
+  ('m-alta-nuevo-1', 'd7000000-0000-0000-0000-000000000001', 1, 'propuesto', '{}'::jsonb);
 
 select pruebas.afirmar(
   (select count(*) from public.aprobaciones_primer_plan
-    where usuario_id = 'd7000000-0000-0000-0000-000000000001' and microciclo_id = 'm-alta-1'
+    where usuario_id = 'd7000000-0000-0000-0000-000000000001' and microciclo_id = 'm-alta-nuevo-1'
       and estado = 'propuesto' and riesgo = 'medio') = 1,
   'proponer el primer microciclo no creó la fila de aprobación (riesgo medio, propuesto)'
 );
 
 -- Idempotente: tocar el estado otra vez, o proponer un segundo plan mientras el primero
 -- espera, no duplica ni rompe.
-update public.microciclos set estado = 'propuesto' where id = 'm-alta-1';
+update public.microciclos set estado = 'propuesto' where id = 'm-alta-nuevo-1';
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-alta-1b', 'd7000000-0000-0000-0000-000000000001', 2, 'propuesto', '{}'::jsonb);
+  ('m-alta-nuevo-2', 'd7000000-0000-0000-0000-000000000001', 2, 'propuesto', '{}'::jsonb);
 select pruebas.afirmar(
   (select count(*) from public.aprobaciones_primer_plan where usuario_id = 'd7000000-0000-0000-0000-000000000001') = 1,
   'la fila de aprobación se duplicó (debía haber un solo pendiente por persona)'
 );
-delete from public.microciclos where id = 'm-alta-1b';
+delete from public.microciclos where id = 'm-alta-nuevo-2';
 
 -- Una renovación (ya tuvo un plan cerrado) NO crea fila: no es un primer plan.
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-alta-3-viejo', 'd7000000-0000-0000-0000-000000000003', 1, 'cerrado', '{}'::jsonb),
-  ('m-alta-3', 'd7000000-0000-0000-0000-000000000003', 2, 'propuesto', '{}'::jsonb);
+  ('m-alta-renueva-1', 'd7000000-0000-0000-0000-000000000003', 1, 'cerrado', '{}'::jsonb),
+  ('m-alta-renueva-2', 'd7000000-0000-0000-0000-000000000003', 2, 'propuesto', '{}'::jsonb);
 select pruebas.afirmar(
   (select count(*) from public.aprobaciones_primer_plan where usuario_id = 'd7000000-0000-0000-0000-000000000003') = 0,
   'una renovación creó fila de aprobación del primer plan'
 );
 
 -- Un plan propuesto de un coach tampoco.
+-- «Coach Alta» se queda sin slug al nacer: `coach-alta` choca por prefijo con el de otra
+-- persona (`coach`) y la 0112 no inventa sufijos. Se le pone uno a mano, que es lo que hace
+-- Bryan desde el SQL Editor (sin sesión, y sin microciclos todavía).
+update public.usuarios_app set slug = 'alta-del-coach' where id = 'e7000000-0000-0000-0000-000000000001';
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-alta-coach', 'e7000000-0000-0000-0000-000000000001', 1, 'propuesto', '{}'::jsonb);
+  ('m-alta-del-coach-1', 'e7000000-0000-0000-0000-000000000001', 1, 'propuesto', '{}'::jsonb);
 select pruebas.afirmar(
   (select count(*) from public.aprobaciones_primer_plan where usuario_id = 'e7000000-0000-0000-0000-000000000001') = 0,
   'un plan propuesto de un coach creó fila de aprobación'
@@ -225,7 +229,7 @@ select pruebas.afirmar(
 
 -- Un microciclo que nace activo no crea nada.
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-alta-2', 'd7000000-0000-0000-0000-000000000002', 1, 'activo', '{}'::jsonb);
+  ('m-alta-otro-1', 'd7000000-0000-0000-0000-000000000002', 1, 'activo', '{}'::jsonb);
 select pruebas.afirmar(
   (select count(*) from public.aprobaciones_primer_plan where usuario_id = 'd7000000-0000-0000-0000-000000000002') = 0,
   'un microciclo activo creó fila de aprobación'
@@ -233,7 +237,7 @@ select pruebas.afirmar(
 
 -- Guardamos el id de la fila (como dueño de la prueba) para las llamadas siguientes.
 select set_config('prueba.aprobacion_id',
-  (select id::text from public.aprobaciones_primer_plan where microciclo_id = 'm-alta-1'), false);
+  (select id::text from public.aprobaciones_primer_plan where microciclo_id = 'm-alta-nuevo-1'), false);
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 6 · El asesorado no ve ni se aprueba a sí mismo
@@ -258,7 +262,7 @@ end $$;
 reset role;
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-alta-1') = 'propuesto',
+  (select estado from public.microciclos where id = 'm-alta-nuevo-1') = 'propuesto',
   'el plan se activó aunque quien intentó aprobarlo era el propio asesorado'
 );
 
@@ -276,14 +280,14 @@ select pruebas.afirmar(
 reset role;
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-alta-1') = 'activo',
+  (select estado from public.microciclos where id = 'm-alta-nuevo-1') = 'activo',
   'aprobar no dejó el primer plan activo: el trayecto del alta no llega al final'
 );
 
 -- Con el plan activo, un nuevo propuesto ya es renovación: sin fila de primer plan.
 select set_config('request.jwt.claim.sub', '', false);
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-alta-1c', 'd7000000-0000-0000-0000-000000000001', 2, 'propuesto', '{}'::jsonb);
+  ('m-alta-nuevo-2', 'd7000000-0000-0000-0000-000000000001', 2, 'propuesto', '{}'::jsonb);
 select pruebas.afirmar(
   (select count(*) from public.aprobaciones_primer_plan where usuario_id = 'd7000000-0000-0000-0000-000000000001') = 1,
   'un segundo plan propuesto, ya con plan activo, creó otra fila de primer plan'
