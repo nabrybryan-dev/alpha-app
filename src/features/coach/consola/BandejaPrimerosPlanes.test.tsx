@@ -27,6 +27,16 @@ vi.mock('../../../data/consola/primerosPlanes', () => ({
   planPropuesto: (...a: unknown[]) => datos.planPropuesto(...a),
 }))
 
+/** Quiénes tienen guion de llamada (0151); `null` = la lectura falló. */
+const guiones = { conGuion: new Set<string>() as Set<string> | null, pedidos: [] as unknown[] }
+
+vi.mock('../../../data/consola/guionesLlamada', () => ({
+  usuariosConGuion: (ids: string[]) => {
+    guiones.pedidos.push(ids)
+    return Promise.resolve(guiones.conGuion ? { ok: true, usuarios: guiones.conGuion } : { ok: false, error: 'x' })
+  },
+}))
+
 const { BandejaPrimerosPlanes } = await import('./BandejaPrimerosPlanes')
 
 function plan(parcial: Partial<PrimerPlan> = {}): PrimerPlan {
@@ -53,6 +63,8 @@ beforeEach(() => {
   datos.primerosPlanesPendientes.mockReset().mockResolvedValue([plan()])
   datos.decidirPrimerPlan.mockReset()
   datos.planPropuesto.mockReset()
+  guiones.conGuion = new Set()
+  guiones.pedidos = []
 })
 
 afterEach(() => {
@@ -73,6 +85,23 @@ describe('BandejaPrimerosPlanes', () => {
     expect(screen.getByText('Riesgo bajo')).toBeInTheDocument()
     expect(screen.getByText(/quedan 1 d/)).toBeInTheDocument()
     expect(screen.getByText(/pasa solo al vencer/)).toBeInTheDocument()
+  })
+
+  it('marca «Guion listo» solo a quien ya tiene guion de llamada, con una consulta para toda la lista', async () => {
+    datos.primerosPlanesPendientes.mockResolvedValue([plan(), plan({ id: 'ap-2', usuarioId: 'u-otra' })])
+    guiones.conGuion = new Set(['u-otra'])
+    render(<BandejaPrimerosPlanes />)
+    expect(await screen.findByText('Guion listo')).toBeInTheDocument()
+    expect(screen.getAllByText('Guion listo')).toHaveLength(1)
+    expect(guiones.pedidos).toEqual([['u-nueva', 'u-otra']])
+  })
+
+  it('si la lectura de guiones falla, la bandeja sigue igual y sin marca', async () => {
+    guiones.conGuion = null
+    render(<BandejaPrimerosPlanes />)
+    expect(await screen.findByText('Persona nueva')).toBeInTheDocument()
+    await waitFor(() => expect(guiones.pedidos).toHaveLength(1))
+    expect(screen.queryByText('Guion listo')).not.toBeInTheDocument()
   })
 
   it('aprobar pide confirmación en sitio, nunca confirm(), y deja la marca donde se pulsó', async () => {

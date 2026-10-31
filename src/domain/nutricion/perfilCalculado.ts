@@ -118,7 +118,7 @@ export function calcularPerfil(
  * Las señales de la encuesta que piden que alguien lo mire antes de enseñar
  * cifras.
  *
- * De la encuesta de la app sale UNA: el ciclo alterado. El antecedente de
+ * De la encuesta de la app sale UNA: el ciclo alterado (o desconocido: ver `cicloPideRevision`). El antecedente de
  * conducta alimentaria lo trae la encuesta de captación —que sí lo pregunta— a
  * través del importador; la app no lo pregunta a propósito, porque hacerlo en
  * un formulario sin nadie al otro lado que responda es peor que no
@@ -126,9 +126,32 @@ export function calcularPerfil(
  * la levanta la nutricionista, que conoce a la persona.
  */
 export function senalesDeLaEncuesta(respuestas: Respuestas): SenalesDeRevision {
-  const ciclo = respuestas.cicloMenstrual
   return {
-    cicloAlterado: ciclo === 'irregular' || ciclo === 'ausente',
+    cicloAlterado: cicloPideRevision(respuestas),
     antecedenteTca: respuestas.antecedenteTca === 'si',
   }
+}
+
+/** Las respuestas de ciclo que NO piden revisión. Ver `cicloPideRevision`. */
+const CICLOS_SIN_ALARMA: readonly string[] = ['regular', 'anticoncepcion_hormonal', 'prefiere_no_decir']
+
+/**
+ * Si el ciclo pide que la nutricionista mire antes de enseñar cifras.
+ *
+ * FALLA HACIA EL LADO SEGURO (31-oct-2026). Hasta entonces la regla era una lista de alarmas
+ * —'irregular' o 'ausente'— y todo lo demás pasaba: un valor nuevo se colaba en silencio, que es
+ * lo que hacían la amenorrea y la menopausia de la encuesta de captación. Ahora es al revés: la
+ * lista es de lo que NO alarma, y lo que la app no reconozca pide revisión. Para los cinco valores
+ * de la encuesta el resultado es el mismo de antes; solo cambia para lo desconocido. El coste no es
+ * simétrico (`necesitaRevision`): retener de más se arregla con un clic, enseñar de más no.
+ *
+ * `cicloEnLaCaptacion` (la respuesta de la encuesta de captación que la app no puede decir exacta)
+ * pide revisión por sí sola, conteste lo que conteste después en la app.
+ */
+function cicloPideRevision(respuestas: Respuestas): boolean {
+  const enLaCaptacion = respuestas.cicloEnLaCaptacion
+  if (typeof enLaCaptacion === 'string' && enLaCaptacion.trim()) return true
+  const ciclo = respuestas.cicloMenstrual
+  if (ciclo === undefined || ciclo === '') return false
+  return !(typeof ciclo === 'string' && CICLOS_SIN_ALARMA.includes(ciclo))
 }

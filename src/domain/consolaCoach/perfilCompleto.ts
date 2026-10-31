@@ -371,6 +371,7 @@ const ETIQUETAS_ALIMENTACION: Record<string, string> = {
   presupuestoSemanal: 'Presupuesto semanal',
   tieneBascula: 'Báscula de cocina',
   cicloMenstrual: 'Ciclo menstrual',
+  cicloEnLaCaptacion: 'Ciclo menstrual (encuesta de captación)',
   sinAcceso: 'Sin acceso a',
   pasosDiarios: 'Pasos diarios (dichos)',
   diasEntreno: 'Días de entreno (dichos)',

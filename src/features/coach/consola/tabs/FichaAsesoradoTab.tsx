@@ -8,6 +8,7 @@ import { desviacionRir } from '../../../../domain/cumplimiento'
 import { compararMicrociclos } from '../../../../domain/consolaCoach/diffMicrociclo'
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import type { Microciclo } from '../../../../domain/types'
+import { GuionDeVenta } from '../../GuionDeVenta'
 import { NotasDeLlamada } from '../../NotasDeLlamada'
 import { ObservacionesDelAgente } from '../../ObservacionesDelAgente'
 import { PresentarAlAsesorado } from '../../presentacion/PresentacionAsesorado'
@@ -30,6 +31,7 @@ import { usePuestoCoach } from '../usePuestoCoach'
  *
  * Casi todo es de LECTURA sobre lo que ya baja el repositorio y las tablas de la cadena. Lo que
  * sí escribe, y solo eso:
+ *  - nada del guion de llamada (`GuionDeVenta`, 0151): solo lo lee; lo escribe la Edge Function `guion-llamada`;
  *  - las notas de llamada (`NotasDeLlamada`), de quien las anota: es la pestaña que Manuela abre
  *    (entra por la capacidad `leer_entrenamiento`), no la ficha de `/coach/asesorados`, a la que
  *    no llega;
@@ -194,6 +196,9 @@ export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
         <p className="min-w-0 text-[13px] text-tenue">Para enseñarle cómo va: su semana, su plan y lo que hizo contra lo que se le pidió.</p>
         <PresentarAlAsesorado datos={datos} historial={historial} />
       </div>
+      {/* El guion que dejó la landing para la llamada de venta (0151), encima de las notas: primero se
+          lee, después se anota. Sin guion no ocupa sitio. `key`, por lo mismo que las notas. */}
+      <GuionDeVenta key={`guion-${usuarioId}`} usuarioId={usuarioId} className="xl:col-span-12" />
       {/* `key`: el estado y el borrador de la tarjeta son de UNA persona; sin ella, pasar de un
           asesorado a otro arrastraría lo escrito al siguiente. */}
       <div className={`min-w-0 ${esCoach ? 'xl:col-span-8' : 'xl:col-span-12'}`}>

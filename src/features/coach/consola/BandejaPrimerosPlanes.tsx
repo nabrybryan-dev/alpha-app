@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Badge } from '../../../components/ui/Badge'
 import { db } from '../../../data/dbInstance'
+import { usuariosConGuion } from '../../../data/consola/guionesLlamada'
 import {
   decidirPrimerPlan,
   planPropuesto,
@@ -53,6 +54,9 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
   const [fallo, setFallo] = useState<string | null>(null)
   const [intento, setIntento] = useState(0)
   const [ahora, setAhora] = useState(() => Date.now())
+  /** Quiénes ya tienen guion de llamada (0151). Es solo una marca: si su lectura falla, la marca
+   *  no sale y nada más — el guion se lee en la ficha, que sí avisa de su propio fallo. */
+  const [conGuion, setConGuion] = useState<ReadonlySet<string>>(() => new Set())
 
   useEffect(() => {
     if (!puedeVer) return
@@ -62,6 +66,9 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
       if (lectura.ok) {
         setPlanes(lectura.datos)
         setFallo(null)
+        usuariosConGuion(lectura.datos.map((p) => p.usuarioId)).then((guiones) => {
+          if (vivo && guiones.ok) setConGuion(guiones.usuarios)
+        })
       } else {
         setPlanes(null)
         setFallo(lectura.error)
@@ -110,6 +117,7 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
               key={plan.id}
               i={i}
               plan={plan}
+              guionListo={conGuion.has(plan.usuarioId)}
               ahora={ahora}
               permisos={permisos}
               onVerPersona={onVerPersona}
@@ -125,13 +133,20 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
 interface FilaProps {
   i: number
   plan: PrimerPlan
+  /** La landing ya dejó el guion de la llamada de esta persona (se lee en su ficha). */
+  guionListo: boolean
   ahora: number
   permisos: { aprobarPrimerPlan: boolean; autorizarExcepcion: boolean }
   onVerPersona?: (usuarioId: string) => void
   onDecidido: (plan: PrimerPlan) => void
 }
 
-function FilaPrimerPlan({ i, plan, ahora, permisos, onVerPersona, onDecidido }: FilaProps) {
+/** Aparte para no sumar ramas a `FilaPrimerPlan` (trinquete de complejidad). */
+function MarcaGuionListo({ listo }: { listo: boolean }) {
+  return listo ? <Badge tono="azul">Guion listo</Badge> : null
+}
+
+function FilaPrimerPlan({ i, plan, guionListo, ahora, permisos, onVerPersona, onDecidido }: FilaProps) {
   const [abierta, setAbierta] = useState<DecisionPrimerPlan | null>(null)
   const [motivo, setMotivo] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -180,6 +195,7 @@ function FilaPrimerPlan({ i, plan, ahora, permisos, onVerPersona, onDecidido }: 
         <span className="text-sm font-bold text-texto">{nombre}</span>
         <Badge tono={TONO_RIESGO[plan.riesgo]}>Riesgo {plan.riesgo}</Badge>
         {plan.estado === 'espera_bryan' && <Badge tono="rojo">Espera a Bryan</Badge>}
+        <MarcaGuionListo listo={guionListo} />
         <span
           className={`cifras ml-auto text-[12px] font-bold ${reloj.urgente ? 'text-rojo' : 'text-tenue'}`}
           aria-label={`Plazo: ${reloj.texto}`}
