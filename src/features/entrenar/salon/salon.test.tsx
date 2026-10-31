@@ -432,6 +432,7 @@ function montarConFuerza(elegirSesion?: (s: Sesion) => boolean) {
 /** Monta el salon con fuerza y abre la vista de MOVIMIENTO (donde viven el eje W y las paredes). */
 function montarEnMovimiento(...args: Parameters<typeof montarConFuerza>) {
   const r = montarConFuerza(...args)
+  fireEvent.click(screen.getByRole('button', { name: /Abrir Praxis/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
   return r
 }
@@ -450,6 +451,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     try {
     montarConFuerza()
     // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(screen.getByRole('button', { name: /Abrir Praxis/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
@@ -964,17 +966,10 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
     expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toHaveTextContent(primero.nombre)
   })
 
-  it('el botón del cronómetro de la portada recibe toques aunque la franja no', () => {
-    montarConFuerza()
-    const franja = document.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')!.closest('.muro-escena')!
-    expect(franja.className).toContain('pointer-events-none')
-    expect(franja.className).toContain('[&_button]:pointer-events-auto')
-  })
-
-  it('en la portada del cuerpo (vista por defecto) el cronometro de la sesion sigue ahi', () => {
+  it('en la portada del cuerpo (vista por defecto) el cronómetro de sesión no estorba: vive en el movimiento', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
-    expect(salon.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')).not.toBeNull()
+    expect(salon.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')).toBeNull()
     // Y las cuatro estaciones y la ficha de la serie, que no dependian de las paredes.
     expect(salon.querySelectorAll('[data-estacion]')).toHaveLength(4)
     expect(salon.querySelector('[data-cajon="serie"]')).not.toBeNull()

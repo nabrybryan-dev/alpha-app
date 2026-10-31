@@ -47,6 +47,12 @@ function renderizarEntrenar() {
 }
 
 async function esperarAlDisco(): Promise<HTMLElement> {
+  // El mando vive en la vista de movimiento: el centro del cuerpo no trae mandos.
+  const guia = await waitFor(() => screen.queryByRole('button', { name: /Abrir Praxis/ }) ?? screen.getByRole('button', { name: 'Ver el cuerpo' }))
+  if (guia.getAttribute('aria-label')?.startsWith('Abrir Praxis')) {
+    fireEvent.click(guia)
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+  }
   return await waitFor(() => screen.getByRole('button', { name: /Mando del reloj de la pared/i }))
 }
 
@@ -184,7 +190,6 @@ describe('el tiempo de la repetición, desde el disco', () => {
   it('un tirón corto sigue cambiando lo que cuenta la pared, y no toca la repetición', async () => {
     renderizarEntrenar()
     // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
-    fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     const disco = await esperarAlDisco()
 
     // Sin aguantar: se baja el dedo, se tira a la izquierda y se suelta antes de la espera.
@@ -239,10 +244,9 @@ describe('el tiempo de la repetición, desde el disco', () => {
   // LA PORTADA ES EL CUERPO (vista por defecto): ahi el descanso, su aviso de fin y el
   // cronometro tienen que funcionar igual que en la vista de movimiento. Antes dependian de
   // las paredes, que la portada no monta: al guardar una serie no se veia el descanso.
-  it('en la portada del cuerpo, un tirón corto pone el descanso y la cuenta se ve', async () => {
+  it('un tirón corto pone el descanso y la cuenta se ve', async () => {
     renderizarEntrenar()
     const disco = await esperarAlDisco()
-    expect(document.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]'), 'sin cronometro en la portada').not.toBeNull()
 
     dedo(disco, 'pointerdown', 200, 600)
     dedo(disco, 'pointermove', 120, 600)

@@ -634,8 +634,8 @@ export class Orbita {
   capturarPuntero = true
   /** El viaje en curso hacia otra cámara (cambiar de ejercicio), o ninguno. */
   private viaje: {
-    desde: { az: number; el: number; d: number }
-    hasta: { az: number; el: number; d: number }
+    desde: { az: number; el: number; d: number; c: readonly number[] }
+    hasta: { az: number; el: number; d: number; c: readonly number[] }
     t0: number
     ms: number
   } | null = null
@@ -770,10 +770,10 @@ export class Orbita {
    * dedo en la sala eso era «se pierde el diseño y se va para otro lado». Un dedo encima
    * corta el viaje: la cámara es de quien la toca.
    */
-  viajarA(hasta: { azimut: number; elevacion: number; distancia: number }, ms = 520): void {
+  viajarA(hasta: { azimut: number; elevacion: number; distancia: number; centro?: readonly number[] }, ms = 520): void {
     this.viaje = {
-      desde: { az: this.azimut, el: this.elevacion, d: this.distancia },
-      hasta: { az: hasta.azimut, el: hasta.elevacion, d: hasta.distancia },
+      desde: { az: this.azimut, el: this.elevacion, d: this.distancia, c: [...this.centro] },
+      hasta: { az: hasta.azimut, el: hasta.elevacion, d: hasta.distancia, c: [...(hasta.centro ?? this.centro)] },
       t0: performance.now(),
       ms,
     }
@@ -784,8 +784,8 @@ export class Orbita {
     if (!v) return false
     const t = Math.min(1, Math.max(0, (ahora - v.t0) / v.ms))
     const s = 1 - Math.pow(1 - t, 3)
-    // El azimut va por el camino corto: de 350° a 10° son 20°, no 340.
-    const vuelta = (((v.hasta.az - v.desde.az) % 360) + 540) % 360 - 180
+    const vuelta = (((v.hasta.az - v.desde.az) % 360) + 540) % 360 - 180 // camino corto: de 350° a 10° son 20°
+    this.centro = [0, 1, 2].map((i) => v.desde.c[i]! + (v.hasta.c[i]! - v.desde.c[i]!) * s) as typeof this.centro
     this.azimut = v.desde.az + vuelta * s
     this.elevacion = v.desde.el + (v.hasta.el - v.desde.el) * s
     this.distancia = v.desde.d + (v.hasta.d - v.desde.d) * s

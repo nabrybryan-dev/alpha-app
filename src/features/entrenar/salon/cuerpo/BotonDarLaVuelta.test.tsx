@@ -4,13 +4,13 @@ import { PortadaDelCuerpo, type PortadaDelCuerpoProps } from './PortadaDelCuerpo
 
 function props(sobre: Partial<PortadaDelCuerpoProps> = {}): PortadaDelCuerpoProps {
   return {
-    vista: 'cuerpo', capa: 'musculo', rango: 'hoy', series: {}, doloridas: [],
+    vista: 'cuerpo', capa: 'musculo', rango: 'hoy', series: {}, doloridas: [], guia: 'indice',
     alCambiarCapa: vi.fn(), alCambiarRango: vi.fn(), alCambiarVista: vi.fn(),
     ...sobre,
   }
 }
 
-describe('«Dar la vuelta» en la portada del cuerpo', () => {
+describe('«Dar la vuelta» en la vista de la guía', () => {
   it('de frente: el nombre dice qué se ve y, al tocar, pide la espalda', () => {
     const alDarLaVuelta = vi.fn()
     render(<PortadaDelCuerpo {...props({ azimutDelCuerpo: 0, alDarLaVuelta })} />)
