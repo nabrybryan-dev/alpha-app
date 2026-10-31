@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Chip, ChipGroup } from '../../components/ui/Chip'
 import type { Cuestionario } from '../../domain/types'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * «Tu coach te pregunta»: lo que la cadena de agentes dejó abierto y solo esta
@@ -160,14 +161,13 @@ export function TarjetaPregunta({ pregunta, onResponder }: TarjetaPreguntaProps)
         </p>
       )}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={enviar}
         disabled={enviando}
-        className="press rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white disabled:opacity-40"
       >
         {enviando ? 'Enviando…' : 'Responder'}
-      </button>
+      </Boton3D>
     </section>
   )
 }

@@ -168,6 +168,8 @@ function montarSalon(sesion: Sesion | undefined) {
     </MemoryRouter>,
   )
   // El eje W (atravesar con el dedo) es de la vista de MOVIMIENTO: la portada es el cuerpo.
+  const guia = screen.queryByRole('button', { name: /Abrir Praxis/ })
+  if (guia) fireEvent.click(guia)
   const abrir = screen.queryByRole('button', { name: 'Ver el movimiento' })
   if (abrir) fireEvent.click(abrir)
   return montado

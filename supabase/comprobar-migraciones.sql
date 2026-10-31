@@ -2577,6 +2577,12 @@ select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_c
             else 'SI' end
 
 union all
+select '0151 - cola de dudas de Praxis: «No era esto»', 'praxis_cola_dudas.origen admite no_era_esto',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = 'public.praxis_cola_dudas'::regclass
+                            and conname = 'praxis_cola_dudas_origen_check'
+                            and pg_get_constraintdef(oid) like '%no_era_esto%') then 'SI' else 'NO' end
+union all
 select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'videos_semanales tiene correccion_pedida_por y motivo_version',
        case when (select count(*) from information_schema.columns
                    where table_schema = 'public' and table_name = 'videos_semanales'

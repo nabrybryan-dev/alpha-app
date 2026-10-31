@@ -16,3 +16,10 @@ export function hoyIso(fecha: Date = new Date()): string {
   const dia = String(fecha.getDate()).padStart(2, '0')
   return `${fecha.getFullYear()}-${mes}-${dia}`
 }
+
+/** `2026-10-01T18:40:05-05:00`: la hora del teléfono con su zona. */
+export function horaLocalIso(d: Date = new Date()): string {
+  const p = (n: number) => String(Math.abs(n)).padStart(2, '0')
+  const desfase = -d.getTimezoneOffset()
+  return `${hoyIso(d)}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${desfase >= 0 ? '+' : '-'}${p(Math.trunc(desfase / 60))}:${p(desfase % 60)}`
+}

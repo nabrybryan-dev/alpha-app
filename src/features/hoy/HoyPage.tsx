@@ -38,6 +38,7 @@ import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { PreguntaDelCoach } from './PreguntaDelCoach'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
+import { EnlaceVerSemana } from './EnlaceVerSemana'
 import { ElResto } from './ElResto'
 import { TarjetaSesionDeHoy } from './TarjetaSesionDeHoy'
 import { RadarAlfa } from './RadarAlfa'
@@ -96,7 +97,6 @@ export default function HoyPage() {
   // formulario solo aparece solo la PRIMERA vez —cuando no hay ficha—, así que después
   // hace falta esta puerta.
   const [actualizandoSalud, setActualizandoSalud] = useState(false)
-  const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
   // Las de la cadena NO se cuentan aquí: ya tienen su propia tarjeta arriba
   // (`TarjetaPregunta`), y contarlas otra vez hace que la misma pantalla pida dos veces
@@ -128,7 +128,6 @@ export default function HoyPage() {
       texto: 'Contarnos qué te dijo tu médico',
       ruta: '/nutricion/al-dia',
     },
-    !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
       texto: `${cuestionariosPendientes.length} cuestionario${cuestionariosPendientes.length === 1 ? '' : 's'} por responder`,
       ruta: '/cuestionarios',
@@ -234,7 +233,7 @@ export default function HoyPage() {
   // del navegador es de una sola bala.
   const permiso = (
     <div className="entrada entrada-2 empty:hidden">
-      <PedirPermiso usuarioId={usuario.id} />
+      <PedirPermiso usuarioId={usuario.id} clasico={esStaff} />
     </div>
   )
 
@@ -245,6 +244,11 @@ export default function HoyPage() {
       <CabeceraSemanal diseno={diseno}>
         <TarjetaDeLaSemana nombre={primerNombre} resumen={resumen} diseno={diseno} />
         {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
+        <EnlaceVerSemana
+          diseno={diseno}
+          cumplimiento={cumplimientoSemana}
+          cuestionariosPendientes={cuestionariosPendientes.length}
+        />
       </CabeceraSemanal>
     </div>
   )
@@ -501,7 +505,7 @@ export default function HoyPage() {
         {cribado}
         {preguntaDeLaCadena}
         {barraCoach}
-        <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
+        <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} clasico />
         <Suspense
           fallback={
             <p className="text-sm text-tenue" aria-busy="true">
@@ -540,6 +544,9 @@ export default function HoyPage() {
         {carteles}
         {preguntaDeLaCadena}
         {checkinDelAsesorado}
+        <Suspense fallback={null}>
+          <MiNutricionDeHoy usuarioId={usuario.id} hoy={hoy} variante="mini" />
+        </Suspense>
         {listaPendientes}
       </section>
 
