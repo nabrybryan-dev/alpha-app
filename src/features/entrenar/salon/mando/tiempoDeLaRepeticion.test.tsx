@@ -287,6 +287,7 @@ describe('el tiempo de la repetición, desde el disco', () => {
     expect(visto.join(' ')).toContain('Descanso terminado')
     expect(visto.join(' ')).toMatch(/A la barra/)
     expect(rotuloDelMuro()).toBeNull()
-  })
+    // Seis minutos de reloj en la vista de movimiento pasan de 20 s de verdad en el CI.
+  }, 180_000)
 
 })

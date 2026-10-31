@@ -1296,7 +1296,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
             alCambiarVista={(v) => { soltar(); setVista(v) }} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta} camara={camara}
-            guia={guia} alIrEnLaGuia={irA} alIrAlEjercicio={setEjercicioManual} sesion={sesionEnPantalla} semana={microciclo.sesiones} resumen={resumenDeLaPortada}
+            guia={guia} alIrEnLaGuia={irA} alIrAlEjercicio={setEjercicioManual} sesion={sesionEnPantalla} semana={microciclo.sesiones} previo={props.microcicloPrevio} resumen={resumenDeLaPortada}
             reloj={
               contenido
                 ? {

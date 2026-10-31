@@ -20,11 +20,11 @@ function props(sobre: Partial<PortadaDelCuerpoProps> = {}): PortadaDelCuerpoProp
 const conGuia = (sobre: Partial<PortadaDelCuerpoProps> = {}) => props({ guia: 'indice', ...sobre })
 
 describe('el centro: el cuerpo y una sola línea de Praxis', () => {
-  it('la línea dice lo trabajado y abre el índice de zonas', () => {
+  it('Praxis dice lo trabajado y, al tocarla, empieza a contar el día', () => {
     const p = props({ alIrEnLaGuia: vi.fn(), azimutDelCuerpo: 0 })
     render(<PortadaDelCuerpo {...p} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir Praxis. Hoy trabajaste: Dorsal 2 · Bíceps 1 · Trapecio 1' }))
-    expect(p.alIrEnLaGuia).toHaveBeenCalledWith('indice', 0)
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir Praxis. Praxis. Hoy trabajaste: Dorsal 2 · Bíceps 1 · Trapecio 1' }))
+    expect(p.alIrEnLaGuia).toHaveBeenCalledWith({ paso: 0, zona: null }, 0)
   })
 
   it('lo que falta manda sobre lo hecho; en Piel no se dice porque no se pinta', () => {

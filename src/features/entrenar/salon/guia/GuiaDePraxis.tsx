@@ -1,5 +1,5 @@
 import { useEffect, useRef, type PointerEvent as EventoPuntero } from 'react'
-import type { Sesion } from '../../../../domain/types'
+import type { Microciclo, Sesion } from '../../../../domain/types'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
 import { seriesPorRegion, type SeriesPorRegion } from '../../sujeto/tinte'
@@ -8,6 +8,8 @@ import { cifrasEnUnaLinea } from '../cuerpo/cifrasEnUnaLinea'
 import { lecturaDeLaPrescripcion } from '../panel/lecturaDeLaPrescripcion'
 import { Opcion } from '../cuerpo/OpcionDeTecla'
 import type { RangoDeLectura } from '../cuerpo/PortadaDelCuerpo'
+import { guionDelDia, type PasoDelGuion } from './guionDelDia'
+import { PasoDePraxis } from './PasoDePraxis'
 import { FICHA_DE_REGION, ordenDeZonas, trabajoDeRegion, type TrabajoDeRegion } from './zonasDePraxis'
 import type { EstadoDeLaGuia } from './useZonaDePraxis'
 
@@ -42,6 +44,7 @@ function cifra(n: number): string {
 export interface GuiaDePraxisProps {
   estado: Exclude<EstadoDeLaGuia, null>
   sesion?: Sesion
+  previo?: Microciclo
   semana: readonly Sesion[]
   series: SeriesPorRegion
   doloridas: readonly IdDeRegion[]
@@ -178,34 +181,110 @@ function Indice({ p }: { p: GuiaDePraxisProps }) {
   )
 }
 
+/** LA MARCA DE PRAXIS: un punto de luz. Es lo que dice «esto te lo cuenta Praxis», aquí y sobre el cuerpo. */
+export function OrbeDePraxis() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block h-3.5 w-3.5 shrink-0 rounded-full motion-safe:animate-pulse"
+      style={{ background: 'radial-gradient(circle at 35% 30%, #fff, var(--oro) 55%)', boxShadow: '0 0 12px 2px rgb(var(--oro-rgb) / 0.75)' }}
+    />
+  )
+}
+
+/** Seguir o volver: va fuera de lo que se desplaza, para que las dudas abiertas no lo escondan. */
+function PasarDePaso({ p, guion, lugar }: { p: GuiaDePraxisProps; guion: readonly PasoDelGuion[]; lugar: number }) {
+  const ir = (i: number) => p.alIr({ paso: i, zona: guion[i]!.zona })
+  const alFinal = lugar === guion.length - 1
+  return (
+      <nav aria-label="Lo que cuenta Praxis" className="flex items-center justify-between gap-2 border-t border-linea px-5">
+        {lugar > 0 ? (
+          <button type="button" onClick={() => ir(lugar - 1)} className="press min-h-[44px] pr-3 text-sm font-semibold text-tenue">
+            ‹ Atrás
+          </button>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          onClick={() => (alFinal ? p.alIr(null) : ir(lugar + 1))}
+          className="press min-h-[44px] pl-3 text-sm font-bold"
+          style={{ color: 'var(--oro)' }}
+        >
+          {alFinal ? 'Listo' : 'Seguir ›'}
+        </button>
+      </nav>
+  )
+}
+
+/** Lo demás que se puede hacer desde un paso: texto discreto, al final de lo que se lee. */
+function OtrasSalidas({ p, paso }: { p: GuiaDePraxisProps; paso: PasoDelGuion }) {
+  return (
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 text-xs font-semibold text-tenue">
+        {paso.indice !== undefined && (
+          <button type="button" onClick={() => p.alIrAlEjercicio?.(paso.indice!)} className="press min-h-[44px]">
+            Anotar este ejercicio
+          </button>
+        )}
+        <button type="button" onClick={p.alVerMovimiento} className="press min-h-[44px]" aria-label="Ver el movimiento">
+          Ver el movimiento
+        </button>
+        <button type="button" onClick={() => p.alIr('indice')} className="press min-h-[44px]">
+          Todas las zonas
+        </button>
+      </div>
+  )
+}
+
 export function GuiaDePraxis(p: GuiaDePraxisProps) {
-  const zona = p.estado === 'indice' ? null : p.estado
+  const pasoAbierto = typeof p.estado === 'object' ? p.estado : null
+  const zona = !pasoAbierto && p.estado !== 'indice' ? (p.estado as IdDeRegion) : null
   const inicio = useRef<{ x: number; y: number } | null>(null)
   const cuerpo = useRef<HTMLDivElement>(null)
-  // Cada zona se lee desde arriba: sin esto, pasar de zona heredaría el desplazamiento de la anterior.
+  const guion = guionDelDia(p.sesion, p.previo)
+  const lugar = pasoAbierto ? Math.min(pasoAbierto.paso, guion.length - 1) : 0
+  const pasoEnPantalla = pasoAbierto?.paso
+  const enIndice = p.estado === 'indice'
+  // Cada paso se lee desde arriba: sin esto, heredaría el desplazamiento del anterior.
   useEffect(() => {
     cuerpo.current?.scrollTo?.({ top: 0 })
-  }, [p.estado])
+  }, [zona, pasoEnPantalla, enIndice])
 
   const alSoltar = (e: EventoPuntero<HTMLDivElement>) => {
     const g = inicio.current
     inicio.current = null
-    if (!g || !zona) return
+    if (!g || (!zona && !pasoAbierto)) return
     const dx = e.clientX - g.x
     const dy = e.clientY - g.y
     if (Math.abs(dx) < DESLIZ_MINIMO || Math.abs(dx) < Math.abs(dy) * MAS_LATERAL_QUE_VERTICAL) return
-    const orden = ordenDeZonas(p.sesion)
     const paso = dx < 0 ? 1 : -1
-    p.alIr(orden[(orden.indexOf(zona) + paso + orden.length) % orden.length]!)
+    if (pasoAbierto) {
+      const siguiente = guion[lugar + paso]
+      if (siguiente) p.alIr({ paso: lugar + paso, zona: siguiente.zona })
+      return
+    }
+    const orden = ordenDeZonas(p.sesion)
+    p.alIr(orden[(orden.indexOf(zona!) + paso + orden.length) % orden.length]!)
   }
 
+  const titulo = pasoAbierto ? guion[lugar]!.titulo : zona ? NOMBRE_DE_REGION[zona] : 'Tus zonas'
   return (
     <section
       data-no-orbita
+      data-theme="dark"
       data-testigo="guia-de-praxis"
-      aria-label={zona ? `Praxis: ${NOMBRE_DE_REGION[zona]}` : 'Praxis: zonas'}
-      className="pointer-events-auto absolute inset-x-0 flex flex-col rounded-t-3xl border-t border-linea bg-surface-1"
-      style={{ bottom: 0, height: 'calc(50dvh + var(--tope-nav))', paddingBottom: 'var(--tope-nav)', zIndex: 'var(--z-superpuesto)', touchAction: 'pan-y' }}
+      aria-label={pasoAbierto ? `Praxis cuenta: ${titulo}` : `Praxis: ${zona ? titulo : 'zonas'}`}
+      className="pointer-events-auto absolute inset-x-0 flex flex-col rounded-t-3xl"
+      style={{
+        bottom: 0,
+        height: 'calc(50dvh + var(--tope-nav))',
+        paddingBottom: 'var(--tope-nav)',
+        zIndex: 'var(--z-superpuesto)',
+        touchAction: 'pan-y',
+        background: 'var(--surface-1)', // el del tema oscuro de esta misma sección; la tinta se invierte en claro
+        borderTop: '1px solid rgb(var(--oro-rgb) / 0.55)',
+        boxShadow: '0 -12px 40px rgb(var(--oro-rgb) / 0.14)',
+      }}
       onPointerDown={(e) => {
         inicio.current = { x: e.clientX, y: e.clientY }
       }}
@@ -216,26 +295,34 @@ export function GuiaDePraxis(p: GuiaDePraxisProps) {
     >
       <header className="flex items-center gap-2 px-5 pt-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">Praxis</p>
-          <h2 className="truncate font-display text-lg text-texto">{zona ? NOMBRE_DE_REGION[zona] : 'Tus zonas'}</h2>
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">
+            <OrbeDePraxis />
+            {pasoAbierto ? `Praxis · ${lugar + 1} de ${guion.length}` : 'Praxis'}
+          </p>
+          <h2 className="mt-1 truncate font-display text-lg text-texto">{titulo}</h2>
         </div>
-        {zona && (
-          <button type="button" onClick={() => p.alIr('indice')} className="press min-h-[44px] shrink-0 px-2 text-sm font-semibold text-texto">
-            Todas
+        {!pasoAbierto && (
+          <button type="button" onClick={() => p.alIr(zona ? 'indice' : { paso: 0, zona: null })} className="press min-h-[44px] shrink-0 px-2 text-sm font-semibold text-texto">
+            {zona ? 'Todas' : 'Lo de hoy'}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => p.alIr(null)}
-          aria-label="Cerrar Praxis"
-          className="h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
+        <button type="button" onClick={() => p.alIr(null)} aria-label="Cerrar Praxis" className="h-11 w-11 shrink-0 rounded-full text-tenue">
           ✕
         </button>
       </header>
       <div ref={cuerpo} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pt-2">
-        {zona ? <Zona id={zona} p={p} /> : <Indice p={p} />}
+        {pasoAbierto ? (
+          <>
+            <PasoDePraxis paso={guion[lugar]!} />
+            <OtrasSalidas p={p} paso={guion[lugar]!} />
+          </>
+        ) : zona ? (
+          <Zona id={zona} p={p} />
+        ) : (
+          <Indice p={p} />
+        )}
       </div>
+      {pasoAbierto && <PasarDePaso p={p} guion={guion} lugar={lugar} />}
     </section>
   )
 }

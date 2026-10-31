@@ -1,14 +1,15 @@
 import { useRef } from 'react'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
-import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
+import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
 import { Opcion } from './OpcionDeTecla'
 import { useToqueSobreElCuerpo } from './useToqueSobreElCuerpo'
 import type { CamaraDelSalon } from '../paredes/geometriaDeCuadro'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
 import { relojEnMarcha, type AnclasDelReloj, type ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
-import { GuiaDePraxis } from '../guia/GuiaDePraxis'
+import { GuiaDePraxis, OrbeDePraxis } from '../guia/GuiaDePraxis'
+import { guionDelDia } from '../guia/guionDelDia'
 import { lineaDePraxis } from '../guia/zonasDePraxis'
 import type { EstadoDeLaGuia } from '../guia/useZonaDePraxis'
 
@@ -46,6 +47,7 @@ export interface PortadaDelCuerpoProps {
   alIrAlEjercicio?: (indice: number) => void
   sesion?: Sesion
   semana?: readonly Sesion[]
+  previo?: Microciclo
   /** Lo que toca, para la linea de arriba: nombre y cifras. Sin nada que decir no hay linea. */
   resumen?: { nombre: string; cifras: string }
   /**
@@ -123,33 +125,45 @@ function textoDeLaLinea(p: PortadaDelCuerpoProps, pendientes: readonly IdDeRegio
   return hecho ? `Esta semana: ${hecho}` : 'Esta semana aún no hay series anotadas'
 }
 
-/** LA ÚNICA LÍNEA DEL CENTRO. `pointer-events-none` en la franja: de ancho completo, taparía el cuerpo. */
-function LineaDePraxis({ linea, doloridas, alAbrir }: { linea: string; doloridas: readonly IdDeRegion[]; alAbrir: () => void }) {
+/**
+ * PRAXIS, HABLÁNDOLE A LA PERSONA JUNTO AL CUERPO. No es una tecla más: es un globo oscuro con su punto de
+ * luz, que dice lo de hoy y, al tocarlo, lo cuenta paso a paso. Debajo siguen los letreros de lectura.
+ * `pointer-events-none` en la franja: de ancho completo, taparía el cuerpo.
+ */
+function VozDePraxis(p: { titulo: string; linea: string; lectura: string; doloridas: readonly IdDeRegion[]; alAbrir: () => void }) {
   return (
     <div
       className="pointer-events-none absolute inset-x-0 flex flex-col items-center gap-1 px-4 text-center"
       style={{ bottom: 'calc(var(--tope-hoja) + 1rem)', zIndex: 'var(--z-elevado)' }}
     >
-      {doloridas.length > 0 && (
+      {p.doloridas.length > 0 && (
         <p className="text-[13px]" style={{ color: 'var(--rojo)', fontWeight: 800 }}>
-          Te duele (a rayas): {doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
+          Te duele (a rayas): {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
         </p>
       )}
       <button
         type="button"
-        aria-label={`Abrir Praxis. ${linea}`}
-        onClick={alAbrir}
-        className="press tecla-2 pointer-events-auto max-w-full !px-3 text-[13px] font-bold"
-        style={{ color: 'var(--texto)' }}
+        data-theme="dark"
+        aria-label={`Abrir Praxis. ${p.titulo}. ${p.linea}`}
+        onClick={p.alAbrir}
+        className="press pointer-events-auto flex max-w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left"
+        style={{
+          background: 'rgb(var(--surface-1-rgb) / 0.92)',
+          border: '1px solid rgb(var(--oro-rgb) / 0.55)',
+          boxShadow: '0 8px 28px rgb(var(--oro-rgb) / 0.22)',
+        }}
       >
-        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenue)' }}>
-          Praxis
+        <OrbeDePraxis />
+        <span className="min-w-0">
+          <span className="block truncate text-[14px] font-bold text-texto">{p.titulo}</span>
+          <span className="block truncate text-[12px] text-tenue">{p.linea}</span>
         </span>
-        <span className="truncate">{linea}</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0 fill-none stroke-current" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 6l6 6-6 6" />
-        </svg>
       </button>
+      {p.lectura && (
+        <p className="max-w-full truncate text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))' }}>
+          {p.lectura} · anotadas, no estímulo
+        </p>
+      )}
     </div>
   )
 }
@@ -186,7 +200,15 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           </div>
         )}
 
-        {enCuerpo && !guia && <LineaDePraxis linea={textoDeLaLinea(p, pendientes)} doloridas={p.doloridas} alAbrir={() => ir('indice')} />}
+        {enCuerpo && !guia && (
+          <VozDePraxis
+            titulo={p.sesion ? guionDelDia(p.sesion, p.previo)[0]!.titulo : 'Praxis'}
+            linea={textoDeLaLinea(p, pendientes)}
+            lectura={pendientes.length > 0 ? lecturaCorta(p.series) : ''}
+            doloridas={p.doloridas}
+            alAbrir={() => ir({ paso: 0, zona: null })}
+          />
+        )}
       </div>
 
       {/* El panel va FUERA del hueco: `pointer-events: none` se hereda y lo dejaría sordo. */}
@@ -194,6 +216,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         <GuiaDePraxis
           estado={guia}
           sesion={p.sesion}
+          previo={p.previo}
           semana={p.semana ?? []}
           series={p.series}
           doloridas={p.doloridas}

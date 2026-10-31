@@ -100,7 +100,7 @@ describe('la zona enfocada se enciende sola', () => {
 
 describe('la guía no gasta la clave', () => {
   it('sus archivos no llaman a la red, ni a un modelo, ni a la charla de Praxis', () => {
-    for (const archivo of ['zonasDePraxis.ts', 'GuiaDePraxis.tsx', 'useZonaDePraxis.ts']) {
+    for (const archivo of ['zonasDePraxis.ts', 'GuiaDePraxis.tsx', 'useZonaDePraxis.ts', 'guionDelDia.ts', 'PasoDePraxis.tsx']) {
       const fuente = readFileSync(resolve(__dirname, archivo), 'utf8')
       expect(fuente, archivo).not.toMatch(/\bfetch\(|anthropic|XMLHttpRequest|supabase|data\/praxis|features\/praxis|<textarea|<input/i)
     }

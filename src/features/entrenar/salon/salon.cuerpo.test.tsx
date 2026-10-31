@@ -86,6 +86,7 @@ function montar(opciones: { dolor?: { dolor: number; dolorDonde: string }; serie
 
 function abrirGuia() {
   fireEvent.click(screen.getByRole('button', { name: /Abrir Praxis/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Todas las zonas' }))
 }
 
 /** Lo que estaba a los lados del cuerpo vive en la guía: la abre si hace falta. */
@@ -127,9 +128,10 @@ describe('la vista de cuerpo es la portada', () => {
   it('lo que la sesión deja por trabajar llega al visor en rojo y se dice debajo', () => {
     montar({ seriesHechas: 0 })
     expect(ultimas().cuerpo!.tinte.dors.pendiente).toBe(true)
-    const linea = screen.getByRole('button', { name: /Abrir Praxis\. Hoy te falta: Dorsal/ })
-    // Y abre el índice de zonas, donde cada pendiente lo dice.
+    const linea = screen.getByRole('button', { name: /Abrir Praxis\..*Hoy te falta: Dorsal/ })
+    // Y abre lo que cuenta Praxis; en el índice de zonas, cada pendiente lo dice.
     fireEvent.click(linea)
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las zonas' }))
     const guia = document.querySelector('[data-testigo="guia-de-praxis"]') as HTMLElement
     expect(within(guia).getByText('Dorsal').closest('li')).toHaveTextContent('Por trabajar')
   })
