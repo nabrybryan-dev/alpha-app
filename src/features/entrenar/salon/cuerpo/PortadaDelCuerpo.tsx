@@ -12,6 +12,7 @@ import { GuiaDePraxis, OrbeDePraxis } from '../guia/GuiaDePraxis'
 import { guionDelDia } from '../guia/guionDelDia'
 import { lineaDePraxis } from '../guia/zonasDePraxis'
 import type { EstadoDeLaGuia } from '../guia/useZonaDePraxis'
+import { MicrofonoDelSalon } from '../voz/MicrofonoDelSalon'
 
 /**
  * LA PORTADA DEL CUERPO: lo que se lee ENCIMA del sujeto de Blender.
@@ -210,6 +211,18 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           />
         )}
       </div>
+
+      <MicrofonoDelSalon
+        vista={p.vista}
+        guia={guia}
+        azimut={azimut}
+        sesion={p.sesion}
+        previo={p.previo}
+        ir={ir}
+        cambiarVista={p.alCambiarVista}
+        irAlEjercicio={p.alIrAlEjercicio}
+        girar={p.alDarLaVuelta}
+      />
 
       {/* El panel va FUERA del hueco: `pointer-events: none` se hereda y lo dejaría sordo. */}
       {guia && (
