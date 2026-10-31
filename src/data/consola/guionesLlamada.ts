@@ -2,7 +2,8 @@ import { franjaEnClaro, leerGuion, type GuionDeVenta } from '../../domain/consol
 import { modoNube, supabase } from '../supabase'
 
 /**
- * El guion de llamada que deja la landing para cada persona nueva (migración 0151). Solo lectura:
+ * El guion de llamada (`guion-llamada-v1`) que deja la landing para cada persona nueva (migración
+ * 0151). Lleva el correo y el WhatsApp de la persona: solo lo leen quienes entran a la consola. Solo lectura:
  * lo escribe la Edge Function `guion-llamada` con service role; el navegador no tiene privilegio
  * de escritura.
  *
@@ -23,7 +24,7 @@ export const COLUMNAS_GUIONES_LLAMADA = [
   'guion',
   'dia_preferido',
   'franja_preferida',
-  'version',
+  'revision',
   'creado_en',
 ] as const
 
@@ -36,16 +37,15 @@ export interface FilaGuionLlamada {
   guion: unknown
   dia_preferido: string | null
   franja_preferida: string | null
-  version: number
+  /** Milisegundos de `guion.generado_en` (0151): mayor = más reciente. */
+  revision: number
   creado_en: string
 }
 
 export interface GuionGuardado {
   id: string
-  version: number
-  origen: string
   creadoEn: string
-  /** YYYY-MM-DD. La columna manda; si viene vacía, lo que diga el propio guion. */
+  /** YYYY-MM-DD. La columna manda; si viene vacía, la `reserva` del propio guion. */
   diaPreferido: string | null
   /** Ya en claro: «en la tarde». */
   franjaPreferida: string | null
@@ -53,42 +53,54 @@ export interface GuionGuardado {
   guion: GuionDeVenta
 }
 
-/** Una fila cuyo `guion` ni siquiera es un objeto se descarta: no hay nada que pintar. */
-export function aGuionGuardado(fila: FilaGuionLlamada): GuionGuardado | null {
-  const guion = leerGuion(fila.guion)
-  if (!guion) return null
+/** Hay fila, pero de una versión del esquema que esta app no sabe pintar: se dice, no se adivina. */
+export interface GuionIlegible {
+  version: string
+}
+
+export type LecturaFila = { tipo: 'guion'; guardado: GuionGuardado } | { tipo: 'ilegible'; ilegible: GuionIlegible } | null
+
+/** Una fila cuyo `guion` ni siquiera es un objeto se descarta (`null`): no hay nada que pintar. */
+export function aGuionGuardado(fila: FilaGuionLlamada): LecturaFila {
+  const lectura = leerGuion(fila.guion)
+  if (!lectura.ok) {
+    return lectura.motivo === 'version_desconocida' ? { tipo: 'ilegible', ilegible: { version: lectura.version } } : null
+  }
+  const guion = lectura.guion
   return {
-    id: fila.id,
-    version: fila.version,
-    origen: fila.origen,
-    creadoEn: fila.creado_en,
-    diaPreferido: fila.dia_preferido ?? guion.preferencia.dia,
-    franjaPreferida: franjaEnClaro(fila.franja_preferida ?? guion.preferencia.franja),
-    horaPreferida: guion.preferencia.hora,
-    guion,
+    tipo: 'guion',
+    guardado: {
+      id: fila.id,
+      creadoEn: fila.creado_en,
+      diaPreferido: fila.dia_preferido ?? guion.reserva.fecha,
+      // En guion-llamada-v1 la llamada es siempre en la tarde; la columna lo deja escrito.
+      franjaPreferida: franjaEnClaro(fila.franja_preferida),
+      horaPreferida: guion.reserva.hora,
+      guion,
+    },
   }
 }
 
-export type ResultadoGuion = { ok: true; guion: GuionGuardado | null } | { ok: false; error: string }
+export type ResultadoGuion = { ok: true; lectura: LecturaFila } | { ok: false; error: string }
 
 const ERROR_CARGA = 'No se pudo cargar el guion de la llamada.'
 
 /**
- * El guion más reciente (versión más alta) de una persona. Nunca lanza, y un fallo NO es «no hay
+ * El guion más reciente (revisión más alta) de una persona. Nunca lanza, y un fallo NO es «no hay
  * guion»: `ok: false` con su texto, para que la pantalla lo diga en vez de callarlo.
  */
 export async function guionDe(usuarioId: string): Promise<ResultadoGuion> {
-  if (!modoNube || !usuarioId) return { ok: true, guion: null }
+  if (!modoNube || !usuarioId) return { ok: true, lectura: null }
   try {
     const { data, error } = await supabase()
       .from(TABLA_GUIONES_LLAMADA)
       .select(SELECCION)
       .eq('usuario_id', usuarioId)
-      .order('version', { ascending: false })
+      .order('revision', { ascending: false })
       .limit(1)
     if (error || !data) return { ok: false, error: ERROR_CARGA }
     const filas = data as unknown as FilaGuionLlamada[]
-    return { ok: true, guion: filas.length ? aGuionGuardado(filas[0]) : null }
+    return { ok: true, lectura: filas.length ? aGuionGuardado(filas[0]) : null }
   } catch {
     return { ok: false, error: ERROR_CARGA }
   }

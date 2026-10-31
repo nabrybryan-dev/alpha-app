@@ -57,6 +57,7 @@ vi.mock('../supabase', () => ({
 }))
 
 const { aGuionGuardado, guionDe, usuariosConGuion } = await import('./guionesLlamada')
+const { default: EJEMPLO } = await import('../../domain/consolaCoach/guion-llamada-v1.fixture.json')
 
 const USUARIO = '00000000-0000-4000-8000-0000000000b1'
 
@@ -65,10 +66,10 @@ function fila(extra: Record<string, unknown> = {}) {
     id: '00000000-0000-4000-8000-0000000000c1',
     usuario_id: USUARIO,
     origen: 'landing',
-    guion: { version: 3, apertura: 'Abre así.', preferencia: { fecha: '2026-11-09', franja: 'noche', hora: '19:00' } },
+    guion: { ...EJEMPLO, apertura: 'Abre así.', reserva: { ...EJEMPLO.reserva, fecha: '2026-11-09', hora: '16:30' } },
     dia_preferido: '2026-11-05',
     franja_preferida: 'tarde',
-    version: 3,
+    revision: 1793372400000,
     creado_en: '2026-10-30T15:00:00Z',
     ...extra,
   }
@@ -91,36 +92,46 @@ beforeEach(() => {
 })
 
 describe('guionDe', () => {
-  it('pide la versión más alta de ESA persona, una sola fila', async () => {
+  it('pide la revisión más alta de ESA persona, una sola fila', async () => {
     estado.filas = [fila()]
     const r = await guionDe(USUARIO)
     expect(estado.tablas).toEqual(['guiones_llamada'])
-    expect(estado.selects[0]).toBe('id,usuario_id,origen,guion,dia_preferido,franja_preferida,version,creado_en')
+    expect(estado.selects[0]).toBe('id,usuario_id,origen,guion,dia_preferido,franja_preferida,revision,creado_en')
     expect(estado.eqs).toEqual([['usuario_id', USUARIO]])
-    expect(estado.orders).toEqual([['version', { ascending: false }]])
+    expect(estado.orders).toEqual([['revision', { ascending: false }]])
     expect(estado.limits).toEqual([1])
-    expect(r.ok && r.guion?.version).toBe(3)
-    expect(r.ok && r.guion?.guion.apertura).toBe('Abre así.')
+    expect(r.ok && r.lectura?.tipo === 'guion' && r.lectura.guardado.guion.apertura).toBe('Abre así.')
   })
 
-  it('las columnas mandan sobre la preferencia escrita dentro del guion', async () => {
+  it('la columna del día manda sobre la reserva del guion; la hora sale de la reserva', async () => {
     estado.filas = [fila()]
     const r = await guionDe(USUARIO)
-    expect(r.ok && r.guion).toMatchObject({ diaPreferido: '2026-11-05', franjaPreferida: 'en la tarde', horaPreferida: '19:00' })
+    expect(r.ok && r.lectura?.tipo === 'guion' && r.lectura.guardado).toMatchObject({
+      diaPreferido: '2026-11-05',
+      franjaPreferida: 'en la tarde',
+      horaPreferida: '16:30',
+    })
   })
 
-  it('sin columnas, usa la preferencia del guion', () => {
-    const g = aGuionGuardado(fila({ dia_preferido: null, franja_preferida: null }) as never)
-    expect(g).toMatchObject({ diaPreferido: '2026-11-09', franjaPreferida: 'en la noche' })
+  it('sin columna de día, usa la fecha de la reserva', () => {
+    const l = aGuionGuardado(fila({ dia_preferido: null }) as never)
+    expect(l?.tipo === 'guion' && l.guardado.diaPreferido).toBe('2026-11-09')
+  })
+
+  it('una versión desconocida no se pinta: se marca como ilegible', () => {
+    expect(aGuionGuardado(fila({ guion: { ...EJEMPLO, version: 'guion-llamada-v2' } }) as never)).toEqual({
+      tipo: 'ilegible',
+      ilegible: { version: 'guion-llamada-v2' },
+    })
   })
 
   it('sin filas es «no hay guion», no un error', async () => {
-    expect(await guionDe(USUARIO)).toEqual({ ok: true, guion: null })
+    expect(await guionDe(USUARIO)).toEqual({ ok: true, lectura: null })
   })
 
   it('una fila con guion que no es objeto se descarta', async () => {
     estado.filas = [fila({ guion: 'roto' })]
-    expect(await guionDe(USUARIO)).toEqual({ ok: true, guion: null })
+    expect(await guionDe(USUARIO)).toEqual({ ok: true, lectura: null })
   })
 
   it('un error, una respuesta vacía o la red caída son ok:false (no «no hay»)', async () => {
@@ -137,9 +148,9 @@ describe('guionDe', () => {
 
   it('en demo o sin persona no pregunta a nadie', async () => {
     estado.activo = false
-    expect(await guionDe(USUARIO)).toEqual({ ok: true, guion: null })
+    expect(await guionDe(USUARIO)).toEqual({ ok: true, lectura: null })
     estado.activo = true
-    expect(await guionDe('')).toEqual({ ok: true, guion: null })
+    expect(await guionDe('')).toEqual({ ok: true, lectura: null })
     expect(estado.tablas).toEqual([])
   })
 })

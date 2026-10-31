@@ -6,10 +6,16 @@
 -- franja que prefiere para la llamada. Llega a la app por la Edge Function `guion-llamada` (con
 -- `x-alpha-clave`, service role) y se lee en la ficha de la consola (`GuionDeVenta.tsx`).
 --
--- POR QUÉ UNA FILA POR VERSIÓN. El guion es un documento del agente, no un formulario: si la
--- landing lo rehace (cambia la fecha, corrige una objeción) manda una versión nueva y la vieja
--- queda. La pantalla lee la de versión más alta. `unique (usuario_id, version)` hace idempotente el
--- reenvío: la función hace upsert por esa pareja, así que un reintento de red no duplica nada.
+-- POR QUÉ UNA FILA POR REVISIÓN. El guion es un documento del agente, no un formulario: si la
+-- landing lo rehace (la persona cambia el día de la llamada) manda un guion nuevo y el viejo queda.
+-- La pantalla lee la revisión más alta.
+--
+-- QUÉ ES `revision`. El esquema de la landing (`guion-llamada-v1`) trae `version` como TEXTO: es la
+-- versión de la FORMA, no un contador. La revisión la deriva la Edge Function de `generado_en` (el
+-- sello que la landing pone al armar cada guion): sus milisegundos desde 1970, de ahí el `bigint`.
+-- Así no hay contador que coordinar entre dos sistemas: reenviar el MISMO guion (reintento de red)
+-- da la misma revisión y el upsert por `unique (usuario_id, revision)` no duplica; un guion rehecho
+-- trae un `generado_en` posterior y queda por encima.
 --
 -- LA PUERTA. La misma de las notas de llamada (0113): `es_coach()` o la capacidad
 -- `leer_entrenamiento`, que es con lo que se entra a la consola. Manuela es `nutricionista` sin
@@ -19,7 +25,8 @@
 --
 -- NADIE ESCRIBE DESDE EL NAVEGADOR. Solo `select` para `authenticated`; sin políticas de
 -- escritura. Escribe la Edge Function con service role, que salta RLS. El asesorado no ve su guion:
--- es material interno para la llamada de venta.
+-- es material interno para la llamada de venta. Lleva el correo y el WhatsApp de la persona (Manuela
+-- la llama): por eso la lectura es solo para quien entra a la consola, y nunca para `anon`.
 --
 -- NO SE APLICA SOLA. Se corre aparte (SQL Editor o `supabase db push` contra el proyecto de la
 -- APP, no el de la landing). Comprobación: supabase/migrations/comprobar-0151.sql.
@@ -44,15 +51,19 @@ create table if not exists public.guiones_llamada (
   guion jsonb not null,
   dia_preferido date null,
   franja_preferida text null,
-  version int not null,
+  revision bigint not null,
   creado_en timestamptz not null default now(),
-  unique (usuario_id, version)
+  unique (usuario_id, revision)
 );
 
 comment on table public.guiones_llamada is
   'Guion de la llamada de venta que arma el agente de la landing (0151). Una fila por versión; la app lee la más alta. Solo lectura para la consola.';
 comment on column public.guiones_llamada.guion is
-  'Documento del agente (version, persona, alerta_salud, apertura, dolores, que_mostrar, objeciones_probables, cierre, avisos). La app lo lee de forma tolerante.';
+  'Guion guion-llamada-v1 tal cual lo manda la landing (persona con contacto, alerta_salud sí/no, apertura, dolores, que_mostrar, objeciones_probables, cierre, avisos, recomendaciones_praxis, reserva). La app lo lee de forma tolerante.';
+comment on column public.guiones_llamada.revision is
+  'Milisegundos de guion.generado_en (lo calcula la Edge Function): reenviar el mismo guion no duplica, uno rehecho queda encima.';
+comment on column public.guiones_llamada.franja_preferida is
+  'Franja de la llamada. En guion-llamada-v1 siempre tarde: Manuela llama de lunes a viernes, en la tarde.';
 comment on column public.guiones_llamada.dia_preferido is
   'Día que la persona prefiere para la llamada, en hora de Colombia. Es una preferencia, no una cita.';
 

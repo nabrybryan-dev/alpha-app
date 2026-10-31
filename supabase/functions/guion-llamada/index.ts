@@ -1,21 +1,26 @@
 // Recepción del guion de llamada que arma el agente de la landing (proyecto de la APP, tabla
 // `guiones_llamada`, migración 0151). Hermana de alta-cliente: misma puerta, mismo secreto.
 //
-// POST { "usuario_id": uuid, "guion": { "version": int, ... }, "dia_preferido"?: "YYYY-MM-DD",
-//        "franja_preferida"?: "manana" | "tarde" | "noche" }
+// POST { "usuario_id": uuid, "guion": <guion-llamada-v1 tal cual lo arma la landing> }
 // Cabecera obligatoria: x-alpha-clave = ALPHA_LINKS_SECRET (secreto de ESTE proyecto, el de la app).
 //
+// El guion es el objeto de `guionParaApp()` (landing: src/lib/praxis/guion-llamada.ts), con
+// `version: "guion-llamada-v1"` y `generado_en` ISO. Día y franja se sacan de `guion.reserva`.
+//
 // Respuestas (siempre JSON, mismo envoltorio):
-//   200 { ok: true,  datos: { id, usuario_id, version }, error: null }   guardado (o ya estaba: idempotente)
-//   400 { ok: false, datos: null, error: "<código>" }                    el cuerpo no pasa la validación
+//   200 { ok: true,  datos: { id, usuario_id, revision }, error: null }  guardado (o ya estaba: idempotente)
+//   400 { ok: false, datos: null, error: "<código>" }                    el cuerpo no pasa la validación:
+//       json invalido · cuerpo invalido · campo no esperado[: <clave>] · usuario_id invalido ·
+//       guion invalido · version no soportada · generado_en invalido · campo mal formado: <campo>
 //   401 { ok: false, datos: null, error: "no autorizado" }               falta o no coincide x-alpha-clave
 //   404 { ok: false, datos: null, error: "usuario no existe" }           usuario_id no está en usuarios_app
 //   405 { ok: false, datos: null, error: "solo POST" }
 //   413 { ok: false, datos: null, error: "cuerpo demasiado grande" }     más de 32 KB
 //   500 { ok: false, datos: null, error: "no se pudo guardar" }          fallo de la base (el detalle va al log)
 //
-// IDEMPOTENTE. Upsert por (usuario_id, version): reenviar la misma versión reescribe esa fila y no
-// crea otra. Para cambiar el guion, la landing sube `guion.version`.
+// IDEMPOTENTE. La revisión es `generado_en` en milisegundos (validar.ts): reenviar el MISMO guion
+// cae en la misma (usuario_id, revision) y el upsert reescribe esa fila sin crear otra. Un guion
+// rehecho trae un `generado_en` posterior: fila nueva, y la app lee la de revisión más alta.
 //
 // Despliegue: `supabase functions deploy guion-llamada --no-verify-jwt` (lo protege x-alpha-clave).
 
@@ -59,18 +64,18 @@ Deno.serve(async (req) => {
         usuario_id: v.usuarioId,
         origen: "landing",
         guion: v.guion,
-        version: v.version,
+        revision: v.revision,
         dia_preferido: v.diaPreferido,
         franja_preferida: v.franjaPreferida,
       },
-      { onConflict: "usuario_id,version" },
+      { onConflict: "usuario_id,revision" },
     )
-    .select("id, usuario_id, version")
+    .select("id, usuario_id, revision")
     .single();
 
   if (error) {
     if (error.code === CODIGO_FK) return responder(404, null, "usuario no existe");
-    // Solo el código y el mensaje de la base: nunca el guion, que lleva datos de la persona.
+    // Solo el código y el mensaje de la base: nunca el guion, que lleva nombre, correo y WhatsApp.
     console.error("guion-llamada: no se pudo guardar", error.code, error.message);
     return responder(500, null, "no se pudo guardar");
   }

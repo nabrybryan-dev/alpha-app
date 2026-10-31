@@ -6,15 +6,15 @@ select 'la tabla existe con sus columnas' as comprueba,
        case when (select count(*) from information_schema.columns
                    where table_schema = 'public' and table_name = 'guiones_llamada'
                      and column_name in ('id', 'usuario_id', 'origen', 'guion', 'dia_preferido',
-                                         'franja_preferida', 'version', 'creado_en')) = 8 then 'SI' else 'NO' end as sale,
+                                         'franja_preferida', 'revision', 'creado_en')) = 8 then 'SI' else 'NO' end as sale,
        'SI' as tiene_que_dar
 
 union all
-select 'una sola versión por persona (unique usuario_id, version)',
+select 'una sola versión por persona (unique usuario_id, revision)',
        case when exists (select 1 from pg_constraint
                           where conrelid = to_regclass('public.guiones_llamada')
                             and contype = 'u'
-                            and pg_get_constraintdef(oid) = 'UNIQUE (usuario_id, version)') then 'SI' else 'NO' end,
+                            and pg_get_constraintdef(oid) = 'UNIQUE (usuario_id, revision)') then 'SI' else 'NO' end,
        'SI'
 
 union all

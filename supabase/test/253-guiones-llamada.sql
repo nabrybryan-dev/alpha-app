@@ -10,8 +10,8 @@
 --   4. La persona de quien habla el guion no lo ve.
 --   5. Nadie escribe desde el navegador: insert/update/delete de authenticated fallan (también el
 --      coach); anon no tiene nada.
---   6. service_role escribe, y el upsert por (usuario_id, version) es idempotente: reenviar la
---      misma versión no duplica; una versión nueva sí es otra fila.
+--   6. service_role escribe, y el upsert por (usuario_id, revision) es idempotente: reenviar la
+--      misma revisión no duplica; una revisión nueva sí es otra fila.
 --   7. Borrar a la persona borra sus guiones.
 --
 -- Bloque de UUID propio (f151…). Termina en ROLLBACK: no deja nada detrás.
@@ -40,39 +40,39 @@ insert into public.capacidades_staff (usuario_id, capacidad) values
 on conflict do nothing;
 
 -- ════════════════════════════════════════════════════════════════════════
--- 6 · service_role escribe; el upsert por (usuario_id, version) es idempotente
+-- 6 · service_role escribe; el upsert por (usuario_id, revision) es idempotente
 -- ════════════════════════════════════════════════════════════════════════
 set role service_role;
 
-insert into public.guiones_llamada (usuario_id, guion, version, dia_preferido, franja_preferida)
-values ('f1510000-0000-0000-0000-000000000001', '{"version": 1, "apertura": "Primera"}', 1, '2026-11-05', 'tarde')
-on conflict (usuario_id, version) do update set guion = excluded.guion;
+insert into public.guiones_llamada (usuario_id, guion, revision, dia_preferido, franja_preferida)
+values ('f1510000-0000-0000-0000-000000000001', '{"version": "guion-llamada-v1", "apertura": "Primera"}', 1, '2026-11-05', 'tarde')
+on conflict (usuario_id, revision) do update set guion = excluded.guion;
 -- El reenvío de la misma versión (reintento de red) reescribe, no duplica.
-insert into public.guiones_llamada (usuario_id, guion, version)
-values ('f1510000-0000-0000-0000-000000000001', '{"version": 1, "apertura": "Primera, reenviada"}', 1)
-on conflict (usuario_id, version) do update set guion = excluded.guion;
-insert into public.guiones_llamada (usuario_id, guion, version)
-values ('f1510000-0000-0000-0000-000000000001', '{"version": 2, "apertura": "Segunda"}', 2)
-on conflict (usuario_id, version) do update set guion = excluded.guion;
+insert into public.guiones_llamada (usuario_id, guion, revision)
+values ('f1510000-0000-0000-0000-000000000001', '{"version": "guion-llamada-v1", "apertura": "Primera, reenviada"}', 1)
+on conflict (usuario_id, revision) do update set guion = excluded.guion;
+insert into public.guiones_llamada (usuario_id, guion, revision)
+values ('f1510000-0000-0000-0000-000000000001', '{"version": "guion-llamada-v1", "apertura": "Segunda"}', 2)
+on conflict (usuario_id, revision) do update set guion = excluded.guion;
 
 select pruebas.afirmar(
   (select count(*) from public.guiones_llamada where usuario_id = 'f1510000-0000-0000-0000-000000000001') = 2,
-  'el upsert por (usuario_id, version) duplicó la versión reenviada, o no guardó la nueva'
+  'el upsert por (usuario_id, revision) duplicó la revisión reenviada, o no guardó la nueva'
 );
 select pruebas.afirmar(
   (select guion->>'apertura' = 'Primera, reenviada' and origen = 'landing' and creado_en > now() - interval '1 minute'
-     from public.guiones_llamada where usuario_id = 'f1510000-0000-0000-0000-000000000001' and version = 1),
-  'el reenvío no reescribió la versión, o el origen y la marca de tiempo no quedaron por omisión'
+     from public.guiones_llamada where usuario_id = 'f1510000-0000-0000-0000-000000000001' and revision = 1),
+  'el reenvío no reescribió la revisión, o el origen y la marca de tiempo no quedaron por omisión'
 );
 do $$
 begin
   begin
-    insert into public.guiones_llamada (usuario_id, guion, version)
+    insert into public.guiones_llamada (usuario_id, guion, revision)
     values ('f1510000-0000-0000-0000-000000000001', '{}', 1);
-    raise exception 'FALLO: se guardó dos veces la misma versión para la misma persona';
+    raise exception 'FALLO: se guardó dos veces la misma revisión para la misma persona';
   exception when unique_violation then null; end;
   begin
-    insert into public.guiones_llamada (usuario_id, guion, version)
+    insert into public.guiones_llamada (usuario_id, guion, revision)
     values ('f1510000-0000-0000-0000-0000000000ff', '{}', 1);
     raise exception 'FALLO: se guardó un guion para una persona que no existe';
   exception when foreign_key_violation then null; end;
@@ -96,7 +96,7 @@ select pruebas.afirmar(
 do $$
 begin
   begin
-    insert into public.guiones_llamada (usuario_id, guion, version)
+    insert into public.guiones_llamada (usuario_id, guion, revision)
     values ('f1510000-0000-0000-0000-000000000001', '{}', 9);
     raise exception 'FALLO: authenticated pudo escribir un guion';
   exception when insufficient_privilege then null; end;
@@ -124,7 +124,7 @@ select pruebas.afirmar(
 do $$
 begin
   begin
-    insert into public.guiones_llamada (usuario_id, guion, version)
+    insert into public.guiones_llamada (usuario_id, guion, revision)
     values ('f1510000-0000-0000-0000-000000000001', '{}', 9);
     raise exception 'FALLO: el coach pudo escribir un guion desde el navegador';
   exception when insufficient_privilege then null; end;

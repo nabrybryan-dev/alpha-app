@@ -3,41 +3,59 @@
 // Va aparte de index.ts para probarlo con vitest (src/domain/guionLlamadaFuncion.test.ts) sin
 // levantar Deno, igual que avisos-plan/decidir.ts. No importa nada: se entrega copiando la carpeta.
 //
+// El contrato es el esquema `guion-llamada-v1` de la landing
+// (alpha-praxis-chat: products/web/apps/landing/src/lib/praxis/guion-llamada.ts). La landing ya lo
+// valida entero antes de mandarlo (`guionParaApp`), incluidas las reglas de redacción; aquí se
+// vuelve a comprobar la FORMA, que es lo que la app necesita para pintarlo, no el estilo.
+//
 // Qué se exige y qué no:
-//   · El CUERPO es estricto: solo usuario_id, guion, dia_preferido y franja_preferida. Una clave
-//     de más es un error de quien llama, y se le dice cuál.
-//   · El GUION es tolerante hacia adelante: claves desconocidas se guardan tal cual (la landing
-//     puede añadir campos antes de que la app los pinte), pero las conocidas tienen que tener su
-//     forma. Lo único obligatorio es `version`, entero positivo: es la mitad de la clave del upsert.
+//   · El CUERPO es estricto: `{ usuario_id, guion }` y nada más. Una clave de más es un error de
+//     quien llama, y se le dice cuál.
+//   · `guion.version` tiene que ser exactamente 'guion-llamada-v1': el esquema dice que un
+//     consumidor RECHAZA una versión que no conoce (una v2 se pintaría mal en silencio).
+//   · Dentro del guion, las claves desconocidas se guardan tal cual; las conocidas, con su forma.
+//     Los valores de `tema` y `tipo` se aceptan como texto cualquiera: si la landing añade un tema,
+//     la app lo pinta igual.
+//   · La REVISIÓN (entero del upsert) no la manda nadie: se deriva de `generado_en`, en
+//     milisegundos. Reenviar el mismo guion da la misma revisión; uno rehecho, una mayor.
+//   · Día y franja de la llamada salen de `guion.reserva`: una sola fuente. La franja es siempre
+//     'tarde' (Manuela llama de lunes a viernes, en la tarde: HORARIO_LLAMADA de la landing).
 //   · Tope de tamaño sobre el cuerpo entero en bytes, antes de parsear nada.
 //
-// Los mensajes de error son códigos cortos y fijos: nunca repiten lo que llegó (ni un nombre ni un
-// trozo del guion), así que no hay dato personal que se filtre por un error.
+// Los mensajes de error son códigos cortos y fijos: nunca repiten lo que llegó (ni un nombre, ni
+// un correo, ni un trozo del guion), así que no hay dato personal que se filtre por un error.
 
 export const TOPE_BYTES = 32 * 1024
-export const VERSION_MAXIMA = 1_000_000
-export const FRANJAS = ['manana', 'tarde', 'noche'] as const
-export type FranjaPreferida = (typeof FRANJAS)[number]
+export const VERSION_GUION = 'guion-llamada-v1'
+export const ZONA_RESERVA = 'America/Bogota'
+export const FRANJA_LLAMADA = 'tarde'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const FECHA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/
-const CLAVES_CUERPO = new Set(['usuario_id', 'guion', 'dia_preferido', 'franja_preferida'])
-const TEXTOS_GUION = ['apertura', 'cierre'] as const
-const LISTAS_GUION = ['dolores', 'que_mostrar', 'avisos'] as const
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/
+const CLAVES_CUERPO = new Set(['usuario_id', 'guion'])
+const TEXTOS_PERSONA = ['nombre', 'email', 'whatsapp', 'edad_tramo', 'objetivo', 'decision', 'pasos_al_dia', 'dias_de_fuerza', 'experiencia', 'lugar']
+const NUMEROS_PERSONA = ['edad', 'gasto_diario_kcal', 'grasa_estimada_pct']
 
 export interface GuionValido {
   usuarioId: string
   guion: Record<string, unknown>
-  version: number
-  diaPreferido: string | null
-  franjaPreferida: FranjaPreferida | null
+  /** Milisegundos de `guion.generado_en`. */
+  revision: number
+  diaPreferido: string
+  franjaPreferida: typeof FRANJA_LLAMADA
 }
 
 export type Validacion = { ok: true; valor: GuionValido } | { ok: false; error: string }
 
-function esObjeto(v: unknown): v is Record<string, unknown> {
+type Objeto = Record<string, unknown>
+
+function esObjeto(v: unknown): v is Objeto {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
+const esTexto = (v: unknown): v is string => typeof v === 'string'
+const textoONulo = (v: unknown) => v === null || v === undefined || esTexto(v)
+const numeroONulo = (v: unknown) => v === null || v === undefined || (typeof v === 'number' && Number.isFinite(v))
 
 function bytesDe(texto: string): number {
   return new TextEncoder().encode(texto).length
@@ -52,47 +70,59 @@ export function esFechaReal(texto: string): boolean {
   return f.getUTCFullYear() === anio && f.getUTCMonth() === mes - 1 && f.getUTCDate() === dia
 }
 
-function esListaDeTextos(v: unknown): boolean {
-  return Array.isArray(v) && v.every((x) => typeof x === 'string')
+/** La revisión: los milisegundos de un ISO 8601 con zona. Sin zona sería la hora de quien lo lea. */
+export function revisionDe(generadoEn: unknown): number | null {
+  if (!esTexto(generadoEn) || !/^\d{4}-\d{2}-\d{2}T.+(Z|[+-]\d{2}:?\d{2})$/.test(generadoEn)) return null
+  const ms = Date.parse(generadoEn)
+  return Number.isFinite(ms) && ms > 0 ? ms : null
 }
 
-function esListaDeObjeciones(v: unknown): boolean {
+/** Lista de objetos donde cada clave pedida es texto (o, si se permite, null). */
+function listaDe(v: unknown, textos: string[], nulos: string[] = []): boolean {
   return (
     Array.isArray(v) &&
-    v.every((o) => esObjeto(o) && typeof o.objecion === 'string' && typeof o.respuesta === 'string')
+    v.every((x) => esObjeto(x) && textos.every((k) => esTexto(x[k]) || (nulos.includes(k) && x[k] === null)))
   )
 }
 
-/** La alerta de salud puede venir como texto, como sí/no o como objeto con su motivo. */
-function esAlertaValida(v: unknown): boolean {
-  return v === null || typeof v === 'string' || typeof v === 'boolean' || esObjeto(v)
+const esListaDeTextos = (v: unknown) => Array.isArray(v) && v.every(esTexto)
+
+function personaMalFormada(p: unknown): boolean {
+  if (!esObjeto(p)) return true
+  if (!TEXTOS_PERSONA.every((k) => textoONulo(p[k]))) return true
+  if (!NUMEROS_PERSONA.every((k) => numeroONulo(p[k]))) return true
+  return p.molestias !== undefined && !esListaDeTextos(p.molestias)
 }
 
-/** Primer campo conocido del guion con forma equivocada, o `null` si todos están bien. */
-function campoMalFormado(guion: Record<string, unknown>): string | null {
-  for (const k of TEXTOS_GUION) if (k in guion && guion[k] !== null && typeof guion[k] !== 'string') return k
-  for (const k of LISTAS_GUION) if (k in guion && guion[k] !== null && !esListaDeTextos(guion[k])) return k
-  if ('persona' in guion && guion.persona !== null && !esObjeto(guion.persona)) return 'persona'
-  if ('alerta_salud' in guion && !esAlertaValida(guion.alerta_salud)) return 'alerta_salud'
-  if ('objeciones_probables' in guion && guion.objeciones_probables !== null && !esListaDeObjeciones(guion.objeciones_probables)) {
-    return 'objeciones_probables'
-  }
-  return null
+function alertaMalFormada(a: unknown): boolean {
+  return !esObjeto(a) || !['hay', 'requiere_aval', 'menor_de_edad'].every((k) => typeof a[k] === 'boolean')
 }
 
-function validarPreferencia(cuerpo: Record<string, unknown>): { error: string } | { dia: string | null; franja: FranjaPreferida | null } {
-  const dia = cuerpo.dia_preferido ?? null
-  if (dia !== null && (typeof dia !== 'string' || !esFechaReal(dia))) return { error: 'dia_preferido invalido' }
-  const franja = cuerpo.franja_preferida ?? null
-  if (franja !== null && !(FRANJAS as readonly unknown[]).includes(franja)) return { error: 'franja_preferida invalida' }
-  return { dia, franja: franja as FranjaPreferida | null }
+function reservaMalFormada(r: unknown): boolean {
+  if (!esObjeto(r) || !esTexto(r.fecha) || !esFechaReal(r.fecha)) return true
+  if (!(r.hora === null || r.hora === undefined || (esTexto(r.hora) && HORA.test(r.hora)))) return true
+  return r.zona !== ZONA_RESERVA || !textoONulo(r.en_claro)
 }
 
-/**
- * Del texto crudo de la petición a lo que se inserta. Recibe el TEXTO, no el JSON ya parseado,
- * para medir el tamaño real antes de gastar en parsearlo.
- */
-export function validarCuerpo(texto: string): Validacion {
+/** Primer campo del guion con forma equivocada, o `null` si todos están bien. */
+function campoMalFormado(g: Objeto): string | null {
+  const reglas: Array<[string, boolean]> = [
+    ['origen', g.origen !== undefined && g.origen !== 'modelo' && g.origen !== 'reglas'],
+    ['reserva', reservaMalFormada(g.reserva)],
+    ['persona', personaMalFormada(g.persona)],
+    ['alerta_salud', alertaMalFormada(g.alerta_salud)],
+    ['apertura', !textoONulo(g.apertura)],
+    ['cierre', !textoONulo(g.cierre)],
+    ['dolores', g.dolores !== undefined && !listaDe(g.dolores, ['texto', 'fuente'])],
+    ['que_mostrar', g.que_mostrar !== undefined && !listaDe(g.que_mostrar, ['tema', 'titulo', 'dato', 'como_decirlo'], ['dato'])],
+    ['objeciones_probables', g.objeciones_probables !== undefined && !listaDe(g.objeciones_probables, ['tipo', 'objecion', 'respuesta'])],
+    ['avisos', g.avisos !== undefined && !esListaDeTextos(g.avisos)],
+    ['recomendaciones_praxis', g.recomendaciones_praxis !== undefined && !esListaDeTextos(g.recomendaciones_praxis)],
+  ]
+  return reglas.find(([, malo]) => malo)?.[0] ?? null
+}
+
+function parsear(texto: string): { ok: true; cuerpo: Objeto } | { ok: false; error: string } {
   if (bytesDe(texto) > TOPE_BYTES) return { ok: false, error: 'cuerpo demasiado grande' }
   let cuerpo: unknown
   try {
@@ -100,28 +130,36 @@ export function validarCuerpo(texto: string): Validacion {
   } catch {
     return { ok: false, error: 'json invalido' }
   }
-  if (!esObjeto(cuerpo)) return { ok: false, error: 'cuerpo invalido' }
+  return esObjeto(cuerpo) ? { ok: true, cuerpo } : { ok: false, error: 'cuerpo invalido' }
+}
+
+/**
+ * Del texto crudo de la petición a lo que se inserta. Recibe el TEXTO, no el JSON ya parseado,
+ * para medir el tamaño real antes de gastar en parsearlo.
+ */
+export function validarCuerpo(texto: string): Validacion {
+  const leido = parsear(texto)
+  if (!leido.ok) return leido
+  const cuerpo = leido.cuerpo
   const sobrante = Object.keys(cuerpo).find((k) => !CLAVES_CUERPO.has(k))
   // El nombre de la clave solo se repite si parece un nombre de campo: nunca un texto libre.
   if (sobrante) return { ok: false, error: /^[a-z_]{1,40}$/.test(sobrante) ? `campo no esperado: ${sobrante}` : 'campo no esperado' }
-  if (typeof cuerpo.usuario_id !== 'string' || !UUID.test(cuerpo.usuario_id)) return { ok: false, error: 'usuario_id invalido' }
-  if (!esObjeto(cuerpo.guion)) return { ok: false, error: 'guion invalido' }
-  const version = cuerpo.guion.version
-  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1 || version > VERSION_MAXIMA) {
-    return { ok: false, error: 'version invalida' }
-  }
-  const malo = campoMalFormado(cuerpo.guion)
+  if (!esTexto(cuerpo.usuario_id) || !UUID.test(cuerpo.usuario_id)) return { ok: false, error: 'usuario_id invalido' }
+  const guion = cuerpo.guion
+  if (!esObjeto(guion)) return { ok: false, error: 'guion invalido' }
+  if (guion.version !== VERSION_GUION) return { ok: false, error: 'version no soportada' }
+  const revision = revisionDe(guion.generado_en)
+  if (revision === null) return { ok: false, error: 'generado_en invalido' }
+  const malo = campoMalFormado(guion)
   if (malo) return { ok: false, error: `campo mal formado: ${malo}` }
-  const preferencia = validarPreferencia(cuerpo)
-  if ('error' in preferencia) return { ok: false, error: preferencia.error }
   return {
     ok: true,
     valor: {
       usuarioId: cuerpo.usuario_id.toLowerCase(),
-      guion: cuerpo.guion,
-      version,
-      diaPreferido: preferencia.dia,
-      franjaPreferida: preferencia.franja,
+      guion,
+      revision,
+      diaPreferido: (guion.reserva as Objeto).fecha as string,
+      franjaPreferida: FRANJA_LLAMADA,
     },
   }
 }

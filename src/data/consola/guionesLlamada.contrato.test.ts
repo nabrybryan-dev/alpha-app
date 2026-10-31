@@ -9,7 +9,8 @@ import { COLUMNAS_GUIONES_LLAMADA, TABLA_GUIONES_LLAMADA } from './guionesLlamad
  * columna; esta prueba lee el SQL de verdad.
  */
 const SQL = readFileSync(join(process.cwd(), 'supabase', 'migrations', '0151_guiones_llamada.sql'), 'utf8')
-  .split('\n')
+  // `\r?`: con CRLF en la copia de trabajo, `.` no cruza el `\r` y el comentario no se quitaría.
+  .split(/\r?\n/)
   .map((linea) => linea.replace(/--.*$/, ''))
   .join('\n')
 
@@ -29,10 +30,10 @@ describe('guiones de llamada · el código y la 0151 dicen lo mismo', () => {
     expect([...COLUMNAS_GUIONES_LLAMADA]).toEqual(columnasDelCreateTable())
   })
 
-  it('el upsert de la función tiene su unique (usuario_id, version)', () => {
-    expect(SQL).toMatch(/unique \(usuario_id, version\)/)
+  it('el upsert de la función tiene su unique (usuario_id, revision)', () => {
+    expect(SQL).toMatch(/unique \(usuario_id, revision\)/)
     const funcion = readFileSync(join(process.cwd(), 'supabase', 'functions', 'guion-llamada', 'index.ts'), 'utf8')
-    expect(funcion).toContain('onConflict: "usuario_id,version"')
+    expect(funcion).toContain('onConflict: "usuario_id,revision"')
   })
 
   it('la puerta es la de la consola (0113), no es_staff, y solo hay lectura', () => {
