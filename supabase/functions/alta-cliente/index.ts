@@ -15,8 +15,13 @@
 // invitación el cliente entraría sin contraseña y no podría volver. Por eso: cuenta
 // confirmada con una clave aleatoria que nadie guarda + link de recuperación, generado
 // SIN enviar correo (no se depende del correo de Supabase). El link vence según la
-// configuración de Auth (por defecto 1 hora); si vence, el cliente usa «¿Olvidaste tu
-// clave?» en la app con su correo real.
+// configuración de Auth (por defecto 1 hora); si vence, el cliente pide otro en la app
+// con su correo real.
+//
+// POR QUE EL LINK APUNTA A LA APP Y NO A /auth/v1/verify. Ese enlace se gasta con solo
+// abrirse, y la vista previa de WhatsApp lo abre al pegarlo (pasó el 31-oct-2026: quedó
+// vencido antes de llegarle a la persona). La app recibe el código tras el # y solo lo
+// gasta cuando la persona toca el botón. Desplegar DESPUÉS de la app.
 //
 // Despliegue: verify_jwt = false (lo protege x-alpha-clave).
 
@@ -24,6 +29,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const env = (k: string) => Deno.env.get(k) ?? "";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_APP = "https://alpha-athletics-app.vercel.app";
 
 function responder(estado: number, cuerpo: Record<string, unknown>) {
   return new Response(JSON.stringify(cuerpo), { status: estado, headers: { "content-type": "application/json" } });
@@ -100,6 +106,6 @@ Deno.serve(async (req) => {
     usuario_id: usuarioId,
     nuevo,
     nombre_en_app: fila?.nombre ?? null,
-    link: data.properties?.action_link ?? null,
+    link: data.properties?.hashed_token ? `${URL_APP}/#crear-clave=${data.properties.hashed_token}` : null,
   });
 });

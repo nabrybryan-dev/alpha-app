@@ -8,7 +8,9 @@ import { hidratarDesdeNube } from '../data/nube/hidratar'
 import { reportarError } from '../data/errores/reportarError'
 import { limpiarColasDeSync, pendientesDeSync, procesarCola, recuperarDescartes } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
+import { tokenDeCrearClave } from '../features/auth/enlaceClave'
 import { LoginPage } from '../features/auth/LoginPage'
+import { PuertaCrearClave } from '../features/auth/PuertaCrearClave'
 import { Splash } from '../features/auth/Splash'
 import { NuevaClavePage } from '../features/auth/NuevaClavePage'
 
@@ -45,11 +47,20 @@ function llegaDeRecuperacion(): boolean {
   return typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
 }
 
+/** ¿Se abrió desde un enlace del correo vencido o ya usado? Supabase lo dice en el hash. */
+function llegaConEnlaceVencido(): boolean {
+  return typeof window !== 'undefined' && window.location.hash.includes('error_code=otp_expired')
+}
+
 function SesionNube({ children }: { children: ReactNode }) {
   const [autenticadoId, setAutenticadoId] = useState<string | null>(null)
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'sin-sesion' | 'error'>('cargando')
   const [detalleError, setDetalleError] = useState('')
   const [recuperacion, setRecuperacion] = useState(llegaDeRecuperacion)
+  const [enlaceVencido, setEnlaceVencido] = useState(llegaConEnlaceVencido)
+  const [tokenClave, setTokenClave] = useState(() =>
+    typeof window === 'undefined' ? null : tokenDeCrearClave(window.location.hash),
+  )
   const [splashVisto, setSplashVisto] = useState(false)
   const autenticadoRef = useRef<string | null>(null)
   /**
@@ -66,10 +77,13 @@ function SesionNube({ children }: { children: ReactNode }) {
    * tarde, un `SIGNED_IN` podría hidratar la app durante una recuperación de
    * contraseña, que es justo lo que la comprobación evita.
    */
-  const recuperacionRef = useRef(recuperacion)
+  const recuperacionRef = useRef(recuperacion || tokenClave !== null)
+  /** Para retomar el ingreso normal desde fuera del efecto si el enlace venció. */
+  const alCambiarRef = useRef<((usuarioId: string | undefined) => Promise<void>) | null>(null)
   useDbVersion()
 
   useEffect(() => {
+    if (llegaConEnlaceVencido()) history.replaceState(null, '', window.location.pathname)
     const sb = supabase()
 
     // La llegada desde el enlace de "olvidé mi contraseña" ya se detectó en el
@@ -137,6 +151,7 @@ function SesionNube({ children }: { children: ReactNode }) {
       }
     }
 
+    alCambiarRef.current = alCambiar
     void sb.auth.getSession().then(({ data }) => {
       void alCambiar(data.session?.user.id)
     })
@@ -224,6 +239,28 @@ function SesionNube({ children }: { children: ReactNode }) {
     }
   }, [estado, autenticadoId, puestoDeCoach])
 
+  if (tokenClave) {
+    return (
+      <PuertaCrearClave
+        token={tokenClave}
+        onListo={() => {
+          setTokenClave(null)
+          setRecuperacion(true)
+          history.replaceState(null, '', window.location.pathname)
+        }}
+        onVencido={() => {
+          recuperacionRef.current = false
+          setTokenClave(null)
+          setEnlaceVencido(true)
+          history.replaceState(null, '', window.location.pathname)
+          void supabase()
+            .auth.getSession()
+            .then(({ data }) => alCambiarRef.current?.(data.session?.user.id))
+        }}
+      />
+    )
+  }
+
   if (recuperacion) {
     return (
       <NuevaClavePage
@@ -249,7 +286,7 @@ function SesionNube({ children }: { children: ReactNode }) {
   // pasa por aquí: entra directo a la app.
   if (estado === 'sin-sesion') {
     if (!splashVisto) return <Splash onListo={() => setSplashVisto(true)} />
-    return <LoginPage />
+    return <LoginPage enlaceVencido={enlaceVencido} />
   }
 
   if (estado === 'error') {
