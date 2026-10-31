@@ -2603,9 +2603,10 @@ select '0150 - revisión: quién pidió la corrección y por qué cambió la ver
 union all
 select '0152 - salud de Hermes en la consola', 'salud_hermes con RLS, solo la lee el puesto de coach y anon sin acceso',
        case when to_regclass('public.salud_hermes') is null then 'NO'
-            when not (select relrowsecurity from pg_class where oid = 'public.salud_hermes'::regclass) then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('public.salud_hermes')) then 'NO'
             when has_table_privilege('anon', 'public.salud_hermes', 'select') then 'NO'
             when has_table_privilege('authenticated', 'public.salud_hermes', 'insert') then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'salud_hermes') <> 1 then 'NO'
             when exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'salud_hermes'
                           and policyname = 'salud_hermes_leer_coach' and qual like '%es_coach%') then 'SI'
             else 'NO' end
