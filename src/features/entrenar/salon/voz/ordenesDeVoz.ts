@@ -6,9 +6,10 @@ import { normalizarNombre } from '../paredes/cargaAnterior'
 /**
  * LAS ÓRDENES DE VOZ DE LA GUÍA: de lo que entendió el reconocedor a qué hacer con el sujeto.
  *
- * Lista cerrada y sin modelo: navegar no gasta la clave y lo dicho no se guarda ni sale de aquí. Lo que no
- * sea una orden no se adivina: se contesta que no se entendió. El filtro de riesgo va primero, porque esta
- * frase no la escribió un formulario sino una persona hablando: lo de salud nunca se vuelve navegación.
+ * Lista cerrada y sin modelo: navegar no gasta la clave y aquí lo dicho no se guarda ni se envía. Lo que no
+ * sea una orden ni una pregunta no se adivina: se contesta que no se entendió. Una pregunta se devuelve tal
+ * cual para las dudas de Praxis, que hacen con ella lo mismo que con una escrita. El filtro de riesgo va
+ * primero, porque esta frase la dijo una persona hablando: lo de salud nunca se vuelve navegación ni pregunta.
  */
 
 export type Orden =
@@ -23,8 +24,10 @@ export type Orden =
   | { tipo: 'hoy' }
   | { tipo: 'indice' }
   | { tipo: 'cerrar' }
-  /** Es de salud o de riesgo: no se navega y se dice lo que dice el filtro. */
-  | { tipo: 'salud'; respuesta: string }
+  /** Es de salud o de riesgo: no se navega. Con `frase` es riesgo: va a la pantalla que da las líneas de ayuda. */
+  | { tipo: 'salud'; respuesta: string; frase?: string }
+  /** Una pregunta para las dudas de Praxis, con las palabras que se dijeron. */
+  | { tipo: 'duda'; frase: string }
   /** Nombró varias cosas a la vez: se le dice entre cuáles. */
   | { tipo: 'cual'; opciones: readonly string[] }
   | { tipo: 'no_entendi' }
@@ -59,6 +62,12 @@ const AMBIGUOS: readonly (readonly [RegExp, readonly IdDeRegion[]])[] = [
 const DE_SALUD = /\b(duele|duelen|dolor|dolores|molesta|molestan|lesion|lesione|mareo|mareado|mareada)\b/
 const NEGADA = /\b(no|nunca|tampoco)\s+(me\s+|lo\s+|la\s+)?(muestres|ensenes|abras|abre|quiero|vayas|pongas|mires)\b/
 const PIDE_MOVIMIENTO = /\b(movimiento|como se hace|como se hacen|como lo hago|demuestra|demuestrame)\b/
+
+/** Con qué empieza una pregunta de entreno. «Qué» va acotado: «qué rico el almuerzo» no pregunta nada. */
+const EMPIEZA_PREGUNTA =
+  /^(por que|porque|para que|cuanto|cuanta|cuantos|cuantas|cuando|cual|cuales|como|debo|deberia|puedo|se puede|es malo|es mala|es bueno|es buena|es mejor|sirve|conviene|hay que|tengo que|necesito|vale la pena|que (es|son|significa|hago|hacer|pasa|sirve|tan|tanto|tanta|musculo|musculos|ejercicio|ejercicios|peso|debo|puedo))\b/
+const SALUDO = /^((oye|hola|disculpa|praxis|tengo una duda|tengo una pregunta|una duda|una pregunta)\s+)+/
+const PIDE_LO_DE_HOY = /\b(me toca|toca hoy|mi dia)\b/
 
 const RESPUESTA_DE_SALUD = 'Eso no lo resuelvo navegando. Cuéntaselo a tu coach.'
 
@@ -104,13 +113,23 @@ function normalizarFrase(dicho: string): string {
 
 export function interpretarOrden(dicho: string, sesion?: Pick<Sesion, 'ejercicios'>): Orden {
   const marca = filtroDeRiesgo(dicho)
-  if (marca) return { tipo: 'salud', respuesta: derivarPorRiesgo(marca).respuesta ?? RESPUESTA_DE_SALUD }
+  if (marca) {
+    const respuesta = derivarPorRiesgo(marca).respuesta ?? RESPUESTA_DE_SALUD
+    return marca.tipo === 'salud' ? { tipo: 'salud', respuesta } : { tipo: 'salud', respuesta, frase: dicho.trim() }
+  }
   const frase = normalizarFrase(dicho)
   if (!frase) return { tipo: 'no_entendi' }
   if (DE_SALUD.test(frase)) return { tipo: 'salud', respuesta: RESPUESTA_DE_SALUD }
   if (NEGADA.test(frase)) return { tipo: 'no_entendi' }
+  if (esPregunta(frase, dicho)) return { tipo: 'duda', frase: dicho.trim() }
 
   return ordenDeGiro(frase) ?? buscarEjercicio(frase, sesion) ?? ordenDeZona(frase) ?? ordenDeNavegacion(frase)
+}
+
+/** Pedir un movimiento o lo de hoy suena a pregunta, pero es una orden y no gasta nada. */
+function esPregunta(frase: string, dicho: string): boolean {
+  if (PIDE_MOVIMIENTO.test(frase) || PIDE_LO_DE_HOY.test(frase)) return false
+  return /[¿?]/.test(dicho) || EMPIEZA_PREGUNTA.test(frase.replace(SALUDO, ''))
 }
 
 function ordenDeGiro(frase: string): Orden | null {
@@ -156,7 +175,8 @@ export function respuestaDeLaOrden(orden: Orden): string {
     case 'indice': return 'Todas las zonas'
     case 'cerrar': return 'Listo'
     case 'salud': return orden.respuesta
+    case 'duda': return `Te oí: «${orden.frase}»`
     case 'cual': return `¿Cuál? ${orden.opciones.join(', ')}.`
-    case 'no_entendi': return 'No entendí. Prueba «muéstrame cuádriceps» o «siguiente ejercicio».'
+    case 'no_entendi': return 'No entendí. Prueba «muéstrame cuádriceps» o hazme una pregunta de entreno.'
   }
 }

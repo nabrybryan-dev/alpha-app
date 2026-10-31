@@ -5,7 +5,7 @@ import type { EstadoDeLaGuia } from '../guia/useZonaDePraxis'
 import { ordenDeZonas } from '../guia/zonasDePraxis'
 import type { Orden } from './ordenesDeVoz'
 
-/** Lo que una orden de voz puede mover: lo mismo que ya mueven los toques, y nada más. */
+/** Lo que una orden de voz puede mover: lo mismo que ya mueven los toques y el campo de dudas, y nada más. */
 export interface MandosDelSalon {
   vista: 'cuerpo' | 'movimiento'
   guia: EstadoDeLaGuia
@@ -16,6 +16,7 @@ export interface MandosDelSalon {
   irAlEjercicio?: (indice: number) => void
   girar?: (azimut: number) => void
   darLaVuelta: () => void
+  preguntar?: (frase: string) => void
 }
 
 function pasar(m: MandosDelSalon, salto: 1 | -1): void {
@@ -42,6 +43,13 @@ function abrir(m: MandosDelSalon, destino: EstadoDeLaGuia): void {
   m.ir(destino)
 }
 
+/** Las dudas se contestan en un paso o en una zona; el índice no las tiene. */
+function preguntarEnElPanel(m: MandosDelSalon, frase: string): void {
+  const sinDudas = m.guia === null || m.guia === 'indice'
+  if (sinDudas || m.vista !== 'cuerpo') abrir(m, sinDudas ? { paso: 0, zona: null } : m.guia)
+  m.preguntar?.(frase)
+}
+
 export function ejecutarOrden(orden: Orden, m: MandosDelSalon): void {
   switch (orden.tipo) {
     case 'zona': return abrir(m, orden.id)
@@ -58,7 +66,11 @@ export function ejecutarOrden(orden: Orden, m: MandosDelSalon): void {
       m.irAlEjercicio?.(orden.indice)
       m.cambiarVista('movimiento')
       return
+    case 'duda':
+      return preguntarEnElPanel(m, orden.frase)
     case 'salud':
+      if (orden.frase) preguntarEnElPanel(m, orden.frase)
+      return
     case 'cual':
     case 'no_entendi':
       return

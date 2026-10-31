@@ -67,11 +67,27 @@ describe('el micrófono de las órdenes de voz', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Cuádriceps')
   })
 
-  it('«me duele» no mueve el cuerpo', () => {
+  it('«me duele la rodilla» no mueve el cuerpo ni abre nada', () => {
+    const p = props({ alIrEnLaGuia: vi.fn() })
+    render(<PortadaDelCuerpo {...p} />)
+    decir('me duele la rodilla')
+    expect(p.alIrEnLaGuia).not.toHaveBeenCalled()
+  })
+
+  it('«me duele el pecho» es urgente: abre el panel donde salen las líneas, nunca la zona del pecho', () => {
     const p = props({ alIrEnLaGuia: vi.fn() })
     render(<PortadaDelCuerpo {...p} />)
     decir('me duele el pecho')
-    expect(p.alIrEnLaGuia).not.toHaveBeenCalled()
+    expect(p.alIrEnLaGuia).toHaveBeenCalledTimes(1)
+    expect(p.alIrEnLaGuia).toHaveBeenCalledWith({ paso: 0, zona: null }, 0)
+  })
+
+  it('una pregunta abre el panel y no contesta «no entendí»', () => {
+    const p = props({ alIrEnLaGuia: vi.fn() })
+    render(<PortadaDelCuerpo {...p} />)
+    decir('cuántas series de pecho hago a la semana')
+    expect(p.alIrEnLaGuia).toHaveBeenCalledWith({ paso: 0, zona: null }, 0)
+    expect(screen.getByRole('status').textContent).toContain('cuántas series de pecho')
   })
 
   it('el botón sigue en la vista de movimiento, y desde ahí se vuelve al cuerpo con la voz', () => {

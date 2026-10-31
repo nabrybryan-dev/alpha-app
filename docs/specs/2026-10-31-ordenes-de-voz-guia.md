@@ -20,9 +20,21 @@ por voz de hacia dónde ir y se le muestran los ejercicios y movimientos.
   iPhone), así que el texto y la voz pasan por un tercero. Abrirlo a asesorados espera lo mismo que Praxis (P8).
 - El filtro de riesgo va primero. Lo de salud («me duele», una señal de riesgo) nunca navega y contesta con la
   derivación. Esta capa solo usa el diccionario: el modelo no corre aquí, y no reemplaza a un profesional.
-- Lo dicho no se guarda ni se envía a nuestros servicios.
+- Las órdenes no se guardan ni se envían a nuestros servicios. Una pregunta sí: ver abajo.
 - `vercel.json`: `microphone=()` pasa a `microphone=(self)`. Con el valor anterior el navegador puede negar el micrófono en
   toda la app, también a la voz de Praxis. Es un cambio de cabecera de producción y va al fusionar.
+
+## Preguntas por voz (integración con las dudas libres, 31-oct)
+
+Objetivo de Bryan: que Praxis responda en el salón. Lo que empieza como pregunta ya no contesta «no entendí».
+
+- `interpretarOrden` devuelve `{ tipo: 'duda', frase }` y la pantalla la manda a `DudasDePraxis`, igual que una escrita:
+  filtro en el teléfono, `praxis-registro`, ficha o «no lo sé». Sale a nuestros servicios y gasta lo mismo que una escrita.
+- Se envía sola, sin confirmar: pedir un toque rompe el uso con las manos ocupadas. La burbuja muestra lo que se oyó.
+- Pedir un movimiento o lo de hoy sigue siendo orden: no gasta nada.
+- Antes, una señal de riesgo por voz solo daba un mensaje corto. Ahora abre la Quieta con las líneas de ayuda, sin
+  salir del teléfono, y cierra las dudas por hoy como en lo escrito. Lo clínico sigue sin mover nada.
+- Solo el equipo: micrófono y campo tienen la misma puerta (`puedeVerPraxis`).
 
 ## Lo que falta probar en un teléfono real
 
@@ -31,4 +43,4 @@ botón no tape nada a 360 px.
 
 ## Fuera de este prototipo
 
-Praxis hablando en voz alta, caminar por la sala, anotar series con la voz y órdenes con un modelo.
+Praxis hablando en voz alta, caminar por la sala, anotar series con la voz y órdenes con un modelo. Contexto del día en la pregunta: viaja solo la frase.

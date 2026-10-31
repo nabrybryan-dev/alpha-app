@@ -101,6 +101,44 @@ describe('lo de salud nunca se vuelve navegación', () => {
   })
 })
 
+describe('una pregunta hablada va a las dudas de Praxis, tal como se dijo', () => {
+  it.each([
+    '¿por qué descanso tanto entre series?',
+    'por qué descanso tanto entre series',
+    'cuántas series de pecho hago a la semana',
+    'qué es el RIR',
+    'oye praxis debo llegar al fallo',
+    'puedo entrenar pierna dos días seguidos',
+    'cómo subo de peso en la sentadilla',
+    'tengo una duda para qué sirve el cardio',
+  ])('«%s»', (dicho) => {
+    expect(interpretarOrden(dicho, sesion)).toEqual({ tipo: 'duda', frase: dicho })
+  })
+
+  it('pedir un movimiento o lo de hoy sigue siendo una orden, aunque suene a pregunta', () => {
+    expect(interpretarOrden('¿cómo se hace la sentadilla?', sesion)).toMatchObject({ tipo: 'ejercicio', indice: 0 })
+    expect(interpretarOrden('¿qué me toca hoy?', sesion).tipo).toBe('hoy')
+    expect(interpretarOrden('qué rico el almuerzo', sesion).tipo).toBe('no_entendi')
+  })
+
+  it('una duda de salud no se vuelve pregunta: la filtra lo de salud', () => {
+    expect(interpretarOrden('por qué me duele la rodilla', sesion).tipo).toBe('salud')
+  })
+
+  it('muestra lo que oyó, para que se note si el reconocedor se equivocó', () => {
+    expect(respuestaDeLaOrden({ tipo: 'duda', frase: 'qué es el RIR' })).toContain('qué es el RIR')
+  })
+})
+
+describe('una señal de riesgo por voz lleva la frase a la pantalla que da las líneas de ayuda', () => {
+  it('«me quiero morir» conserva la frase; lo clínico no la necesita', () => {
+    expect(interpretarOrden('me quiero morir', sesion)).toMatchObject({ tipo: 'salud', frase: 'me quiero morir' })
+    expect(interpretarOrden('ya no puedo más con todo', sesion)).toMatchObject({ tipo: 'salud', frase: 'ya no puedo más con todo' })
+    expect(interpretarOrden('me duele el pecho', sesion)).toMatchObject({ tipo: 'salud', frase: 'me duele el pecho' })
+    expect(interpretarOrden('me duele la rodilla en la sentadilla', sesion)).not.toHaveProperty('frase')
+  })
+})
+
 describe('no gasta la clave', () => {
   it('no llama a la red, ni a un modelo, ni guarda lo dicho', () => {
     const fuente = readFileSync(resolve(__dirname, 'ordenesDeVoz.ts'), 'utf8')

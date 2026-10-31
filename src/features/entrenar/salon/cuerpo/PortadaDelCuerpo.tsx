@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
@@ -8,7 +8,7 @@ import type { CamaraDelSalon } from '../paredes/geometriaDeCuadro'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
 import { relojEnMarcha, type AnclasDelReloj, type ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
-import { PuertaDeDudas } from '../guia/DudasDePraxis'
+import { PuertaDeDudas, type DudaDictada } from '../guia/DudasDePraxis'
 import { GuiaDePraxis, OrbeDePraxis } from '../guia/GuiaDePraxis'
 import { guionDelDia } from '../guia/guionDelDia'
 import { lineaDePraxis } from '../guia/zonasDePraxis'
@@ -176,6 +176,9 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const guia = enCuerpo ? (p.guia ?? null) : null
   const ir = (destino: EstadoDeLaGuia) => p.alIrEnLaGuia?.(destino, azimut)
   const ancla = useRef<HTMLDivElement>(null)
+  // La duda espera aquí: el panel que la contesta puede estar todavía cerrado cuando se dice.
+  const [dictada, setDictada] = useState<DudaDictada | null>(null)
+  const dictadas = useRef(0)
   // Sin el centro y el campo con que se dibuja (el primer fotograma) no hay cámara que invertir.
   const lente = p.camara?.centro && p.camara.campo ? { ...p.camara, centro: p.camara.centro, campo: p.camara.campo } : undefined
   // Tocar la zona ya abierta la suelta y vuelve al cuerpo entero.
@@ -223,6 +226,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         cambiarVista={p.alCambiarVista}
         irAlEjercicio={p.alIrAlEjercicio}
         girar={p.alDarLaVuelta}
+        preguntar={(frase) => setDictada({ id: ++dictadas.current, frase })}
       />
 
       {/* El panel va FUERA del hueco: `pointer-events: none` se hereda y lo dejaría sordo. */}
@@ -247,7 +251,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           alCambiarRango={p.alCambiarRango}
           alVerMovimiento={() => p.alCambiarVista('movimiento')}
           alDarLaVuelta={p.alDarLaVuelta}
-          dudas={<PuertaDeDudas />}
+          dudas={<PuertaDeDudas dictada={dictada} alConsumir={() => setDictada(null)} />}
         />
       )}
     </>

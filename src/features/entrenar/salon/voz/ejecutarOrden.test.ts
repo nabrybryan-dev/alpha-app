@@ -14,6 +14,7 @@ function mandos(sobre: Partial<MandosDelSalon> = {}): MandosDelSalon {
     irAlEjercicio: vi.fn(),
     girar: vi.fn(),
     darLaVuelta: vi.fn(),
+    preguntar: vi.fn(),
     ...sobre,
   }
 }
@@ -75,5 +76,43 @@ describe('lo que hace cada orden con el sujeto', () => {
     expect(m.ir).not.toHaveBeenCalled()
     expect(m.cambiarVista).not.toHaveBeenCalled()
     expect(m.irAlEjercicio).not.toHaveBeenCalled()
+  })
+})
+
+describe('una pregunta hablada abre donde Praxis puede contestarla', () => {
+  it('con todo cerrado, abre el panel y pregunta', () => {
+    const m = mandos()
+    ejecutarOrden({ tipo: 'duda', frase: 'qué es el RIR' }, m)
+    expect(m.ir).toHaveBeenCalledWith({ paso: 0, zona: null })
+    expect(m.preguntar).toHaveBeenCalledWith('qué es el RIR')
+  })
+
+  it('en el índice no hay dudas: también abre el panel', () => {
+    const m = mandos({ guia: 'indice' })
+    ejecutarOrden({ tipo: 'duda', frase: 'qué es el RIR' }, m)
+    expect(m.ir).toHaveBeenCalledWith({ paso: 0, zona: null })
+  })
+
+  it('en una zona se queda en la zona: ahí también se contesta', () => {
+    const m = mandos({ guia: 'cua' })
+    ejecutarOrden({ tipo: 'duda', frase: 'qué es el RIR' }, m)
+    expect(m.ir).not.toHaveBeenCalled()
+    expect(m.preguntar).toHaveBeenCalledWith('qué es el RIR')
+  })
+
+  it('desde el movimiento vuelve al cuerpo, porque el panel solo se ve ahí', () => {
+    const m = mandos({ vista: 'movimiento' })
+    ejecutarOrden({ tipo: 'duda', frase: 'qué es el RIR' }, m)
+    expect(m.cambiarVista).toHaveBeenCalledWith('cuerpo')
+  })
+
+  it('una señal de riesgo también abre el panel; lo clínico no mueve nada', () => {
+    const riesgo = mandos()
+    ejecutarOrden({ tipo: 'salud', respuesta: 'r', frase: 'me quiero morir' }, riesgo)
+    expect(riesgo.preguntar).toHaveBeenCalledWith('me quiero morir')
+    const clinico = mandos()
+    ejecutarOrden({ tipo: 'salud', respuesta: 'r' }, clinico)
+    expect(clinico.preguntar).not.toHaveBeenCalled()
+    expect(clinico.ir).not.toHaveBeenCalled()
   })
 })

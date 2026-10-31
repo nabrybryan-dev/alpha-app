@@ -16,6 +16,7 @@ export interface MicrofonoDelSalonProps {
   cambiarVista: (vista: 'cuerpo' | 'movimiento') => void
   irAlEjercicio?: (indice: number) => void
   girar?: (azimut: number) => void
+  preguntar?: (frase: string) => void
 }
 
 /** El micrófono conectado al sujeto: lo dicho se vuelve una orden, y la orden mueve lo que ya mueven los toques. */

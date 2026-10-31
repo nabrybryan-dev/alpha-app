@@ -130,3 +130,44 @@ describe('una duda escrita', () => {
     await waitFor(() => expect((screen.getByRole('textbox') as HTMLInputElement).disabled).toBe(false))
   })
 })
+
+describe('una duda dicha con la voz', () => {
+  const dictada = (frase: string) => ({ id: 1, frase })
+
+  it('se pregunta sola, una vez, y avisa que ya la tomó', async () => {
+    const preguntar = vi.fn(async () => conFicha)
+    const alConsumir = vi.fn()
+    render(<DudasDePraxis servicios={servicios} preguntar={preguntar} dictada={dictada('¿qué es el RIR?')} alConsumir={alConsumir} />)
+    expect(await screen.findByText('Una vez no obliga a bajar peso.')).toBeTruthy()
+    expect(preguntar).toHaveBeenCalledTimes(1)
+    expect(preguntar).toHaveBeenCalledWith('¿qué es el RIR?')
+    expect(alConsumir).toHaveBeenCalledTimes(1)
+  })
+
+  it('una señal de riesgo dicha enseña las líneas de ayuda y no sale del teléfono', async () => {
+    const preguntar = vi.fn(async () => conFicha)
+    render(<DudasDePraxis servicios={servicios} preguntar={preguntar} dictada={dictada('me quiero morir')} alConsumir={vi.fn()} />)
+    expect(await screen.findByRole('link', { name: 'Llamar al 123' })).toBeTruthy()
+    expect(preguntar).not.toHaveBeenCalled()
+  })
+
+  it('tras una Quieta no se pregunta nada, aunque llegue por voz', async () => {
+    localStorage.setItem('praxis-dudas-detenida', new Date().toLocaleDateString('en-CA'))
+    const preguntar = vi.fn(async () => conFicha)
+    const alConsumir = vi.fn()
+    render(<DudasDePraxis servicios={servicios} preguntar={preguntar} dictada={dictada('¿qué es el RIR?')} alConsumir={alConsumir} />)
+    await waitFor(() => expect(alConsumir).toHaveBeenCalled())
+    expect(preguntar).not.toHaveBeenCalled()
+  })
+
+  it('si llega mientras piensa la anterior, no se pierde: gana la última', async () => {
+    let soltar: (r: RespuestaDelRegistrador) => void = () => {}
+    const preguntar = vi.fn((frase: string) => (frase === 'primera' ? new Promise<RespuestaDelRegistrador>((r) => { soltar = r }) : Promise.resolve(conFicha)))
+    const { rerender } = render(<DudasDePraxis servicios={servicios} preguntar={preguntar} dictada={dictada('primera')} alConsumir={vi.fn()} />)
+    await waitFor(() => expect(preguntar).toHaveBeenCalledWith('primera'))
+    rerender(<DudasDePraxis servicios={servicios} preguntar={preguntar} dictada={{ id: 2, frase: 'segunda' }} alConsumir={vi.fn()} />)
+    expect(await screen.findByText('Una vez no obliga a bajar peso.')).toBeTruthy()
+    soltar({ ok: false, motivo: 'red' })
+    expect(screen.queryByText(/No pude preguntar/)).toBeNull()
+  })
+})

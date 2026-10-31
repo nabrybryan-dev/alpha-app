@@ -87,7 +87,20 @@ function Cuidado({ alResponder }: { alResponder: (hayRiesgo: boolean) => void })
   )
 }
 
-export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios }: { preguntar?: (frase: string) => Promise<RespuestaDelRegistrador>; servicios: ServiciosDeFicha }) {
+/** Una duda dicha con el micrófono del salón. El `id` distingue dos preguntas iguales seguidas. */
+export interface DudaDictada {
+  id: number
+  frase: string
+}
+
+export interface DudasDePraxisProps {
+  preguntar?: (frase: string) => Promise<RespuestaDelRegistrador>
+  servicios: ServiciosDeFicha
+  dictada?: DudaDictada | null
+  alConsumir?: () => void
+}
+
+export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios, dictada, alConsumir }: DudasDePraxisProps) {
   const [frase, setFrase] = useState('')
   const [preguntada, setPreguntada] = useState('')
   const [pensando, setPensando] = useState(false)
@@ -96,8 +109,8 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios }:
   const turno = useRef(0)
   const lectura = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (resultado) lectura.current?.scrollIntoView?.({ block: 'nearest' })
-  }, [resultado])
+    if (resultado || pensando) lectura.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [resultado, pensando])
 
   const mostrar = (r: ResultadoDeDuda) => {
     if (r.tipo === 'quieta') {
@@ -107,11 +120,12 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios }:
     setResultado(r)
   }
 
-  const enviar = async (e: FormEvent) => {
-    e.preventDefault()
-    const limpia = frase.trim()
-    if (!limpia || pensando) return
-    setFrase('')
+  /** Escrita o dicha, una duda pasa por lo mismo. Si llega otra mientras se piensa, `turno` deja ganar a la última. */
+  const preguntarDuda = async (limpia: string) => {
+    if (detenidaHoy()) {
+      setDetenida(true)
+      return
+    }
     const local = dudaAntesDeEnviar(limpia)
     if (local) {
       mostrar(local)
@@ -127,11 +141,33 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios }:
     mostrar(dudaTrasResponder(r))
   }
 
+  const enviar = (e: FormEvent) => {
+    e.preventDefault()
+    const limpia = frase.trim()
+    if (!limpia || pensando) return
+    setFrase('')
+    void preguntarDuda(limpia)
+  }
+
+  const alDictar = useRef({ preguntarDuda, alConsumir })
+  useEffect(() => {
+    alDictar.current = { preguntarDuda, alConsumir }
+  })
+  // Fuera del efecto: al abrir el panel por voz, esta pieza se monta con la duda ya dicha.
+  useEffect(() => {
+    if (!dictada) return
+    const tarea = window.setTimeout(() => {
+      alDictar.current.alConsumir?.()
+      void alDictar.current.preguntarDuda(dictada.frase)
+    }, 0)
+    return () => window.clearTimeout(tarea)
+  }, [dictada])
+
   if (resultado?.tipo === 'quieta') return <Quieta linea={resultado.linea} />
   if (detenida) return <p className="mt-4 text-xs text-tenue">Hoy la conversación se detuvo. Hoy no hay más preguntas.</p>
   return (
     <div className="mt-4 border-t border-linea pt-3" data-testigo="dudas-de-praxis">
-      <form onSubmit={(e) => void enviar(e)} className="flex items-center gap-2">
+      <form onSubmit={enviar} className="flex items-center gap-2">
         <input
           value={frase}
           onChange={(e) => setFrase(e.target.value)}
@@ -161,7 +197,7 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios }:
 }
 
 /** Dos llaves, las mismas de la pantalla de Praxis: el rol del equipo o el puesto. Un asesorado no ve el campo. */
-export function PuertaDeDudas() {
+export function PuertaDeDudas({ dictada, alConsumir }: Pick<DudasDePraxisProps, 'dictada' | 'alConsumir'>) {
   const sesion = useSesionOpcional()
   const rol = sesion?.usuario.rol
   const usuarioId = sesion?.usuario.id
@@ -172,5 +208,5 @@ export function PuertaDeDudas() {
   )
   if (!rol || (rol === 'asesorado' && cargando)) return null
   if (!puedeVerPraxis(rol, undefined, ocupaElPuesto)) return null
-  return <DudasDePraxis servicios={servicios} />
+  return <DudasDePraxis servicios={servicios} dictada={dictada} alConsumir={alConsumir} />
 }
