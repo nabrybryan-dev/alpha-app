@@ -270,15 +270,22 @@ describe('el tiempo de la repetición, desde el disco', () => {
     dedo(disco, 'pointerup', 120, 600)
     await waitFor(() => expect(rotuloDelMuro()).toBe(rotuloDelModo('descanso')))
 
-    // El descanso del seed es de unos minutos. Se avanza a pasos y se para al terminar: de un golpe de
-    // seis minutos falló en el CI, y esta prueba ahora corre en la vista de movimiento, más pesada.
-    for (let s = 0; s < 180 && !screen.queryByText('Descanso terminado'); s++) {
-      act(() => {
-        vi.advanceTimersByTime(2000)
-      })
+    // La frase es pasajera: se apunta todo lo que aparezca en vez de mirar al final, porque en el CI,
+    // más lento, ya se había ido al mirarla. El descanso del seed es de unos minutos.
+    const visto: string[] = []
+    const apuntar = (cambios: MutationRecord[]) => {
+      for (const c of cambios) c.addedNodes.forEach((n) => visto.push(n.textContent ?? ''))
     }
-    expect(screen.getByText('Descanso terminado')).toBeInTheDocument()
-    expect(screen.getByText(/A la barra/)).toBeInTheDocument()
+    const vigia = new MutationObserver(apuntar)
+    vigia.observe(document.body, { childList: true, subtree: true })
+    act(() => {
+      vi.advanceTimersByTime(6 * 60 * 1000)
+    })
+    await act(async () => {})
+    apuntar(vigia.takeRecords())
+    vigia.disconnect()
+    expect(visto.join(' ')).toContain('Descanso terminado')
+    expect(visto.join(' ')).toMatch(/A la barra/)
     expect(rotuloDelMuro()).toBeNull()
   })
 
