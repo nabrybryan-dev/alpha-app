@@ -12,6 +12,7 @@ import { SeccionDePresentacion } from './SeccionDePresentacion'
 import { SeccionMapaDelPlan } from './SeccionMapaDelPlan'
 import { SeccionPautadoVsHecho } from './SeccionPautadoVsHecho'
 import { SeccionTresSemanas } from './SeccionTresSemanas'
+import { SeccionTuPlan } from './SeccionTuPlan'
 import { SeccionVelocidadTecnica } from './SeccionVelocidadTecnica'
 
 interface Props {
@@ -61,7 +62,11 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
   // personas). Con `activo` a secas, «Esta semana» enseñaba una semana sin empezar, en ceros, y el
   // mapa marcaba como «la de ahora» una casilla del futuro. Es la misma regla de la sección de
   // las tres semanas, para que las tres secciones hablen de la misma semana.
-  const enCurso = useMemo(() => tresSemanasDeLaPersona(historial, hoy).esta?.microciclo ?? activo, [historial, hoy, activo])
+  const tres = useMemo(() => tresSemanasDeLaPersona(historial, hoy), [historial, hoy])
+  const enCurso = tres.esta?.microciclo ?? activo
+  // Quien aún no empieza no tiene semana «de ahora»: su primera semana viene, y así se le dice.
+  const aunNoEmpieza = !tres.esta && Boolean(tres.siguiente)
+  const numeroDeAhora = aunNoEmpieza ? undefined : enCurso?.numero
 
   const resumen = useMemo(
     () => resumenSemanalParaPresentar(enCurso, checkins, adherencias, perfil?.medidas ?? [], hoy),
@@ -79,35 +84,39 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <SeccionDePresentacion indice={0} titulo="Esta semana">
+      <SeccionDePresentacion indice={0} titulo="Tu plan" subtitulo="Hacia dónde vamos y cómo se desarrolla, semana a semana.">
+        <SeccionTuPlan plan={plan} numeroActual={numeroDeAhora} />
+      </SeccionDePresentacion>
+
+      <SeccionDePresentacion indice={1} titulo={aunNoEmpieza ? 'Tu primera semana' : 'Esta semana'}>
         <PresentacionSemanal resumen={resumen} />
       </SeccionDePresentacion>
 
       <SeccionDePresentacion
-        indice={1}
+        indice={2}
         titulo="Tu semana pasada, esta y la que viene"
         subtitulo="Lo que te pedimos y lo que hiciste, para que veas el antes, el ahora y lo que sigue."
       >
         <SeccionTresSemanas historial={historial} hoy={hoy} plan={plan} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={2} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
-        <SeccionMapaDelPlan plan={plan} numeroActual={enCurso?.numero} ultimoCerrado={ultimoCerrado} />
+      <SeccionDePresentacion indice={3} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
+        <SeccionMapaDelPlan plan={plan} numeroActual={numeroDeAhora} ultimoCerrado={ultimoCerrado} />
       </SeccionDePresentacion>
 
       <SeccionDePresentacion
-        indice={3}
+        indice={4}
         titulo="Lo que te pedimos y lo que hiciste"
         subtitulo="Semana a semana: las series y el volumen que tocaban, contra los que registraste."
       >
         <SeccionPautadoVsHecho filas={filas} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={4} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
+      <SeccionDePresentacion indice={5} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
         <SeccionConclusiones corridas={corridas} conclusiones={conclusiones} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={5} titulo="Velocidad y técnica">
+      <SeccionDePresentacion indice={6} titulo="Velocidad y técnica">
         <SeccionVelocidadTecnica nombre={nombre} />
       </SeccionDePresentacion>
     </div>

@@ -48,7 +48,7 @@ const TEXTO_SITUACION: Record<SituacionDeSemana, string> = {
  * fechas, lo que el plan dice de ella y sus sesiones—. Cada sesión es una tarjeta plegable
  * (la primera abierta) y cada ejercicio pone lado a lado lo que se pidió y lo que se hizo.
  *
- * Abre en «Esta». En «La que viene» no se pinta «Hiciste»: todavía no ocurre, y una columna de
+ * Abre en «Esta», o en «La que viene» si la persona aún no empieza. En «La que viene» no se pinta «Hiciste»: todavía no ocurre, y una columna de
  * «sin anotar» sobre algo futuro diría que la persona dejó de hacerlo. El cambio entre
  * semanas es la entrada `pres-entra` con `key` (se vuelve a montar el bloque, y con él las
  * tarjetas vuelven a su estado inicial); se prefirió a `conTransicionDeVista` porque esa
@@ -56,8 +56,9 @@ const TEXTO_SITUACION: Record<SituacionDeSemana, string> = {
  * movimiento reducido `pres-entra` ya no anima (tokens.css).
  */
 export function SeccionTresSemanas({ historial, hoy, plan }: Props) {
-  const [rol, setRol] = useState<RolDeSemana>('esta')
   const semanas = useMemo(() => tresSemanasDeLaPersona(historial, hoy), [historial, hoy])
+  // Quien aún no empieza no tiene «Esta»: abrir ahí le diría que no hay semana cargada, cuando sí la hay.
+  const [rol, setRol] = useState<RolDeSemana>(!semanas.esta && semanas.siguiente ? 'siguiente' : 'esta')
   const elegida = semanas[rol]
 
   return (
