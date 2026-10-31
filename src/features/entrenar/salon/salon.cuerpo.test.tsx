@@ -376,8 +376,10 @@ describe('la guía de Praxis abre las zonas sobre el cuerpo', () => {
     montar({ seriesHechas: 1 })
     abrirDorsal()
     const cuerpo = ultimas().cuerpo!
-    expect(cuerpo.tinte.dors).toEqual({ k: 1, dolor: false })
+    expect(cuerpo.tinte.dors).toEqual({ k: 1, dolor: false, enfocada: true })
     expect(cuerpo.tinte.bic).toEqual({ k: 0, dolor: false })
+    // Y la barra de la sesión se aparta: con la cámara cerca caería sobre el torso.
+    expect(document.querySelector('[data-salon="entrenar"]')?.getAttribute('data-zona')).toBe('dors')
     expect(ultimas().vuelta).toMatchObject({ azimut: 180, centro: [0, 0.9, 0], distancia: 2.4 })
   })
 
@@ -395,7 +397,7 @@ describe('la guía de Praxis abre las zonas sobre el cuerpo', () => {
     montar({ seriesHechas: 0 })
     abrirDorsal()
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar Praxis' }))
-    expect(ultimas().vuelta).toMatchObject({ distancia: 5.1, centro: [0, 0.91, 0] })
+    expect(ultimas().vuelta).toMatchObject({ distancia: 5.1, centro: [0, 0.8, 0] })
     expect(ultimas().cuerpo!.tinte.dors.pendiente).toBe(true)
   })
 

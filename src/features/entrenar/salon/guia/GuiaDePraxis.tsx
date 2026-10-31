@@ -5,6 +5,7 @@ import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
 import { seriesPorRegion, type SeriesPorRegion } from '../../sujeto/tinte'
 import { BotonDarLaVuelta } from '../cuerpo/BotonDarLaVuelta'
 import { cifrasEnUnaLinea } from '../cuerpo/cifrasEnUnaLinea'
+import { lecturaDeLaPrescripcion } from '../panel/lecturaDeLaPrescripcion'
 import { Opcion } from '../cuerpo/OpcionDeTecla'
 import type { RangoDeLectura } from '../cuerpo/PortadaDelCuerpo'
 import { FICHA_DE_REGION, ordenDeZonas, trabajoDeRegion, type TrabajoDeRegion } from './zonasDePraxis'
@@ -58,6 +59,7 @@ export interface GuiaDePraxisProps {
 
 function FilaDeTrabajo({ t, alIr }: { t: TrabajoDeRegion; alIr?: (indice: number) => void }) {
   const cuenta = cifra(t.cuentaPorSerie)
+  const intensidad = lecturaDeLaPrescripcion(t.ejercicio).find((l) => l.id === 'rir')
   return (
     <li>
       <button
@@ -75,6 +77,7 @@ function FilaDeTrabajo({ t, alIr }: { t: TrabajoDeRegion; alIr?: (indice: number
         <span className="text-xs text-tenue">
           {t.papel === 'principal' ? 'Trabajo principal' : 'Trabajo de apoyo'}: cada serie cuenta {cuenta} aquí.
         </span>
+        {intensidad && <span className="text-xs text-tenue">{intensidad.que}</span>}
       </button>
     </li>
   )
@@ -230,7 +233,7 @@ export function GuiaDePraxis(p: GuiaDePraxisProps) {
           ✕
         </button>
       </header>
-      <div ref={cuerpo} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-2">
+      <div ref={cuerpo} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pt-2">
         {zona ? <Zona id={zona} p={p} /> : <Indice p={p} />}
       </div>
     </section>

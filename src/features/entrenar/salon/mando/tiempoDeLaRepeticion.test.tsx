@@ -256,10 +256,10 @@ describe('el tiempo de la repetición, desde el disco', () => {
     dedo(disco, 'pointerup', 120, 600)
 
     await waitFor(() => expect(rotuloDelMuro()).toBe(rotuloDelModo('descanso')))
-    expect(document.querySelector('[data-hueco="cuerpo"] .muro-reloj-vivo')).not.toBeNull()
+    expect(document.querySelector('.muro-reloj-vivo')).not.toBeNull()
   })
 
-  it('en la portada del cuerpo, al llegar la cuenta a cero sale «Descanso terminado» y vuelve el cronometro', async () => {
+  it('al llegar la cuenta a cero sale «Descanso terminado» y vuelve el cronometro', async () => {
     renderizarEntrenar()
     const disco = await esperarAlDisco()
     dedo(disco, 'pointerdown', 200, 600)

@@ -77,8 +77,7 @@ describe('el orden al deslizar', () => {
 describe('la línea de Praxis', () => {
   it('nombra lo que falta por trabajar', () => {
     expect(lineaDePraxis(['dors'], {})).toBe('Hoy te falta: Dorsal')
-    expect(lineaDePraxis(['dors', 'bic'], {})).toBe('Hoy te falta: Dorsal y Bíceps')
-    expect(lineaDePraxis(['dors', 'bic', 'cua', 'glu'], {})).toBe('Hoy te falta: Dorsal, Bíceps y 2 más')
+    expect(lineaDePraxis(['dors', 'bic', 'cua', 'glu'], {})).toBe('Hoy: 4 zonas por trabajar')
   })
 
   it('con todo hecho dice lo trabajado, y sin nada invita a tocar', () => {
@@ -91,7 +90,7 @@ describe('la zona enfocada se enciende sola', () => {
   it('apaga las demás, conserva el dolor y no toca el tinte original', () => {
     const tinte = tinteDelCuerpo({ dors: 3, bic: 1 }, ['delt'], ['cua'])
     const enfocado = tinteEnfocado(tinte, 'glu')
-    expect(enfocado.glu).toEqual({ k: 1, dolor: false })
+    expect(enfocado.glu).toEqual({ k: 1, dolor: false, enfocada: true })
     expect(enfocado.dors).toEqual({ k: 0, dolor: false })
     expect(enfocado.cua).toEqual({ k: 0, dolor: false })
     expect(enfocado.delt.dolor).toBe(true)

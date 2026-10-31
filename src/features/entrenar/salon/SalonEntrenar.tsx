@@ -855,7 +855,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // propósito — la barra de navegación vive en `--z-nav` (40) y tiene que seguir por
     // encima: una pantalla que se come la navegación deja al asesorado sin salida.
     <div
-      data-salon="entrenar"
+      data-salon="entrenar" data-zona={zona}
       // EL SALON SIGUE EL TEMA DE LA PERSONA (zona 8, decision de Bryan 28-oct): ya no fuerza
       // `data-theme`. La escena relee los `--salon-3d-*` al cambiar el tema (`paletaDeLaSala`).
       data-w={w}
@@ -1186,7 +1186,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             quién es el día y qué toca; abajo, un punto por ejercicio con el actual
             encendido. Son las únicas dos capas del salón que no viven en el espacio, y por
             eso son también las más finas: sin caja, sin fondo y sin borde. */}
-        <div className="pointer-events-none absolute inset-x-5 top-[46px]">
+        <div className="pointer-events-none absolute inset-x-5 top-[46px] [[data-zona]_&]:hidden">
           <BarraDeSesion
             sesion={sesionEnPantalla}
             semana={props.semana}

@@ -159,12 +159,9 @@ export function ordenDeZonas(sesion: Pick<Sesion, 'ejercicios'> | undefined): Id
 
 /** La única línea del centro: qué falta, qué se hizo, o cómo empezar. */
 export function lineaDePraxis(porTrabajar: readonly IdDeRegion[], series: SeriesPorRegion): string {
-  if (porTrabajar.length > 0) {
-    const [a, b] = porTrabajar.map((id) => NOMBRE_DE_REGION[id])
-    if (porTrabajar.length === 1) return `Hoy te falta: ${a}`
-    if (porTrabajar.length === 2) return `Hoy te falta: ${a} y ${b}`
-    return `Hoy te falta: ${a}, ${b} y ${porTrabajar.length - 2} más`
-  }
+  // Corta a propósito: los nombres ya se ven en rojo sobre el cuerpo, y una lista larga se cortaba.
+  if (porTrabajar.length === 1) return `Hoy te falta: ${NOMBRE_DE_REGION[porTrabajar[0]!]}`
+  if (porTrabajar.length > 1) return `Hoy: ${porTrabajar.length} zonas por trabajar`
   const hecho = lecturaCorta(series)
   return hecho ? `Hoy trabajaste: ${hecho}` : 'Toca un músculo para saber qué hace'
 }
@@ -177,7 +174,7 @@ export function capaDeLaVista(zona: IdDeRegion | null, capa: CapaDelCuerpo): Cap
 /** Solo la zona elegida queda encendida; el dolor no se apaga nunca. Devuelve una copia. */
 export function tinteEnfocado(tinte: TinteDelCuerpo, zona: IdDeRegion): TinteDelCuerpo {
   return Object.fromEntries(
-    REGIONES.map(({ id }) => [id, { k: id === zona ? 1 : 0, dolor: tinte[id].dolor }]),
+    REGIONES.map(({ id }) => [id, id === zona ? { k: 1, dolor: tinte[id].dolor, enfocada: true } : { k: 0, dolor: tinte[id].dolor }]),
   ) as TinteDelCuerpo
 }
 

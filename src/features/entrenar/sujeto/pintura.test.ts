@@ -11,7 +11,7 @@ import {
 } from './pintura'
 import { tinteDelCuerpo } from './tinte'
 
-const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 0.8], rojo: [0.9, 0.1, 0.1], tendon: [0.85, 0.85, 0.85] }
+const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 0.8], rojo: [0.9, 0.1, 0.1], tendon: [0.85, 0.85, 0.85], foco: [0.8, 0.7, 0.3], }
 
 function musculo(color: Color): Malla {
   const m = new Malla()
