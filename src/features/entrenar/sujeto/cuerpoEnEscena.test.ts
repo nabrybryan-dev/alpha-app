@@ -5,7 +5,7 @@ import { mallasDelCuerpo, mallasDelCuerpoParaElVisor, type AlmacenDeCapas } from
 import { TRANSICION_MS, type Paleta } from './pintura'
 import { tinteDelCuerpo } from './tinte'
 
-const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 1], rojo: [1, 0, 0], tendon: [0.9, 0.9, 0.9] }
+const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 1], rojo: [1, 0, 0], tendon: [0.9, 0.9, 0.9], foco: [0.8, 0.7, 0.3], }
 
 function malla(): Malla {
   const m = new Malla()

@@ -166,6 +166,7 @@ describe('el día elegido manda también en el cardio', () => {
     const metabolica = microciclo.sesiones.find((s) => s.bloquesCardio?.length)!
 
     // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(await screen.findByRole('button', { name: /Abrir Praxis/ }))
     fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     await viajarA(metabolica.nombre)
 

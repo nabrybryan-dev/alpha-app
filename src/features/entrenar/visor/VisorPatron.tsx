@@ -245,8 +245,8 @@ interface VisorPatronProps {
    */
   /** `ahora`: la hora con la que se pinta una transición; la pone el salón, que la mueve. */
   cuerpo?: CuerpoParaPintar
-  /** «Dar la vuelta»: cuando cambia `orden`, la órbita viaja al `azimut` (grados) por el camino corto. */
-  vuelta?: { orden: number; azimut: number }
+  /** «Dar la vuelta» o acercarse a una zona: cuando cambia `orden`, la órbita viaja allí por el camino corto. */
+  vuelta?: { orden: number; azimut: number; elevacion?: number; distancia?: number; centro?: [number, number, number] }
   /**
    * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
    *
@@ -502,7 +502,7 @@ export function VisorPatron({
   const redibujar = useRef<(() => void) | null>(null)
   /** Lleva la camara al encuadre del cuerpo (de pie, de frente) o al del patron. La rellena el montaje. */
   const reencuadrar = useRef<((aCuerpo: boolean) => void) | null>(null)
-  const darVuelta = useRef<((azimut: number, ms: number) => void) | null>(null)
+  const darVuelta = useRef<((v: NonNullable<VisorPatronProps['vuelta']>, ms: number) => void) | null>(null)
   const hayCuerpo = cuerpo !== undefined
 
   /**
@@ -559,7 +559,7 @@ export function VisorPatron({
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
   }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, cuerpo, momentos, tema])
-  useEffect(() => { if (vuelta) darVuelta.current?.(vuelta.azimut, reducido ? 1 : 520) }, [vuelta, reducido])
+  useEffect(() => { if (vuelta) darVuelta.current?.(vuelta, reducido ? 1 : 520) }, [vuelta, reducido])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -717,7 +717,7 @@ export function VisorPatron({
           llevarLaCamara(aCuerpo, true)
           pintar()
         }
-        darVuelta.current = (azimut, ms) => { orbita.viajarA({ azimut, elevacion: orbita.elevacion, distancia: orbita.distancia }, ms); pintar() }
+        darVuelta.current = (v, ms) => { orbita.viajarA({ azimut: v.azimut, elevacion: v.elevacion ?? orbita.elevacion, distancia: v.distancia ?? orbita.distancia, centro: v.centro }, ms); pintar() }
         // CAMBIAR DE EJERCICIO NO DA UN SALTO. Si había una cámara —la de antes de cambiar,
         // que puede ser la que dejó el dedo—, se parte de ella y se VIAJA a la del patrón
         // nuevo. Bryan, 2026-09-06: «se pierde el diseño y se va para otro lado».

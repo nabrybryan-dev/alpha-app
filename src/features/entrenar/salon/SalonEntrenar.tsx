@@ -45,7 +45,7 @@ import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGua
 import { Joystick } from './mando/Joystick'
 import { faseAhora, irALaFase, pausarLaRepeticion, reanudarLaRepeticion } from '../visor/controlDelTiempo'
 import { CamaraDelSalon } from './camara/CamaraDelSalon'
-import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './mando/relojDelMuro'
+import { duracionDelModo, relojEnMarcha, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './mando/relojDelMuro'
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
@@ -59,6 +59,8 @@ import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 import { cifrasEnUnaLinea } from './cuerpo/cifrasEnUnaLinea'
 import { useVueltaDelCuerpo } from './camara/useVueltaDelCuerpo'
+import { capaDeLaVista, tinteDeLaVista } from './guia/zonasDePraxis'
+import { useZonaDePraxis } from './guia/useZonaDePraxis'
 import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
 import type { CapaDelCuerpo } from '../sujeto/pintura'
 import { cifrasDelCardio, estacionesDelCardio } from './estaciones/estacionesDelCardio'
@@ -429,10 +431,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    */
   const conEjeW = conSujeto && !!patron
 
-  /**
-   * EL CUERPO ES LA PORTADA (maqueta 7). Se abre en el sujeto de Blender, quieto, con lo
-   * trabajado encendido; «Ver el movimiento» vuelve a la escena de siempre, entera.
-   */
+  /** EL CUERPO ES LA PORTADA (maqueta 7); «Ver el movimiento» vuelve a la escena de siempre, entera. */
+  const { vuelta, darLaVuelta, viajar } = useVueltaDelCuerpo()
+  const { guia, irA, soltar, zona } = useZonaDePraxis(viajar)
   const [vista, setVista] = useState<VistaDelSalon>('cuerpo')
   const [capaDelCuerpo, setCapaDelCuerpo] = useState<CapaDelCuerpo>('musculo')
   const [rango, setRango] = useState<RangoDeLectura>('hoy')
@@ -480,12 +481,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     () =>
       enCuerpo
         ? {
-            capa: capaDelCuerpo,
-            tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn),
+            capa: capaDeLaVista(zona, capaDelCuerpo),
+            tinte: tinteDeLaVista(zona, tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn)),
             ahora: horaParaPintar(relojDelCuerpo, reducido),
           }
         : undefined,
-    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn, relojDelCuerpo, reducido],
+    [enCuerpo, zona, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn, relojDelCuerpo, reducido],
   )
 
   const [w, setW] = useState<NivelW>(0)
@@ -596,7 +597,6 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   }))
   const [lienzo, setLienzo] = useState({ ancho: 414, alto: 736 })
   const marcoRef = useRef<HTMLDivElement>(null)
-  const { vuelta, darLaVuelta } = useVueltaDelCuerpo()
   /**
    * EL CUERPO EN LA PANTALLA, tal como lo avisa el visor en cada fotograma. Va en un ref y
    * no en estado: cambia sesenta veces por segundo con la animación y nadie tiene que
@@ -855,7 +855,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // propósito — la barra de navegación vive en `--z-nav` (40) y tiene que seguir por
     // encima: una pantalla que se come la navegación deja al asesorado sin salida.
     <div
-      data-salon="entrenar"
+      data-salon="entrenar" data-zona={zona}
       // EL SALON SIGUE EL TEMA DE LA PERSONA (zona 8, decision de Bryan 28-oct): ya no fuerza
       // `data-theme`. La escena relee los `--salon-3d-*` al cambiar el tema (`paletaDeLaSala`).
       data-w={w}
@@ -1162,9 +1162,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* LA SEMANA, EN UN TAMBOR (30-oct). Se abre tocando el día; tocar un día lo centra y «Mirar
-            este día» lo elige; se cierra al elegir, al tocar fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
-            Elegir el día que ya se ve sin elegir nada vuelve a «sin elegir». */}
+        {/* LA SEMANA, EN UN TAMBOR (30-oct). Tocar un día lo centra y «Mirar este día» lo elige. Elegir NO empieza
+            esa sesión: cambia qué sala se está viendo. Elegir el día que ya se ve vuelve a «sin elegir». */}
         {semanaAbierta && (
           <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-superpuesto)' }}>
             <TamborDeLaSemana
@@ -1187,7 +1186,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             quién es el día y qué toca; abajo, un punto por ejercicio con el actual
             encendido. Son las únicas dos capas del salón que no viven en el espacio, y por
             eso son también las más finas: sin caja, sin fondo y sin borde. */}
-        <div className="pointer-events-none absolute inset-x-5 top-[46px]">
+        <div className="pointer-events-none absolute inset-x-5 top-[46px] [[data-zona]_&]:hidden">
           <BarraDeSesion
             sesion={sesionEnPantalla}
             semana={props.semana}
@@ -1222,10 +1221,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             TODO LO QUE CAMBIA SE LEE EN LA PARED, y por eso el mando no dice nada: si
             rotulara sus cuatro salidas habría dos sitios donde mirar para una sola cosa, y
             la mano ya sabe dónde está sin verlo. */}
-        {ejercicio && (
+        {ejercicio && !enCuerpo && (
           // LOS DOS MANDOS, UNO SOBRE OTRO Y AL ALCANCE DEL PULGAR. El del reloj y el de
-          // la cámara: los dos únicos aparatos que se OPERAN en este salón, con la misma
-          // materia y el mismo tamaño. Todo lo demás se lee.
+          // la cámara: viven en la vista de movimiento; el centro del cuerpo queda limpio
+          // (Bryan, 30-oct: «muy cargado de botones»).
           // Por encima de las estaciones (z-contenido): un poste del suelo caia sobre la camara y se comia el toque.
           <div
             className="absolute bottom-[calc(var(--tope-hoja)+0.5rem)] right-3 flex flex-col items-center gap-2.5"
@@ -1233,7 +1232,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           >
             <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />
             <Joystick
-              encendido={modoReloj !== 'sesion' || cargaEnLaPared}
+              encendido={relojEnMarcha(modoReloj, cargaEnLaPared)}
               // EL TIEMPO DE LA REPETICIÓN, que no es el de la pared. Aguantar el disco
               // para la demostración y el dedo la recorre; al soltar, sigue por donde la
               // dejaron. Ni el descanso ni el reloj de sesión se enteran: este gesto no
@@ -1296,8 +1295,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             porTrabajar={porTrabajar}
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
-            alCambiarVista={setVista} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta} camara={camara}
-            resumen={resumenDeLaPortada}
+            alCambiarVista={(v) => { soltar(); setVista(v) }} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta} camara={camara}
+            guia={guia} alIrEnLaGuia={irA} alIrAlEjercicio={setEjercicioManual} sesion={sesionEnPantalla} semana={microciclo.sesiones} previo={props.microcicloPrevio} resumen={resumenDeLaPortada}
             reloj={
               contenido
                 ? {
