@@ -5,6 +5,7 @@ import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
 import { escalar } from '../../domain/nutricion/porcion'
 import { revisarItem } from '../../domain/nutricion/topes'
 import { MARGENES } from '../../domain/nutricion/dia'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * Hoja de cantidad: cuánto comió de un alimento y cómo lo supo.
@@ -257,14 +258,14 @@ function CuerpoCantidad({
         </p>
       ))}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={() => onAgregar(alimento, gramos, fuePesado)}
         disabled={gramos <= 0}
-        className="press mt-5 w-full rounded-2xl bg-accion py-4 font-display text-sm uppercase tracking-wide text-white disabled:opacity-40"
+        className="mt-5"
       >
         Agregar a {nombreComida}
-      </button>
+      </Boton3D>
     </Sheet>
   )
 }
