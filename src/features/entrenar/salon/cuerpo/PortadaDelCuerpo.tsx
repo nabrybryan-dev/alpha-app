@@ -1,8 +1,13 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState } from 'react'
 import { Sheet } from '../../../../components/ui/Sheet'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
 import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
+import { BotonDarLaVuelta } from './BotonDarLaVuelta'
+import { Opcion } from './OpcionDeTecla'
+import { LecturaDeRegion } from './LecturaDeRegion'
+import { useRegionElegida } from './useRegionElegida'
+import type { CamaraDelSalon } from '../paredes/geometriaDeCuadro'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
 import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
@@ -33,6 +38,14 @@ export interface PortadaDelCuerpoProps {
   alCambiarCapa: (capa: CapaDelCuerpo) => void
   alCambiarRango: (rango: RangoDeLectura) => void
   alCambiarVista: (vista: VistaDelSalon) => void
+  /** Hacia dónde mira la cámara (grados) y qué hace «Dar la vuelta»; sin lo segundo no hay botón. */
+  azimutDelCuerpo?: number
+  /**
+   * La cámara con la que se dibuja el cuerpo. Con ella, un toque corto SOBRE el sujeto elige la región
+   * bajo el dedo, igual que su botón; sin ella, solo quedan los botones.
+   */
+  camara?: CamaraDelSalon
+  alDarLaVuelta?: (azimut: number) => void
   /** Lo que toca, para la linea de arriba: nombre y cifras. Sin nada que decir no hay linea. */
   resumen?: { nombre: string; cifras: string }
   /**
@@ -67,60 +80,6 @@ const RANGOS: readonly { id: RangoDeLectura; nombre: string; detalle: string }[]
   { id: 'semana', nombre: 'Semana', detalle: 'series de 7 días' },
 ]
 
-/**
- * LA TECLA ALZADA de la maqueta 7 (`.sl-capas button`): 12 px de radio, nombre en negrita y
- * su detalle debajo, en tenue. Todas del mismo ancho para que la columna no baile. La elegida
- * lleva un aro de 1,5 px en el color del texto.
- */
-const COMPACTO = '!min-h-[48px] !w-[86px] !px-1.5 !py-1 !text-xs'
-
-/**
- * Una opcion de un grupo, con la tecla secundaria `.tecla-2` de `tokens.css` (la de la maqueta
- * 7). **El rojo es del dolor**: la elegida NO se pinta de rojo (no es `Boton3D`, que es la
- * accion principal y es roja); se marca con un aro del color del texto y el texto pleno, y las
- * demas quedan en tenue. Mismo tamano para que no salten.
- */
-function Opcion({
-  activa,
-  onClick,
-  children,
-  radio = true,
-  etiqueta,
-  detalle,
-}: {
-  activa: boolean
-  onClick: () => void
-  children: ReactNode
-  radio?: boolean
-  etiqueta?: string
-  /** Una línea corta debajo del nombre: qué enseña la tecla. */
-  detalle?: string
-}) {
-  const aria = radio ? { role: 'radio' as const, 'aria-checked': activa } : {}
-  return (
-    <button
-      type="button"
-      {...aria}
-      aria-label={etiqueta}
-      onClick={onClick}
-      className={`press tecla-2 ${COMPACTO}`}
-      style={{
-        color: activa ? 'var(--texto)' : 'var(--tenue)',
-        boxShadow: activa ? '0 2px 0 var(--canto), var(--sombra-alzado), inset 0 0 0 1.5px var(--texto)' : undefined,
-      }}
-    >
-      <span className="flex flex-col items-center leading-tight">
-        <span>{children}</span>
-        {detalle && (
-          <span className="mt-0.5 text-[10px] font-medium" style={{ color: 'var(--tenue)' }}>
-            {detalle}
-          </span>
-        )}
-      </span>
-    </button>
-  )
-}
-
 function cifra(n: number): string {
   const r = Math.round(n * 10) / 10
   return Number.isInteger(r) ? String(r) : String(r).replace('.', ',')
@@ -130,19 +89,21 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
   const [hojaAbierta, setHojaAbierta] = useState(false)
   const enCuerpo = p.vista === 'cuerpo'
   const lectura = lecturaCorta(p.series)
+  const ancla = useRef<HTMLDivElement>(null)
+  const regionElegida = useRegionElegida(ancla, p.camara, enCuerpo, p.series)
   // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
   // como «por trabajar» (revisión ciega, N5).
   const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
 
   return (
     <>
-      <div data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
+      <div ref={ancla} data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
         {/* ARRIBA, EN PEQUENO: que ejercicio toca y sus cifras (decision de Bryan). Los cuadros
             grandes de la pared y el reloj son de la vista de movimiento. */}
         {enCuerpo && p.resumen && (
           <div
             data-testigo="resumen-del-ejercicio"
-            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
+            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-16 text-center"
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.4rem)' }}
           >
             <p
@@ -187,22 +148,22 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
         {/* A la derecha, las capas: el cuerpo ocupa el centro y los lados quedan libres. */}
         {enCuerpo && (
           <div
-            role="radiogroup"
-            aria-label="Capas del cuerpo"
             className="pointer-events-auto absolute grid gap-2"
             style={{ right: 'max(8px, env(safe-area-inset-right, 0px))', top: '42%', transform: 'translateY(-50%)' }}
           >
-            {CAPAS.map((c) => (
-              <Opcion
-                key={c.id}
-                activa={c.id === p.capa}
-                etiqueta={c.nombre}
-                detalle={c.detalle}
-                onClick={() => p.alCambiarCapa(c.id)}
-              >
-                {c.nombre}
-              </Opcion>
-            ))}
+            <div role="radiogroup" aria-label="Capas del cuerpo" className="grid gap-2">
+              {CAPAS.map((c) => (
+                <Opcion
+                  key={c.id}
+                  activa={c.id === p.capa}
+                  etiqueta={c.nombre}
+                  detalle={c.detalle}
+                  onClick={() => p.alCambiarCapa(c.id)}
+                >
+                  {c.nombre}
+                </Opcion>
+              ))}
+            </div>
           </div>
         )}
 
@@ -235,6 +196,8 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           >
             {enCuerpo ? 'Movimiento' : 'Cuerpo'}
           </Opcion>
+          {/* A este lado y no bajo las capas, como la maqueta: a 715 px de alto ahí cae la cámara. */}
+          {enCuerpo && <BotonDarLaVuelta azimut={p.azimutDelCuerpo} alDarLaVuelta={p.alDarLaVuelta} />}
         </div>
 
         {/* La lectura va corta, encima de la hoja y debajo del cuerpo: no lo tapa. */}
@@ -242,26 +205,25 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           <div
             // `pointer-events-none`: la franja es de ancho completo y, si recibiera toques, taparia el
             // joystick y la camara que viven en las esquinas. Solo el boton de la lectura los recibe.
-            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
-            style={{ bottom: 'calc(var(--tope-nav) + 5.4rem)' }}
+            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-16 text-center"
+            style={{ bottom: 'calc(var(--tope-hoja) + 2.75rem)', zIndex: 'var(--z-elevado)' }}
           >
-            {lectura ? (
-              <button
-                type="button"
-                aria-label="Ver series por región"
-                onClick={() => setHojaAbierta(true)}
-                className="press pointer-events-auto max-w-full truncate text-[15px] leading-tight"
-                style={{ color: 'var(--texto)', fontWeight: 800 }}
-              >
-                {lectura}
-              </button>
-            ) : (
-              <p className="text-[15px] leading-tight" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))' }}>
-                Aún no hay series anotadas
-              </p>
-            )}
+            {/* La puerta a la lista de regiones: tecla de verdad y siempre disponible (Bryan, 30-oct). */}
+            <button
+              type="button"
+              aria-label="Ver series por región"
+              onClick={() => setHojaAbierta(true)}
+              className="press tecla-2 pointer-events-auto max-w-full !px-3 text-[13px] font-extrabold"
+              style={{ color: 'var(--texto)' }}
+            >
+              <span className="truncate">{lectura || 'Aún no hay series anotadas'}</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0 fill-none stroke-current" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+            {lectura && <LecturaDeRegion series={p.series} rango={p.rango} elegida={regionElegida} />}
             <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
-              {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
+              {p.rango === 'hoy' ? 'series hoy' : 'de la semana'} · anotadas, no estímulo
             </p>
             {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
                 lo que duele. En Piel lo pendiente no se pinta, así que tampoco se dice. */}

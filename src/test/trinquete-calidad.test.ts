@@ -34,7 +34,7 @@ const ARCHIVOS_LARGOS: Record<string, number> = {
   'src/features/entrenar/encoder/nucleo/analisis.js': 1126,
   'src/features/entrenar/encoder/nucleo/disco.js': 1435,
   'src/features/entrenar/salon/SalonEntrenar.tsx': 1345,
-  'src/features/entrenar/visor/VisorPatron.tsx': 1513,
+  'src/features/entrenar/visor/VisorPatron.tsx': 1510,
   'src/features/entrenar/visor/motor.ts': 870,
   'supabase/functions/praxis-registro/index.ts': 1048,
 }
@@ -94,7 +94,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/features/entrenar/escena/dibujarImplementos.ts:construirMaquina': 28,
   'src/features/entrenar/escena/piezas3d.ts:escribirPieza': 22,
   'src/features/entrenar/salon/SalonEntrenar.tsx:SalonEntrenar': 67,
-  'src/features/entrenar/salon/panel/PanelInferior.tsx:PanelInferior': 24,
+  'src/features/entrenar/salon/panel/PanelInferior.tsx:PanelInferior': 22,
   'src/features/entrenar/salon/paredes/PanelPared.tsx:PanelCampo': 21,
   'src/features/entrenar/salon/paredes/contenidoPared.ts:contenidoPared': 36,
   'src/features/entrenar/visor/VisorPatron.tsx:(anonima)': 59,

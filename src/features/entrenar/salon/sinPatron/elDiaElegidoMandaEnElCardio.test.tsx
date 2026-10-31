@@ -105,6 +105,7 @@ async function viajarA(nombreDeSesion: string) {
     .find((b) => (b.textContent ?? '').toUpperCase().includes(nombreDeSesion))
   expect(fila, `la semana no ofrece ${nombreDeSesion}`).toBeDefined()
   await usuario.click(fila!)
+  await usuario.click(within(semana).getByRole('button', { name: /mirar este día/i }))
   // PULSAR NO ES HABER LLEGADO: quien espera es cada aserción, que es lo correcto —lo
   // que hay que esperar no es el viaje, es lo que el día nuevo pinta—.
 }

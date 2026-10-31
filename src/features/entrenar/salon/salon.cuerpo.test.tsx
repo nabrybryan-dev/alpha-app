@@ -330,4 +330,16 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
     expect(franja.className).toContain('pointer-events-none')
     expect(franja.className).not.toContain('pointer-events-auto')
   })
+  it('«Dar la vuelta» le pide al visor la espalda y, con otro toque, el frente', () => {
+    montar({ seriesHechas: 1 })
+    expect(ultimas().vuelta).toBeUndefined()
+    fireEvent.click(screen.getByRole('button', { name: /Dar la vuelta: ahora se ve el frente/ }))
+    expect(ultimas().vuelta).toMatchObject({ azimut: 180 })
+    const primera = ultimas().vuelta as { orden: number }
+    // El visor reporta su cámara con alMirar; aquí se simula que llegó a la espalda.
+    act(() => (ultimas().alMirar as (c: object) => void)({ azimut: 180, elevacion: 2, distancia: 5.1 }))
+    fireEvent.click(screen.getByRole('button', { name: /Dar la vuelta: ahora se ve la espalda/ }))
+    expect(ultimas().vuelta).toMatchObject({ azimut: 0 })
+    expect((ultimas().vuelta as { orden: number }).orden).toBeGreaterThan(primera.orden)
+  })
 })

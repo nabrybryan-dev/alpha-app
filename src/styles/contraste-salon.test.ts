@@ -480,7 +480,10 @@ describe('cierre de Z8 en tema claro: texto sobre el suelo y mosaico del logo', 
     expect(portada).toMatch(/var\(--salon-3d-suelo-opacidad, 0\.85\)/)
   })
   it('las dos líneas del suelo de la portada leen el token', () => {
-    expect(portada.match(/--salon-3d-suelo-texto/g)?.length).toBeGreaterThanOrEqual(2)
+    // Las dos líneas del suelo: la nota de la portada y la invitación a tocar, que vive en la lectura.
+    const lectura = readFileSync(join(__dirname, '../features/entrenar/salon/cuerpo/LecturaDeRegion.tsx'), 'utf8')
+    expect(portada.match(/--salon-3d-suelo-texto/g)?.length).toBeGreaterThanOrEqual(1)
+    expect(lectura.match(/--salon-3d-suelo-texto/g)?.length).toBeGreaterThanOrEqual(1)
   })
 
   it('el mosaico del logo en claro es oscuro: el logo blanco llega a 4,5:1 sobre él', () => {
