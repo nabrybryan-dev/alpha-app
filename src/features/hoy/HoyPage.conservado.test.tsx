@@ -98,7 +98,7 @@ describe('Hoy del asesorado — lo que se conserva', () => {
     expect(screen.getByText('¿Cómo sientes el hombro hoy?')).toBeInTheDocument()
   })
 
-  it('pendientes de hoy: marcar nutrición lleva a /nutricion y los cuestionarios a /cuestionarios', () => {
+  it('pendientes de hoy: los cuestionarios llevan a /cuestionarios y la nutrición se registra desde su tarjeta', async () => {
     const q: Cuestionario = {
       id: 'cuest-prueba',
       titulo: 'Un cuestionario',
@@ -109,7 +109,7 @@ describe('Hoy del asesorado — lo que se conserva', () => {
     vi.spyOn(db.cuestionarios, 'asignadosA').mockReturnValue([q])
     pintar()
     abrirElResto()
-    expect(hrefDe(/Marcar nutrición de hoy/)).toBe('/nutricion')
+    expect(await screen.findByRole('link', { name: 'Registrar' })).toHaveAttribute('href', '/nutricion')
     expect(hrefDe(/1 cuestionario por responder/)).toBe('/cuestionarios')
   })
 
