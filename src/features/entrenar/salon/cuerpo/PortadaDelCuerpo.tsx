@@ -8,6 +8,7 @@ import type { CamaraDelSalon } from '../paredes/geometriaDeCuadro'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
 import { relojEnMarcha, type AnclasDelReloj, type ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
+import { PuertaDeDudas } from '../guia/DudasDePraxis'
 import { GuiaDePraxis, OrbeDePraxis } from '../guia/GuiaDePraxis'
 import { guionDelDia } from '../guia/guionDelDia'
 import { lineaDePraxis } from '../guia/zonasDePraxis'
@@ -233,6 +234,7 @@ export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
           alCambiarRango={p.alCambiarRango}
           alVerMovimiento={() => p.alCambiarVista('movimiento')}
           alDarLaVuelta={p.alDarLaVuelta}
+          dudas={<PuertaDeDudas />}
         />
       )}
     </>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent as EventoPuntero } from 'react'
+import { useEffect, useRef, type PointerEvent as EventoPuntero, type ReactNode } from 'react'
 import type { Microciclo, Sesion } from '../../../../domain/types'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
 import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
@@ -58,6 +58,8 @@ export interface GuiaDePraxisProps {
   alCambiarRango: (rango: RangoDeLectura) => void
   alVerMovimiento: () => void
   alDarLaVuelta?: (azimut: number) => void
+  /** Lo que se puede escribirle a Praxis: lo pone quien monta la guía, con su puerta. Sin esto, la guía es solo lectura. */
+  dudas?: ReactNode
 }
 
 function FilaDeTrabajo({ t, alIr }: { t: TrabajoDeRegion; alIr?: (indice: number) => void }) {
@@ -315,6 +317,7 @@ export function GuiaDePraxis(p: GuiaDePraxisProps) {
           <>
             <PasoDePraxis paso={guion[lugar]!} />
             <OtrasSalidas p={p} paso={guion[lugar]!} />
+            {p.dudas}
           </>
         ) : zona ? (
           <Zona id={zona} p={p} />
