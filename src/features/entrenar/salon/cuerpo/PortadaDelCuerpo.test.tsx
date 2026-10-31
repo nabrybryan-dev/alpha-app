@@ -1,7 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PortadaDelCuerpo, type PortadaDelCuerpoProps } from './PortadaDelCuerpo'
 import { cifrasEnUnaLinea } from './cifrasEnUnaLinea'
+
+const voz = vi.hoisted(() => ({ permitida: false }))
+vi.mock('../voz/useVozPermitida', () => ({ useVozPermitida: () => voz.permitida }))
 
 function props(sobre: Partial<PortadaDelCuerpoProps> = {}): PortadaDelCuerpoProps {
   return {
@@ -18,6 +21,66 @@ function props(sobre: Partial<PortadaDelCuerpoProps> = {}): PortadaDelCuerpoProp
 }
 
 const conGuia = (sobre: Partial<PortadaDelCuerpoProps> = {}) => props({ guia: 'indice', ...sobre })
+
+describe('el micrófono de las órdenes de voz', () => {
+  class Falso {
+    static ultimo: Falso
+    onresult: ((e: unknown) => void) | null = null
+    onerror: unknown = null
+    onend: (() => void) | null = null
+    start = vi.fn()
+    stop = vi.fn()
+    abort = vi.fn()
+    constructor() {
+      Falso.ultimo = this
+    }
+  }
+  const ventana = window as unknown as { webkitSpeechRecognition?: unknown }
+  const decir = (texto: string) => {
+    fireEvent.click(screen.getByRole('button', { name: /orden a Praxis/ }))
+    act(() => {
+      Falso.ultimo.onresult?.({ resultIndex: 0, results: [Object.assign([{ transcript: texto }], { isFinal: true })] })
+      Falso.ultimo.onend?.()
+    })
+  }
+
+  beforeEach(() => {
+    voz.permitida = true
+    ventana.webkitSpeechRecognition = Falso
+  })
+  afterEach(() => {
+    voz.permitida = false
+    delete ventana.webkitSpeechRecognition
+  })
+
+  it('sin permiso no se pinta', () => {
+    voz.permitida = false
+    render(<PortadaDelCuerpo {...props()} />)
+    expect(screen.queryByRole('button', { name: /orden a Praxis/ })).not.toBeInTheDocument()
+  })
+
+  it('una zona dicha abre la guía allí y lo dice', () => {
+    const p = props({ alIrEnLaGuia: vi.fn(), azimutDelCuerpo: 0 })
+    render(<PortadaDelCuerpo {...p} />)
+    decir('muéstrame cuádriceps')
+    expect(p.alIrEnLaGuia).toHaveBeenCalledWith('cua', 0)
+    expect(screen.getByRole('status')).toHaveTextContent('Cuádriceps')
+  })
+
+  it('«me duele» no mueve el cuerpo', () => {
+    const p = props({ alIrEnLaGuia: vi.fn() })
+    render(<PortadaDelCuerpo {...p} />)
+    decir('me duele el pecho')
+    expect(p.alIrEnLaGuia).not.toHaveBeenCalled()
+  })
+
+  it('el botón sigue en la vista de movimiento, y desde ahí se vuelve al cuerpo con la voz', () => {
+    const p = props({ vista: 'movimiento' })
+    render(<PortadaDelCuerpo {...p} />)
+    decir('volver al cuerpo')
+    expect(p.alCambiarVista).toHaveBeenCalledWith('cuerpo')
+  })
+})
 
 describe('el centro: el cuerpo y una sola línea de Praxis', () => {
   it('Praxis dice lo trabajado y, al tocarla, empieza a contar el día', () => {
