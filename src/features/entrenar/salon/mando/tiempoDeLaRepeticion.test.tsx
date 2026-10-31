@@ -270,10 +270,13 @@ describe('el tiempo de la repetición, desde el disco', () => {
     dedo(disco, 'pointerup', 120, 600)
     await waitFor(() => expect(rotuloDelMuro()).toBe(rotuloDelModo('descanso')))
 
-    // El descanso del seed es de unos minutos: se avanza el reloj de golpe hasta pasarlo.
-    act(() => {
-      vi.advanceTimersByTime(6 * 60 * 1000)
-    })
+    // El descanso del seed es de unos minutos. Se avanza a pasos y se para al terminar: de un golpe de
+    // seis minutos falló en el CI, y esta prueba ahora corre en la vista de movimiento, más pesada.
+    for (let s = 0; s < 180 && !screen.queryByText('Descanso terminado'); s++) {
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+    }
     expect(screen.getByText('Descanso terminado')).toBeInTheDocument()
     expect(screen.getByText(/A la barra/)).toBeInTheDocument()
     expect(rotuloDelMuro()).toBeNull()
