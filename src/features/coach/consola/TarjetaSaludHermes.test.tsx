@@ -10,10 +10,10 @@ const AHORA = Date.parse('2026-10-30T12:00:00Z')
 const hace = (min: number) => new Date(AHORA - min * 60_000).toISOString()
 const fila = (pieza: string, estado: string, min: number) => ({ pieza, estado, vistoEn: hace(min) })
 
-const estado = { rol: 'coach', filas: [] as ReturnType<typeof fila>[] | null }
+const estado = { rol: 'coach', falla: false, filas: [] as ReturnType<typeof fila>[] | null }
 
 vi.mock('../../../data/nube/saludHermes', () => ({
-  traerSaludHermes: () => Promise.resolve(estado.filas),
+  traerSaludHermes: () => (estado.falla ? Promise.reject(new Error('sin tabla')) : Promise.resolve(estado.filas)),
 }))
 vi.mock('../../../app/SessionProvider', () => ({
   useSesion: () => ({
@@ -42,6 +42,15 @@ describe('tarjeta de salud de Hermes', () => {
     reiniciarFiltroParaPruebas()
     estado.rol = 'coach'
     estado.filas = []
+    estado.falla = false
+  })
+
+  it('si no se puede leer: SIN SEÑAL en alarma, nunca un aviso discreto', async () => {
+    estado.falla = true
+    tarjeta()
+    const alarma = await screen.findByRole('alert')
+    expect(alarma.textContent).toContain('Sin señal del minipc')
+    expect(alarma.textContent).toContain('No pude leer')
   })
 
   it('sin filas: SIN SEÑAL en alarma', async () => {

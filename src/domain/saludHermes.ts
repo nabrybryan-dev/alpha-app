@@ -8,6 +8,8 @@
  * pasadas perdidas.
  */
 export const MINUTOS_SIN_SENAL = 45
+/** Margen de reloj entre el minipc y este equipo. Una hora más adelantada que esto no prueba nada. */
+export const MINUTOS_RELOJ_ADELANTADO = 5
 export const PIEZAS_HERMES = ['puerta', 'hermes', 'custodio'] as const
 export type PiezaHermes = (typeof PIEZAS_HERMES)[number]
 
@@ -39,10 +41,11 @@ export function veredictoDeSalud(filas: FilaSaludHermes[], ahora: number): Vered
   const delMinipc = PIEZAS_HERMES.map((p) => porPieza.get(p)).filter((f): f is FilaSaludHermes => !!f)
   if (delMinipc.length === 0) return { tipo: 'sin_senal', motivo: 'sin_filas', minutos: null }
 
-  // Una hora que no se entiende cuenta como vieja: nunca como «reciente».
+  // Una hora que no se entiende, o que viene del futuro, cuenta como vieja: nunca como «reciente».
   const edades = delMinipc.map((f) => {
     const t = Date.parse(f.vistoEn)
-    return Number.isNaN(t) ? Infinity : Math.floor((ahora - t) / 60_000)
+    if (Number.isNaN(t) || t > ahora + MINUTOS_RELOJ_ADELANTADO * 60_000) return Infinity
+    return Math.floor((ahora - t) / 60_000)
   })
   const peor = Math.max(...edades)
   if (peor > MINUTOS_SIN_SENAL) {

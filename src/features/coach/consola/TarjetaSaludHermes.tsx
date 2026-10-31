@@ -26,9 +26,13 @@ export function TarjetaSaludHermes({ ahora = () => Date.now() }: { ahora?: () =>
   if (lectura === undefined || lectura === 'demo') return null
   if (lectura === 'error') {
     return (
-      <p className="text-xs text-tenue" role="status">
-        No pude leer el estado de Hermes. Si pasa seguido, revisa que la migración 0152 esté aplicada.
-      </p>
+      <section role="alert" className="rounded-tarjeta border-2 border-red-600 bg-red-50 p-4 text-red-900">
+        <h3 className="text-sm font-bold uppercase">Sin señal del minipc</h3>
+        <p className="mt-1 text-sm">
+          No pude leer el estado de Hermes, así que no sé si está bien. Si pasa seguido, revisa que la migración 0152 esté
+          aplicada.
+        </p>
+      </section>
     )
   }
 

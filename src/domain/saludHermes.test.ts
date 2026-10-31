@@ -25,6 +25,11 @@ describe('la salud de Hermes: la hora manda', () => {
     expect(veredictoDeSalud(todoBien(MINUTOS_SIN_SENAL), AHORA).tipo).toBe('todo_bien')
   })
 
+  it('una hora del futuro no se toma por reciente; un reloj apenas adelantado sí vale', () => {
+    expect(veredictoDeSalud(todoBien(-600), AHORA).tipo).toBe('sin_senal')
+    expect(veredictoDeSalud(todoBien(-5), AHORA).tipo).toBe('todo_bien')
+  })
+
   it('una hora ilegible no se toma por reciente', () => {
     const filas = [{ pieza: 'puerta', estado: 'arriba', vistoEn: 'ayer' }, ...todoBien().slice(1)]
     expect(veredictoDeSalud(filas, AHORA).tipo).toBe('sin_senal')
