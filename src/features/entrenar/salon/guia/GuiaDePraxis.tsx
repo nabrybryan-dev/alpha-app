@@ -320,7 +320,10 @@ export function GuiaDePraxis(p: GuiaDePraxisProps) {
             {p.dudas}
           </>
         ) : zona ? (
-          <Zona id={zona} p={p} />
+          <>
+            <Zona id={zona} p={p} />
+            {p.dudas}
+          </>
         ) : (
           <Indice p={p} />
         )}

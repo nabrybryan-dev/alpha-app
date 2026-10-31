@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * LA RESPUESTA CON SU ORIGEN. Dice de qué ficha salió, para que se note si contestó otra cosa, y deja avisarlo:
@@ -23,6 +23,11 @@ export function RespuestaDeFicha({ texto, fichas, frase, servicios }: { texto: s
   const [titulo, setTitulo] = useState<string | null>(null)
   const [aviso, setAviso] = useState<Aviso>('sin_tocar')
   const { tituloDe, noEraEsto } = servicios
+  const raiz = useRef<HTMLDivElement>(null)
+  // El título llega después y empuja el resto: sin esto, «No era esto» quedaba cortado contra el borde del panel.
+  useEffect(() => {
+    raiz.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [titulo, aviso])
 
   useEffect(() => {
     if (!unica) return
@@ -42,7 +47,7 @@ export function RespuestaDeFicha({ texto, fichas, frase, servicios }: { texto: s
   }
 
   return (
-    <div className="mt-3">
+    <div ref={raiz} className="mt-3">
       {titulo && <p className="text-[11px] font-semibold text-tenue">De la ficha: {titulo}</p>}
       <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-texto">{texto}</p>
       {unica && (aviso === 'sin_tocar' || aviso === 'enviando') && (

@@ -27,6 +27,21 @@ describe('Praxis cuenta el día, paso a paso', () => {
     expect(screen.getByText('¿Qué significa RIR 2?').closest('details')).not.toHaveAttribute('open')
   })
 
+  it('el campo de dudas sale en los pasos y en las zonas, no en el índice, y solo si quien monta la guía lo pone', () => {
+    const dudas = <p>campo de dudas</p>
+    const { unmount } = render(<GuiaDePraxis {...props({ dudas })} />)
+    expect(screen.getByText('campo de dudas')).toBeInTheDocument()
+    unmount()
+    const zona = render(<GuiaDePraxis {...props({ dudas, estado: 'dors' })} />)
+    expect(screen.getByText('campo de dudas')).toBeInTheDocument()
+    zona.unmount()
+    const indice = render(<GuiaDePraxis {...props({ dudas, estado: 'indice' })} />)
+    expect(screen.queryByText('campo de dudas')).toBeNull()
+    indice.unmount()
+    render(<GuiaDePraxis {...props()} />)
+    expect(screen.queryByText('campo de dudas')).toBeNull()
+  })
+
   it('«Seguir» pasa al siguiente paso con su zona, y «Atrás» vuelve', () => {
     const p = props()
     render(<GuiaDePraxis {...p} />)
