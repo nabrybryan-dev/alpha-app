@@ -79,7 +79,7 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
     expect(p.paso === 'no_se' && p.texto).not.toMatch(/Bryan/)
   })
 
-  // Falla hoy, a propósito: el portero contesta con una ficha, la función lo devuelve y la pantalla lo cambia por «no lo sé».
+  // Hasta el 30-oct-2026 el portero contestaba, la función lo devolvía y la pantalla lo cambiaba por «no lo sé».
   it('una consulta que el portero contestó con una ficha muestra esa respuesta', () => {
     const r = { ...respuesta({ tipo: 'informativa', mensaje: 'Una vez no obliga a bajar peso.' }, { accion: 'nada', motivo: 'consulta' }), fichas: ['cargas-no-llegue-al-rango'] }
     expect(pasoTrasProponer(r, 'tu')).toEqual({ paso: 'dicho', texto: 'Una vez no obliga a bajar peso.' })
