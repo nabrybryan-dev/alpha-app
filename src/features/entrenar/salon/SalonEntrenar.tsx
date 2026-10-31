@@ -23,7 +23,6 @@ import type {
 } from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
-import { ENCUADRE_SALA } from '../escena/sala'
 import type { CamaraDelSalon as EstadoDeCamara } from './paredes/geometriaDeCuadro'
 import { implementosDeSesion } from './implementos/implementosDeSesion'
 import { capaTrasArrastre } from '../capas/gestoVertical'
@@ -37,9 +36,8 @@ import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
-import { cifrasDelCardio } from './estaciones/estacionesDelCardio'
 import { BANDA_DE_SESION, SUELO_DE_LOS_CARTELES } from './estaciones/sitioDelCartel'
-import { cifrasDeLaSerie } from '../escena/sala'
+import { cifrasDeLaSerie, ENCUADRE_SALA } from '../escena/sala'
 import { huellaDeReferencia } from './paredes/huellaDeReferencia'
 import { leerHuellaArticular } from '../encoder/huellasArticulares'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
@@ -51,7 +49,7 @@ import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './ma
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
-import { DesplegableDeLaSemana } from './rumbo/DesplegableDeLaSemana'
+import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { diaEnPantalla } from './rumbo/diaEnPantalla'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
@@ -60,9 +58,10 @@ import { useCapaDelSalon } from './momentos/useCapaDelSalon'
 import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 import { cifrasEnUnaLinea } from './cuerpo/cifrasEnUnaLinea'
+import { useVueltaDelCuerpo } from './camara/useVueltaDelCuerpo'
 import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
 import type { CapaDelCuerpo } from '../sujeto/pintura'
-import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
+import { cifrasDelCardio, estacionesDelCardio } from './estaciones/estacionesDelCardio'
 import { cargaAnterior } from './paredes/cargaAnterior'
 import { regionesConDolor, regionesDirectas, regionesPorTrabajar, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
 import type { IdDeRegion } from '../sujeto/regiones'
@@ -597,6 +596,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   }))
   const [lienzo, setLienzo] = useState({ ancho: 414, alto: 736 })
   const marcoRef = useRef<HTMLDivElement>(null)
+  const { vuelta, darLaVuelta } = useVueltaDelCuerpo()
   /**
    * EL CUERPO EN LA PANTALLA, tal como lo avisa el visor en cada fotograma. Va en un ref y
    * no en estado: cambia sesenta veces por segundo con la animación y nadie tiene que
@@ -925,7 +925,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
                 // lado pasa de ejercicio. Y desde el 2026-09-06, FUERA del cuerpo un dedo
                 // orbita, como en cualquier visor 3D; dos dedos siguen siendo la cámara.
-                orbitaConUnDedo={modoDeLaCamara}
+                orbitaConUnDedo={modoDeLaCamara} vuelta={vuelta}
                 superficieDeGesto={marcoRef}
                 // La sala se retira al 88 % con la lectura arriba (1 / 0,88 = 1,136 de
                 // distancia) y se acerca un 4 % con el dedo dentro. Se componen.
@@ -1162,12 +1162,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* LA SEMANA, DESPLEGADA. Se abre tocando el día y se cierra al elegir uno, al tocar
-            fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
+        {/* LA SEMANA, EN UN TAMBOR (30-oct). Se abre tocando el día; tocar un día lo centra y «Mirar
+            este día» lo elige; se cierra al elegir, al tocar fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
             Elegir el día que ya se ve sin elegir nada vuelve a «sin elegir». */}
         {semanaAbierta && (
-          <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-elevado)' }}>
-            <DesplegableDeLaSemana
+          <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-superpuesto)' }}>
+            <TamborDeLaSemana
               semana={props.semana}
               diaActual={diaEnPantalla(props.semana, sesionEnPantalla?.id, diaElegido)}
               onElegir={(i) => {
@@ -1204,7 +1204,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // se pintaban debajo de él. Un elemento que está en el DOM, tiene tamaño y no se
           // ve es el fallo más callado que hay, y solo lo dice preguntarle al navegador
           // quién manda en ese píxel.
-          style={{ bottom: 'calc(var(--tope-nav) + 3.4rem)' }}
+          style={{ bottom: 'var(--tope-hoja)' }}
         >
           <PuntosDeEjercicio
             sesion={sesionEnPantalla}
@@ -1228,7 +1228,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // materia y el mismo tamaño. Todo lo demás se lee.
           // Por encima de las estaciones (z-contenido): un poste del suelo caia sobre la camara y se comia el toque.
           <div
-            className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5"
+            className="absolute bottom-[calc(var(--tope-hoja)+0.5rem)] right-3 flex flex-col items-center gap-2.5"
             style={{ zIndex: 'var(--z-elevado)' }}
           >
             <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />
@@ -1277,7 +1277,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         {ejercicio && (
           <CajonDeSerie
             microcicloId={props.microciclo.id}
-            ejercicio={ejercicio}
+            ejercicio={ejercicio} soloMirar={diaElegido !== null}
             abierto={fichaAbierta}
             onAbrir={() => setFichaAbierta(true)}
             onCerrar={() => setFichaAbierta(false)}
@@ -1296,7 +1296,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             porTrabajar={porTrabajar}
             alCambiarCapa={setCapaDelCuerpo}
             alCambiarRango={setRango}
-            alCambiarVista={setVista}
+            alCambiarVista={setVista} azimutDelCuerpo={camara.azimut} alDarLaVuelta={darLaVuelta} camara={camara}
             resumen={resumenDeLaPortada}
             reloj={
               contenido
@@ -1335,7 +1335,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           ritmo={ritmo}
           sesion={sesionEnPantalla}
           patron={patron}
-          onAvance={setAvanceDelPanel}
+          onAvance={setAvanceDelPanel} diaElegido={diaElegido}
         />
       </div>
     </div>

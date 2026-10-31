@@ -10,6 +10,7 @@ import { textoDeObjetivo } from '../../../domain/objetivoDeIntensidad'
 import { armarSemana, microcicloVigente, sesionDestacada, type DiaRuta } from '../../../domain/rutaEntrenamiento'
 import type { Sesion } from '../../../domain/types'
 import { BuzonComentarios } from './BuzonComentarios'
+import { Boton3D } from '../../../components/ui/Boton3D'
 
 /**
  * «Mi entreno», el espacio de entrenamiento del staff que también entrena (Manuela;
@@ -199,12 +200,11 @@ export default function MiEntrenoPage() {
             La sesión a pantalla completa: ejercicio a ejercicio, cronómetro, series y tu RIR al terminar.
           </p>
         </div>
-        <Link
+        <Boton3D bloque
           to="/entrenar"
-          className="press relative flex min-h-[52px] items-center justify-center rounded-[14px] bg-accion font-display text-[15px] uppercase tracking-wide text-white"
         >
           Entrar al salón
-        </Link>
+        </Boton3D>
       </section>
 
       {fuerza && (

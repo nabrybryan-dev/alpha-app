@@ -4,8 +4,8 @@
  * le cambia por tres cosas distintas —ninguno, uno, y uno que revienta— sin
  * tocar `CabeceraSemanal.tsx`.
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CabeceraSemanal } from './CabeceraSemanal'
 
 describe('la cabecera de la revisión semanal', () => {
@@ -51,5 +51,56 @@ describe('la cabecera de la revisión semanal', () => {
     const audio = await screen.findByLabelText('Audio de tu revisión semanal')
     expect(audio).toHaveAttribute('src', 'https://ejemplo/revision.mp3')
     expect(screen.getByText(/Voz generada a partir de su voz/)).toBeInTheDocument()
+  })
+
+  describe('leer el resumen y volver a oír', () => {
+    const conGuion = async () => ({
+      url: 'https://ejemplo/revision.mp3',
+      tipo: 'audio' as const,
+      guion: 'Esta semana subiste la carga en remo.',
+    })
+
+    it('con el texto de la revisión ofrece «Leer el resumen», que lo despliega y se vuelve «Ocultar el resumen»', async () => {
+      render(<CabeceraSemanal traerEnlace={conGuion} />)
+      const boton = await screen.findByRole('button', { name: 'Leer el resumen' })
+      expect(boton).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.queryByText('Esta semana subiste la carga en remo.')).not.toBeInTheDocument()
+
+      fireEvent.click(boton)
+      expect(screen.getByText('Esta semana subiste la carga en remo.')).toBeInTheDocument()
+      const ocultar = screen.getByRole('button', { name: 'Ocultar el resumen' })
+      expect(ocultar).toHaveAttribute('aria-expanded', 'true')
+
+      fireEvent.click(ocultar)
+      expect(screen.queryByText('Esta semana subiste la carga en remo.')).not.toBeInTheDocument()
+    })
+
+    it('sin texto no hay botón: no se inventa un resumen', async () => {
+      render(<CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/r.mp3', tipo: 'audio' })} />)
+      await screen.findByLabelText('Audio de tu revisión semanal')
+      expect(screen.queryByRole('button', { name: /resumen/i })).not.toBeInTheDocument()
+    })
+
+    it('un texto en blanco tampoco cuenta como texto', async () => {
+      render(<CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/r.mp3', tipo: 'audio', guion: '   ' })} />)
+      await screen.findByLabelText('Audio de tu revisión semanal')
+      expect(screen.queryByRole('button', { name: /resumen/i })).not.toBeInTheDocument()
+    })
+
+    it('«Volver a oír» aparece al terminar de escuchar y reinicia la reproducción', async () => {
+      const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+      render(<CabeceraSemanal traerEnlace={conGuion} />)
+      const audio = (await screen.findByLabelText('Audio de tu revisión semanal')) as HTMLAudioElement
+      expect(screen.queryByRole('button', { name: 'Volver a oír' })).not.toBeInTheDocument()
+
+      fireEvent.ended(audio)
+      const volver = screen.getByRole('button', { name: 'Volver a oír' })
+      audio.currentTime = 30
+      fireEvent.click(volver)
+      expect(audio.currentTime).toBe(0)
+      expect(play).toHaveBeenCalledTimes(1)
+      expect(screen.queryByRole('button', { name: 'Volver a oír' })).not.toBeInTheDocument()
+      play.mockRestore()
+    })
   })
 })
