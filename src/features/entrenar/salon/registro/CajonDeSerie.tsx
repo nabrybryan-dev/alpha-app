@@ -62,6 +62,8 @@ export interface CajonDeSerieProps {
   onCerrar: () => void
   /** Se llama DESPUÉS de escribir la serie, con la que se acaba de guardar. */
   onGuardado?: (serie: SerieRegistrada) => void
+  /** Se está mirando OTRO día: se ve, no se anota. No se pinta ni el asidero. */
+  soloMirar?: boolean
 }
 
 export function CajonDeSerie({
@@ -71,6 +73,7 @@ export function CajonDeSerie({
   onAbrir,
   onCerrar,
   onGuardado,
+  soloMirar = false,
 }: CajonDeSerieProps) {
   const panel = useRef<HTMLDivElement>(null)
   const gesto = useRef<{ x: number; p: number } | null>(null)
@@ -128,6 +131,8 @@ export function CajonDeSerie({
     if (queda && !abierto) onAbrir()
     if (!queda && abierto) onCerrar()
   }
+
+  if (soloMirar) return null
 
   return (
     <>

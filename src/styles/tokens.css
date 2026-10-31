@@ -328,6 +328,8 @@
   --alto-nav: 4rem;
   /* Borde superior de la barra, medido desde el fondo de la ventana. */
   --tope-nav: calc(var(--hueco-nav) + var(--alto-nav));
+  /* Encima de la hoja plegada del salón (asa + resumen de la sesión): ahí se apoya lo del suelo. */
+  --tope-hoja: calc(var(--tope-nav) + 7.75rem);
 
   /* Motion — curvas con carácter, nunca ease-in-out genérico */
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
