@@ -76,7 +76,8 @@ export function visibilidadDe(
 export interface SenalesDeRevision {
   /** La encuesta pregunta por antecedente de conducta alimentaria. */
   antecedenteTca?: boolean
-  /** 'irregular' o 'ausente' en el ciclo menstrual. */
+  /** Un ciclo menstrual que no es regular, anticoncepción hormonal ni «prefiero no decirlo»:
+   *  'irregular', 'ausente' (amenorrea o menopausia) o algo que la app no reconoce. */
   cicloAlterado?: boolean
   /** Quiere bajar de peso Y ganar masa a la vez: objetivos que tiran opuesto. */
   objetivoContradictorio?: boolean

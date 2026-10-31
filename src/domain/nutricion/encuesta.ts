@@ -106,6 +106,15 @@ export type ClaveCampo =
    * sí lo pregunta, y lo lee `senalesDeLaEncuesta`.
    */
   | 'antecedenteTca'
+  /**
+   * El ciclo menstrual TAL COMO lo contestó en la encuesta de captación, cuando la app no tiene
+   * con qué decirlo exacto: 'Menopausia' (se guarda además como `cicloMenstrual: 'ausente'`, que
+   * es lo más cercano que admite la base, 0016) o una respuesta que el importador no reconoce.
+   * Como `antecedenteTca`, NO se pregunta: no tiene entrada en `CAMPOS`. Su sola presencia pone
+   * a la persona en revisión (`senalesDeLaEncuesta`): si la app no sabe qué significa, que lo
+   * mire la nutricionista. Ver `importarIntake.ts`.
+   */
+  | 'cicloEnLaCaptacion'
 
 export type TipoCampo = 'numero' | 'fecha' | 'opcion' | 'multiple' | 'texto'
 
