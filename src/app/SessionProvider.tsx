@@ -267,6 +267,9 @@ function SesionNube({ children }: { children: ReactNode }) {
         onListo={() => {
           recuperacionRef.current = false
           setRecuperacion(false)
+          // El SIGNED_OUT de `volverAlLogin` llegó con la recuperación aún activa y `alCambiar` lo
+          // saltó: sin esto la app se queda para siempre en «Sincronizando…».
+          setEstado('sin-sesion')
           // limpia el token de recuperación del hash de la URL
           history.replaceState(null, '', window.location.pathname)
         }}
