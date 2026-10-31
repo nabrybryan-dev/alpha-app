@@ -2,7 +2,7 @@
 -- 0151 · Praxis: «No era esto» entra en la cola de dudas del equipo
 -- ============================================================================
 --
--- SIN APLICAR. Se aplica a mano, con el OK de Bryan. Si falta, nada se rompe: el panel dice que no pudo
+-- APLICADA el 30-oct-2026, con el OK de Bryan. Si faltara, nada se rompe: el panel dice que no pudo
 -- anotarlo. Comprobarla con su fila en `comprobar-migraciones.sql`.
 --
 -- QUÉ PEDIDO RESUELVE. La cola solo recibía lo que el portero no resolvió (`arriba`, `aclarar`). Si contesta

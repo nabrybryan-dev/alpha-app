@@ -51,7 +51,7 @@ Sin migración y sin desplegar la función: usa `praxis-registro` v21 tal como e
 
 `encolarDuda` no guarda las consultas con `atender`: una ficha equivocada con seguridad no llegaba a nadie. Por eso
 el panel dice de qué ficha salió la respuesta y ofrece «No era esto», que escribe en `praxis_cola_dudas` con
-`origen = 'no_era_esto'`. Requiere la migración 0151, sin aplicar; mientras falte, el panel dice que no pudo anotarlo.
+`origen = 'no_era_esto'`. Requiere la migración 0151, aplicada el 30-oct; si faltara, el panel dice que no pudo anotarlo.
 Esas filas no tienen juez: el taller las descarta y las revisa una persona.
 
 ## Pasos siguientes
