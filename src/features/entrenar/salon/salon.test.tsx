@@ -289,12 +289,14 @@ describe('/entrenar es el salón', () => {
       ).toEqual([])
     })
 
-    it('lo que vive en el suelo se apoya encima de la hoja plegada, no debajo de ella', async () => {
+    it('lo que vive en el suelo se apoya encima de la hoja plegada, no debajo de ella', () => {
       // La hoja plegada creció con el resumen y tapó los puntos de ejercicio, la leyenda y medio
       // mando del reloj. jsdom no maqueta: aquí se fija el ancla; la medida se vio en el navegador.
-      renderizarEntrenar()
-      await esperarAlSalon()
-      const puntos = screen.getByRole('button', { name: /Sentadilla goblet/ }).parentElement?.parentElement
+      // Con una sesión fija: la de hoy cambia con el día, y en el CI es otra hora (UTC).
+      montarConFuerza()
+      const microciclo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')!
+      const nombre = microciclo.sesiones.find((s) => s.ejercicios.length > 0)!.ejercicios[0].nombre
+      const puntos = screen.getByRole('button', { name: (n) => n.includes(nombre) }).parentElement?.parentElement
       expect(puntos?.getAttribute('style')).toContain('--tope-hoja')
     })
 
