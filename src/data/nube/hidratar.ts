@@ -37,7 +37,7 @@ import {
 } from './firma'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
-import { sanearMicrociclo, sanearPlan } from './saneado'
+import { sanearMicrociclo, sanearPlan, conDueno } from './saneado'
 import { perfilesDe, SELECCION_PERFILES, TABLA_PERFILES, type FilaPerfil } from './perfilEnNube'
 import { conPendientes, marcarTablaHidratacion, marcarTablaRegistro } from './sync'
 
@@ -188,7 +188,7 @@ export function microciclosDe(filas: readonly Fila[]): Microciclo[] {
   return filas.map((f) => {
     // `as Microciclo` es una promesa al compilador, no una garantia: las cargas
     // por SQL pueden dejar `sesiones` o `ejercicios` en null. Ver `saneado.ts`.
-    const datos = sanearMicrociclo(f.datos as Microciclo)
+    const datos = conDueno(sanearMicrociclo(f.datos as Microciclo), f.usuario_id)
     const estado = f.estado as Microciclo['estado'] | undefined
     return estado ? { ...datos, estado } : datos
   })
@@ -424,9 +424,9 @@ export async function hidratarDesdeNube(): Promise<void> {
       miId
         ? sb
             .from('microciclos')
-            .select('id, estado, datos')
+            .select('id, estado, usuario_id, datos')
             .or(`estado.in.(activo,propuesto),usuario_id.eq.${miId}`)
-        : sb.from('microciclos').select('id, estado, datos'),
+        : sb.from('microciclos').select('id, estado, usuario_id, datos'),
     ),
     pedir('checkins', () => sb.from('checkins').select('datos')),
     // Migración 0013, ampliada por la 0039. La nutricionista NO lee la tabla de
