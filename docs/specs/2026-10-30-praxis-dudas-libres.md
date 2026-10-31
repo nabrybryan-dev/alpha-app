@@ -47,11 +47,18 @@ Sin migración y sin desplegar la función: usa `praxis-registro` v21 tal como e
 - **Una respuesta con ficha no deja fila en la base**, solo la línea de registro.
 - **Quieta y salud detectadas en el teléfono no avisan a nadie**, igual que hoy en Praxis, y la pantalla lo dice.
 
+## Origen de la respuesta y «No era esto»
+
+`encolarDuda` no guarda las consultas con `atender`: una ficha equivocada con seguridad no llegaba a nadie. Por eso
+el panel dice de qué ficha salió la respuesta y ofrece «No era esto», que escribe en `praxis_cola_dudas` con
+`origen = 'no_era_esto'`. Requiere la migración 0151, sin aplicar; mientras falte, el panel dice que no pudo anotarlo.
+Esas filas no tienen juez: el taller las descarta y las revisa una persona.
+
 ## Pasos siguientes
 
 Cada uno con su medida fijada antes y su sí cuando toque producción.
 
-1. **Acción `duda` en `praxis-registro`** (requiere desplegar): filtro, lector de riesgo, portero. Quita la llamada al registrador: de 2 a 1 llamadas por frase.
+1. **Acción `duda` en `praxis-registro`** (requiere desplegar): filtro, lector de riesgo, portero. Quita la llamada al registrador: de 2 a 1 llamadas por frase. El trinquete tiene congelados `index.ts` en 1.048 líneas y `manejar` y `proponer`: antes hay que sacar piezas de ese archivo.
 2. **Conceptos aprobados.** Bryan elige de `cerebro-alpha/wiki/conocimiento/` qué entra, con su fuente. Los cerebros no se entregan crudos.
 3. **Haiku con respaldo.** Responde solo con fichas y conceptos aprobados, cita la fuente y, si no hay respaldo, va a la cola. Mismo tope de 60 por hora.
 4. **Contexto del día.** Ejercicio y prescripción, con lo mínimo necesario.

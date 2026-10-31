@@ -11,7 +11,7 @@ import { filtroDeRiesgo, type LineaDeAyuda } from '../riesgo'
  */
 
 export type ResultadoDeDuda =
-  | { tipo: 'respuesta'; texto: string }
+  | { tipo: 'respuesta'; texto: string; fichas: string[] }
   | { tipo: 'no_se'; texto: string }
   | { tipo: 'anotar'; texto: string }
   | { tipo: 'salud'; texto: string }
@@ -53,6 +53,6 @@ export function dudaTrasResponder(r: RespuestaDelRegistrador): ResultadoDeDuda {
       return { tipo: 'fallo', texto: NO_PUDE }
     case 'charla':
     case 'dicho':
-      return r.fichas?.length ? { tipo: 'respuesta', texto: paso.texto } : { tipo: 'no_se', texto: SIN_RESPALDO }
+      return r.fichas?.length ? { tipo: 'respuesta', texto: paso.texto, fichas: r.fichas } : { tipo: 'no_se', texto: SIN_RESPALDO }
   }
 }

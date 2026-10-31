@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSesionOpcional } from '../../../../app/SessionProvider'
+import { anotarNoEraEsto, tituloDeFicha } from '../../../../data/praxis/colaDudas'
 import { proponerRegistro } from '../../../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../../../data/supabase'
 import { puedeVerPraxis } from '../../../../domain/praxis/acceso'
@@ -8,6 +9,7 @@ import { dudaAntesDeEnviar, dudaTrasResponder, type ResultadoDeDuda } from '../.
 import { LINEAS_DE_AYUDA, type LineaDeAyuda } from '../../../../domain/praxis/riesgo'
 import { horaLocalIso, hoyIso } from '../../../../lib/fecha'
 import { usePuestoCoach } from '../../../coach/consola/usePuestoCoach'
+import { RespuestaDeFicha, type ServiciosDeFicha } from './RespuestaDeFicha'
 
 /**
  * LAS DUDAS LIBRES DE PRAXIS, solo para el equipo (decisión de Bryan, 30-oct-2026). Va aparte de la guía
@@ -85,8 +87,9 @@ function Cuidado({ alResponder }: { alResponder: (hayRiesgo: boolean) => void })
   )
 }
 
-export function DudasDePraxis({ preguntar = preguntarAlRegistrador }: { preguntar?: (frase: string) => Promise<RespuestaDelRegistrador> }) {
+export function DudasDePraxis({ preguntar = preguntarAlRegistrador, servicios }: { preguntar?: (frase: string) => Promise<RespuestaDelRegistrador>; servicios: ServiciosDeFicha }) {
   const [frase, setFrase] = useState('')
+  const [preguntada, setPreguntada] = useState('')
   const [pensando, setPensando] = useState(false)
   const [resultado, setResultado] = useState<ResultadoDeDuda | null>(null)
   const [detenida, setDetenida] = useState(detenidaHoy)
@@ -116,6 +119,7 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador }: { pregunta
     }
     const mio = ++turno.current
     setResultado(null)
+    setPreguntada(limpia)
     setPensando(true)
     const r = await preguntar(limpia).catch((): RespuestaDelRegistrador => ({ ok: false, motivo: 'red' }))
     if (mio !== turno.current) return
@@ -146,7 +150,8 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador }: { pregunta
         {resultado?.tipo === 'cuidado' && (
           <Cuidado alResponder={(hayRiesgo) => (hayRiesgo ? mostrar({ tipo: 'quieta', linea: 'vida' }) : setResultado(null))} />
         )}
-        {resultado && resultado.tipo !== 'cuidado' && (
+        {resultado?.tipo === 'respuesta' && <RespuestaDeFicha texto={resultado.texto} fichas={resultado.fichas} frase={preguntada} servicios={servicios} />}
+        {resultado && resultado.tipo !== 'cuidado' && resultado.tipo !== 'respuesta' && (
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-texto">{resultado.texto}</p>
         )}
       </div>
@@ -159,8 +164,13 @@ export function DudasDePraxis({ preguntar = preguntarAlRegistrador }: { pregunta
 export function PuertaDeDudas() {
   const sesion = useSesionOpcional()
   const rol = sesion?.usuario.rol
+  const usuarioId = sesion?.usuario.id
   const { esCoach: ocupaElPuesto, cargando } = usePuestoCoach(rol)
+  const servicios = useMemo<ServiciosDeFicha>(
+    () => ({ tituloDe: tituloDeFicha, noEraEsto: async (p) => (usuarioId ? anotarNoEraEsto({ ...p, usuarioId }) : false) }),
+    [usuarioId],
+  )
   if (!rol || (rol === 'asesorado' && cargando)) return null
   if (!puedeVerPraxis(rol, undefined, ocupaElPuesto)) return null
-  return <DudasDePraxis />
+  return <DudasDePraxis servicios={servicios} />
 }

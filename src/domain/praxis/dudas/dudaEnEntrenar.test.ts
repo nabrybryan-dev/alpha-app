@@ -33,7 +33,7 @@ describe('dudaAntesDeEnviar · la seguridad corre antes de la red', () => {
 describe('dudaTrasResponder · qué se dice con lo que devolvió la función', () => {
   it('la ficha del portero se muestra', () => {
     const r = respuesta({ tipo: 'informativa', mensaje: 'Una vez no obliga a bajar peso.' }, { motivo: 'consulta' }, { fichas: ['a'] })
-    expect(dudaTrasResponder(r)).toEqual({ tipo: 'respuesta', texto: 'Una vez no obliga a bajar peso.' })
+    expect(dudaTrasResponder(r)).toEqual({ tipo: 'respuesta', texto: 'Una vez no obliga a bajar peso.', fichas: ['a'] })
   })
 
   it('sin ficha lo dice, y el texto de relleno de la función no se muestra', () => {
