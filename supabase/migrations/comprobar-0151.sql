@@ -5,16 +5,38 @@
 select 'la tabla existe con sus columnas' as comprueba,
        case when (select count(*) from information_schema.columns
                    where table_schema = 'public' and table_name = 'guiones_llamada'
-                     and column_name in ('id', 'usuario_id', 'origen', 'guion', 'dia_preferido',
-                                         'franja_preferida', 'revision', 'creado_en')) = 8 then 'SI' else 'NO' end as sale,
+                     and column_name in ('id', 'person_id', 'usuario_id', 'origen', 'guion', 'dia_preferido',
+                                         'franja_preferida', 'revision', 'creado_en')) = 9 then 'SI' else 'NO' end as sale,
        'SI' as tiene_que_dar
 
 union all
-select 'una sola versión por persona (unique usuario_id, revision)',
+select 'el guion existe antes que la cuenta: person_id obligatorio, usuario_id opcional',
+       case when (select is_nullable from information_schema.columns where table_schema = 'public'
+                   and table_name = 'guiones_llamada' and column_name = 'person_id') = 'NO'
+             and (select is_nullable from information_schema.columns where table_schema = 'public'
+                   and table_name = 'guiones_llamada' and column_name = 'usuario_id') = 'YES' then 'SI' else 'NO' end,
+       'SI'
+
+union all
+select 'borrar la cuenta borra sus guiones (FK usuario_id a usuarios_app, on delete cascade)',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = to_regclass('public.guiones_llamada')
+                            and contype = 'f'
+                            and pg_get_constraintdef(oid) like 'FOREIGN KEY (usuario_id) REFERENCES %usuarios_app(id) ON DELETE CASCADE') then 'SI' else 'NO' end,
+       'SI'
+
+union all
+select 'índices por person_id y por usuario_id',
+       case when exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'guiones_llamada_person_idx')
+             and exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'guiones_llamada_usuario_idx') then 'SI' else 'NO' end,
+       'SI'
+
+union all
+select 'una sola versión por persona de la landing (unique person_id, revision)',
        case when exists (select 1 from pg_constraint
                           where conrelid = to_regclass('public.guiones_llamada')
                             and contype = 'u'
-                            and pg_get_constraintdef(oid) = 'UNIQUE (usuario_id, revision)') then 'SI' else 'NO' end,
+                            and pg_get_constraintdef(oid) = 'UNIQUE (person_id, revision)') then 'SI' else 'NO' end,
        'SI'
 
 union all

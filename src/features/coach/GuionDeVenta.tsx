@@ -7,7 +7,8 @@ import { guionTieneContenido, marcasDeSalud, type GuionDeVenta as Guion } from '
 /**
  * El guion de la llamada de venta (`guion-llamada-v1`, 0151): lo que el agente de la landing preparó
  * para que Manuela llame a una persona nueva. Va arriba en la ficha de la consola, junto a las notas
- * de llamada: primero se lee el guion, después se anota la llamada.
+ * de llamada: primero se lee el guion, después se anota la llamada. Antes de que la persona tenga
+ * cuenta, la misma tarjeta (`VistaGuionDeVenta`) se abre desde «Llamadas por hacer».
  *
  * Solo lectura. Lo escribe la Edge Function `guion-llamada`; la puerta de lectura es la de la
  * consola (`es_coach()` o `leer_entrenamiento`), no este componente. Por esa puerta se enseñan

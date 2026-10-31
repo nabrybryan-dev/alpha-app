@@ -9,8 +9,11 @@
 // vuelve a comprobar la FORMA, que es lo que la app necesita para pintarlo, no el estilo.
 //
 // Qué se exige y qué no:
-//   · El CUERPO es estricto: `{ usuario_id, guion }` y nada más. Una clave de más es un error de
-//     quien llama, y se le dice cuál.
+//   · El CUERPO es estricto: `{ person_id, usuario_id?, guion }` y nada más. Una clave de más es un
+//     error de quien llama, y se le dice cuál. `person_id` es el id de la persona en la LANDING
+//     (`people.id`): el guion llega al reservar la llamada, ANTES de que exista su cuenta en la app.
+//     `usuario_id` (de `usuarios_app`) solo viene cuando ya la hay (tras `alta-cliente`); ausente o
+//     null significa «todavía sin cuenta».
 //   · `guion.version` tiene que ser exactamente 'guion-llamada-v1': el esquema dice que un
 //     consumidor RECHAZA una versión que no conoce (una v2 se pintaría mal en silencio).
 //   · Dentro del guion, las claves desconocidas se guardan tal cual; las conocidas, con su forma.
@@ -33,12 +36,14 @@ export const FRANJA_LLAMADA = 'tarde'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const FECHA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/
-const CLAVES_CUERPO = new Set(['usuario_id', 'guion'])
+const CLAVES_CUERPO = new Set(['person_id', 'usuario_id', 'guion'])
 const TEXTOS_PERSONA = ['nombre', 'email', 'whatsapp', 'edad_tramo', 'objetivo', 'decision', 'pasos_al_dia', 'dias_de_fuerza', 'experiencia', 'lugar']
 const NUMEROS_PERSONA = ['edad', 'gasto_diario_kcal', 'grasa_estimada_pct']
 
 export interface GuionValido {
-  usuarioId: string
+  personId: string
+  /** `null` = la persona aún no tiene cuenta en la app. */
+  usuarioId: string | null
   guion: Record<string, unknown>
   /** Milisegundos de `guion.generado_en`. */
   revision: number
@@ -144,7 +149,10 @@ export function validarCuerpo(texto: string): Validacion {
   const sobrante = Object.keys(cuerpo).find((k) => !CLAVES_CUERPO.has(k))
   // El nombre de la clave solo se repite si parece un nombre de campo: nunca un texto libre.
   if (sobrante) return { ok: false, error: /^[a-z_]{1,40}$/.test(sobrante) ? `campo no esperado: ${sobrante}` : 'campo no esperado' }
-  if (!esTexto(cuerpo.usuario_id) || !UUID.test(cuerpo.usuario_id)) return { ok: false, error: 'usuario_id invalido' }
+  if (!esTexto(cuerpo.person_id) || !UUID.test(cuerpo.person_id)) return { ok: false, error: 'person_id invalido' }
+  const usuario = cuerpo.usuario_id
+  const sinCuenta = usuario === undefined || usuario === null
+  if (!sinCuenta && (!esTexto(usuario) || !UUID.test(usuario))) return { ok: false, error: 'usuario_id invalido' }
   const guion = cuerpo.guion
   if (!esObjeto(guion)) return { ok: false, error: 'guion invalido' }
   if (guion.version !== VERSION_GUION) return { ok: false, error: 'version no soportada' }
@@ -155,7 +163,8 @@ export function validarCuerpo(texto: string): Validacion {
   return {
     ok: true,
     valor: {
-      usuarioId: cuerpo.usuario_id.toLowerCase(),
+      personId: cuerpo.person_id.toLowerCase(),
+      usuarioId: sinCuenta ? null : (usuario as string).toLowerCase(),
       guion,
       revision,
       diaPreferido: (guion.reserva as Objeto).fecha as string,

@@ -11,10 +11,11 @@ import {
 // La validación de la Edge Function guion-llamada (módulo puro, sin Deno), contra la forma de
 // guion-llamada-v1. Fixture y UUID inventados.
 const USUARIO = '00000000-0000-4000-8000-0000000000a1'
+const PERSONA = '00000000-0000-4000-8000-0000000000e1'
 const REVISION_EJEMPLO = Date.parse('2026-10-30T15:00:00.000Z')
 
 function cuerpo(guion: Record<string, unknown> = {}, extra: Record<string, unknown> = {}): string {
-  return JSON.stringify({ usuario_id: USUARIO, guion: { ...EJEMPLO, ...guion }, ...extra })
+  return JSON.stringify({ person_id: PERSONA, usuario_id: USUARIO, guion: { ...EJEMPLO, ...guion }, ...extra })
 }
 
 function error(texto: string): string | null {
@@ -27,7 +28,7 @@ describe('guion-llamada · validarCuerpo', () => {
     const r = validarCuerpo(cuerpo())
     expect(r.ok).toBe(true)
     if (!r.ok) return
-    expect(r.valor).toMatchObject({ usuarioId: USUARIO, revision: REVISION_EJEMPLO, diaPreferido: '2026-11-05', franjaPreferida: 'tarde' })
+    expect(r.valor).toMatchObject({ personId: PERSONA, usuarioId: USUARIO, revision: REVISION_EJEMPLO, diaPreferido: '2026-11-05', franjaPreferida: 'tarde' })
     // El guion se guarda tal cual, contacto incluido (lo lee solo la consola, por RLS).
     expect(r.valor.guion).toEqual(EJEMPLO)
   })
@@ -41,9 +42,24 @@ describe('guion-llamada · validarCuerpo', () => {
   })
 
   it('normaliza el UUID a minúsculas y guarda claves nuevas del guion', () => {
-    const r = validarCuerpo(JSON.stringify({ usuario_id: USUARIO.toUpperCase(), guion: { ...EJEMPLO, campo_nuevo: 1 } }))
+    const r = validarCuerpo(JSON.stringify({ person_id: PERSONA.toUpperCase(), usuario_id: USUARIO.toUpperCase(), guion: { ...EJEMPLO, campo_nuevo: 1 } }))
     expect(r.ok && r.valor.usuarioId).toBe(USUARIO)
+    expect(r.ok && r.valor.personId).toBe(PERSONA)
     expect(r.ok && r.valor.guion.campo_nuevo).toBe(1)
+  })
+
+  it('sin cuenta todavía: usuario_id ausente o null es válido y queda null', () => {
+    for (const sinCuenta of [{ person_id: PERSONA, guion: EJEMPLO }, { person_id: PERSONA, usuario_id: null, guion: EJEMPLO }]) {
+      const r = validarCuerpo(JSON.stringify(sinCuenta))
+      expect(r.ok).toBe(true)
+      if (r.ok) expect(r.valor).toMatchObject({ personId: PERSONA, usuarioId: null })
+    }
+  })
+
+  it('person_id es obligatorio y tiene que ser un UUID', () => {
+    expect(error(JSON.stringify({ usuario_id: USUARIO, guion: EJEMPLO }))).toBe('person_id invalido')
+    expect(error(JSON.stringify({ person_id: 'abc', guion: EJEMPLO }))).toBe('person_id invalido')
+    expect(error(JSON.stringify({ person_id: 7, guion: EJEMPLO }))).toBe('person_id invalido')
   })
 
   it('rechaza una versión que no conoce (el esquema lo pide) y un generado_en sin zona', () => {
@@ -62,8 +78,9 @@ describe('guion-llamada · validarCuerpo', () => {
   it('rechaza JSON roto, cuerpos que no son objeto y usuario_id inválido', () => {
     expect(error('{')).toBe('json invalido')
     expect(error('[]')).toBe('cuerpo invalido')
-    expect(error(JSON.stringify({ usuario_id: 'abc', guion: EJEMPLO }))).toBe('usuario_id invalido')
-    expect(error(JSON.stringify({ usuario_id: USUARIO, guion: [] }))).toBe('guion invalido')
+    expect(error(JSON.stringify({ person_id: PERSONA, usuario_id: 'abc', guion: EJEMPLO }))).toBe('usuario_id invalido')
+    expect(error(JSON.stringify({ person_id: PERSONA, usuario_id: 5, guion: EJEMPLO }))).toBe('usuario_id invalido')
+    expect(error(JSON.stringify({ person_id: PERSONA, guion: [] }))).toBe('guion invalido')
   })
 
   it.each([

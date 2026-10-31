@@ -56,15 +56,17 @@ vi.mock('../supabase', () => ({
   }),
 }))
 
-const { aGuionGuardado, guionDe, usuariosConGuion } = await import('./guionesLlamada')
+const { TOPE_LLAMADAS, aGuionGuardado, guionDe, hoyEnColombia, llamadasPorHacer, seleccionarLlamadas, usuariosConGuion } = await import('./guionesLlamada')
 const { default: EJEMPLO } = await import('../../domain/consolaCoach/guion-llamada-v1.fixture.json')
 
 const USUARIO = '00000000-0000-4000-8000-0000000000b1'
+const PERSONA = '00000000-0000-4000-8000-0000000000d1'
 
 function fila(extra: Record<string, unknown> = {}) {
   return {
     id: '00000000-0000-4000-8000-0000000000c1',
-    usuario_id: USUARIO,
+    person_id: PERSONA,
+    usuario_id: USUARIO as string | null,
     origen: 'landing',
     guion: { ...EJEMPLO, apertura: 'Abre así.', reserva: { ...EJEMPLO.reserva, fecha: '2026-11-09', hora: '16:30' } },
     dia_preferido: '2026-11-05',
@@ -96,7 +98,7 @@ describe('guionDe', () => {
     estado.filas = [fila()]
     const r = await guionDe(USUARIO)
     expect(estado.tablas).toEqual(['guiones_llamada'])
-    expect(estado.selects[0]).toBe('id,usuario_id,origen,guion,dia_preferido,franja_preferida,revision,creado_en')
+    expect(estado.selects[0]).toBe('id,person_id,usuario_id,origen,guion,dia_preferido,franja_preferida,revision,creado_en')
     expect(estado.eqs).toEqual([['usuario_id', USUARIO]])
     expect(estado.orders).toEqual([['revision', { ascending: false }]])
     expect(estado.limits).toEqual([1])
@@ -172,5 +174,78 @@ describe('usuariosConGuion', () => {
   it('un fallo es ok:false', async () => {
     estado.excepcion = true
     expect((await usuariosConGuion([USUARIO])).ok).toBe(false)
+  })
+})
+
+describe('seleccionarLlamadas', () => {
+  const HOY = '2026-11-05'
+  const otra = '00000000-0000-4000-8000-0000000000d2'
+  const tercera = '00000000-0000-4000-8000-0000000000d3'
+
+  it('se queda con la revisión más alta de cada persona', () => {
+    const vieja = fila({ id: 'v', usuario_id: null, revision: 1, dia_preferido: '2026-11-20' })
+    const nueva = fila({ id: 'n', usuario_id: null, revision: 2, dia_preferido: '2026-11-07' })
+    const lista = seleccionarLlamadas([vieja, nueva] as never, HOY)
+    expect(lista.map((l) => l.guardado.id)).toEqual(['n'])
+    expect(lista[0]).toMatchObject({ personId: PERSONA, usuarioId: null, dia: '2026-11-07' })
+  })
+
+  it('entra quien no tiene cuenta (aunque su día ya pasó) y quien la tiene con la llamada hoy o después', () => {
+    const lista = seleccionarLlamadas(
+      [
+        fila({ id: 'sin-cuenta-pasada', person_id: PERSONA, usuario_id: null, dia_preferido: '2026-11-01' }),
+        fila({ id: 'con-cuenta-hoy', person_id: otra, dia_preferido: HOY }),
+        fila({ id: 'con-cuenta-pasada', person_id: tercera, dia_preferido: '2026-11-04' }),
+      ] as never,
+      HOY,
+    )
+    expect(lista.map((l) => l.guardado.id)).toEqual(['sin-cuenta-pasada', 'con-cuenta-hoy'])
+  })
+
+  it('ordena por día de la llamada; sin día, al final; a igual día, por llegada', () => {
+    const lista = seleccionarLlamadas(
+      [
+        fila({ id: 'tarde', person_id: PERSONA, usuario_id: null, dia_preferido: '2026-11-09', creado_en: '2026-10-30T16:00:00Z' }),
+        fila({ id: 'temprano', person_id: otra, usuario_id: null, dia_preferido: '2026-11-09', creado_en: '2026-10-30T09:00:00Z' }),
+        fila({ id: 'antes', person_id: tercera, usuario_id: null, dia_preferido: '2026-11-06' }),
+      ] as never,
+      HOY,
+    )
+    expect(lista.map((l) => l.guardado.id)).toEqual(['antes', 'temprano', 'tarde'])
+  })
+
+  it('lo que no se sabe leer no entra (no hay qué abrir)', () => {
+    const lista = seleccionarLlamadas([fila({ usuario_id: null, guion: { ...EJEMPLO, version: 'guion-llamada-v2' } })] as never, HOY)
+    expect(lista).toEqual([])
+  })
+
+  it('hoy es el de Colombia, no el UTC', () => {
+    // 03:00 UTC del 6 = 22:00 del 5 en Bogotá.
+    expect(hoyEnColombia(new Date('2026-11-06T03:00:00Z'))).toBe('2026-11-05')
+  })
+})
+
+describe('llamadasPorHacer', () => {
+  it('una consulta: las revisiones más recientes, con tope', async () => {
+    estado.filas = [fila({ usuario_id: null })]
+    const r = await llamadasPorHacer(new Date('2026-11-01T15:00:00Z'))
+    expect(estado.tablas).toEqual(['guiones_llamada'])
+    expect(estado.eqs).toEqual([])
+    expect(estado.orders).toEqual([['revision', { ascending: false }]])
+    expect(estado.limits).toEqual([TOPE_LLAMADAS])
+    expect(r.ok && r.llamadas.map((l) => l.personId)).toEqual([PERSONA])
+  })
+
+  it('cero filas (también por RLS) es lista vacía; un fallo es ok:false; en demo no consulta', async () => {
+    expect(await llamadasPorHacer()).toEqual({ ok: true, llamadas: [] })
+    estado.excepcion = true
+    expect(await llamadasPorHacer()).toEqual({ ok: false, error: 'No se pudieron cargar las llamadas por hacer.' })
+    estado.excepcion = false
+    estado.error = { message: 'x' }
+    expect((await llamadasPorHacer()).ok).toBe(false)
+    estado.tablas = []
+    estado.activo = false
+    expect(await llamadasPorHacer()).toEqual({ ok: true, llamadas: [] })
+    expect(estado.tablas).toEqual([])
   })
 })

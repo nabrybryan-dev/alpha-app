@@ -30,10 +30,15 @@ describe('guiones de llamada · el código y la 0151 dicen lo mismo', () => {
     expect([...COLUMNAS_GUIONES_LLAMADA]).toEqual(columnasDelCreateTable())
   })
 
-  it('el upsert de la función tiene su unique (usuario_id, revision)', () => {
-    expect(SQL).toMatch(/unique \(usuario_id, revision\)/)
+  it('el upsert de la función tiene su unique (person_id, revision) y el enlace va por person_id', () => {
+    expect(SQL).toMatch(/unique \(person_id, revision\)/)
+    expect(SQL).toMatch(/person_id uuid not null,/)
+    expect(SQL).toMatch(/usuario_id uuid null references public\.usuarios_app\(id\) on delete cascade,/)
+    expect(SQL).toMatch(/guiones_llamada_person_idx on public\.guiones_llamada \(person_id\)/)
+    expect(SQL).toMatch(/guiones_llamada_usuario_idx on public\.guiones_llamada \(usuario_id\)/)
     const funcion = readFileSync(join(process.cwd(), 'supabase', 'functions', 'guion-llamada', 'index.ts'), 'utf8')
-    expect(funcion).toContain('onConflict: "usuario_id,revision"')
+    expect(funcion).toContain('onConflict: "person_id,revision"')
+    expect(funcion).toMatch(/\.update\(\{ usuario_id: v\.usuarioId \}\)\s*\.eq\("person_id", v\.personId\)/)
   })
 
   it('la puerta es la de la consola (0113), no es_staff, y solo hay lectura', () => {

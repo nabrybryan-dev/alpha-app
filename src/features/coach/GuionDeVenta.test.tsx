@@ -25,6 +25,8 @@ function guardado(guion: Record<string, unknown>, extra: Record<string, unknown>
       tipo: 'guion',
       guardado: {
         id: 'g1',
+        personId: 'p1',
+        usuarioId: 'u1',
         creadoEn: '2026-10-30T15:00:00Z',
         diaPreferido: '2026-11-05',
         franjaPreferida: 'en la tarde',

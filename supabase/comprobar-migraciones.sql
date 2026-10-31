@@ -2621,14 +2621,16 @@ select '0148 - alertas nutricionales: apagadas hasta que Manuela firme', 'alerta
             else 'SI' end
 
 union all
-select '0151 - guiones de llamada: los lee la consola, no los escribe nadie desde el navegador', 'guiones_llamada con RLS, una sola política de lectura (es_coach o leer_entrenamiento), unique (usuario_id, revision), authenticated solo lee, anon nada',
+select '0151 - guiones de llamada: los lee la consola, no los escribe nadie desde el navegador', 'guiones_llamada con RLS, una sola política de lectura (es_coach o leer_entrenamiento), unique (person_id, revision), usuario_id opcional, authenticated solo lee, anon nada',
        case when to_regclass('public.guiones_llamada') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.guiones_llamada')) then 'NO'
             when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada') <> 1 then 'NO'
             when not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada'
                                and cmd = 'SELECT' and qual like '%es_coach()%' and qual like '%leer_entrenamiento%') then 'NO'
             when not exists (select 1 from pg_constraint where conrelid = to_regclass('public.guiones_llamada')
-                               and contype = 'u' and pg_get_constraintdef(oid) = 'UNIQUE (usuario_id, revision)') then 'NO'
+                               and contype = 'u' and pg_get_constraintdef(oid) = 'UNIQUE (person_id, revision)') then 'NO'
+            when (select is_nullable from information_schema.columns where table_schema = 'public'
+                    and table_name = 'guiones_llamada' and column_name = 'usuario_id') <> 'YES' then 'NO'
             when has_table_privilege('anon', 'public.guiones_llamada', 'select') then 'NO'
             when has_table_privilege('authenticated', 'public.guiones_llamada', 'insert')
               or has_table_privilege('authenticated', 'public.guiones_llamada', 'update')
