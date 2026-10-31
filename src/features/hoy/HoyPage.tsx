@@ -233,7 +233,7 @@ export default function HoyPage() {
   // del navegador es de una sola bala.
   const permiso = (
     <div className="entrada entrada-2 empty:hidden">
-      <PedirPermiso usuarioId={usuario.id} />
+      <PedirPermiso usuarioId={usuario.id} clasico={esStaff} />
     </div>
   )
 
@@ -505,7 +505,7 @@ export default function HoyPage() {
         {cribado}
         {preguntaDeLaCadena}
         {barraCoach}
-        <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
+        <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} clasico />
         <Suspense
           fallback={
             <p className="text-sm text-tenue" aria-busy="true">
