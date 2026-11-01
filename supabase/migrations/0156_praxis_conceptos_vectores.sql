@@ -2,7 +2,7 @@
 -- 0156 · Praxis: vectores de la biblioteca y búsqueda por sentido
 -- ============================================================================
 --
--- Se aplica a mano, con el sí de Bryan (31-oct-2026). Si faltara, nada se rompe: `praxis-registro` deja una
+-- APLICADA el 31-oct-2026, con el sí de Bryan (selector). Si faltara, nada se rompe: `praxis-registro` deja una
 -- línea en el registro y la respuesta sale igual. Comprobarla con sus filas en `comprobar-migraciones.sql`.
 --
 -- QUÉ PEDIDO RESUELVE. Por palabras la búsqueda no alcanzó el mínimo del plan (16 de 20); con e5-base sí (19 de 20).
