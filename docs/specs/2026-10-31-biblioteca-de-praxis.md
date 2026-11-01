@@ -83,3 +83,19 @@ Asesorados: fuera. Siguen las condiciones de `acceso.ts`.
 - Palabras y letras no sirven para negarse: 9 de 10 sin respaldo trajeron piezas, con puntajes iguales a los de las buenas.
 - Coseno de la mejor pieza: con respaldo, de 0,820 a 0,888; sin respaldo, de 0,744 a 0,839. Se solapan y cualquier umbral saldría de este mismo examen: no se adopta. Negarse sigue siendo tarea del paso con Haiku.
 - OpenAI `text-embedding-3-small` no se midió. Sin medir: tiempos en camilin y las 42 piezas restantes.
+
+## Dónde corre el vector (decisión de Bryan, 31-oct)
+
+Bryan eligió el portátil de Manu («el mini PC de Manuela», `laptop-1pvmvnk9`), donde ya vive el portero: i3-10110U, 7,8 GB, unos 1,4 GB libres.
+
+| Modelo q8, en Python | Entre las 5 primeras | De primera | Tope de memoria | Dimensión |
+|---|---|---|---|---|
+| e5-small | 17 de 20: no pasa | 12 | 437 MB | 384 |
+| e5-base | 19 de 20 | 14 | 591 MB | 768 |
+| e5-large | 19 de 20 (control) | 15 | 868 MB | 1024 |
+
+Se elige **e5-base**: acierta igual que large con menos memoria. Repetido en ese equipo: 19 de 20, mediana 18 ms por frase, máximo 29 ms, tope 596 MB, misma huella del modelo. Instalado aparte en `%USERPROFILE%\praxis-vectores` (entorno propio y modelo); el portero no se tocó y siguió respondiendo. Aún no hay servicio encendido.
+
+Límites: el examen ya se vio y estas cifras no prueban el acierto con dudas reales. La cifra de tiempo es solo convertir la frase, sin red ni base. Si ese equipo está apagado o suspendido, no hay búsqueda por sentido: Praxis sigue con fichas o «no lo sé».
+
+Sigue, con su sí: columna `vector(768)` en `praxis_conceptos` (0156), servicio permanente con clave, y conectarlo a `praxis-registro`.
