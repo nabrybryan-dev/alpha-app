@@ -28,5 +28,5 @@ export function MicrofonoDelSalon({ azimut, ...mandos }: MicrofonoDelSalonProps)
     ejecutarOrden(orden, { ...mandos, darLaVuelta: () => mandos.girar?.(destinoDeLaVuelta(azimut)) })
     return respuestaDeLaOrden(orden)
   }
-  return <BotonDeVoz alOir={alOir} />
+  return <BotonDeVoz alOir={alOir} sobreElPanel={mandos.guia !== null} />
 }

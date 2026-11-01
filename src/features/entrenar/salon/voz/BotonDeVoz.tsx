@@ -12,13 +12,15 @@ import { leerResultados, reconocedor, TOMA_MAX_MS, type Reconocedor } from '../.
 export interface BotonDeVozProps {
   /** Hace lo pedido y devuelve lo que Praxis contesta en pantalla. */
   alOir: (dicho: string) => string
+  /** Con la guía abierta, el panel ocupa la mitad baja y taparía el botón: se apoya justo encima de él. */
+  sobreElPanel?: boolean
 }
 
 const AVISO_MICROFONO = 'No puedo usar el micrófono. Revisa el permiso del navegador.'
 const AVISO_RED = 'No te entendí: el reconocimiento de voz necesita internet.'
 const AVISO_SILENCIO = 'No te oí. Toca y vuelve a hablar.'
 
-export function BotonDeVoz({ alOir }: BotonDeVozProps) {
+export function BotonDeVoz({ alOir, sobreElPanel = false }: BotonDeVozProps) {
   const [oyendo, setOyendo] = useState(false)
   const [respuesta, setRespuesta] = useState('')
   const vivo = useRef<{ rec: Reconocedor; tope: number } | null>(null)
@@ -84,7 +86,13 @@ export function BotonDeVoz({ alOir }: BotonDeVozProps) {
     <div
       data-no-orbita
       className="pointer-events-auto absolute flex flex-row-reverse items-center gap-2"
-      style={{ right: 'max(8px, env(safe-area-inset-right, 0px))', top: '42%', transform: 'translateY(-50%)', zIndex: 'var(--z-superpuesto)', maxWidth: 'calc(100% - 16px)' }}
+      data-testigo="microfono-de-voz"
+      style={{
+        right: 'max(8px, env(safe-area-inset-right, 0px))',
+        zIndex: 'var(--z-superpuesto)',
+        maxWidth: 'calc(100% - 16px)',
+        ...(sobreElPanel ? { bottom: 'calc(50dvh + var(--tope-nav) + 8px)' } : { top: '42%', transform: 'translateY(-50%)' }),
+      }}
     >
       <button
         type="button"

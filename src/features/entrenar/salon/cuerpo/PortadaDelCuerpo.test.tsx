@@ -67,6 +67,16 @@ describe('el micrófono de las órdenes de voz', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Cuádriceps')
   })
 
+  // Bryan, 31-oct: «en la segunda pregunta no escucha». El panel abierto tapaba el botón y el toque se lo llevaba el panel.
+  it('con la guía abierta, el micrófono sube encima del panel', () => {
+    const microfono = () => document.querySelector<HTMLElement>('[data-testigo="microfono-de-voz"]')!
+    const { rerender } = render(<PortadaDelCuerpo {...props()} />)
+    expect(microfono().style.top).toBe('42%')
+    rerender(<PortadaDelCuerpo {...conGuia()} />)
+    expect(microfono().style.top).toBe('')
+    expect(microfono().style.bottom).toContain('50dvh')
+  })
+
   it('«me duele la rodilla» no mueve el cuerpo ni abre nada', () => {
     const p = props({ alIrEnLaGuia: vi.fn() })
     render(<PortadaDelCuerpo {...p} />)
