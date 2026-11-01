@@ -2,8 +2,8 @@
 -- 0155 · Praxis: la biblioteca de conceptos y su búsqueda
 -- ============================================================================
 --
--- SIN APLICAR. Se aplica a mano, con el sí de Bryan, antes de desplegar lo que la use. Si faltara, nada se
--- rompe: hoy nadie la llama. Comprobarla con sus filas en `comprobar-migraciones.sql`.
+-- APLICADA el 31-oct-2026, con el sí de Bryan (selector). Si faltara, nada se rompe: hoy nadie la llama.
+-- Comprobarla con sus filas en `comprobar-migraciones.sql`.
 -- 0153 y 0154 están reservadas por `fase4/praxis-deliberacion`.
 --
 -- QUÉ PEDIDO RESUELVE. Bryan, 31-oct: que Praxis responda con lo que dicen los cerebros, sin depender de 50

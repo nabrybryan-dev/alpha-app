@@ -68,3 +68,18 @@ Examen pequeño de partida: 20 preguntas de entreno escritas a mano para las pie
 4. Respuesta con Haiku, cuando haya saldo. Cada paso que toque producción, con su sí.
 
 Asesorados: fuera. Siguen las condiciones de `acceso.ts`.
+
+## Primera medida (31-oct, noche)
+
+0155 aplicada con el sí de Bryan; 22 piezas con «sí» en la hoja cargadas como `aprobada`. Nadie las usa todavía. Examen fijado antes de medir, 20 con respaldo y 10 sin él (`biblioteca-praxis/examen-busqueda-20261031.json`), ya visto una vez: para ajustar umbrales hace falta otro, o dudas reales.
+
+| Método | Pieza correcta entre las 5 primeras (mínimo 18) | De primera |
+|---|---|---|
+| Palabras y letras (`buscar_conceptos`) | 16 de 20: no pasa | 9 |
+| e5-large q8, solo vectores | 19 de 20: pasa | 14 |
+| Fusión de ambos, con las 5 primeras de palabras | 17 de 20 | 14 |
+
+- La fusión empeora a los vectores porque la lista de palabras trae ruido. Es una aproximación: la lista de palabras llegó recortada a 5. No fijar «híbrida» por defecto; medir de nuevo con vectores en la base.
+- Palabras y letras no sirven para negarse: 9 de 10 sin respaldo trajeron piezas, con puntajes iguales a los de las buenas.
+- Coseno de la mejor pieza: con respaldo, de 0,820 a 0,888; sin respaldo, de 0,744 a 0,839. Se solapan y cualquier umbral saldría de este mismo examen: no se adopta. Negarse sigue siendo tarea del paso con Haiku.
+- OpenAI `text-embedding-3-small` no se midió. Sin medir: tiempos en camilin y las 42 piezas restantes.
