@@ -68,6 +68,11 @@ const EMPIEZA_PREGUNTA =
   /^(por que|porque|para que|cuanto|cuanta|cuantos|cuantas|cuando|cual|cuales|como|debo|deberia|puedo|se puede|es malo|es mala|es bueno|es buena|es mejor|sirve|conviene|hay que|tengo que|necesito|vale la pena|que (es|son|significa|hago|hacer|pasa|sirve|tan|tanto|tanta|musculo|musculos|ejercicio|ejercicios|peso|debo|puedo))\b/
 const SALUDO = /^((oye|hola|disculpa|praxis|tengo una duda|tengo una pregunta|una duda|una pregunta)\s+)+/
 const PIDE_LO_DE_HOY = /\b(me toca|toca hoy|mi dia)\b/
+/** El reconocedor no entrega signos: «llevo dos años, ¿cuántas series…?» llega sin ellos y con la pregunta a la mitad. */
+const PREGUNTA_A_LA_MITAD = /\b(por que|para que|cuanto|cuanta|cuantos|cuantas|cuando|cual|cuales)\b/
+/** Lo que manda de verdad al sujeto. Una frase larga sin ninguno de estos verbos es alguien contando o preguntando. */
+const VERBO_DE_ORDEN = /\b(muestra|muestrame|abre|abreme|ensena|ensename|quiero ver|ver|ve|ir|vamos|llevame|pon|ponme|ponte|cierra|cerrar|gira|girate|voltea|volteate|vuelve|volver|regresa|sigue|dame)\b/
+const PALABRAS_DE_UNA_FRASE_LARGA = 6
 
 const RESPUESTA_DE_SALUD = 'Eso no lo resuelvo navegando. Cuéntaselo a tu coach.'
 
@@ -129,7 +134,8 @@ export function interpretarOrden(dicho: string, sesion?: Pick<Sesion, 'ejercicio
 /** Pedir un movimiento o lo de hoy suena a pregunta, pero es una orden y no gasta nada. */
 function esPregunta(frase: string, dicho: string): boolean {
   if (PIDE_MOVIMIENTO.test(frase) || PIDE_LO_DE_HOY.test(frase)) return false
-  return /[¿?]/.test(dicho) || EMPIEZA_PREGUNTA.test(frase.replace(SALUDO, ''))
+  if (/[¿?]/.test(dicho) || EMPIEZA_PREGUNTA.test(frase.replace(SALUDO, '')) || PREGUNTA_A_LA_MITAD.test(frase)) return true
+  return frase.split(' ').length >= PALABRAS_DE_UNA_FRASE_LARGA && !VERBO_DE_ORDEN.test(frase)
 }
 
 function ordenDeGiro(frase: string): Orden | null {

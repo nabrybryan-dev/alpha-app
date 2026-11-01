@@ -111,8 +111,22 @@ describe('una pregunta hablada va a las dudas de Praxis, tal como se dijo', () =
     'puedo entrenar pierna dos días seguidos',
     'cómo subo de peso en la sentadilla',
     'tengo una duda para qué sirve el cardio',
+    // Las cinco de la primera prueba de Bryan (31-oct), como las entrega el reconocedor: sin signos ni comas.
+    'tengo que llegar al fallo para que crezca el músculo',
+    'llevo dos años entrenando cuántas series me sirven',
+    'dormí mal anoche entreno igual hoy',
+    'por qué tengo que anotar todos los días cómo me siento',
+    'cuántas calorías tiene una arepa con queso',
+    // Sin palabra de pregunta, pero nadie da una orden tan larga.
+    'anoche casi no dormí y hoy entreno pecho',
+    'quiero saber si la sentadilla sirve para la cola',
   ])('«%s»', (dicho) => {
     expect(interpretarOrden(dicho, sesion)).toEqual({ tipo: 'duda', frase: dicho })
+  })
+
+  it('una orden larga con su verbo sigue siendo una orden', () => {
+    expect(interpretarOrden('por favor muéstrame los cuádriceps de una vez', sesion)).toEqual({ tipo: 'zona', id: 'cua' })
+    expect(interpretarOrden('quiero ver el movimiento de la sentadilla ahora', sesion).tipo).not.toBe('duda')
   })
 
   it('pedir un movimiento o lo de hoy sigue siendo una orden, aunque suene a pregunta', () => {
