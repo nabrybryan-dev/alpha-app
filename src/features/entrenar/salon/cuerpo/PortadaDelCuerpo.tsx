@@ -1,22 +1,27 @@
-import { useState, type ReactNode } from 'react'
-import { Sheet } from '../../../../components/ui/Sheet'
+import { useRef, useState } from 'react'
 import type { CapaDelCuerpo } from '../../sujeto/pintura'
-import { NOMBRE_DE_REGION, REGIONES, type IdDeRegion } from '../../sujeto/regiones'
-import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
+import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
+import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
+import { Opcion } from './OpcionDeTecla'
+import { useToqueSobreElCuerpo } from './useToqueSobreElCuerpo'
+import type { CamaraDelSalon } from '../paredes/geometriaDeCuadro'
 import { HuecoDeDatos } from '../paredes/HuecoDeDatos'
-import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
+import { relojEnMarcha, type AnclasDelReloj, type ModoDelReloj } from '../mando/relojDelMuro'
 import { lecturaCorta, type SeriesPorRegion } from '../../sujeto/tinte'
+import { PuertaDeDudas, type DudaDictada } from '../guia/DudasDePraxis'
+import { GuiaDePraxis, OrbeDePraxis } from '../guia/GuiaDePraxis'
+import { guionDelDia } from '../guia/guionDelDia'
+import { lineaDePraxis } from '../guia/zonasDePraxis'
+import type { EstadoDeLaGuia } from '../guia/useZonaDePraxis'
+import { MicrofonoDelSalon } from '../voz/MicrofonoDelSalon'
 
 /**
  * LA PORTADA DEL CUERPO: lo que se lee ENCIMA del sujeto de Blender.
  *
- * Capas (Piel · Músculo · Hueso) a un lado, la lectura corta de las series anotadas, el dolor
- * del check-in en rojo, y el paso a la vista de movimiento (la escena vieja del salón,
- * entera). Es el hueco `cuerpo` de `huecos.ts`. Aspecto de la maqueta 7: teclas alzadas con
- * `--relleno-alzado` y `--sombra-alzado` (claro y oscuro salen del tema), la lectura en luz y
- * sin caja, el dolor en `--rojo`.
- *
- * Cuenta SERIES ANOTADAS, no estímulo: lo dice debajo de la lectura, como la maqueta 7.
+ * El centro es el cuerpo y UNA línea de Praxis (Bryan, 30-oct: «muy cargado de botones»). Tocar un
+ * músculo o esa línea abre la guía, que trae lo que antes ocupaba los lados: capas, rango, movimiento
+ * y la vuelta. Solo el dolor sigue a la vista siempre: es seguridad. La guía cuenta SERIES ANOTADAS,
+ * no estímulo, y lo dice. Es el hueco `cuerpo` de `huecos.ts`.
  */
 
 export type VistaDelSalon = 'cuerpo' | 'movimiento'
@@ -33,6 +38,18 @@ export interface PortadaDelCuerpoProps {
   alCambiarCapa: (capa: CapaDelCuerpo) => void
   alCambiarRango: (rango: RangoDeLectura) => void
   alCambiarVista: (vista: VistaDelSalon) => void
+  /** Hacia dónde mira la cámara (grados) y qué hace «Dar la vuelta»; sin lo segundo no hay botón. */
+  azimutDelCuerpo?: number
+  /** La cámara con la que se dibuja el cuerpo. Con ella, un toque corto SOBRE el sujeto abre esa zona. */
+  camara?: CamaraDelSalon
+  alDarLaVuelta?: (azimut: number) => void
+  /** Lo abierto en la guía de Praxis y cómo moverse por ella. Lo guarda el salón: también pinta el cuerpo. */
+  guia?: EstadoDeLaGuia
+  alIrEnLaGuia?: (destino: EstadoDeLaGuia, azimutActual: number) => void
+  alIrAlEjercicio?: (indice: number) => void
+  sesion?: Sesion
+  semana?: readonly Sesion[]
+  previo?: Microciclo
   /** Lo que toca, para la linea de arriba: nombre y cifras. Sin nada que decir no hay linea. */
   resumen?: { nombre: string; cifras: string }
   /**
@@ -52,272 +69,191 @@ export interface PortadaDelCuerpoProps {
   }
 }
 
-/**
- * Cada tecla dice QUÉ ES y, debajo, QUÉ ENSEÑA (Bryan, 25-oct: «que los botones tengan más
- * detalle»). Con solo «Hoy» y «Semana» no se sabía si cambiaban de día o qué contaban.
- */
-const CAPAS: readonly { id: CapaDelCuerpo; nombre: string; detalle: string }[] = [
-  { id: 'piel', nombre: 'Piel', detalle: 'la silueta' },
-  { id: 'musculo', nombre: 'Músculo', detalle: 'lo trabajado' },
-  { id: 'hueso', nombre: 'Hueso', detalle: 'el esqueleto' },
-]
-
-const RANGOS: readonly { id: RangoDeLectura; nombre: string; detalle: string }[] = [
-  { id: 'hoy', nombre: 'Hoy', detalle: 'series de hoy' },
-  { id: 'semana', nombre: 'Semana', detalle: 'series de 7 días' },
-]
-
-/**
- * LA TECLA ALZADA de la maqueta 7 (`.sl-capas button`): 12 px de radio, nombre en negrita y
- * su detalle debajo, en tenue. Todas del mismo ancho para que la columna no baile. La elegida
- * lleva un aro de 1,5 px en el color del texto.
- */
-const COMPACTO = '!min-h-[48px] !w-[86px] !px-1.5 !py-1 !text-xs'
-
-/**
- * Una opcion de un grupo, con la tecla secundaria `.tecla-2` de `tokens.css` (la de la maqueta
- * 7). **El rojo es del dolor**: la elegida NO se pinta de rojo (no es `Boton3D`, que es la
- * accion principal y es roja); se marca con un aro del color del texto y el texto pleno, y las
- * demas quedan en tenue. Mismo tamano para que no salten.
- */
-function Opcion({
-  activa,
-  onClick,
-  children,
-  radio = true,
-  etiqueta,
-  detalle,
-}: {
-  activa: boolean
-  onClick: () => void
-  children: ReactNode
-  radio?: boolean
-  etiqueta?: string
-  /** Una línea corta debajo del nombre: qué enseña la tecla. */
-  detalle?: string
-}) {
-  const aria = radio ? { role: 'radio' as const, 'aria-checked': activa } : {}
+function ResumenDelEjercicio({ nombre, cifras }: { nombre: string; cifras: string }) {
   return (
-    <button
-      type="button"
-      {...aria}
-      aria-label={etiqueta}
-      onClick={onClick}
-      className={`press tecla-2 ${COMPACTO}`}
-      style={{
-        color: activa ? 'var(--texto)' : 'var(--tenue)',
-        boxShadow: activa ? '0 2px 0 var(--canto), var(--sombra-alzado), inset 0 0 0 1.5px var(--texto)' : undefined,
-      }}
+    <div
+      data-testigo="resumen-del-ejercicio"
+      className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-6 text-center"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.4rem)' }}
     >
-      <span className="flex flex-col items-center leading-tight">
-        <span>{children}</span>
-        {detalle && (
-          <span className="mt-0.5 text-[10px] font-medium" style={{ color: 'var(--tenue)' }}>
-            {detalle}
-          </span>
-        )}
-      </span>
-    </button>
+      <p
+        className="max-w-full truncate text-[15px] leading-tight"
+        style={{ color: 'var(--texto)', fontWeight: 800, textShadow: 'var(--salon-3d-sombra-portada)' }}
+      >
+        {nombre}
+      </p>
+      <p
+        className="cifras max-w-full truncate text-[12px] leading-tight"
+        style={{ color: 'var(--tenue)', textShadow: 'var(--salon-3d-sombra-portada)' }}
+      >
+        {cifras}
+      </p>
+    </div>
   )
 }
 
-function cifra(n: number): string {
-  const r = Math.round(n * 10) / 10
-  return Number.isInteger(r) ? String(r) : String(r).replace('.', ',')
+/**
+ * LA CUENTA: descanso, excéntrico o carga. El tiempo de sesión vive en la vista de movimiento; esto
+ * sigue montado mientras la cuenta corre, para que avise al terminar.
+ */
+function CuentaDelCuerpo({ reloj }: { reloj: NonNullable<PortadaDelCuerpoProps['reloj']> }) {
+  if (!relojEnMarcha(reloj.modo, reloj.cargaEnLaPared)) return null
+  return (
+    <div
+      // `[&_button]:!text-texto`: el boton del cronometro no trae color y en tema claro el del navegador
+      // (negro) caia sobre la sala oscura. `[&_button]:pointer-events-auto`: la franja no recibe toques
+      // (taparía el cuerpo), pero sus botones sí (medido con elementFromPoint el 25-oct).
+      className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center [&_button]:pointer-events-auto [&_button]:!text-texto"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 11.6rem)', fontSize: '22px' }}
+    >
+      <HuecoDeDatos
+        muestra={reloj.cargaEnLaPared ? 'carga' : 'reloj'}
+        sesion={reloj.sesion}
+        ejercicio={reloj.ejercicio}
+        textoDeCarga={reloj.textoDeCarga}
+        cargaPrevia={reloj.cargaPrevia}
+        modo={reloj.modo}
+        anclas={reloj.anclas}
+        alTerminarLaCuenta={reloj.alTerminarLaCuenta}
+      />
+    </div>
+  )
+}
+
+/** Qué dice la línea: lo que el cuerpo está pintando. En Piel lo pendiente no se pinta, así que no se nombra. */
+function textoDeLaLinea(p: PortadaDelCuerpoProps, pendientes: readonly IdDeRegion[]): string {
+  if (p.rango === 'hoy') return lineaDePraxis(p.capa === 'piel' ? [] : pendientes, p.series)
+  const hecho = lecturaCorta(p.series)
+  return hecho ? `Esta semana: ${hecho}` : 'Esta semana aún no hay series anotadas'
+}
+
+/**
+ * PRAXIS, HABLÁNDOLE A LA PERSONA JUNTO AL CUERPO. No es una tecla más: es un globo oscuro con su punto de
+ * luz, que dice lo de hoy y, al tocarlo, lo cuenta paso a paso. Debajo siguen los letreros de lectura.
+ * `pointer-events-none` en la franja: de ancho completo, taparía el cuerpo.
+ */
+function VozDePraxis(p: { titulo: string; linea: string; lectura: string; doloridas: readonly IdDeRegion[]; alAbrir: () => void }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 flex flex-col items-center gap-1 px-4 text-center"
+      style={{ bottom: 'calc(var(--tope-hoja) + 1rem)', zIndex: 'var(--z-elevado)' }}
+    >
+      {p.doloridas.length > 0 && (
+        <p className="text-[13px]" style={{ color: 'var(--rojo)', fontWeight: 800 }}>
+          Te duele (a rayas): {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
+        </p>
+      )}
+      <button
+        type="button"
+        data-theme="dark"
+        aria-label={`Abrir Praxis. ${p.titulo}. ${p.linea}`}
+        onClick={p.alAbrir}
+        className="press pointer-events-auto flex max-w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left"
+        style={{
+          background: 'rgb(var(--surface-1-rgb) / 0.92)',
+          border: '1px solid rgb(var(--oro-rgb) / 0.55)',
+          boxShadow: '0 8px 28px rgb(var(--oro-rgb) / 0.22)',
+        }}
+      >
+        <OrbeDePraxis />
+        <span className="min-w-0">
+          <span className="block truncate text-[14px] font-bold text-texto">{p.titulo}</span>
+          <span className="block truncate text-[12px] text-tenue">{p.linea}</span>
+        </span>
+      </button>
+      {p.lectura && (
+        <p className="max-w-full truncate text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))' }}>
+          {p.lectura} · anotadas, no estímulo
+        </p>
+      )}
+    </div>
+  )
 }
 
 export function PortadaDelCuerpo(p: PortadaDelCuerpoProps) {
-  const [hojaAbierta, setHojaAbierta] = useState(false)
   const enCuerpo = p.vista === 'cuerpo'
-  const lectura = lecturaCorta(p.series)
-  // Lo pendiente que se ve en rojo LISO: las que además duelen van a rayas y no se nombran
-  // como «por trabajar» (revisión ciega, N5).
-  const rojasLisas = (p.porTrabajar ?? []).filter((id) => !p.doloridas.includes(id))
+  const azimut = p.azimutDelCuerpo ?? 0
+  const guia = enCuerpo ? (p.guia ?? null) : null
+  const ir = (destino: EstadoDeLaGuia) => p.alIrEnLaGuia?.(destino, azimut)
+  const ancla = useRef<HTMLDivElement>(null)
+  // La duda espera aquí: el panel que la contesta puede estar todavía cerrado cuando se dice.
+  const [dictada, setDictada] = useState<DudaDictada | null>(null)
+  const dictadas = useRef(0)
+  // Sin el centro y el campo con que se dibuja (el primer fotograma) no hay cámara que invertir.
+  const lente = p.camara?.centro && p.camara.campo ? { ...p.camara, centro: p.camara.centro, campo: p.camara.campo } : undefined
+  // Tocar la zona ya abierta la suelta y vuelve al cuerpo entero.
+  useToqueSobreElCuerpo(ancla, lente, enCuerpo, (id) => ir(id === guia ? null : id))
+  const porTrabajar = p.porTrabajar ?? []
+  // Lo pendiente que se nombra: lo que además duele va a rayas y no se llama «por trabajar» (N5).
+  const pendientes = porTrabajar.filter((id) => !p.doloridas.includes(id))
 
   return (
     <>
-      <div data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
-        {/* ARRIBA, EN PEQUENO: que ejercicio toca y sus cifras (decision de Bryan). Los cuadros
-            grandes de la pared y el reloj son de la vista de movimiento. */}
-        {enCuerpo && p.resumen && (
+      <div ref={ancla} data-hueco="cuerpo" className="pointer-events-none absolute inset-0">
+        {enCuerpo && !guia && p.resumen && <ResumenDelEjercicio {...p.resumen} />}
+        {enCuerpo && p.reloj && <CuentaDelCuerpo reloj={p.reloj} />}
+
+        {/* En la vista de movimiento, la única tecla: volver al cuerpo. */}
+        {!enCuerpo && (
           <div
-            data-testigo="resumen-del-ejercicio"
-            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8.4rem)' }}
+            className="pointer-events-auto absolute"
+            style={{ left: 'max(8px, env(safe-area-inset-left, 0px))', top: '42%', transform: 'translateY(-50%)' }}
           >
-            <p
-              className="max-w-full truncate text-[15px] leading-tight"
-              style={{ color: 'var(--texto)', fontWeight: 800, textShadow: 'var(--salon-3d-sombra-portada)' }}
-            >
-              {p.resumen.nombre}
-            </p>
-            <p
-              className="cifras max-w-full truncate text-[12px] leading-tight"
-              style={{ color: 'var(--tenue)', textShadow: 'var(--salon-3d-sombra-portada)' }}
-            >
-              {p.resumen.cifras}
-            </p>
+            <Opcion radio={false} activa={false} etiqueta="Ver el cuerpo" detalle="capas y series" onClick={() => p.alCambiarVista('cuerpo')}>
+              Cuerpo
+            </Opcion>
           </div>
         )}
 
-        {/* EL RELOJ: cronometro de la sesion, cuenta atras del descanso o carga. */}
-        {enCuerpo && p.reloj && (
-          <div
-            // `[&_button]:!text-texto`: el boton del cronometro no trae color y en tema claro el del navegador
-            // (negro) caia sobre la sala oscura; asi lo pone el token del salon (claro).
-            // `[&_button]:pointer-events-auto`: la franja no recibe toques (taparía el cuerpo), pero
-            // sus botones sí. Sin esto «Pausar cronómetro» heredaba el `none` y el dedo caía en el
-            // modelo 3D de detrás (medido con elementFromPoint el 25-oct).
-            className="muro-escena pointer-events-none absolute inset-x-0 flex justify-center [&_button]:pointer-events-auto [&_button]:!text-texto"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 11.6rem)', fontSize: '22px' }}
-          >
-            <HuecoDeDatos
-              muestra={p.reloj.cargaEnLaPared ? 'carga' : 'reloj'}
-              sesion={p.reloj.sesion}
-              ejercicio={p.reloj.ejercicio}
-              textoDeCarga={p.reloj.textoDeCarga}
-              cargaPrevia={p.reloj.cargaPrevia}
-              modo={p.reloj.modo}
-              anclas={p.reloj.anclas}
-              alTerminarLaCuenta={p.reloj.alTerminarLaCuenta}
-            />
-          </div>
-        )}
-
-        {/* A la derecha, las capas: el cuerpo ocupa el centro y los lados quedan libres. */}
-        {enCuerpo && (
-          <div
-            role="radiogroup"
-            aria-label="Capas del cuerpo"
-            className="pointer-events-auto absolute grid gap-2"
-            style={{ right: 'max(8px, env(safe-area-inset-right, 0px))', top: '42%', transform: 'translateY(-50%)' }}
-          >
-            {CAPAS.map((c) => (
-              <Opcion
-                key={c.id}
-                activa={c.id === p.capa}
-                etiqueta={c.nombre}
-                detalle={c.detalle}
-                onClick={() => p.alCambiarCapa(c.id)}
-              >
-                {c.nombre}
-              </Opcion>
-            ))}
-          </div>
-        )}
-
-        {/* A la izquierda, el rango de la lectura y el paso al movimiento. */}
-        <div
-          className="pointer-events-auto absolute grid gap-2"
-          style={{ left: 'max(8px, env(safe-area-inset-left, 0px))', top: '42%', transform: 'translateY(-50%)' }}
-        >
-          {enCuerpo && (
-            <div role="radiogroup" aria-label="Qué series se cuentan" className="grid gap-2">
-              {RANGOS.map((r) => (
-                <Opcion
-                  key={r.id}
-                  activa={p.rango === r.id}
-                  etiqueta={r.nombre}
-                  detalle={r.detalle}
-                  onClick={() => p.alCambiarRango(r.id)}
-                >
-                  {r.nombre}
-                </Opcion>
-              ))}
-            </div>
-          )}
-          <Opcion
-            radio={false}
-            activa={false}
-            etiqueta={enCuerpo ? 'Ver el movimiento' : 'Ver el cuerpo'}
-            detalle={enCuerpo ? 'el ejercicio' : 'capas y series'}
-            onClick={() => p.alCambiarVista(enCuerpo ? 'movimiento' : 'cuerpo')}
-          >
-            {enCuerpo ? 'Movimiento' : 'Cuerpo'}
-          </Opcion>
-        </div>
-
-        {/* La lectura va corta, encima de la hoja y debajo del cuerpo: no lo tapa. */}
-        {enCuerpo && (
-          <div
-            // `pointer-events-none`: la franja es de ancho completo y, si recibiera toques, taparia el
-            // joystick y la camara que viven en las esquinas. Solo el boton de la lectura los recibe.
-            className="pointer-events-none absolute inset-x-0 flex flex-col items-center px-4 text-center"
-            style={{ bottom: 'calc(var(--tope-nav) + 5.4rem)' }}
-          >
-            {lectura ? (
-              <button
-                type="button"
-                aria-label="Ver series por región"
-                onClick={() => setHojaAbierta(true)}
-                className="press pointer-events-auto max-w-full truncate text-[15px] leading-tight"
-                style={{ color: 'var(--texto)', fontWeight: 800 }}
-              >
-                {lectura}
-              </button>
-            ) : (
-              <p className="text-[15px] leading-tight" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))' }}>
-                Aún no hay series anotadas
-              </p>
-            )}
-            <p className="text-[10.5px]" style={{ color: 'var(--salon-3d-suelo-texto, var(--tenue))', opacity: 'var(--salon-3d-suelo-opacidad, 0.85)' }}>
-              {p.rango === 'hoy' ? 'series hoy' : 'series de la semana'} · cuenta series anotadas, no el estímulo
-            </p>
-            {/* LA CLAVE DE LOS DOS ROJOS: el liso es lo que queda por trabajar; el de rayas,
-                lo que duele. En Piel lo pendiente no se pinta, así que tampoco se dice. */}
-            {rojasLisas.length > 0 && p.capa !== 'piel' && (
-              <button
-                type="button"
-                onClick={() => setHojaAbierta(true)}
-                data-testigo="por-trabajar"
-                // Corta a propósito: la lista entera, en rojo sobre el suelo, no se leía y se metía
-                // debajo del botón del reloj. Los nombres van en `aria-label` y en la hoja, que abre.
-                aria-label={`En rojo, por trabajar: ${rojasLisas.map((id) => NOMBRE_DE_REGION[id]).join(', ')}`}
-                className="press pointer-events-auto mt-0.5 flex min-h-[32px] items-center gap-1.5 text-[12px]"
-                style={{ color: 'var(--texto)', fontWeight: 700, textShadow: 'var(--salon-3d-sombra-portada-fuerte)' }}
-              >
-                <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--rojo)' }} />
-                Rojo: lo que falta por trabajar
-              </button>
-            )}
-            {p.doloridas.length > 0 && (
-              <p className="text-[13px]" style={{ color: 'var(--rojo)', fontWeight: 800 }}>
-                Te duele (a rayas): {p.doloridas.map((id) => NOMBRE_DE_REGION[id]).join(' · ')}
-              </p>
-            )}
-          </div>
+        {enCuerpo && !guia && (
+          <VozDePraxis
+            titulo={p.sesion ? guionDelDia(p.sesion, p.previo)[0]!.titulo : 'Praxis'}
+            linea={textoDeLaLinea(p, pendientes)}
+            lectura={pendientes.length > 0 ? lecturaCorta(p.series) : ''}
+            doloridas={p.doloridas}
+            alAbrir={() => ir({ paso: 0, zona: null })}
+          />
         )}
       </div>
 
-      {/* La hoja va FUERA del hueco: `pointer-events: none` se hereda y la dejaría sorda. */}
-      <Sheet abierto={hojaAbierta} titulo="Series por región" onCerrar={() => setHojaAbierta(false)}>
-        <ul className="flex flex-col divide-y divide-linea">
-          {REGIONES.map((r) => {
-            const n = p.series[r.id] ?? 0
-            const duele = p.doloridas.includes(r.id)
-            const falta = p.porTrabajar?.includes(r.id) ?? false
-            return (
-              <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <span className="text-texto">{r.nombre}</span>
-                <span className="cifras text-tenue">
-                  {duele && (
-                    <span className="mr-2 font-bold" style={{ color: 'var(--rojo)' }}>
-                      Te duele
-                    </span>
-                  )}
-                  {falta && !duele && (
-                    <span className="mr-2 font-bold" style={{ color: 'var(--rojo)' }}>
-                      Por trabajar
-                    </span>
-                  )}
-                  {cifra(n)}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-        <p className="mt-3 text-xs text-tenue">Cuenta series anotadas, no el estímulo.</p>
-      </Sheet>
+      <MicrofonoDelSalon
+        vista={p.vista}
+        guia={guia}
+        azimut={azimut}
+        sesion={p.sesion}
+        previo={p.previo}
+        ir={ir}
+        cambiarVista={p.alCambiarVista}
+        irAlEjercicio={p.alIrAlEjercicio}
+        girar={p.alDarLaVuelta}
+        preguntar={(frase) => setDictada({ id: ++dictadas.current, frase })}
+      />
+
+      {/* El panel va FUERA del hueco: `pointer-events: none` se hereda y lo dejaría sordo. */}
+      {guia && (
+        <GuiaDePraxis
+          estado={guia}
+          sesion={p.sesion}
+          previo={p.previo}
+          semana={p.semana ?? []}
+          series={p.series}
+          doloridas={p.doloridas}
+          porTrabajar={porTrabajar}
+          capa={p.capa}
+          rango={p.rango}
+          azimut={p.azimutDelCuerpo}
+          alIr={ir}
+          alIrAlEjercicio={(i) => {
+            p.alIrAlEjercicio?.(i)
+            ir(null)
+          }}
+          alCambiarCapa={p.alCambiarCapa}
+          alCambiarRango={p.alCambiarRango}
+          alVerMovimiento={() => p.alCambiarVista('movimiento')}
+          alDarLaVuelta={p.alDarLaVuelta}
+          dudas={<PuertaDeDudas dictada={dictada} alConsumir={() => setDictada(null)} />}
+        />
+      )}
     </>
   )
 }

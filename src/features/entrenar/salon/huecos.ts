@@ -94,7 +94,7 @@ export const ESCORZO_DE_PARED = { grados: 14, perspectiva: 620 } as const
  */
 export const SUELO_DEL_SALON = {
   conRegistro: 'calc(var(--tope-nav) + 15rem)',
-  sinRegistro: 'calc(var(--tope-nav) + 3.5rem)',
+  sinRegistro: 'var(--tope-hoja)',
 } as const
 
 /** Dónde vive físicamente un hueco dentro del salón. */

@@ -6,6 +6,8 @@ import { CheckinForm } from '../../bienestar/CheckinForm'
 import { CheckDibujado } from '../../entrenar/CheckDibujado'
 
 interface ChequeoDeHoyProps {
+  /** El Hoy del staff queda como en main: sin botón 3D. */
+  clasico?: boolean
   usuarioId: string
   hoy: string
 }
@@ -29,7 +31,7 @@ function Casilla({ valor, etiqueta, rojo = false }: { valor: string; etiqueta: s
  * formulario —`CheckinForm`, con la misma regla de peso que Bienestar— y, hecho, se queda
  * en un resumen de tres casillas. El historial y las medidas siguen en /bienestar.
  */
-export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
+export function ChequeoDeHoy({ usuarioId, hoy, clasico = false }: ChequeoDeHoyProps) {
   const checkins = db.bienestar.byUsuario(usuarioId)
   const deHoy = checkins.find((c) => c.fecha === hoy)
   const verPeso = visibilidadDelAsesorado(usuarioId).verComposicion
@@ -75,6 +77,7 @@ export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
         </>
       ) : (
         <CheckinForm
+          clasico={clasico}
           usuarioId={usuarioId}
           fecha={hoy}
           pesoInicial={pesoInicial}

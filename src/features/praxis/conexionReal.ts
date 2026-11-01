@@ -4,7 +4,7 @@ import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/pr
 import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
-import { hoyIso } from '../../lib/fecha'
+import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
 
 /**
@@ -22,12 +22,7 @@ import type { ConexionPraxis } from './motor/conexion'
  * Nada de aquí cambia cargas ni el plan: no hay una sola llamada a `db.microciclos` que escriba.
  */
 
-/** `2026-10-01T18:40:05-05:00`: la hora del teléfono con su zona. */
-export function horaLocalIso(d: Date = new Date()): string {
-  const p = (n: number) => String(Math.abs(n)).padStart(2, '0')
-  const desfase = -d.getTimezoneOffset()
-  return `${hoyIso(d)}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${desfase >= 0 ? '+' : '-'}${p(Math.trunc(desfase / 60))}:${p(desfase % 60)}`
-}
+export { horaLocalIso }
 
 export function crearConexionPraxis(
   usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null,

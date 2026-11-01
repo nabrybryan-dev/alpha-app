@@ -2577,6 +2577,34 @@ select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_c
             else 'SI' end
 
 union all
+select '0156 - vectores de la biblioteca de Praxis', 'praxis_conceptos tiene vector y modelo_vector',
+       case when (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'praxis_conceptos'
+                   and column_name in ('vector', 'modelo_vector')) = 2 then 'SI' else 'NO' end
+union all
+select '0156 - vectores de la biblioteca de Praxis', 'buscar_conceptos_vector existe y no queda abierta a anon',
+       case when not exists (select 1 from pg_proc where proname = 'buscar_conceptos_vector') then 'NO'
+            when exists (select 1 from pg_proc where proname = 'buscar_conceptos_vector'
+                          and has_function_privilege('anon', oid, 'execute')) then 'NO'
+            else 'SI' end
+union all
+select '0155 - biblioteca de Praxis', 'praxis_conceptos existe con RLS y anon no la alcanza',
+       case when to_regclass('public.praxis_conceptos') is null then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('public.praxis_conceptos')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_conceptos', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_conceptos', 'update') then 'NO'
+            else 'SI' end
+union all
+select '0155 - biblioteca de Praxis', 'buscar_conceptos existe y no queda abierta a anon',
+       case when to_regprocedure('public.buscar_conceptos(text, integer)') is null then 'NO'
+            when has_function_privilege('anon', to_regprocedure('public.buscar_conceptos(text, integer)'), 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0151 - cola de dudas de Praxis: «No era esto»', 'praxis_cola_dudas.origen admite no_era_esto',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = 'public.praxis_cola_dudas'::regclass
+                            and conname = 'praxis_cola_dudas_origen_check'
+                            and pg_get_constraintdef(oid) like '%no_era_esto%') then 'SI' else 'NO' end
+union all
 select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'videos_semanales tiene correccion_pedida_por y motivo_version',
        case when (select count(*) from information_schema.columns
                    where table_schema = 'public' and table_name = 'videos_semanales'

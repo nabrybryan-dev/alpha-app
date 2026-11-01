@@ -25,6 +25,8 @@ export interface Cabecera {
   tipo: 'audio' | 'video'
   /** Cuándo se grabó, para poder decirlo en pantalla. */
   grabadaEl?: string
+  /** El texto de la revisión, solo de la propia (la común no habla de nadie). */
+  guion?: string
 }
 
 export async function enlaceDeCabecera(): Promise<Cabecera | null> {
@@ -32,7 +34,7 @@ export async function enlaceDeCabecera(): Promise<Cabecera | null> {
   // todavía no se le ha generado ninguno, cae en la cabecera común, que es la
   // misma para todos y no habla de nadie.
   const propio = await miVideoDeLaSemana()
-  if (propio) return { url: propio.url, tipo: propio.tipo ?? 'video', grabadaEl: propio.grabadoEl }
+  if (propio) return { url: propio.url, tipo: propio.tipo ?? 'video', grabadaEl: propio.grabadoEl, guion: propio.guion }
 
   const comun = await medioPublicado(CLAVE_CABECERA)
   if (!comun) return null

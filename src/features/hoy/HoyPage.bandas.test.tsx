@@ -103,7 +103,7 @@ describe('Hoy en tres bandas — el orden', () => {
     expect(within(semana).getByRole('region', { name: /revisión de la semana/i })).toBeInTheDocument()
   })
 
-  it('banda 1: sesión, pregunta del día, check-in y nutrición de hoy, en ese orden', () => {
+  it('banda 1: sesión, pregunta del día, check-in y nutrición de hoy, en ese orden', async () => {
     const q: Cuestionario = {
       id: 'preg-bandas-M1',
       titulo: 'Tu coach te pregunta',
@@ -121,7 +121,7 @@ describe('Hoy en tres bandas — el orden', () => {
       within(hoy).getByText('¿Cómo sientes el hombro hoy?'),
       // El check-in va EN LÍNEA desde el paso 6 (zona 3): el formulario, no un enlace.
       within(hoy).getByRole('region', { name: 'Chequeo de hoy' }),
-      within(hoy).getByText(/Marcar nutrición de hoy/),
+      await within(hoy).findByRole('region', { name: 'Nutrición de hoy' }),
     ]
     for (let i = 1; i < orden.length; i++) expect(antes(orden[i - 1], orden[i])).toBe(true)
   })

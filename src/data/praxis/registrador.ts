@@ -92,12 +92,14 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
     charla: p.charla ? { trato: p.charla.trato, nombre: p.charla.nombre ?? undefined, turnos: limpiarTurnos(p.charla.turnos), apertura: p.charla.apertura ?? undefined } : undefined,
   }))
   if (!r.ok) return r
-  const datos = r.datos as { propuesta?: Propuesta; tarjeta?: Tarjeta; charla?: { texto?: unknown } } | null
+  const datos = r.datos as { propuesta?: Propuesta; tarjeta?: Tarjeta; charla?: { texto?: unknown }; meta?: { portero?: unknown } } | null
   if (!datos?.propuesta || !datos.tarjeta || !Array.isArray(datos.propuesta.registros) || !Array.isArray(datos.tarjeta.lineas)) {
     return { ok: false, motivo: 'no_entendi' }
   }
   const charla = typeof datos.charla?.texto === 'string' && datos.charla.texto.trim() ? datos.charla.texto.trim() : undefined
-  return { ok: true, propuesta: datos.propuesta, tarjeta: datos.tarjeta, mensajeId: p.mensajeId, ...(charla ? { charla } : {}) }
+  const portero = datos.meta?.portero
+  const fichas = Array.isArray(portero) ? portero.filter((f): f is string => typeof f === 'string') : []
+  return { ok: true, propuesta: datos.propuesta, tarjeta: datos.tarjeta, mensajeId: p.mensajeId, ...(charla ? { charla } : {}), ...(fichas.length ? { fichas } : {}) }
 }
 
 /**

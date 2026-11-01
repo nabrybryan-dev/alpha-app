@@ -3,6 +3,7 @@ import { guardarDecisionDeAviso } from '../../data/nube/avisos'
 import { pedirPermisoDelNavegador, soportaAvisos, suscribirse } from './suscripcion'
 import { claveVapidPublica } from './clavePublica'
 import { CLAVE_VISTO } from './estadoAvisos'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 
 /** La clave pública del servidor de empuje (por defecto la incrustada; VITE_VAPID_PUBLIC_KEY la sobrescribe). */
@@ -10,6 +11,8 @@ const CLAVE_PUBLICA = claveVapidPublica(import.meta.env.VITE_VAPID_PUBLIC_KEY)
 
 interface PedirPermisoProps {
   usuarioId: string
+  /** El Hoy del staff queda como en main: sin botón 3D, con el botón de siempre. */
+  clasico?: boolean
 }
 
 /**
@@ -25,7 +28,7 @@ interface PedirPermisoProps {
  * No se le vuelve a preguntar a quien ya contestó, diga lo que diga: insistir
  * es la forma más rápida de que alguien silencie la app.
  */
-export function PedirPermiso({ usuarioId }: PedirPermisoProps) {
+export function PedirPermiso({ usuarioId, clasico = false }: PedirPermisoProps) {
   const [oculto, setOculto] = useState(() => {
     try {
       return localStorage.getItem(CLAVE_VISTO) === 'si'
@@ -85,13 +88,19 @@ export function PedirPermiso({ usuarioId }: PedirPermisoProps) {
         </p>
       ) : (
         <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => void queSi()}
-            className="press rounded-boton bg-accion px-3.5 py-2 text-xs font-bold text-white"
-          >
-            Sí, avísame
-          </button>
+          {clasico ? (
+            <button
+              type="button"
+              onClick={() => void queSi()}
+              className="press rounded-boton bg-accion px-3.5 py-2 text-xs font-bold text-white"
+            >
+              Sí, avísame
+            </button>
+          ) : (
+            <Boton3D type="button" onClick={() => void queSi()}>
+              Sí, avísame
+            </Boton3D>
+          )}
           <button
             type="button"
             onClick={ahoraNo}

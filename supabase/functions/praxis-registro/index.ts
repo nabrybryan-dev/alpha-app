@@ -49,7 +49,9 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 // El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
-import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxis, type LecturaPortero, type RespuestaDeConsulta } from '../../../src/domain/praxis/consultas/portero.ts'
+import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
+import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca } from './portero.ts'
+export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
 import { VERSION_PROMPT_CHARLA } from '../../../src/domain/praxis/charla/promptCharla.ts'
@@ -497,7 +499,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   const [salida, riesgo] = await Promise.all([medir(reloj, 'registro', registrador), riesgoEnCurso])
   reloj.anotar('total')
   console.log('praxis-registro: tiempos', JSON.stringify(reloj.tiempos)) // sin la frase: solo milisegundos
-  if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
+  if (!riesgo) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null)
   const marcaModelo = marcaDesdeModelo(riesgo.nivel)
   if (marcaModelo) {
     const propuesta = derivarPorRiesgo(marcaModelo)
@@ -511,7 +513,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       },
     })
   }
-  if (!salida) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
+  if (!salida) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null)
 
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
   const { extraccion, citasInvalidas } = validarExtraccion(frase, salida.entrada)
@@ -547,43 +549,24 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   })
 }
 
-const TIMEOUT_PORTERO_MS = 4000
-
-/** Qué pasó con la consulta (I2 de REVISION-CALIDAD-PRAXIS-BETTATECH): las caídas a «lo de antes» no deben ser silenciosas. */
-export type ResultadoPortero = 'atender' | 'aclarar' | 'ninguna' | 'sin_ficha_contestable' | 'ilegible' | 'sin_secretos' | `http_${number}` | `error_${string}`
+/** La consulta al portero vive en `portero.ts`: esto solo le pone el entorno y la lectura con el JWT de la persona. */
+const consultarPortero = (d: Dependencias, s: Sesion, frase: string) =>
+  Promise.all([consultarAlPortero(d, frase, (ruta) => leer<FichaParaPraxis[]>(d, s, ruta)), observarBiblioteca(d, s.token, frase)]).then(([consulta]) => consulta)
 
 /**
- * Pregunta al portero qué ficha contesta la consulta y arma la respuesta con `fichas_respuesta` (leída con el
- * JWT de la persona: solo las publicadas). Cualquier fallo (sin secretos, portero apagado, tiempo, ficha de
- * salud) deja la consulta como antes. Siempre deja UNA línea de registro con el resultado; nunca la frase.
+ * Claude no respondió (sin saldo, caído o ilegible; decisión de Bryan, 31-oct-2026). Solo para el equipo y solo si no
+ * es un registro, la frase que ya pasó el diccionario puede contestarse con una ficha sin bandera de salud. Todo lo
+ * demás sigue siendo el 502 de siempre: aquí no se redacta nada ni se interpreta la frase.
  */
-async function consultarPortero(d: Dependencias, s: Sesion, frase: string) {
-  let leida: LecturaPortero | null = null
-  const fin = (resultado: ResultadoPortero, contestada: RespuestaDeConsulta | null = null) => {
-    console.log('praxis-registro: portero', resultado)
-    return { resultado, contestada, lectura: leida }
-  }
-  const { PORTERO_URL: url, PORTERO_CLAVE: clave } = d.entorno
-  if (!url || !clave) return fin('sin_secretos')
-  try {
-    const r = await d.fetch(`${url.replace(/\/+$/, '')}/enrutar`, {
-      method: 'POST',
-      headers: { 'x-clave': clave, 'content-type': 'application/json' },
-      signal: AbortSignal.timeout(TIMEOUT_PORTERO_MS),
-      body: JSON.stringify({ texto: frase }),
-    })
-    if (!r.ok) return fin(`http_${r.status}`)
-    const lectura = leerPortero(await r.json().catch(() => null))
-    if (!lectura) return fin('ilegible')
-    leida = lectura
-    const ids = fichasNecesarias(lectura)
-    if (ids.length === 0) return fin('ninguna')
-    const filas = await leer<FichaParaPraxis[]>(d, s, `fichas_respuesta?id=in.(${ids.join(',')})&select=id,titulo,bandera_salud,cuerpo`)
-    const contestada = respuestaDeConsulta(lectura, new Map((filas ?? []).map((f) => [f.id, f])))
-    return contestada ? fin(lectura.decision, contestada) : fin('sin_ficha_contestable')
-  } catch (e) {
-    return fin(`error_${e instanceof Error ? e.name : 'desconocido'}`)
-  }
+async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mensajeId: string, esRegistro: boolean): Promise<Response> {
+  const fallo = json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
+  if (esRegistro || (s.rol !== 'coach' && s.rol !== 'nutricionista' && s.puesto !== true)) return fallo
+  const consulta = await consultarPortero(d, s, frase)
+  if (consulta.lectura) await encolarDuda(d, s, frase, consulta.lectura)
+  console.log('praxis-registro: respaldo sin modelo', consulta.contestada ? 'contesto' : 'no_contesto')
+  if (!consulta.contestada) return fallo
+  const propuesta = propuestaDeRespaldo(consulta.contestada)
+  return json({ propuesta, tarjeta: construirTarjeta(propuesta, mensajeId), meta: { modelo: null, respaldo: 'sin_modelo', portero_resultado: consulta.resultado, portero: consulta.contestada.fichas } })
 }
 
 const TIMEOUT_JUEZ_MS = 4000

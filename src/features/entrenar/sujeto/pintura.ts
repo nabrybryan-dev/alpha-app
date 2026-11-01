@@ -29,6 +29,8 @@ export interface Paleta {
   luz: Color
   rojo: Color
   tendon: Color
+  /** La zona abierta en la guía. Dorado: el rojo ya dice «por trabajar» y «duele». */
+  foco: Color
 }
 
 /** Lo que tarda una region en pasar del rojo de «por trabajar» al color de lo trabajado. */
@@ -77,6 +79,7 @@ export function avanceDeTransicion(t: TinteDeRegion, ahora: number): number {
  */
 export function colorDeTinte(t: TinteDeRegion, p: Paleta, capa: CapaDelCuerpo, ahora: number): Color {
   if (t.dolor) return [...p.rojo]
+  if (t.enfocada) return [...p.foco]
   if (capa === 'piel') return [...p.base]
   if (t.pendiente) return [...p.rojo]
   const trabajada = colorDeRegion(t.k, false, p)
@@ -146,6 +149,7 @@ export class CuerpoPintado {
     const partes = Object.entries(tinte)
       .map(([id, t]) => {
         if (t.dolor) return `${id}:D`
+        if (t.enfocada) return `${id}:F`
         if (t.pendiente) return `${id}:P`
         const avance = avanceDeTransicion(t, ahora)
         return `${id}:${Math.round(t.k * 100)}${avance < 1 ? `~${Math.round(avance * PASOS_DE_TRANSICION)}` : ''}`
@@ -173,6 +177,7 @@ const PALETA_OSCURA: Paleta = {
   luz: [0.914, 0.933, 0.957],
   rojo: [0.86, 0.2, 0.2],
   tendon: [0.85, 0.83, 0.78],
+  foco: [0.847, 0.698, 0.361],
 }
 
 const paletasGuardadas = new WeakMap<Element, { cuando: number; tema: Tema; paleta: Paleta }>()
@@ -206,5 +211,6 @@ function leerPaleta(donde: Element): Paleta {
     luz: leerColor(v('--salon-3d-luz'), PALETA_OSCURA.luz),
     rojo: leerColor(v('--rojo-rgb'), PALETA_OSCURA.rojo),
     tendon: leerColor(v('--salon-3d-hueso'), PALETA_OSCURA.tendon),
+    foco: leerColor(v('--oro-rgb'), PALETA_OSCURA.foco),
   }
 }

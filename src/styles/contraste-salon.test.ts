@@ -462,7 +462,6 @@ describe('«Arrastra para girar» sigue el tema', () => {
 describe('cierre de Z8 en tema claro: texto sobre el suelo y mosaico del logo', () => {
   const SUELO_MEDIDO: Rgb = [0xd5, 0xcd, 0xc5]
   const mezcla = (a: Rgb, b: Rgb, t: number): Rgb => [0, 1, 2].map((i) => a[i]! * t + b[i]! * (1 - t)) as Rgb
-  const portada = readFileSync(join(__dirname, '../features/entrenar/salon/cuerpo/PortadaDelCuerpo.tsx'), 'utf8')
   const cerrada = readFileSync(join(__dirname, '../features/entrenar/SesionCerrada.tsx'), 'utf8')
 
   it('--salon-3d-suelo-texto (claro) llega a 4,5:1 sobre el suelo, también con la opacidad de la segunda línea', () => {
@@ -476,13 +475,7 @@ describe('cierre de Z8 en tema claro: texto sobre el suelo y mosaico del logo', 
   })
   it('el oscuro no define el token (queda como main: --tenue y opacidad 0,85)', () => {
     expect(oscuro).not.toContain('--salon-3d-suelo-')
-    expect(portada).toMatch(/var\(--salon-3d-suelo-texto, var\(--tenue\)\)/)
-    expect(portada).toMatch(/var\(--salon-3d-suelo-opacidad, 0\.85\)/)
   })
-  it('las dos líneas del suelo de la portada leen el token', () => {
-    expect(portada.match(/--salon-3d-suelo-texto/g)?.length).toBeGreaterThanOrEqual(2)
-  })
-
   it('el mosaico del logo en claro es oscuro: el logo blanco llega a 4,5:1 sobre él', () => {
     const mosaico = color(claro, 'logo-mosaico')
     expect(Number(contraste([255, 255, 255], mosaico).toFixed(2))).toBeGreaterThanOrEqual(4.5)

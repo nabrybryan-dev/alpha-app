@@ -105,6 +105,7 @@ async function viajarA(nombreDeSesion: string) {
     .find((b) => (b.textContent ?? '').toUpperCase().includes(nombreDeSesion))
   expect(fila, `la semana no ofrece ${nombreDeSesion}`).toBeDefined()
   await usuario.click(fila!)
+  await usuario.click(within(semana).getByRole('button', { name: /mirar este día/i }))
   // PULSAR NO ES HABER LLEGADO: quien espera es cada aserción, que es lo correcto —lo
   // que hay que esperar no es el viaje, es lo que el día nuevo pinta—.
 }
@@ -165,6 +166,7 @@ describe('el día elegido manda también en el cardio', () => {
     const metabolica = microciclo.sesiones.find((s) => s.bloquesCardio?.length)!
 
     // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(await screen.findByRole('button', { name: /Abrir Praxis/ }))
     fireEvent.click(await screen.findByRole('button', { name: 'Ver el movimiento' }))
     await viajarA(metabolica.nombre)
 

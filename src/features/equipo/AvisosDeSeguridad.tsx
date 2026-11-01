@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { alarmasDeDolor } from '../../domain/equipo/seguridad'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * La seguridad del equipo, siempre visible (maqueta 7, paso 9; regla 2 del encargo).
@@ -43,12 +43,11 @@ export function AvisosDeSeguridad({ conNombres }: { conNombres: boolean }) {
                 Dolor {a.dolor}/10{a.donde ? ` · ${a.donde}` : ''}
               </span>
               <span className="text-xs text-tenue">check-in del {a.fecha}</span>
-              <Link
+              <Boton3D
                 to={`/equipo/${encodeURIComponent(a.usuarioId)}`}
-                className="press inline-flex min-h-[44px] items-center text-sm font-semibold underline"
               >
                 Abrir su ficha
-              </Link>
+              </Boton3D>
             </li>
           ))}
         </ul>
