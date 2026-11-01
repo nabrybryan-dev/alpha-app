@@ -50,7 +50,7 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
-import { consultarAlPortero, propuestaDeRespaldo } from './portero.ts'
+import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca } from './portero.ts'
 export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
@@ -551,7 +551,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
 
 /** La consulta al portero vive en `portero.ts`: esto solo le pone el entorno y la lectura con el JWT de la persona. */
 const consultarPortero = (d: Dependencias, s: Sesion, frase: string) =>
-  consultarAlPortero(d, frase, (ruta) => leer<FichaParaPraxis[]>(d, s, ruta))
+  Promise.all([consultarAlPortero(d, frase, (ruta) => leer<FichaParaPraxis[]>(d, s, ruta)), observarBiblioteca(d, s.token, frase)]).then(([consulta]) => consulta)
 
 /**
  * Claude no respondió (sin saldo, caído o ilegible; decisión de Bryan, 31-oct-2026). Solo para el equipo y solo si no

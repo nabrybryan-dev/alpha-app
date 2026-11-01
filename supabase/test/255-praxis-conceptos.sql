@@ -83,6 +83,27 @@ select pruebas.afirmar(
 );
 
 -- ════════════════════════════════════════════════════════════════════════
+-- 5b · Por sentido (0156): solo lo aprobado, con su vector, y el más parecido primero
+-- ════════════════════════════════════════════════════════════════════════
+reset role;
+update public.praxis_conceptos set modelo_vector = 'prueba', vector = (
+  select ('[' || string_agg(case when g = (case praxis_conceptos.id when 'p-descanso' then 1 when 'p-rir' then 2 when 'p-series' then 3 else 4 end) then '1' else '0' end, ',') || ']')::extensions.vector
+  from generate_series(1, 768) g
+);
+select pruebas.soy('b5000000-0000-0000-0000-000000000001');
+set local role authenticated;
+select pruebas.exigir_rls();
+select pruebas.afirmar(
+  (select id from public.buscar_conceptos_vector((select ('[1' || repeat(',0', 767) || ']')::extensions.vector), 1)) = 'p-descanso',
+  'por sentido no salió primero la pieza más parecida'
+);
+select pruebas.afirmar(
+  not exists (select 1 from public.buscar_conceptos_vector((select ('[0,0,0,1' || repeat(',0', 764) || ']')::extensions.vector), 20) where id = 'p-borrador'),
+  'un borrador salió por sentido'
+);
+select pruebas.afirmar(not exists (select 1 from public.buscar_conceptos_vector(null, 5)), 'un vector nulo trajo piezas');
+
+-- ════════════════════════════════════════════════════════════════════════
 -- 6 · Un asesorado no ve nada
 -- ════════════════════════════════════════════════════════════════════════
 reset role;
@@ -91,6 +112,10 @@ set local role authenticated;
 select pruebas.exigir_rls();
 
 select pruebas.afirmar((select count(*) from public.praxis_conceptos) = 0, 'un asesorado lee la biblioteca');
+select pruebas.afirmar(
+  not exists (select 1 from public.buscar_conceptos_vector((select ('[1' || repeat(',0', 767) || ']')::extensions.vector), 5)),
+  'un asesorado encuentra piezas por sentido'
+);
 select pruebas.afirmar(
   not exists (select 1 from public.buscar_conceptos('cuanto descansar entre series')),
   'un asesorado encuentra piezas'
@@ -103,6 +128,7 @@ reset role;
 select pruebas.afirmar(
   not has_table_privilege('anon', 'public.praxis_conceptos', 'select')
   and not has_function_privilege('anon', 'public.buscar_conceptos(text, integer)', 'execute')
+  and not has_function_privilege('anon', 'public.buscar_conceptos_vector(extensions.vector, integer)', 'execute')
   and not has_function_privilege('public', 'public.buscar_conceptos(text, integer)', 'execute'),
   'anon alcanza la biblioteca o su búsqueda'
 );

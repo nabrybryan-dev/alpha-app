@@ -1,6 +1,8 @@
 import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxis, type LecturaPortero, type RespuestaDeConsulta } from '../../../src/domain/praxis/consultas/portero.ts'
 import type { Propuesta } from '../../../src/domain/praxis/registro/index.ts'
 
+export { observarBiblioteca } from './biblioteca.ts'
+
 const TIMEOUT_PORTERO_MS = 4000
 
 /** Qué pasó con la consulta (I2 de REVISION-CALIDAD-PRAXIS-BETTATECH): las caídas a «lo de antes» no deben ser silenciosas. */

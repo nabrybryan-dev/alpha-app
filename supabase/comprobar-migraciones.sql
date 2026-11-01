@@ -2577,6 +2577,16 @@ select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_c
             else 'SI' end
 
 union all
+select '0156 - vectores de la biblioteca de Praxis', 'praxis_conceptos tiene vector y modelo_vector',
+       case when (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'praxis_conceptos'
+                   and column_name in ('vector', 'modelo_vector')) = 2 then 'SI' else 'NO' end
+union all
+select '0156 - vectores de la biblioteca de Praxis', 'buscar_conceptos_vector existe y no queda abierta a anon',
+       case when not exists (select 1 from pg_proc where proname = 'buscar_conceptos_vector') then 'NO'
+            when exists (select 1 from pg_proc where proname = 'buscar_conceptos_vector'
+                          and has_function_privilege('anon', oid, 'execute')) then 'NO'
+            else 'SI' end
+union all
 select '0155 - biblioteca de Praxis', 'praxis_conceptos existe con RLS y anon no la alcanza',
        case when to_regclass('public.praxis_conceptos') is null then 'NO'
             when not (select relrowsecurity from pg_class where oid = to_regclass('public.praxis_conceptos')) then 'NO'
