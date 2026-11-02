@@ -172,6 +172,47 @@ describe('BandejaPlanesRenovados', () => {
     expect(screen.getByText('Subir a 4 días')).toBeInTheDocument()
   })
 
+  it('un borrador que solo cambia parámetros enseña «Parámetros para decidir» con su diff y la aprobación pendiente', async () => {
+    const filas = { '1': { columnas: { Microciclo: 'M1', Foco: 'Base' } } }
+    const comun = { objetivo_largo_plazo: 'Perder 5 kg', cabecera: ['Microciclo', 'Foco'], filas, reglas: [] }
+    datos.borradorYVigente.mockResolvedValue({
+      ok: true,
+      datos: {
+        vigente: {
+          version: 1,
+          contenido: { ...comun, parametros_para_decidir: { aprobacion: { estado: 'aprobada', por: 'bryan', fecha: '2026-10-01' }, sesiones_minimas_del_microciclo: 3 } },
+        },
+        borrador: {
+          version: 2,
+          contenido: { ...comun, parametros_para_decidir: { aprobacion: { estado: 'pendiente' }, sesiones_minimas_del_microciclo: 4 } },
+        },
+      },
+    })
+    const usuario = userEvent.setup()
+    render(<BandejaPlanesRenovados />)
+    await usuario.click(await screen.findByRole('button', { name: 'Ver el borrador y qué cambia' }))
+    const sec = await screen.findByTestId('parametros-para-decidir')
+    expect(sec).toHaveTextContent('Pendientes de aprobar')
+    expect(sec).toHaveTextContent(/Aprobación: pendiente \(antes: aprobada\)/)
+    expect(sec).toHaveTextContent('sesiones minimas del microciclo')
+    expect(sec).toHaveTextContent('Cambia')
+    expect(sec).toHaveTextContent('3')
+    expect(sec).toHaveTextContent('4')
+    expect(sec).not.toHaveTextContent(/iguales a los del vigente/)
+  })
+
+  it('un borrador sin sección de parámetros no pinta nada de parámetros', async () => {
+    datos.borradorYVigente.mockResolvedValue({
+      ok: true,
+      datos: { vigente: null, borrador: { version: 1, contenido: { objetivo_largo_plazo: 'X', reglas: [{ texto: 'R' }] } } },
+    })
+    const usuario = userEvent.setup()
+    render(<BandejaPlanesRenovados />)
+    await usuario.click(await screen.findByRole('button', { name: 'Ver el borrador y qué cambia' }))
+    await screen.findByText(/Borrador · versión 1/)
+    expect(screen.queryByTestId('parametros-para-decidir')).toBeNull()
+  })
+
   it('sin pendientes dice de dónde llegan', async () => {
     datos.planesRenovadosPendientes.mockResolvedValue([])
     render(<BandejaPlanesRenovados />)

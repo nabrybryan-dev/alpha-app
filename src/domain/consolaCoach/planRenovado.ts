@@ -148,8 +148,95 @@ export interface DiferenciaPlanes {
   /** Reglas vivas del vigente que el borrador ni mantiene ni deroga: se pierden sin decirlo. */
   reglasPerdidas: string[]
   campos: CambioCampo[]
+  /** Sección «10. Parámetros para decidir» (`contenido.parametros_para_decidir`), solo lectura. */
+  parametros: DiferenciaParametros
   /** true si no hay vigente con el que comparar (todo el borrador es «nuevo»). */
   sinVigente: boolean
+}
+
+export interface CampoParametro {
+  campo: string
+  /** Valor del borrador en texto; undefined si el borrador ya no lo trae. */
+  valor: string | undefined
+  /** Valor del vigente en texto; undefined si el vigente no lo traía. */
+  antes: string | undefined
+  estado: 'nuevo' | 'cambia' | 'igual' | 'quitado'
+}
+
+export interface AprobacionParametros {
+  /** `pendiente`, `aprobada` o `sin-dato` si la sección no trae un estado legible. */
+  estado: string
+  por: string | undefined
+  fecha: string | undefined
+  /** Estado de aprobación del vigente (undefined si no tenía sección). */
+  estadoAntes: string | undefined
+}
+
+export interface DiferenciaParametros {
+  /** El borrador o el vigente traen la sección: la bandeja debe pintarla. */
+  hay: boolean
+  /** El borrador trae la sección. */
+  enBorrador: boolean
+  campos: CampoParametro[]
+  aprobacion: AprobacionParametros | undefined
+  /** Algo cambia: un campo nuevo, cambiado o quitado, o el estado de aprobación. */
+  cambia: boolean
+}
+
+const CLAVE_PARAMETROS = 'parametros_para_decidir'
+
+function aTexto(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  if (Array.isArray(v)) return v.map(aTexto).filter(Boolean).join('; ')
+  if (typeof v === 'object') {
+    return Object.entries(v as Record<string, unknown>)
+      .map(([k, x]) => `${k} = ${aTexto(x)}`)
+      .join('; ')
+  }
+  return normal(String(v))
+}
+
+function seccionParametros(contenido: unknown): Record<string, unknown> | undefined {
+  if (typeof contenido !== 'object' || contenido === null) return undefined
+  const p = (contenido as Record<string, unknown>)[CLAVE_PARAMETROS]
+  return typeof p === 'object' && p !== null && !Array.isArray(p) ? (p as Record<string, unknown>) : undefined
+}
+
+function leerAprobacion(sec: Record<string, unknown> | undefined): { estado: string; por?: string; fecha?: string } | undefined {
+  if (!sec) return undefined
+  const a = sec.aprobacion
+  if (typeof a !== 'object' || a === null) return { estado: 'sin-dato' }
+  const r = a as Record<string, unknown>
+  return {
+    estado: texto(r.estado) ?? 'sin-dato',
+    por: texto(r.por),
+    fecha: texto(r.fecha),
+  }
+}
+
+/** Qué cambia en la sección «Parámetros para decidir» del vigente al borrador. Solo lectura. */
+export function diferenciaParametros(vigente: unknown | null, borrador: unknown): DiferenciaParametros {
+  const sb = seccionParametros(borrador)
+  const sv = vigente === null || vigente === undefined ? undefined : seccionParametros(vigente)
+  if (!sb && !sv) return { hay: false, enBorrador: false, campos: [], aprobacion: undefined, cambia: false }
+
+  const claves = new Set<string>()
+  for (const sec of [sb, sv]) for (const k of Object.keys(sec ?? {})) if (k !== 'aprobacion') claves.add(k)
+  const campos: CampoParametro[] = []
+  for (const campo of claves) {
+    const valor = sb && campo in sb ? normal(aTexto(sb[campo])) : undefined
+    const antes = sv && campo in sv ? normal(aTexto(sv[campo])) : undefined
+    const estado: CampoParametro['estado'] =
+      valor === undefined ? 'quitado' : antes === undefined ? 'nuevo' : valor === antes ? 'igual' : 'cambia'
+    campos.push({ campo, valor, antes, estado })
+  }
+
+  const ab = leerAprobacion(sb)
+  const av = leerAprobacion(sv)
+  const aprobacion = ab ? { estado: ab.estado, por: ab.por, fecha: ab.fecha, estadoAntes: av?.estado } : undefined
+  const aprobacionCambia = (ab?.estado ?? undefined) !== (av?.estado ?? undefined)
+  const cambia = campos.some((c) => c.estado !== 'igual') || aprobacionCambia
+  return { hay: true, enBorrador: !!sb, campos, aprobacion, cambia }
 }
 
 function derogadasConSustitucion(contenido: unknown): ReglaDerogada[] {
@@ -224,6 +311,7 @@ export function diferenciaPlanes(vigente: unknown | null, borrador: unknown): Di
     reglasDerogadas,
     reglasPerdidas,
     campos,
+    parametros: diferenciaParametros(sinVigente ? null : vigente, borrador),
     sinVigente,
   }
 }
