@@ -4,8 +4,11 @@ import { describe, expect, it } from 'vitest'
 import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
 import { REGIONES } from '../../sujeto/regiones'
 import {
+  CADENA_DE_REGION,
   ENFOQUE_DE_REGION,
+  ETIQUETA_DE_RESPALDO,
   FICHA_DE_REGION,
+  NOTA_DE_CADENAS,
   lineaDePraxis,
   ordenDeZonas,
   tinteEnfocado,
@@ -47,6 +50,34 @@ describe('las fichas de las zonas', () => {
   it('cada zona se mira por la cara en que se entrena: el glúteo de espalda, el pectoral de frente', () => {
     expect(ENFOQUE_DE_REGION.glu.azimut).toBe(180)
     expect(ENFOQUE_DE_REGION.pecho.azimut).toBe(0)
+  })
+})
+
+describe('las cadenas de las zonas', () => {
+  const respaldos = ['verificada', 'parcial', 'modelo']
+
+  for (const { id } of REGIONES) {
+    it(`${id}: trae su cadena, un respaldo válido y ningún porcentaje`, () => {
+      const c = CADENA_DE_REGION[id]
+      expect(c, id).toBeDefined()
+      expect(c.cadena.length, id).toBeGreaterThan(5)
+      expect(respaldos, id).toContain(c.respaldo)
+      expect(`${c.cadena} ${c.lectura ?? ''}`, id).not.toContain('%')
+    })
+  }
+
+  it('falla si falta una zona: hay exactamente las 15 y ninguna sobra', () => {
+    expect(Object.keys(CADENA_DE_REGION).sort()).toEqual(REGIONES.map((r) => r.id).sort())
+  })
+
+  it('el respaldo se dice con palabras, y la nota única no promete que la fuerza viaje', () => {
+    expect(ETIQUETA_DE_RESPALDO).toEqual({
+      verificada: 'Conexión vista en disección',
+      parcial: 'Conexión parcial en disección',
+      modelo: 'Modelo mental, sin conexión verificada',
+    })
+    expect(NOTA_DE_CADENAS).toContain('no está demostrado')
+    expect(NOTA_DE_CADENAS).not.toContain('%')
   })
 })
 
