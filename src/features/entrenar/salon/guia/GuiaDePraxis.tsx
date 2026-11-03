@@ -12,6 +12,8 @@ import { guionDelDia, type PasoDelGuion } from './guionDelDia'
 import { PasoDePraxis } from './PasoDePraxis'
 import { CADENA_DE_REGION, ETIQUETA_DE_RESPALDO, FICHA_DE_REGION, NOTA_DE_CADENAS, ordenDeZonas, trabajoDeRegion, type TrabajoDeRegion } from './zonasDePraxis'
 import type { EstadoDeLaGuia } from './useZonaDePraxis'
+import { InterruptorSimpleTecnico, useModoDeLaGuia } from './modoDeLaGuia'
+import { FICHA_LLANA_DE_REGION, NOTA_LLANA_DE_CADENAS } from './zonasLlanas'
 
 /**
  * EL PANEL DE LA GUÍA: la mitad baja de la pantalla, con el cuerpo vivo arriba.
@@ -89,6 +91,8 @@ function FilaDeTrabajo({ t, alIr }: { t: TrabajoDeRegion; alIr?: (indice: number
 }
 
 function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
+  const [modo, elegirModo] = useModoDeLaGuia()
+  const llana = FICHA_LLANA_DE_REGION[id]
   const ficha = FICHA_DE_REGION[id]
   const cadena = CADENA_DE_REGION[id]
   const trabajo = trabajoDeRegion(id, p.sesion)
@@ -99,6 +103,16 @@ function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
   const siguiente = orden[(lugar + 1) % orden.length]!
   return (
     <>
+      <InterruptorSimpleTecnico modo={modo} alElegir={elegirModo} />
+      {modo === 'simple' ? (
+        <div data-testigo="zona-simple">
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-tenue">{llana.nombre}</p>
+          <p className="mt-1 text-sm font-semibold text-texto">{llana.queHace}</p>
+          <p className="mt-2 text-xs text-tenue">{llana.conQuien}</p>
+          <p className="mt-1 text-[11px] text-tenue">{NOTA_LLANA_DE_CADENAS}</p>
+        </div>
+      ) : (
+      <>
       <p className="text-sm font-semibold text-texto">{ficha.queHace}</p>
       <p className="mt-1 text-xs text-tenue">{ficha.partes}</p>
       <p className="mt-2 text-xs text-tenue" data-testigo="cadena-de-zona">
@@ -107,6 +121,8 @@ function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
       <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-tenue">{ETIQUETA_DE_RESPALDO[cadena.respaldo]}</p>
       {cadena.lectura && <p className="mt-0.5 text-xs text-tenue">{cadena.lectura}</p>}
       <p className="mt-1 text-[11px] text-tenue">{NOTA_DE_CADENAS}</p>
+      </>
+      )}
       {p.doloridas.includes(id) && (
         <p className="mt-2 text-xs font-bold" style={{ color: 'var(--rojo)' }}>
           Hoy marcaste dolor aquí en tu chequeo.

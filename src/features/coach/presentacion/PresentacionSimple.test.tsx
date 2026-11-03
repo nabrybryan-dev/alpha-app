@@ -5,7 +5,7 @@ import type { DatosPersona } from '../consola/usePersona'
 
 const datos = {
   usuario: { id: 'u1', nombre: 'Ana' }, activo: undefined, checkins: [], adherencias: [], perfil: undefined, hoy: '2026-11-02',
-  plan: undefined, corridas: { estado: 'listo', valor: [] },
+  plan: { estado: 'cargando' }, corridas: { estado: 'listo', valor: [] },
 } as unknown as DatosPersona
 
 describe('presentar en versión simple o técnica', () => {
@@ -14,7 +14,7 @@ describe('presentar en versión simple o técnica', () => {
   it('ofrece los dos botones y la técnica muestra las siete secciones de siempre', () => {
     render(<PresentarAlAsesorado datos={datos} historial={[]} />)
     expect(screen.getByRole('button', { name: 'Presentar (simple)' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Presentar (técnica)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Presentar a Ana' }))
     for (const t of ['Tu plan', 'Conclusiones', 'El mapa de tu plan', 'Lo que te pedimos y lo que hiciste', 'Velocidad y técnica']) {
       expect(screen.getByRole('heading', { name: t })).toBeInTheDocument()
     }

@@ -16,6 +16,13 @@ import { SeccionTuPlan } from './SeccionTuPlan'
 import { SeccionVelocidadTecnica } from './SeccionVelocidadTecnica'
 import { Boton3D } from '../../../components/ui/Boton3D'
 
+/**
+ * `tecnica` es la presentación de siempre (siete secciones). `simple` es la resumida para quien no
+ * entiende de tecnología: solo Tu plan, Esta semana y Conclusiones. Se elige al presentar; no se
+ * guarda en la base (asignar una versión a cada persona pediría una migración y no se hizo).
+ */
+type ModoDePresentacion = 'simple' | 'tecnica'
+
 interface Props {
   datos: DatosPersona
   /** Todos los microciclos que la persona tiene cargados (el historial de la consola). */
@@ -31,29 +38,33 @@ interface Props {
  * hace ninguna lectura.
  */
 export function PresentarAlAsesorado({ datos, historial }: Props) {
-  const [abierta, setAbierta] = useState(false)
+  const [abierta, setAbierta] = useState<ModoDePresentacion | null>(null)
   const nombre = datos.usuario?.nombre
   if (!nombre) return null
 
   return (
     <>
-      <Boton3D
-        type="button"
-        onClick={() => setAbierta(true)}
-        aria-haspopup="dialog"
-      >
-        Presentar a {nombre}
-      </Boton3D>
+      {/* Dos botones, uno al lado del otro y en renglones aparte si no caben (a 369 px bajan uno
+          bajo otro). El de siempre («Presentar a <nombre>») es la presentación técnica, sin tocar;
+          «Presentar (simple)» la resume. */}
+      <div role="group" aria-label="Cómo presentar" className="flex flex-wrap items-center gap-2">
+        <Boton3D type="button" onClick={() => setAbierta('tecnica')} aria-haspopup="dialog">
+          Presentar a {nombre}
+        </Boton3D>
+        <Boton3D type="button" onClick={() => setAbierta('simple')} aria-haspopup="dialog">
+          Presentar (simple)
+        </Boton3D>
+      </div>
       {abierta && (
-        <PantallaCompleta titulo={`Presentación de ${nombre}`} onCerrar={() => setAbierta(false)}>
-          <ContenidoDeLaPresentacion datos={datos} historial={historial} nombre={nombre} />
+        <PantallaCompleta titulo={`Presentación de ${nombre}`} onCerrar={() => setAbierta(null)}>
+          <ContenidoDeLaPresentacion datos={datos} historial={historial} nombre={nombre} simple={abierta === 'simple'} />
         </PantallaCompleta>
       )}
     </>
   )
 }
 
-function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombre: string }) {
+function ContenidoDeLaPresentacion({ datos, historial, nombre, simple }: Props & { nombre: string; simple: boolean }) {
   const { activo, checkins, adherencias, perfil, hoy, plan, corridas, usuario } = datos
 
   // LA SEMANA DE AHORA SE DECIDE POR FECHA, NO POR `estado`. `activo` es el microciclo marcado
@@ -92,6 +103,7 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
         <PresentacionSemanal resumen={resumen} />
       </SeccionDePresentacion>
 
+      {!simple && (
       <SeccionDePresentacion
         indice={2}
         titulo="Tu semana pasada, esta y la que viene"
@@ -99,11 +111,15 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
       >
         <SeccionTresSemanas historial={historial} hoy={hoy} plan={plan} />
       </SeccionDePresentacion>
+      )}
 
+      {!simple && (
       <SeccionDePresentacion indice={3} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
         <SeccionMapaDelPlan plan={plan} numeroActual={numeroDeAhora} ultimoCerrado={ultimoCerrado} />
       </SeccionDePresentacion>
+      )}
 
+      {!simple && (
       <SeccionDePresentacion
         indice={4}
         titulo="Lo que te pedimos y lo que hiciste"
@@ -111,14 +127,17 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
       >
         <SeccionPautadoVsHecho filas={filas} />
       </SeccionDePresentacion>
+      )}
 
       <SeccionDePresentacion indice={5} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
         <SeccionConclusiones corridas={corridas} conclusiones={conclusiones} />
       </SeccionDePresentacion>
 
+      {!simple && (
       <SeccionDePresentacion indice={6} titulo="Velocidad y técnica">
         <SeccionVelocidadTecnica nombre={nombre} />
       </SeccionDePresentacion>
+      )}
     </div>
   )
 }
