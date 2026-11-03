@@ -400,6 +400,85 @@ end $$;
 
 reset role;
 
+-- 10 · Mensajes y estados que la revision ciega (2-nov) dejo sin cubrir.
+-- 10a · Catalogo: security definer, search_path fijo con pg_temp, anon y public sin ejecutar.
+select pruebas.afirmar(
+  (select p.prosecdef from pg_proc p where p.oid = 'public.aprobar_parametros_plan(uuid,jsonb)'::regprocedure),
+  'aprobar_parametros_plan no es security definer'
+);
+select pruebas.afirmar(
+  exists (select 1 from pg_proc p, unnest(p.proconfig) c
+           where p.oid = 'public.aprobar_parametros_plan(uuid,jsonb)'::regprocedure
+             and c = 'search_path=public, pg_temp'),
+  'aprobar_parametros_plan no fija search_path = public, pg_temp'
+);
+select pruebas.afirmar(
+  not has_function_privilege('anon', 'public.aprobar_parametros_plan(uuid,jsonb)', 'execute')
+  and not exists (select 1 from pg_proc p, aclexplode(p.proacl) a
+                   where p.oid = 'public.aprobar_parametros_plan(uuid,jsonb)'::regprocedure and a.grantee = 0),
+  'anon o public pueden ejecutar aprobar_parametros_plan'
+);
+
+-- 10b · Plan inexistente (P0002), plan decidido (mensaje) y no coach (mensaje).
+set role authenticated;
+select pruebas.soy('b0158000-0000-0000-0000-000000000001');
+
+do $$
+begin
+  begin
+    perform public.aprobar_parametros_plan('c0158000-0000-0000-0000-0000000000ff',
+      '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
+    raise exception 'FALLO: se aprobaron parámetros de un plan que no existe';
+  exception when no_data_found then null;
+  end;
+  begin
+    perform public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000003',
+      '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
+    raise exception 'FALLO: se aprobaron parámetros de un plan ya aprobado';
+  exception when invalid_parameter_value then
+    if sqlerrm not like 'Este plan ya se decidió%' then raise exception 'FALLO: mensaje inesperado: %', sqlerrm; end if;
+  end;
+  -- La clave `aprobacion` en lo que se manda no es parte de los diez valores: no coincide.
+  begin
+    perform public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
+      '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10,
+        "aprobacion": {"estado": "pendiente"}}'::jsonb);
+    raise exception 'FALLO: se aprobó con la clave aprobacion dentro de los valores';
+  exception when invalid_parameter_value then
+    if sqlerrm not like 'Los valores cambiaron%' then raise exception 'FALLO: mensaje inesperado: %', sqlerrm; end if;
+  end;
+end $$;
+
+select pruebas.soy('b0158000-0000-0000-0000-000000000003');
+
+do $$
+begin
+  begin
+    perform public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
+      '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
+    raise exception 'FALLO: Manuela aprobó parámetros';
+  exception when insufficient_privilege then
+    if sqlerrm <> 'Solo la coach puede aprobar parámetros' then raise exception 'FALLO: mensaje inesperado: %', sqlerrm; end if;
+  end;
+end $$;
+
+reset role;
+
+-- 10c · Un plan en espera_bryan SI admite aprobar parametros (caso positivo).
+update public.aprobaciones_plan_estrategico set estado = 'espera_bryan'
+ where id = 'c0158000-0000-0000-0000-000000000001';
+
+set role authenticated;
+select pruebas.soy('b0158000-0000-0000-0000-000000000001');
+select public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
+  '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
+select pruebas.afirmar(
+  (select aprobado_por from public.parametros_aprobados where plan_renovado_id = 'c0158000-0000-0000-0000-000000000001')
+    = 'b0158000-0000-0000-0000-000000000001',
+  'un plan en espera_bryan no admitió aprobar parámetros o no quedó la firma de la coach'
+);
+reset role;
+
 rollback;
 
 \echo 'OK · aprobación de parámetros del plan renovado (0158)'

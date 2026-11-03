@@ -59,8 +59,9 @@ create policy parametros_aprobados_leer on public.parametros_aprobados
     or (select public.tiene_capacidad('aprobar_plan_estrategico'))
   );
 
-revoke all on public.parametros_aprobados from anon, public;
-revoke insert, update, delete, truncate on public.parametros_aprobados from authenticated;
+-- Se quita TODO (incluidos references y trigger, que los privilegios por omision de Supabase
+-- pueden dar) y solo despues se concede el select.
+revoke all on public.parametros_aprobados from anon, public, authenticated;
 grant select on public.parametros_aprobados to authenticated;
 grant all on public.parametros_aprobados to service_role;
 
@@ -71,7 +72,7 @@ create or replace function public.aprobar_parametros_plan(p_plan_renovado_id uui
 returns public.parametros_aprobados
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   quien       uuid := auth.uid();
@@ -96,14 +97,14 @@ begin
     raise exception 'Los parámetros deben ser un objeto' using errcode = '22023';
   end if;
 
-  -- Se bloquea la aprobacion del plan mientras se compara, para que el plan no cambie
-  -- entre la comparacion y el guardado.
+  -- Se bloquean la aprobacion del plan Y el plan (a y p) mientras se compara, para que el contenido
+  -- no cambie entre la comparacion y el guardado.
   select a.estado, p.contenido -> 'parametros_para_decidir'
     into v_estado, v_seccion
     from public.aprobaciones_plan_estrategico a
     join public.planes_estrategicos p on p.id = a.plan_id
    where a.id = p_plan_renovado_id
-   for update of a;
+   for update of a, p;
   if not found then
     raise exception 'El plan renovado no existe' using errcode = 'P0002';
   end if;
