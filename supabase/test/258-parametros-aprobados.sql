@@ -441,7 +441,7 @@ begin
   -- La clave `aprobacion` en lo que se manda no es parte de los diez valores: no coincide.
   begin
     perform public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
-      '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10,
+      '{"p01": 1, "p02": 99, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10,
         "aprobacion": {"estado": "pendiente"}}'::jsonb);
     raise exception 'FALLO: se aprobó con la clave aprobacion dentro de los valores';
   exception when invalid_parameter_value then
@@ -471,7 +471,7 @@ update public.aprobaciones_plan_estrategico set estado = 'espera_bryan'
 set role authenticated;
 select pruebas.soy('b0158000-0000-0000-0000-000000000001');
 select public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
-  '{"p01": 1, "p02": 2, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
+  '{"p01": 1, "p02": 99, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
 select pruebas.afirmar(
   (select aprobado_por from public.parametros_aprobados where plan_renovado_id = 'c0158000-0000-0000-0000-000000000001')
     = 'b0158000-0000-0000-0000-000000000001',
