@@ -1,5 +1,8 @@
 -- ============================================================================
--- 0116 · El puente con el laboratorio anatómico: consentimientos, tres vistas y un rol de solo lectura
+-- 0160 · El puente con el laboratorio anatómico: consentimientos, tres vistas y un rol de solo lectura
+--
+-- RENUMERADA el 3-nov-2026: nació como 0116, pero ese número ya lo usa `0116_bloqueo_visible_y_contexto_clinico`, aplicada
+-- en producción (tablas alertas_coach, contexto_clinico_firmado, registro_entreno). El contenido SQL es el mismo; solo cambia el número.
 -- ============================================================================
 --
 -- NO ESTÁ APLICADA. La escribió la rama `lab/puente-vista` el 23-oct-2026 y la aplica Bryan, a mano, en
@@ -54,7 +57,7 @@
 -- `revocado_en` en su fila; desde ese instante la vista no devuelve nada suyo y `lab_revocaciones` la lista para que
 -- el lector local borre sus carpetas. Si la persona se borra de la app, su fila queda revocada sola (trigger).
 --
--- CÓMO COMPROBAR (después de aplicar): `supabase/comprobar-0116.sql` (solo lee). El CI corre las sesiones de
+-- CÓMO COMPROBAR (después de aplicar): `supabase/comprobar-0160.sql` (solo lee). El CI corre las sesiones de
 -- verdad: `supabase/test/222-laboratorio-puente.sql`.
 -- ============================================================================
 
@@ -247,7 +250,7 @@ revoke execute on all functions in schema lab from public, anon, authenticated, 
 alter default privileges in schema lab revoke execute on functions from public;
 -- En `public` las funciones nacen ejecutables por PUBLIC (así llegan a anon como RPC) y lab_lector hereda de PUBLIC:
 -- este revoke solo quita lo concedido a lab_lector directamente; NO lo quita si viene de PUBLIC (revocarlo de PUBLIC
--- rompería la app). Por eso comprobar-0116.sql compara con anon: lab_lector no debe poder ejecutar más que anon.
+-- rompería la app). Por eso comprobar-0160.sql compara con anon: lab_lector no debe poder ejecutar más que anon.
 revoke execute on all functions in schema public from lab_lector;
 grant usage on schema lab to lab_lector;
 grant select on lab.lab_series, lab.lab_sujetos, lab.lab_revocaciones to lab_lector;
@@ -257,4 +260,4 @@ grant execute on function lab.num(jsonb), lab.dia(text) to lab_lector;
 
 commit;
 
--- Señal: `0116 - puente del laboratorio` en supabase/comprobar-0116.sql
+-- Señal: `0160 - puente del laboratorio` en supabase/comprobar-0160.sql

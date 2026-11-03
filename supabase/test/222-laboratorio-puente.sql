@@ -1,4 +1,4 @@
--- El puente con el laboratorio (migración 0116).
+-- El puente con el laboratorio (migración 0160).
 --
 -- Lo que se prueba, con el rol real `lab_lector`:
 --   1. Ve las series de quien dio permiso (con seudónimo) y NINGUNA de quien no lo dio ni de quien revocó.
