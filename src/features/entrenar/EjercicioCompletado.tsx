@@ -1,4 +1,5 @@
 import { CheckDibujado } from './CheckDibujado'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 export interface ExCompletado {
   nombre: string
@@ -57,14 +58,13 @@ export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSegu
             A continuación: <span className="text-silver-200">{ex.siguienteNombre}</span>
           </p>
         )}
-        <button
+        <Boton3D bloque
           type="button"
           onClick={onSeguir}
-          className="press mt-5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-          style={{ boxShadow: 'var(--glow-accion)' }}
+          className="mt-5"
         >
           {ex.siguienteId ? 'Siguiente ejercicio' : 'Seguir'}
-        </button>
+        </Boton3D>
       </div>
     </div>
   )

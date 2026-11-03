@@ -5,11 +5,25 @@ import { visibilidadDelAsesorado } from '../../../data/visibilidadDelAsesorado'
 import { AVISO_SIN_MACROS, macrosDelDia } from '../../../domain/nutricion/macrosDelDia'
 import { resumenDelDia } from '../../../domain/nutricion/resumen'
 import { etiquetaDelTipoDeDia, tipoDiaDeLaFecha } from '../../../domain/nutricion/tipoDiaDeLaFecha'
+import type { EstadoAdherencia } from '../../../domain/types'
 import { ResumenDia } from '../../nutricion/ResumenDia'
+
+/** Las mismas palabras que usa el diario al confirmar lo marcado (`AdherenciaDia`). */
+const ETIQUETA_DE_LO_MARCADO: Record<EstadoAdherencia, string> = {
+  si: 'cumplido',
+  parcial: 'parcial',
+  no: 'no cumplido',
+}
 
 interface MiNutricionDeHoyProps {
   usuarioId: string
   hoy: string
+  /**
+   * `mini` es la fila delgada de la banda «Lo de hoy» del asesorado (maqueta v7): título,
+   * una línea con lo registrado y el botón «Registrar». Las cifras salen de las MISMAS
+   * cuentas de abajo; solo cambia cuánto se dibuja. Por omisión, la tarjeta completa.
+   */
+  variante?: 'completa' | 'mini'
 }
 
 /**
@@ -24,13 +38,42 @@ interface MiNutricionDeHoyProps {
  * aquí: si tiene el contador apagado, la tarjeta se queda con el margen, como en el diario.
  *
  * Va en su propio módulo, cargado a demanda, porque arrastra el catálogo de alimentos
- * (1.195 filas): el asesorado que no ve esta tarjeta no tiene por qué descargarlo en Hoy.
+ * (1.195 filas): así no pesa en la primera pintura de Hoy; llega justo después.
  */
-export default function MiNutricionDeHoy({ usuarioId, hoy }: MiNutricionDeHoyProps) {
+export default function MiNutricionDeHoy({ usuarioId, hoy, variante = 'completa' }: MiNutricionDeHoyProps) {
   const plan = db.nutricion.planByUsuario(usuarioId)
   const tipoDia = tipoDiaDeLaFecha(plan, hoy)
   const meta = macrosDelDia(plan, tipoDia)
   const total = resumenDelDia(db.registroComidas.delDia(usuarioId, hoy), (id) => catalogoRepo.porId(id))
+
+  if (variante === 'mini') {
+    const comidas = new Set(db.registroComidas.delDia(usuarioId, hoy).map((r) => r.comida)).size
+    const kcal = Math.round(total.porDia.kcal ?? 0)
+    const { verContadorKcal } = visibilidadDelAsesorado(usuarioId)
+    const registradas = `${comidas} ${comidas === 1 ? 'comida registrada' : 'comidas registradas'}`
+    const marcada = db.nutricion.adherenciasByUsuario(usuarioId).find((a) => a.fecha === hoy)
+    const lineaDelPlan = !plan
+      ? 'Tu plan todavía no está cargado'
+      : verContadorKcal && meta
+        ? `${registradas} · ${kcal.toLocaleString('es-CO')} de ${meta.kcal.toLocaleString('es-CO')} kcal`
+        : registradas
+    // Quien marca «¿Cumpliste el plan hoy?» sin registrar comidas no debe leer solo «0 comidas».
+    const linea = marcada ? `Hoy marcaste: ${ETIQUETA_DE_LO_MARCADO[marcada.estado]} · ${lineaDelPlan}` : lineaDelPlan
+    return (
+      <section
+        aria-label="Nutrición de hoy"
+        className="entrada entrada-5 hoy-tarjeta flex items-center justify-between gap-3 !py-3"
+      >
+        <div className="min-w-0">
+          <p className="hoy-fila-titulo">Nutrición de hoy</p>
+          <small className="text-xs text-tenue">{linea}</small>
+        </div>
+        <Link to="/nutricion" className="press tecla-2 shrink-0 text-sm font-semibold text-texto">
+          Registrar
+        </Link>
+      </section>
+    )
+  }
 
   return (
     <section

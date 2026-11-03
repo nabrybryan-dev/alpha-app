@@ -43,8 +43,8 @@ describe('la escala de profundidad', () => {
    * Va nombrado y no como patrón: una excepción que se puede grepear es una
    * excepción; una regla laxa deja de guardar nada.
    */
-  // La segunda excepción, `TamborDeLaSemana`, se fue con el tambor el 2026-10-25: la semana
-  // ahora se despliega como lista y no tiene ningún translateZ.
+  // La segunda excepción, `TamborDeLaSemana`, se fue con el tambor cilíndrico el 2026-10-25 y el de hoy (30-oct) no usa translateZ: la semana
+  // es una columna con rotateX y no tiene ningún translateZ.
   const FUERA_DE_LA_ESCALA_CON_MOTIVO = ['GraficaBrazo.tsx']
 
   it('ningún translateZ de superficie se sale de los cinco escalones', () => {

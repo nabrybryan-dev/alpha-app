@@ -17,3 +17,12 @@ export function diaEnPantalla(
   const deLaSesion = sesionId ? semana.findIndex((d) => d.sesionId === sesionId) : -1
   return deLaSesion !== -1 ? deLaSesion : semana.findIndex((d) => d.esHoy)
 }
+
+/** Qué es el día en pantalla respecto a hoy, en una palabra. */
+export function relacionConHoy(dia: DiaRuta, elegido: boolean, hoyIso: string | undefined): string {
+  if (dia.esHoy) return 'hoy'
+  if (elegido) return 'viendo'
+  // La sesión por omisión puede ser de un día YA PASADO (`sesionDestacada` cae atrás cuando
+  // no queda ninguna por delante): esa no es la próxima, está atrasada.
+  return hoyIso && dia.fechaIso < hoyIso ? 'atrasada' : 'próxima'
+}

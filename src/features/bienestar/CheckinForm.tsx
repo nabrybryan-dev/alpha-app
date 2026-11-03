@@ -3,6 +3,7 @@ import { tramoDeHambre } from '../../domain/senales/hambre'
 import { tramoDeDolor } from '../../domain/senales/dolor'
 import { Stepper } from '../../components/ui/Stepper'
 import type { CampoAnotable, Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
@@ -12,6 +13,8 @@ const PESO_DE_FABRICA = 70
 const PASOS_DE_FABRICA = 8000
 
 interface CheckinFormProps {
+  /** El Hoy del staff queda como en main: sin botón 3D. */
+  clasico?: boolean
   usuarioId: string
   fecha: string
   /** Peso/pasos del último check-in, para arrancar los steppers cerca del valor real. */
@@ -68,7 +71,7 @@ function CampoPills({
   )
 }
 
-export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, onGuardar }: CheckinFormProps) {
+export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, onGuardar, clasico = false }: CheckinFormProps) {
   const [pesoKg, setPesoKg] = useState(pesoInicial ?? PESO_DE_FABRICA)
   const [pasos, setPasos] = useState(pasosInicial ?? PASOS_DE_FABRICA)
   // Si la persona ya movió el campo, manda ella: una hidratación tardía no
@@ -270,14 +273,20 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
           Te falta{faltantes === 1 ? '' : 'n'} {faltantes} campo{faltantes === 1 ? '' : 's'} por marcar
         </p>
       )}
-      <button
-        type="button"
-        onClick={guardar}
-        className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-        style={{ boxShadow: 'var(--glow-accion)' }}
-      >
-        Guardar check-in
-      </button>
+      {clasico ? (
+        <button
+          type="button"
+          onClick={guardar}
+          className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
+          style={{ boxShadow: 'var(--glow-accion)' }}
+        >
+          Guardar check-in
+        </button>
+      ) : (
+        <Boton3D bloque type="button" onClick={guardar} className="mt-1">
+          Guardar check-in
+        </Boton3D>
+      )}
     </div>
   )
 }

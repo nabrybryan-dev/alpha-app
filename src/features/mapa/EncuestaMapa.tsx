@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChipGroup } from '../../components/ui/Chip'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { PREGUNTAS_MAPA_DE_VIDA, type PreguntaMapaDeVida } from '../../domain/mapaDeVida/preguntas'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 const OPCIONES_SI_NO = ['Sí', 'No'] as const
 
@@ -71,14 +72,13 @@ export function EncuestaMapa({ respuestasIniciales, onGuardar }: EncuestaMapaPro
         </p>
       )}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={enviar}
-        className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-        style={{ boxShadow: 'var(--glow-accion)' }}
+        className="mt-1"
       >
         Guardar mapa de vida
-      </button>
+      </Boton3D>
     </div>
   )
 }

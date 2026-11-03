@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Card } from '../../components/ui/Card'
 import { useSesionOpcional } from '../../app/SessionProvider'
 import { db, hoyIso } from '../../data/dbInstance'
+import { Boton3D } from '../../components/ui/Boton3D'
 import {
   agregarNotaLlamada,
   borrarNotaLlamada,
@@ -311,14 +312,13 @@ export function NotasDeLlamada({ usuarioId }: Props) {
           />
           {error && <p className="text-xs text-rojo">{error}</p>}
           <div className="flex gap-2">
-            <button
+            <Boton3D
               type="button"
-              className="tecla-3d min-h-[44px] rounded-lg bg-accion px-4 text-xs font-bold text-white disabled:opacity-50"
               disabled={guardando || !conclusiones.trim()}
               onClick={() => void guardar()}
             >
               {guardando ? 'Guardando…' : corrigiendoId ? 'Guardar corrección' : 'Guardar nota'}
-            </button>
+            </Boton3D>
             <button
               type="button"
               className="min-h-[44px] rounded-lg border border-linea px-4 text-xs font-bold text-tenue"

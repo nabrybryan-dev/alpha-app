@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import type { BloqueEnCurso as Bloque } from '../../../domain/rutaEntrenamiento'
+import { Boton3D } from '../../../components/ui/Boton3D'
 
 interface Props {
   bloque: Bloque
@@ -51,17 +51,16 @@ export function BloqueEnCurso({ bloque, sesion }: Props) {
         // Y el sentido de la marcha importa: +40 está POR ENCIMA del plano, así que
         // la diana de 44 px crece en vez de encoger.
         <div style={{ transform: 'translateZ(var(--prof-sujeto))' }}>
-          <Link
+          <Boton3D bloque
             to={`/entrenar/sesion/${sesion.id}`}
             // Entrar a la sesión es moverse dentro del mismo gimnasio, no cambiar de
             // documento. React Router hace el resto con la View Transitions API, y
             // donde no esté soportada navega igual, sin transición.
             viewTransition
-            className="press mt-3.5 flex items-center justify-center rounded-xl bg-accion py-3.5 text-center font-display text-sm text-white"
-            style={{ boxShadow: 'var(--glow-accion), var(--sombra-alzado)' }}
+            className="mt-3.5"
           >
             {textoCta(sesion)} · {sesion.nombre}
-          </Link>
+          </Boton3D>
         </div>
       ) : (
         <p className="mt-3.5 rounded-xl border border-ink-500 bg-ink-700 py-3 text-center text-sm font-bold text-silver-400">

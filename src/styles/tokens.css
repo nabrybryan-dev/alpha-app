@@ -328,6 +328,8 @@
   --alto-nav: 4rem;
   /* Borde superior de la barra, medido desde el fondo de la ventana. */
   --tope-nav: calc(var(--hueco-nav) + var(--alto-nav));
+  /* Encima de la hoja plegada del salón (asa + resumen de la sesión): ahí se apoya lo del suelo. */
+  --tope-hoja: calc(var(--tope-nav) + 7.75rem);
 
   /* Motion — curvas con carácter, nunca ease-in-out genérico */
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
@@ -4111,7 +4113,8 @@ body.praxis-sala-abierta { overflow:hidden; }
   letter-spacing: 0.06em;
   text-decoration: none;
   text-shadow: 0 1px 0 var(--btn-texto-sombra);
-  transform: perspective(var(--perspectiva)) rotateX(8deg);
+  /* translateZ: dentro de un `preserve-3d` la inclinación lo mandaría detrás del padre, sin toque. */
+  transform: perspective(var(--perspectiva)) translateZ(10px) rotateX(8deg);
   transform-origin: 50% 100%;
   box-shadow:
     inset 0 1px 0 var(--btn-luz),
@@ -4131,7 +4134,7 @@ body.praxis-sala-abierta { overflow:hidden; }
 }
 @media (hover: hover) {
   .btn-3d:hover {
-    transform: perspective(var(--perspectiva)) rotateX(5deg) translateY(-1px);
+    transform: perspective(var(--perspectiva)) translateZ(10px) rotateX(5deg) translateY(-1px);
   }
 }
 .btn-3d:active {
@@ -4176,12 +4179,16 @@ body.praxis-sala-abierta { overflow:hidden; }
   stroke-linejoin: round;
   flex: none;
 }
+/* Apagado NO es rojo translúcido (H-06 de la auditoría): el rótulo gris sobre rojo oscuro no se leía.
+   Pasa a la superficie neutra con el rótulo en --tenue, sin canto ni inclinación. */
 .btn-3d[aria-disabled="true"],
 .btn-3d:disabled {
-  filter: grayscale(1);
-  opacity: 0.55;
+  background: var(--surface-3);
+  color: var(--tenue);
+  text-shadow: none;
   transform: none;
   box-shadow: var(--sombra-alzado);
+  cursor: not-allowed;
   pointer-events: none;
 }
 /* Movimiento reducido: el botón se queda quieto y plano; al pulsar cambia sin hundirse animado. */

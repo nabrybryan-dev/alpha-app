@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Boton3D } from '../../components/ui/Boton3D'
 import {
   camposAPreguntar,
   conSelloDeFecha,
@@ -126,16 +127,15 @@ export function EncuestaNutricion({
         </p>
       )}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={() => {
           setIntentado(true)
           if (errores.length === 0) onTerminar(respuestas)
         }}
-        className="press w-full rounded-2xl bg-accion py-4 font-display text-sm uppercase tracking-wide text-white"
       >
         Listo
-      </button>
+      </Boton3D>
 
       {pie}
     </div>
