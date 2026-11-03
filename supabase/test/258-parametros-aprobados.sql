@@ -479,6 +479,62 @@ select pruebas.afirmar(
 );
 reset role;
 
+-- 10d · Lectura en positivo: la coach y Manuela (con capacidades) SI ven las dos filas.
+set role authenticated;
+select pruebas.exigir_rls();
+select pruebas.soy('b0158000-0000-0000-0000-000000000001');
+select pruebas.afirmar(
+  (select count(*) from public.parametros_aprobados) = 2,
+  'la coach no lee las aprobaciones de parámetros (se esperaban 2 filas)'
+);
+select pruebas.soy('b0158000-0000-0000-0000-000000000003');
+select pruebas.afirmar(
+  (select count(*) from public.parametros_aprobados) = 2,
+  'Manuela, con capacidades de lectura, no lee las aprobaciones de parámetros (se esperaban 2 filas)'
+);
+reset role;
+
+-- 10e · Re-aprobar con OTRA coach sobrescribe el firmante (duda abierta documentada en la 0158:
+-- si cambia el comportamiento, esta prueba debe cambiar a proposito). No se compara la fecha:
+-- now() no avanza dentro de una transaccion.
+insert into auth.users (id, email) values ('b0158000-0000-0000-0000-000000000004', 'pa-staff-4@ejemplo.test')
+  on conflict (id) do nothing;
+insert into public.usuarios_app (id, nombre, rol, avatar_iniciales)
+  values ('b0158000-0000-0000-0000-000000000004', 'Segunda coach de prueba', 'coach', 'SC')
+  on conflict (id) do update set rol = excluded.rol;
+
+set role authenticated;
+select pruebas.soy('b0158000-0000-0000-0000-000000000004');
+select public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
+  '{"p01": 1, "p02": 99, "p03": 3, "p04": 4, "p05": 5, "p06": 6, "p07": 7, "p08": 8, "p09": 9, "p10": 10}'::jsonb);
+reset role;
+select pruebas.afirmar(
+  (select aprobado_por from public.parametros_aprobados where plan_renovado_id = 'c0158000-0000-0000-0000-000000000001')
+    = 'b0158000-0000-0000-0000-000000000004'
+  and (select count(*) from public.parametros_aprobados where plan_renovado_id = 'c0158000-0000-0000-0000-000000000001') = 1,
+  're-aprobar con otra coach no dejó una sola fila firmada por la segunda coach'
+);
+
+-- 10f · p_parametros null, lista y texto: error exacto (22023), no cualquier error.
+set role authenticated;
+select pruebas.soy('b0158000-0000-0000-0000-000000000001');
+do $$
+declare
+  v jsonb;
+begin
+  foreach v in array array[null, '[1, 2]'::jsonb, '"texto"'::jsonb] loop
+    begin
+      perform public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001', v);
+      raise exception 'FALLO: se aprobó con p_parametros = %', coalesce(v::text, 'null');
+    exception when invalid_parameter_value then
+      if sqlerrm <> 'Los parámetros deben ser un objeto' then
+        raise exception 'FALLO: mensaje inesperado con p_parametros = %: %', coalesce(v::text, 'null'), sqlerrm;
+      end if;
+    end;
+  end loop;
+end $$;
+reset role;
+
 rollback;
 
 \echo 'OK · aprobación de parámetros del plan renovado (0158)'
