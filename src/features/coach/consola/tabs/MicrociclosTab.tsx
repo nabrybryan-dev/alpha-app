@@ -1,4 +1,5 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { modoNube, supabase } from '../../../../data/supabase'
 import { Badge } from '../../../../components/ui/Badge'
 import { EmptyState } from '../../../../components/ui/EmptyState'
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
@@ -8,6 +9,97 @@ import { adherenciaPorMicrociclo, fechaCorta, tablaDelPlan } from '../../../../d
 import { SeccionAdherenciaHistorial } from '../ficha/SeccionPlan'
 import { Esqueleto, Falta, Tarjeta } from '../piezas'
 import { usePersona } from '../usePersona'
+import { useCapacidades } from '../useCapacidades'
+
+function errorLiteral(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const codigo = 'code' in error && error.code ? `${error.code}: ` : ''
+    return `${codigo}${error.message}`
+  }
+  return String(error)
+}
+
+/** La base decide la liberación vigente y vuelve a validar al activar. */
+function AccionesPropuesta({ id, numero, estado }: { id: string; numero: number; estado: string }) {
+  const { tiene, cargando } = useCapacidades()
+  const [liberada, setLiberada] = useState(false)
+  const [ocupada, setOcupada] = useState(false)
+  const enCurso = useRef(false)
+  const [activada, setActivada] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!modoNube || estado !== 'propuesto') return
+    let vivo = true
+    supabase().rpc('microciclo_liberado', { p_propuesta_id: id }).then(({ data, error }) => {
+      if (!vivo) return
+      if (error) setError(errorLiteral(error))
+      else setLiberada(data === true)
+    }, (error: unknown) => { if (vivo) setError(errorLiteral(error)) })
+    return () => { vivo = false }
+  }, [id, estado])
+
+  const ejecutar = async (activar: boolean) => {
+    if (enCurso.current || ocupada || estado !== 'propuesto' || !tiene('liberar_prescripcion')) return
+    enCurso.current = true
+    setOcupada(true)
+    setError(null)
+    try {
+      const cliente = supabase()
+      if (activar) {
+        const vigente = await cliente.rpc('microciclo_liberado', { p_propuesta_id: id })
+        if (vigente.error) throw vigente.error
+        setLiberada(vigente.data === true)
+        if (vigente.data !== true) {
+          setError('La liberación no quedó vigente.')
+          return
+        }
+        const resultado = await cliente.rpc('activar_microciclo', { p_propuesta_id: id })
+        if (resultado.error) throw resultado.error
+        // La RPC puede volver sin activar (candado): comprobar, nunca anunciar éxito por rc solo.
+        const fila = await cliente.from('microciclos').select('estado').eq('id', id).single()
+        if (fila.error) throw fila.error
+        setActivada(fila.data.estado === 'activo')
+        if (fila.data.estado !== 'activo') setError('No se activó: la base respondió sin activar la propuesta.')
+      } else {
+        const fila = await cliente.from('microciclos').select('datos, estado').eq('id', id).single()
+        if (fila.error) throw fila.error
+        if (fila.data.estado !== 'propuesto') throw new Error('La propuesta ya no está en estado propuesto.')
+        const huella = await cliente.rpc('huella_microciclo', { p_datos: fila.data.datos })
+        if (huella.error) throw huella.error
+        const resultado = await cliente.rpc('liberar_microciclo', { p_propuesta_id: id, p_huella: huella.data })
+        if (resultado.error) throw resultado.error
+        const vigente = await cliente.rpc('microciclo_liberado', { p_propuesta_id: id })
+        if (vigente.error) throw vigente.error
+        setLiberada(vigente.data === true)
+        if (vigente.data !== true) setError('La liberación no quedó vigente.')
+      }
+    } catch (error) {
+      setError(errorLiteral(error))
+    } finally {
+      enCurso.current = false
+      setOcupada(false)
+    }
+  }
+
+  if (estado !== 'propuesto' || !modoNube) return null
+  return (
+    <div className="rounded-lg border border-linea p-3">
+      <p className="text-sm font-bold">Propuesta · M{numero}</p>
+      {activada ? <p role="status">Microciclo activado. Vuelve a abrir la consola para ver la semana vigente.</p> : (
+        <div className="mt-2 flex gap-2">
+          {!liberada && !cargando && tiene('liberar_prescripcion') && (
+            <button type="button" className="rounded-lg border border-linea px-3 py-2 text-sm font-bold" disabled={ocupada} onClick={() => void ejecutar(false)}>Liberar</button>
+          )}
+          {liberada && !cargando && tiene('liberar_prescripcion') && (
+            <button type="button" className="rounded-lg border border-linea px-3 py-2 text-sm font-bold" disabled={ocupada} onClick={() => void ejecutar(true)}>Activar</button>
+          )}
+        </div>
+      )}
+      {error && <p role="alert" className="mt-2 text-sm text-rojo">{error}</p>}
+    </div>
+  )
+}
 
 /**
  * Módulo 4: la semana vigente (cuadrícula de siete días), lo que el plan estratégico
@@ -94,6 +186,11 @@ export function MicrociclosTab({ usuarioId }: { usuarioId: string }) {
 
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      {datos.historial.estado === 'listo' && datos.historial.valor.some((m) => m.estado === 'propuesto') && (
+        <Tarjeta titulo="Propuestas de microciclo" i={0} className="xl:col-span-12">
+          {datos.historial.valor.map((m) => <AccionesPropuesta key={m.id} id={m.id} numero={m.numero} estado={m.estado} />)}
+        </Tarjeta>
+      )}
       {!microciclo ? (
         <div className="xl:col-span-12">
           <EmptyState titulo="Sin microciclo activo" detalle="Esta persona no tiene semana vigente." />
