@@ -36,6 +36,10 @@
 -- salud, `velocidad.huella` (la trayectoria de la barra), `notaCoach`, `cues`. Lista blanca de columnas: la de las
 -- vistas, y el lector local la vuelve a comprobar (una columna de más rompe la lectura).
 --
+-- REDONDEO (decisión de Bryan, 3-nov, tras la revisión r49/D-puente): las fechas salen al lunes de su semana, la talla
+-- a 1 cm y el peso a 1 kg. Con pocas personas, fecha de medida + talla + peso + sexo permitían reconocer a alguien.
+-- El seudónimo es secuencial (P-001, P-002…); no se cambió.
+--
 -- DOS REGLAS DE LA APP QUE LA VISTA RESPETA:
 --   · La migración 0018 oculta la composición corporal a quien tiene un antecedente de conducta alimentaria: su
 --     `pesoKg` falta. La vista da `peso_kg = null` en ese caso y NO busca el peso en otra medida más vieja.
@@ -88,8 +92,9 @@ exception when others then
 end
 $$;
 
--- Las vistas usan «arreglo JSON o vacío» en línea (case jsonb_typeof): lab_lector no ejecuta ninguna función del
--- esquema lab, y las funciones que usa una vista se comprueban con los permisos de quien la lee.
+-- Las vistas usan «arreglo JSON o vacío» en línea (case jsonb_typeof) y solo llaman a lab.num y lab.dia. Postgres
+-- comprueba EXECUTE con los permisos de quien lee la vista, así que lab_lector SÍ ejecuta esas dos (se le conceden al
+-- final de este archivo) y ninguna otra función de lab.
 
 -- ─────────────────────────── Consentimientos ───────────────────────────
 
@@ -152,9 +157,11 @@ select
   c.seudonimo,
   m.numero                                              as microciclo_numero,
   m.estado                                              as microciclo_estado,
-  m.actualizado_en                                      as microciclo_actualizado_en,
-  lab.dia(m.datos ->> 'fechaInicio')                    as fecha_inicio,
-  lab.dia(s.js ->> 'fecha')                             as sesion_fecha,
+  (date_trunc('week', m.actualizado_en at time zone 'UTC') at time zone 'UTC') as microciclo_actualizado_en,
+  -- Fechas al LUNES de su semana (decisión de Bryan, 3-nov): el laboratorio necesita el orden y el hueco entre
+  -- sesiones, no el día exacto, y la fecha exacta junto a talla y peso ayuda a reconocer a alguien.
+  date_trunc('week', lab.dia(m.datos ->> 'fechaInicio')::timestamp)::date as fecha_inicio,
+  date_trunc('week', lab.dia(s.js ->> 'fecha')::timestamp)::date          as sesion_fecha,
   e.je ->> 'id'                                         as ejercicio_id,
   e.je ->> 'nombre'                                     as ejercicio_nombre,
   lab.num(r.jr -> 'orden')                              as serie_orden,
@@ -192,10 +199,11 @@ create or replace view lab.lab_sujetos with (security_invoker = off) as
 select
   c.seudonimo,
   p.sexo,
-  lab.dia(u.med ->> 'fecha')                            as fecha_medida,
-  lab.num(u.med -> 'alturaCm')                          as talla_cm,
+  -- Redondeo (decisión de Bryan, 3-nov): fecha al lunes de su semana, talla a 1 cm y peso a 1 kg.
+  date_trunc('week', lab.dia(u.med ->> 'fecha')::timestamp)::date as fecha_medida,
+  round(lab.num(u.med -> 'alturaCm'))                   as talla_cm,
   -- Falta = falta. La app la esconde a quien tiene un antecedente de conducta alimentaria (0018): no se busca otra.
-  lab.num(u.med -> 'pesoKg')                            as peso_kg,
+  round(lab.num(u.med -> 'pesoKg'))                     as peso_kg,
   case when c.permite_segmentos then lab.num(u.med -> 'cuerpo' -> 'femurCm') end  as femur_cm,
   case when c.permite_segmentos then lab.num(u.med -> 'cuerpo' -> 'tibiaCm') end  as tibia_cm,
   case when c.permite_segmentos then lab.num(u.med -> 'cuerpo' -> 'torsoCm') end  as torso_cm
@@ -237,6 +245,10 @@ revoke all on all tables in schema lab from public, anon, authenticated, lab_lec
 -- no lo necesitan; la llave no debe poder llamarlas.
 revoke execute on all functions in schema lab from public, anon, authenticated, lab_lector;
 alter default privileges in schema lab revoke execute on functions from public;
+-- En `public` las funciones nacen ejecutables por PUBLIC (así llegan a anon como RPC) y lab_lector hereda de PUBLIC:
+-- este revoke solo quita lo concedido a lab_lector directamente; NO lo quita si viene de PUBLIC (revocarlo de PUBLIC
+-- rompería la app). Por eso comprobar-0116.sql compara con anon: lab_lector no debe poder ejecutar más que anon.
+revoke execute on all functions in schema public from lab_lector;
 grant usage on schema lab to lab_lector;
 grant select on lab.lab_series, lab.lab_sujetos, lab.lab_revocaciones to lab_lector;
 -- Las vistas llaman a lab.num y lab.dia, y Postgres comprueba EXECUTE con los permisos de quien lee la vista.

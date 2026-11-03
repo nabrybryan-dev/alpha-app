@@ -134,11 +134,18 @@ select pruebas.afirmar(not exists (select 1 from lab.lab_series where carga_kg i
 select pruebas.afirmar((select rir is null and reps is null and carga_kg = 20 from lab.lab_series where seudonimo = 'P-901' and serie_orden = 2),
   'rir/reps de texto no salieron NULL');
 select pruebas.afirmar((select rir = 3 and rir_prescrito = 2 and rir_objetivo = 2 and not objetivo_al_fallo and confirmada = 'editada'
-                               and pv_pct = 12.5 and pv_hay_escala and pv_calidad = 'buena' and sesion_fecha = date '2026-10-06'
+                               and pv_pct = 12.5 and pv_hay_escala and pv_calidad = 'buena' and sesion_fecha = date '2026-10-05'  -- 06-oct redondeado al lunes
                           from lab.lab_series where seudonimo = 'P-901' and serie_orden = 1),
   'la serie 1 de P-901 no trae lo esperado');
-select pruebas.afirmar((select peso_kg = 60.2 and talla_cm = 163 and sexo = 'mujer' and femur_cm = 44.5 and tibia_cm = 37.5 and torso_cm = 50
-                          from lab.lab_sujetos where seudonimo = 'P-901'), 'lab_sujetos P-901: última medida con segmentos');
+select pruebas.afirmar((select peso_kg = 60 and talla_cm = 163 and fecha_medida = date '2026-09-28' and sexo = 'mujer'
+                               and femur_cm = 44.5 and tibia_cm = 37.5 and torso_cm = 50
+                          from lab.lab_sujetos where seudonimo = 'P-901'),
+  'lab_sujetos P-901: última medida con segmentos, peso 60,2 a 60, fecha 01-oct al lunes 28-sep');
+-- redondeo: ninguna fecha de las vistas cae fuera de un lunes
+select pruebas.afirmar(not exists (select 1 from lab.lab_series where extract(isodow from sesion_fecha) <> 1 or extract(isodow from fecha_inicio) <> 1)
+                       and not exists (select 1 from lab.lab_sujetos where extract(isodow from fecha_medida) <> 1)
+                       and not exists (select 1 from lab.lab_sujetos where peso_kg <> round(peso_kg) or talla_cm <> round(talla_cm)),
+  'una fecha de las vistas no es lunes o el peso o la talla no estan redondeados');
 select pruebas.afirmar(not exists (select 1 from lab.lab_sujetos where seudonimo = 'P-905')
                        and not exists (select 1 from lab.lab_series where seudonimo = 'P-905'),
   'una persona REVOCADA con permite_segmentos=true aparece en una vista de datos');

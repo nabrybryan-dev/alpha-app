@@ -28,8 +28,17 @@ union all
 select '0116 - (informativa) lab_lector sin login todavia',
        case when (select rolcanlogin from pg_roles where rolname = 'lab_lector') then 'NO' else 'SI' end;
 
--- Funciones de public que lab_lector podria ejecutar (deberia salir VACIO; si sale alguna, revocarla de public):
-select p.oid::regprocedure as funcion_ejecutable_por_lab_lector
+-- Funciones de public que lab_lector ejecuta y anon NO (deberia salir VACIO). Las funciones de public nacen ejecutables
+-- por PUBLIC y lab_lector hereda eso, igual que anon: la superficie comun no es un hallazgo nuevo; solo lo que lab_lector
+-- tenga de MAS que anon lo es (un grant directo). Si sale alguna: revocarla de lab_lector.
+select p.oid::regprocedure as funcion_ejecutable_solo_por_lab_lector
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and has_function_privilege('lab_lector', p.oid, 'execute')
+   and not has_function_privilege('anon', p.oid, 'execute');
+
+-- Informativa: cuantas funciones de public ejecuta lab_lector (por herencia de PUBLIC, igual que anon). Para saber el
+-- tamano de esa superficie, no para fallar. Cada una exige su propia comprobacion de auth.uid()/rol dentro.
+select count(*) as funciones_de_public_ejecutables_por_lab_lector
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public' and has_function_privilege('lab_lector', p.oid, 'execute');
 
