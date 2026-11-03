@@ -2678,21 +2678,21 @@ select '0158 - parametros aprobados aparte del plan', 'parametros_aprobados: RLS
             when not has_function_privilege('authenticated', 'public.aprobar_parametros_plan(uuid,jsonb)', 'execute') then 'NO'
             else 'SI' end
 
--- La 0116, puente con el laboratorio. Cuatro señales porque son cuatro efectos y cada uno puede faltar por separado.
--- Solo cuentan objetos y permisos: no leen filas de nadie. Detalle y la parte informativa (login): `comprobar-0116.sql`.
+-- La 0160, puente con el laboratorio. Cuatro señales porque son cuatro efectos y cada uno puede faltar por separado.
+-- Solo cuentan objetos y permisos: no leen filas de nadie. Detalle y la parte informativa (login): `comprobar-0160.sql`.
 union all
-select '0116 - puente con el laboratorio', 'las tres vistas y consentimientos existen en el esquema lab, y consentimientos tiene RLS',
+select '0160 - puente con el laboratorio', 'las tres vistas y consentimientos existen en el esquema lab, y consentimientos tiene RLS',
        case when to_regclass('lab.consentimientos') is null or to_regclass('lab.lab_series') is null
               or to_regclass('lab.lab_sujetos') is null or to_regclass('lab.lab_revocaciones') is null then 'NO'
             when not (select relrowsecurity from pg_class where oid = to_regclass('lab.consentimientos')) then 'NO'
             else 'SI' end
 union all
-select '0116 - puente con el laboratorio', 'el esquema lab no esta abierto a anon ni a authenticated',
+select '0160 - puente con el laboratorio', 'el esquema lab no esta abierto a anon ni a authenticated',
        case when not exists (select 1 from pg_namespace where nspname = 'lab') then 'NO'
             when has_schema_privilege('anon', 'lab', 'usage') or has_schema_privilege('authenticated', 'lab', 'usage') then 'NO'
             else 'SI' end
 union all
-select '0116 - puente con el laboratorio', 'lab_lector existe sin bypassrls ni superusuario y lee solo las tres vistas (SELECT), sin consentimientos ni tablas de la app',
+select '0160 - puente con el laboratorio', 'lab_lector existe sin bypassrls ni superusuario y lee solo las tres vistas (SELECT), sin consentimientos ni tablas de la app',
        case when not exists (select 1 from pg_roles where rolname = 'lab_lector') then 'NO'
             when (select rolbypassrls or rolsuper from pg_roles where rolname = 'lab_lector') then 'NO'
             when has_table_privilege('lab_lector', 'lab.consentimientos', 'select')
@@ -2707,7 +2707,7 @@ select '0116 - puente con el laboratorio', 'lab_lector existe sin bypassrls ni s
                           where grantee = 'lab_lector' and (table_schema <> 'lab' or privilege_type <> 'SELECT')) then 'NO'
             else 'SI' end
 union all
-select '0116 - puente con el laboratorio', 'una persona borrada de la app queda revocada sola (trigger en consentimientos)',
+select '0160 - puente con el laboratorio', 'una persona borrada de la app queda revocada sola (trigger en consentimientos)',
        case when to_regclass('lab.consentimientos') is null then 'NO'
             when exists (select 1 from pg_trigger
                           where tgrelid = to_regclass('lab.consentimientos')
