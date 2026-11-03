@@ -217,8 +217,9 @@ describe('Edge Function praxis-registro', () => {
     expect(enviado.temperature).toBe(0)
     expect(enviado.system[0].cache_control).toEqual({ type: 'ephemeral' })
     expect(JSON.stringify(enviado.messages)).not.toMatch(/pauta|seriesPrescritas/)
-    // Nada de escritura: ninguna llamada es POST a rpc ni a tablas.
-    expect(e.llamadas.filter((l) => /rpc\/|\/rest\/v1\/[a-z_]+$/.test(l.url) && l.init?.method === 'POST')).toHaveLength(0)
+    // Nada de escritura: ninguna llamada es POST a rpc ni a tablas. Única excepción deliberada (0159, 3-nov-2026): la frase
+    // de una persona del EQUIPO queda en `praxis_mensajes_equipo` para etiquetar su intención; no toca datos de entreno ni nutrición.
+    expect(e.llamadas.filter((l) => /rpc\/|\/rest\/v1\/(?!praxis_mensajes_equipo$)[a-z_]+$/.test(l.url) && l.init?.method === 'POST')).toHaveLength(0)
   })
 
   it('la clave sale del secreto: va en la cabecera x-api-key y no aparece en el cuerpo ni en la respuesta', async () => {

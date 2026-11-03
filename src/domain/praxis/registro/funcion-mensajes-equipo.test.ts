@@ -91,11 +91,19 @@ describe('praxis-registro: mensajes del equipo', () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain(FRASE)
   })
 
-  it('una frase más larga que el tope se guarda recortada, no se pierde', async () => {
+  it('una frase del largo máximo que acepta la función se guarda entera', async () => {
     const e = entorno()
-    await enviar(e, `${FRASE} ${'x'.repeat(FRASE_MENSAJE_MAX + 50)}`)
+    const r = await enviar(e, 'a'.repeat(FRASE_MENSAJE_MAX))
+    expect(r.status).toBe(200)
     const guardada = JSON.parse(String(e.inserts()[0].init?.body)).frase as string
     expect(guardada.length).toBe(FRASE_MENSAJE_MAX)
+  })
+
+  it('una frase demasiado larga la rechaza la función antes de guardar nada', async () => {
+    const e = entorno()
+    const r = await enviar(e, 'a'.repeat(FRASE_MENSAJE_MAX + 1))
+    expect(r.status).toBe(400)
+    expect(e.inserts()).toHaveLength(0)
   })
 
   it('una frase que el filtro de riesgo detiene no se guarda aquí', async () => {

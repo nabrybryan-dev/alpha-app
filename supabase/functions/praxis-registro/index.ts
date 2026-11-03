@@ -50,7 +50,7 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
-import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca } from './portero.ts'
+import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca, guardarMensajeEquipo } from './portero.ts'
 export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
@@ -518,6 +518,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
   const { extraccion, citasInvalidas } = validarExtraccion(frase, salida.entrada)
   const resuelta = resolverPropuesta(frase, extraccion, ctx, citasInvalidas)
+  await guardarMensajeEquipo(d, s, frase, extraccion.intencion) // 0159: la frase del equipo que pasó el riesgo queda para etiquetar su intención; nunca rompe la respuesta
   // Consulta del equipo: el portero la intenta contestar con una ficha. Ya pasó los dos filtros de riesgo.
   // El resolutor llama «consulta» también a la charla: el portero solo entra si el modelo la etiquetó consulta.
   const consulta = resuelta.motivo === 'consulta' && extraccion.intencion.includes('consulta') ? await medir(reloj, 'portero', consultarPortero(d, s, frase)) : null
@@ -583,8 +584,7 @@ const PROMPT_JUEZ = [
  * service_role. Cualquier fallo (rol, catálogo, juez, insert) NO afecta la respuesta: solo deja una línea
  * `praxis-registro: cola <motivo>`, sin la frase. No suma al tope de 60 por hora: es parte del mismo mensaje.
  */
-/** Tope de la columna `frase` en `praxis_cola_dudas` (check de la migración 0117). */
-export const FRASE_COLA_MAX = 600
+export const FRASE_COLA_MAX = 600 // tope de la columna `frase` en `praxis_cola_dudas` (check de la migración 0117)
 
 export async function encolarDuda(d: Dependencias, s: Sesion, frase: string, lectura: LecturaPortero): Promise<void> {
   try {
