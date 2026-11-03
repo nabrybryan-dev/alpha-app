@@ -34,7 +34,7 @@ select ('a0158000-0000-0000-0000-00000000000' || n)::uuid, 'pa-' || n || '@ejemp
   from generate_series(1, 7) n
 union all
 select ('b0158000-0000-0000-0000-00000000000' || n)::uuid, 'pa-staff-' || n || '@ejemplo.test'
-  from generate_series(1, 3) n
+  from generate_series(1, 4) n
 on conflict (id) do nothing;
 
 insert into public.usuarios_app (id, nombre, rol, avatar_iniciales)
@@ -43,7 +43,8 @@ select ('a0158000-0000-0000-0000-00000000000' || n)::uuid, 'Parametros ' || n, '
 union all values
   ('b0158000-0000-0000-0000-000000000001'::uuid, 'Coach de prueba', 'coach', 'CP'),
   ('b0158000-0000-0000-0000-000000000002'::uuid, 'Staff sin capacidad', 'nutricionista', 'SC'),
-  ('b0158000-0000-0000-0000-000000000003'::uuid, 'Manuela de prueba', 'nutricionista', 'MP')
+  ('b0158000-0000-0000-0000-000000000003'::uuid, 'Manuela de prueba', 'nutricionista', 'MP'),
+  ('b0158000-0000-0000-0000-000000000004'::uuid, 'Segunda coach de prueba', 'coach', 'SC')
 on conflict (id) do update set
   nombre = excluded.nombre, rol = excluded.rol, avatar_iniciales = excluded.avatar_iniciales;
 
@@ -497,12 +498,8 @@ reset role;
 -- 10e · Re-aprobar con OTRA coach sobrescribe el firmante (duda abierta documentada en la 0158:
 -- si cambia el comportamiento, esta prueba debe cambiar a proposito). No se compara la fecha:
 -- now() no avanza dentro de una transaccion.
-insert into auth.users (id, email) values ('b0158000-0000-0000-0000-000000000004', 'pa-staff-4@ejemplo.test')
-  on conflict (id) do nothing;
-insert into public.usuarios_app (id, nombre, rol, avatar_iniciales)
-  values ('b0158000-0000-0000-0000-000000000004', 'Segunda coach de prueba', 'coach', 'SC')
-  on conflict (id) do update set rol = excluded.rol;
-
+-- (La segunda coach b..04 se crea en la semilla: cambiar un rol aqui, con la sesion de Manuela
+-- aun puesta, lo frena el trigger proteger_rol de la 0008.)
 set role authenticated;
 select pruebas.soy('b0158000-0000-0000-0000-000000000004');
 select public.aprobar_parametros_plan('c0158000-0000-0000-0000-000000000001',
