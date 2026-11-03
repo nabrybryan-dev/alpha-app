@@ -48,7 +48,6 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/data/nube/hidratar.ts:hidratarDesdeNube': 62,
   'src/data/praxis/registrador.ts:extraerIngreso': 24,
   'src/domain/bucleDelDia.ts:contextoDelDia': 22,
-  'src/domain/consolaCoach/planRenovado.ts:diferenciaPlanes': 21,
   'src/domain/nivelesAlfa.ts:requisitosParaPeldano': 24,
   'src/domain/nutricion/textoSinKcal.ts:trocear': 29,
   'src/domain/ondulacion.ts:ondularEjercicio': 34,

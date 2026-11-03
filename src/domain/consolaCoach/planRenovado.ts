@@ -214,27 +214,35 @@ function leerAprobacion(sec: Record<string, unknown> | undefined): { estado: str
   }
 }
 
+type SeccionLeida = Record<string, unknown> | undefined
+
+function camposDeParametros(sb: SeccionLeida, sv: SeccionLeida): CampoParametro[] {
+  const claves = new Set<string>()
+  for (const sec of [sb, sv]) for (const k of Object.keys(sec ?? {})) if (k !== 'aprobacion') claves.add(k)
+  return [...claves].map((campo) => {
+    const valor = sb && campo in sb ? normal(aTexto(sb[campo])) : undefined
+    const antes = sv && campo in sv ? normal(aTexto(sv[campo])) : undefined
+    const estado: CampoParametro['estado'] =
+      valor === undefined ? 'quitado' : antes === undefined ? 'nuevo' : valor === antes ? 'igual' : 'cambia'
+    return { campo, valor, antes, estado }
+  })
+}
+
+function aprobacionDeParametros(sb: SeccionLeida, sv: SeccionLeida) {
+  const ab = leerAprobacion(sb)
+  const av = leerAprobacion(sv)
+  const aprobacion = ab ? { estado: ab.estado, por: ab.por, fecha: ab.fecha, estadoAntes: av?.estado } : undefined
+  return { aprobacion, cambia: (ab?.estado ?? undefined) !== (av?.estado ?? undefined) }
+}
+
 /** Qué cambia en la sección «Parámetros para decidir» del vigente al borrador. Solo lectura. */
 export function diferenciaParametros(vigente: unknown | null, borrador: unknown): DiferenciaParametros {
   const sb = seccionParametros(borrador)
   const sv = vigente === null || vigente === undefined ? undefined : seccionParametros(vigente)
   if (!sb && !sv) return { hay: false, enBorrador: false, campos: [], aprobacion: undefined, cambia: false }
 
-  const claves = new Set<string>()
-  for (const sec of [sb, sv]) for (const k of Object.keys(sec ?? {})) if (k !== 'aprobacion') claves.add(k)
-  const campos: CampoParametro[] = []
-  for (const campo of claves) {
-    const valor = sb && campo in sb ? normal(aTexto(sb[campo])) : undefined
-    const antes = sv && campo in sv ? normal(aTexto(sv[campo])) : undefined
-    const estado: CampoParametro['estado'] =
-      valor === undefined ? 'quitado' : antes === undefined ? 'nuevo' : valor === antes ? 'igual' : 'cambia'
-    campos.push({ campo, valor, antes, estado })
-  }
-
-  const ab = leerAprobacion(sb)
-  const av = leerAprobacion(sv)
-  const aprobacion = ab ? { estado: ab.estado, por: ab.por, fecha: ab.fecha, estadoAntes: av?.estado } : undefined
-  const aprobacionCambia = (ab?.estado ?? undefined) !== (av?.estado ?? undefined)
+  const campos = camposDeParametros(sb, sv)
+  const { aprobacion, cambia: aprobacionCambia } = aprobacionDeParametros(sb, sv)
   const cambia = campos.some((c) => c.estado !== 'igual') || aprobacionCambia
   return { hay: true, enBorrador: !!sb, campos, aprobacion, cambia }
 }
@@ -256,6 +264,37 @@ function normal(s: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
+function diferenciaFilas(
+  filasVigente: { numero: number; celdas: string[] }[],
+  filasBorrador: { numero: number; celdas: string[] }[],
+) {
+  const filasV = new Map(filasVigente.map((f) => [f.numero, f.celdas]))
+  const filasB = new Map(filasBorrador.map((f) => [f.numero, f.celdas]))
+  const filasAnadidas: FilaDiferencia[] = []
+  const filasCambiadas: (FilaDiferencia & { antes: string[] })[] = []
+  for (const [numero, celdas] of filasB) {
+    const antes = filasV.get(numero)
+    if (!antes) filasAnadidas.push({ numero, celdas })
+    else if (antes.map(normal).join('|') !== celdas.map(normal).join('|')) filasCambiadas.push({ numero, celdas, antes })
+  }
+  const filasQuitadas: FilaDiferencia[] = []
+  for (const [numero, celdas] of filasV) if (!filasB.has(numero)) filasQuitadas.push({ numero, celdas })
+  return { filasAnadidas, filasCambiadas, filasQuitadas }
+}
+
+type CabeceraLeida = { objetivo?: string; metricaPrincipal?: string; horizonte?: string }
+
+function camposDeCabecera(lv: CabeceraLeida, lb: CabeceraLeida): CambioCampo[] {
+  const pares: [string, string | undefined, string | undefined][] = [
+    ['Objetivo', lv.objetivo, lb.objetivo],
+    ['Métrica principal', lv.metricaPrincipal, lb.metricaPrincipal],
+    ['Horizonte', lv.horizonte, lb.horizonte],
+  ]
+  return pares
+    .filter(([, antes, despues]) => normal(antes ?? '') !== normal(despues ?? ''))
+    .map(([campo, antes, despues]) => ({ campo, antes, despues }))
+}
+
 /**
  * Qué cambia del vigente al borrador: filas de la tabla (añadidas, cambiadas, quitadas),
  * reglas (añadidas, derogadas con su sustitución, y las que se pierden sin derogar) y los
@@ -268,17 +307,7 @@ export function diferenciaPlanes(vigente: unknown | null, borrador: unknown): Di
   const lv = leerPlanLegible(sinVigente ? null : vigente)
   const tv = sinVigente ? undefined : tablaDelPlan(vigente, undefined)
 
-  const filasV = new Map((tv?.filas ?? []).map((f) => [f.numero, f.celdas]))
-  const filasB = new Map((tb?.filas ?? []).map((f) => [f.numero, f.celdas]))
-  const filasAnadidas: FilaDiferencia[] = []
-  const filasCambiadas: (FilaDiferencia & { antes: string[] })[] = []
-  for (const [numero, celdas] of filasB) {
-    const antes = filasV.get(numero)
-    if (!antes) filasAnadidas.push({ numero, celdas })
-    else if (antes.map(normal).join('|') !== celdas.map(normal).join('|')) filasCambiadas.push({ numero, celdas, antes })
-  }
-  const filasQuitadas: FilaDiferencia[] = []
-  for (const [numero, celdas] of filasV) if (!filasB.has(numero)) filasQuitadas.push({ numero, celdas })
+  const { filasAnadidas, filasCambiadas, filasQuitadas } = diferenciaFilas(tv?.filas ?? [], tb?.filas ?? [])
 
   const vivasV = new Set(lv.reglas.map(normal))
   const vivasB = new Set(lb.reglas.map(normal))
@@ -291,15 +320,7 @@ export function diferenciaPlanes(vigente: unknown | null, borrador: unknown): Di
   const reglasMantenidas = lb.reglas.length - reglasAnadidas.length
   const reglasPerdidas = lv.reglas.filter((r) => !vivasB.has(normal(r)) && !derogadasBSet.has(normal(r)))
 
-  const campos: CambioCampo[] = []
-  const pares: [string, string | undefined, string | undefined][] = [
-    ['Objetivo', lv.objetivo, lb.objetivo],
-    ['Métrica principal', lv.metricaPrincipal, lb.metricaPrincipal],
-    ['Horizonte', lv.horizonte, lb.horizonte],
-  ]
-  for (const [campo, antes, despues] of pares) {
-    if (normal(antes ?? '') !== normal(despues ?? '')) campos.push({ campo, antes, despues })
-  }
+  const campos = camposDeCabecera(lv, lb)
 
   return {
     cabecera: tb?.cabecera ?? tv?.cabecera ?? [],

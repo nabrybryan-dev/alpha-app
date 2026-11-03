@@ -49,6 +49,8 @@ interface BandejaProps {
   onVerPersona?: (usuarioId: string) => void
 }
 
+const estaPendiente = (p: PlanRenovado) => p.estado === 'propuesto' || p.estado === 'espera_bryan'
+
 export function BandejaPlanesRenovados({ onVerPersona }: BandejaProps) {
   const { cargando, tiene, usuarioId } = useCapacidades()
   const puedeVer = !cargando && tiene('aprobar_plan_estrategico')
@@ -92,7 +94,7 @@ export function BandejaPlanesRenovados({ onVerPersona }: BandejaProps) {
     esCoach: usuarioId ? db.usuarios.byId(usuarioId)?.rol === 'coach' : false,
   }
   const actualizar = (plan: PlanRenovado) => setPlanes((previos) => (previos ?? []).map((p) => (p.id === plan.id ? plan : p)))
-  const pendientes = planes ? planes.filter((p) => p.estado === 'propuesto' || p.estado === 'espera_bryan').length : 0
+  const pendientes = planes ? planes.filter((p) => estaPendiente(p)).length : 0
 
   return (
     <Tarjeta
@@ -328,7 +330,7 @@ function FilaPlanRenovado({ i, plan, ahora, permisos, onVerPersona, onDecidido }
           supuestos={plan.supuestos}
           aprobacion={{
             planRenovadoId: plan.id,
-            pendiente: plan.estado === 'propuesto' || plan.estado === 'espera_bryan',
+            pendiente: estaPendiente(plan),
             permiso: permisos.esCoach,
           }}
         />

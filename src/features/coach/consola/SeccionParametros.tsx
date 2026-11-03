@@ -38,6 +38,21 @@ const TEXTO_ESTADO: Record<EstadoAprobacionParametros, string> = {
 
 type Lectura = { estado: 'cargando' } | { estado: 'error'; error: string } | { estado: 'listo'; fila: ParametrosAprobadosFila | null }
 
+function motivoDeNoAprobar(d: {
+  permiso: boolean
+  pendiente: boolean
+  vigentes: ReturnType<typeof parametrosDeContenido>
+  cargado: boolean
+  estado: string
+}): string | undefined {
+  if (!d.permiso) return 'Solo la coach puede aprobar parámetros'
+  if (!d.pendiente) return 'El plan ya está decidido.'
+  if (!d.vigentes) return 'El plan no trae parámetros para aprobar.'
+  if (!traeLosDiezParametros(d.vigentes)) return 'El plan no trae los diez parámetros'
+  if (d.cargado && d.estado === 'vigente') return 'Estos parámetros ya están aprobados.'
+  return undefined
+}
+
 /**
  * PENDIENTE DE BRYAN: la insignia existente «Aprobados» / «Pendientes de aprobar» de la sección sale del
  * campo `aprobacion` que escribe el agente, no de esta aprobación; los textos se parecen. No se renombra
@@ -72,19 +87,7 @@ function AprobarParametros({ contexto, contenido }: { contexto: ContextoAprobaci
       : undefined
   const estado = estadoDeAprobacionDeParametros(lectura.estado === 'listo' ? lectura.fila?.parametros : null, vigentes)
 
-  const motivoNo = !permiso
-    ? 'Solo la coach puede aprobar parámetros'
-    : !pendiente
-      ? 'El plan ya está decidido.'
-      : !vigentes
-        ? 'El plan no trae parámetros para aprobar.'
-        : !traeLosDiezParametros(vigentes)
-          ? 'El plan no trae los diez parámetros'
-          : lectura.estado !== 'listo'
-          ? undefined
-          : estado === 'vigente'
-            ? 'Estos parámetros ya están aprobados.'
-            : undefined
+  const motivoNo = motivoDeNoAprobar({ permiso, pendiente, vigentes, cargado: lectura.estado === 'listo', estado })
   const deshabilitado = lectura.estado !== 'listo' || motivoNo !== undefined
 
   const confirmar = async () => {
