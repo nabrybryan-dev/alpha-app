@@ -10,7 +10,7 @@ import { Opcion } from '../cuerpo/OpcionDeTecla'
 import type { RangoDeLectura } from '../cuerpo/PortadaDelCuerpo'
 import { guionDelDia, type PasoDelGuion } from './guionDelDia'
 import { PasoDePraxis } from './PasoDePraxis'
-import { FICHA_DE_REGION, ordenDeZonas, trabajoDeRegion, type TrabajoDeRegion } from './zonasDePraxis'
+import { CADENA_DE_REGION, ETIQUETA_DE_RESPALDO, FICHA_DE_REGION, NOTA_DE_CADENAS, ordenDeZonas, trabajoDeRegion, type TrabajoDeRegion } from './zonasDePraxis'
 import type { EstadoDeLaGuia } from './useZonaDePraxis'
 
 /**
@@ -90,6 +90,7 @@ function FilaDeTrabajo({ t, alIr }: { t: TrabajoDeRegion; alIr?: (indice: number
 
 function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
   const ficha = FICHA_DE_REGION[id]
+  const cadena = CADENA_DE_REGION[id]
   const trabajo = trabajoDeRegion(id, p.sesion)
   const enLaSemana = seriesPorRegion(p.semana)[id] ?? 0
   const orden = ordenDeZonas(p.sesion)
@@ -100,6 +101,13 @@ function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
     <>
       <p className="text-sm font-semibold text-texto">{ficha.queHace}</p>
       <p className="mt-1 text-xs text-tenue">{ficha.partes}</p>
+      <p className="mt-2 text-xs text-tenue" data-testigo="cadena-de-zona">
+        <span className="font-semibold text-texto">Cadena: </span>
+        {cadena.cadena}
+      </p>
+      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-tenue">{ETIQUETA_DE_RESPALDO[cadena.respaldo]}</p>
+      {cadena.lectura && <p className="mt-0.5 text-xs text-tenue">{cadena.lectura}</p>}
+      <p className="mt-1 text-[11px] text-tenue">{NOTA_DE_CADENAS}</p>
       {p.doloridas.includes(id) && (
         <p className="mt-2 text-xs font-bold" style={{ color: 'var(--rojo)' }}>
           Hoy marcaste dolor aquí en tu chequeo.

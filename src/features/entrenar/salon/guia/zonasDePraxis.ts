@@ -81,6 +81,63 @@ export const FICHA_DE_REGION: Readonly<Record<IdDeRegion, FichaDeRegion>> = {
   },
 }
 
+export type RespaldoDeCadena = 'verificada' | 'parcial' | 'modelo'
+
+export interface CadenaDeRegion {
+  cadena: string
+  respaldo: RespaldoDeCadena
+  lectura?: string
+}
+
+/** El respaldo se dice con palabras, no solo con color. */
+export const ETIQUETA_DE_RESPALDO: Readonly<Record<RespaldoDeCadena, string>> = {
+  verificada: 'Conexión vista en disección',
+  parcial: 'Conexión parcial en disección',
+  modelo: 'Modelo mental, sin conexión verificada',
+}
+
+/** Una sola nota al pie del bloque, no una por zona. */
+export const NOTA_DE_CADENAS =
+  'Las conexiones se vieron en disección de cadáveres. Que la fuerza viaje por la cadena en una persona viva no está demostrado.'
+
+const VENTRAL = 'Cadena ventral del brazo: pectoral mayor, bíceps y flexores del antebrazo'
+const POSTERIOR = 'Línea posterior superficial: gemelos, isquios y erectores'
+
+/** Fuente: Wilke 2016 (Arch Phys Med Rehabil 97:454-461) y Wilke y Krause 2019 (Clin Anat 32:934-940). */
+export const CADENA_DE_REGION: Readonly<Record<IdDeRegion, CadenaDeRegion>> = {
+  pecho: {
+    cadena: VENTRAL,
+    respaldo: 'verificada',
+    lectura: 'Un pectoral tenso tira los hombros hacia adelante: estirar el pectoral y fortalecer rotadores externos y romboides.',
+  },
+  delt: { cadena: 'Cadena lateral del brazo: trapecio, deltoides, septo lateral y extensores del antebrazo', respaldo: 'verificada' },
+  bic: { cadena: VENTRAL, respaldo: 'verificada' },
+  tri: { cadena: 'Cadena dorsal del brazo: dorsal ancho, tríceps, ancóneo y extensor cubital del carpo', respaldo: 'verificada' },
+  ante: { cadena: 'Cadenas ventral (flexores) y lateral (extensores) del brazo', respaldo: 'verificada' },
+  abd: {
+    cadena: 'Línea frontal superficial (recto abdominal) y línea profunda frontal (transverso)',
+    respaldo: 'modelo',
+    lectura: 'Core anterior: dead bug, plancha, pallof.',
+  },
+  obl: { cadena: 'Líneas espiral y lateral', respaldo: 'parcial', lectura: 'Control de la rotación y anti-inclinación del tronco.' },
+  trap: { cadena: 'Cadena lateral del brazo (trapecio) y línea espiral (romboides y serrato)', respaldo: 'parcial' },
+  dors: {
+    cadena: 'Línea funcional posterior: dorsal ancho con el glúteo mayor del lado contrario',
+    respaldo: 'verificada',
+    lectura: 'Pasa fuerza en diagonal entre espalda y cadera.',
+  },
+  lumb: { cadena: POSTERIOR, respaldo: 'verificada', lectura: 'Cadena de extensión: bisagras y peso muerto.' },
+  glu: {
+    cadena: 'Línea funcional posterior y línea lateral (glúteo medio)',
+    respaldo: 'verificada',
+    lectura: 'El glúteo medio estabiliza la pelvis al apoyarte en una pierna.',
+  },
+  cua: { cadena: 'Línea frontal superficial', respaldo: 'modelo' },
+  isq: { cadena: POSTERIOR, respaldo: 'verificada' },
+  adu: { cadena: 'Línea profunda frontal (aductores)', respaldo: 'modelo' },
+  gem: { cadena: 'Línea posterior superficial y, con los peroneos, línea lateral', respaldo: 'verificada' },
+}
+
 export interface EnfoqueDeRegion {
   azimut: 0 | 180
   /** Altura del punto al que mira la cámara, en metros del sujeto (cuerpo de 1,72 m). */
