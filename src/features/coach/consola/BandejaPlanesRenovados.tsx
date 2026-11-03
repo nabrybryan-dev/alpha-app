@@ -12,7 +12,6 @@ import {
 import { leerPlanLegible } from '../../../domain/consolaCoach/planLegible'
 import {
   diferenciaPlanes,
-  type DiferenciaParametros,
   leerJustificacion,
   leerPreguntasParaBryan,
   queOcurreAlVencerPlan,
@@ -21,6 +20,7 @@ import {
 } from '../../../domain/consolaCoach/planRenovado'
 import { cuentaAtras, ordenarBandeja } from '../../../domain/consolaCoach/primerPlan'
 import { Esqueleto, FalloBandeja, Tarjeta } from './piezas'
+import { SeccionParametros, type ContextoAprobacionParametros } from './SeccionParametros'
 import { useCapacidades } from './useCapacidades'
 
 /**
@@ -321,6 +321,11 @@ function FilaPlanRenovado({ i, plan, ahora, permisos, onVerPersona, onDecidido }
           planId={plan.planId}
           justificacion={justificacion}
           supuestos={plan.supuestos}
+          aprobacion={{
+            planRenovadoId: plan.id,
+            pendiente: plan.estado === 'propuesto' || plan.estado === 'espera_bryan',
+            permiso: permisos.aprobarPlanEstrategico,
+          }}
         />
       )}
     </li>
@@ -334,10 +339,11 @@ interface VistaProps {
   planId: string
   justificacion: ReturnType<typeof leerJustificacion>
   supuestos: string[]
+  aprobacion: ContextoAprobacionParametros
 }
 
 /** El borrador legible y su diferencia con el vigente. Se lee al abrirlo, no al montar. */
-function VistaBorrador({ usuarioId, planId, justificacion, supuestos }: VistaProps) {
+function VistaBorrador({ usuarioId, planId, justificacion, supuestos, aprobacion }: VistaProps) {
   const [vista, setVista] = useState<EstadoVista>({ estado: 'cargando' })
 
   useEffect(() => {
@@ -355,7 +361,7 @@ function VistaBorrador({ usuarioId, planId, justificacion, supuestos }: VistaPro
     <div className="consola-panel-entra mt-2 flex flex-col gap-2.5 rounded-lg border border-linea bg-surface-1 p-2.5" style={{ '--consola-dx': 0 } as CSSProperties}>
       {vista.estado === 'cargando' && <Esqueleto lineas={3} />}
       {vista.estado === 'error' && <p className="text-xs text-rojo">{vista.error}</p>}
-      {vista.estado === 'listo' && <ContenidoBorrador datos={vista.datos} />}
+      {vista.estado === 'listo' && <ContenidoBorrador datos={vista.datos} aprobacion={aprobacion} />}
 
       {justificacion.length > 0 && (
         <section aria-label="Justificación">
@@ -384,59 +390,7 @@ function VistaBorrador({ usuarioId, planId, justificacion, supuestos }: VistaPro
   )
 }
 
-const ETIQUETA_PARAMETRO = {
-  nuevo: { texto: 'Nuevo', clase: 'text-verde' },
-  cambia: { texto: 'Cambia', clase: 'text-ambar' },
-  igual: { texto: 'Igual', clase: 'text-tenue' },
-  quitado: { texto: 'Quitado', clase: 'text-rojo' },
-} as const
-
-function SeccionParametros({ p }: { p: DiferenciaParametros }) {
-  if (!p.hay) return null
-  const ap = p.aprobacion
-  const aprobada = ap?.estado === 'aprobada'
-  return (
-    <section aria-label="Parámetros para decidir" data-testid="parametros-para-decidir">
-      <h4 className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-tenue">
-        Parámetros para decidir
-        {ap && <Badge tono={aprobada ? 'verde' : 'ambar'}>{aprobada ? 'Aprobados' : 'Pendientes de aprobar'}</Badge>}
-      </h4>
-      {!p.enBorrador && (
-        <p className="mt-1 text-[12px] text-rojo">El vigente traía esta sección y el borrador la quita.</p>
-      )}
-      {ap && (
-        <p className="mt-1 text-[12px] text-tenue">
-          Aprobación: {ap.estado}
-          {ap.por ? ` · por ${ap.por}` : ''}
-          {ap.fecha ? ` · ${ap.fecha}` : ''}
-          {ap.estadoAntes !== undefined && ap.estadoAntes !== ap.estado ? ` (antes: ${ap.estadoAntes})` : ''}
-        </p>
-      )}
-      {!p.cambia && <p className="mt-1 text-[12px] text-tenue">Los parámetros son iguales a los del vigente.</p>}
-      <ul className="mt-1 flex flex-col gap-1.5 text-[12.5px]">
-        {p.campos.map((c) => {
-          const et = ETIQUETA_PARAMETRO[c.estado]
-          return (
-            <li key={c.campo} className="flex flex-col gap-0.5">
-              <span className="flex gap-2">
-                <span className="font-bold text-texto">{c.campo.replace(/_/g, ' ')}</span>
-                <span className={`text-[10.5px] font-bold uppercase ${et.clase}`}>{et.texto}</span>
-              </span>
-              {c.estado === 'cambia' && c.antes !== undefined && (
-                <span className="break-words text-tenue line-through">{c.antes || '—'}</span>
-              )}
-              <span className={`break-words ${c.estado === 'quitado' ? 'text-tenue line-through' : 'text-texto/90'}`}>
-                {(c.estado === 'quitado' ? c.antes : c.valor) || '—'}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
-function ContenidoBorrador({ datos }: { datos: BorradorYVigente }) {
+function ContenidoBorrador({ datos, aprobacion }: { datos: BorradorYVigente; aprobacion: ContextoAprobacionParametros }) {
   const legible = leerPlanLegible(datos.borrador.contenido)
   const dif = diferenciaPlanes(datos.vigente?.contenido ?? null, datos.borrador.contenido)
   const hayCambiosDeFilas = dif.filasAnadidas.length + dif.filasCambiadas.length + dif.filasQuitadas.length > 0
@@ -535,7 +489,7 @@ function ContenidoBorrador({ datos }: { datos: BorradorYVigente }) {
         )}
       </section>
 
-      <SeccionParametros p={dif.parametros} />
+      <SeccionParametros p={dif.parametros} contenido={datos.borrador.contenido} contexto={aprobacion} />
 
       <section aria-label="Reglas">
         <h4 className="text-[11px] font-bold uppercase tracking-wide text-tenue">
