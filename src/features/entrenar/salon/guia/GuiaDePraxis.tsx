@@ -14,7 +14,7 @@ import { CADENA_DE_REGION, ETIQUETA_DE_RESPALDO, FICHA_DE_REGION, NOTA_DE_CADENA
 import type { EstadoDeLaGuia } from './useZonaDePraxis'
 import { useModoDeLaGuia } from './modoDeLaGuia'
 import { InterruptorSimpleTecnico } from './InterruptorSimpleTecnico'
-import { FICHA_LLANA_DE_REGION, NOTA_LLANA_DE_CADENAS } from './zonasLlanas'
+import { ETIQUETA_LLANA_DE_RESPALDO, FICHA_LLANA_DE_REGION, NOTA_LLANA_DE_CADENAS } from './zonasLlanas'
 
 /**
  * EL PANEL DE LA GUÍA: la mitad baja de la pantalla, con el cuerpo vivo arriba.
@@ -110,6 +110,7 @@ function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-tenue">{llana.nombre}</p>
           <p className="mt-1 text-sm font-semibold text-texto">{llana.queHace}</p>
           <p className="mt-2 text-xs text-tenue">{llana.conQuien}</p>
+          <p className="mt-0.5 text-[11px] font-semibold text-tenue">{ETIQUETA_LLANA_DE_RESPALDO[cadena.respaldo]}</p>
           <p className="mt-1 text-[11px] text-tenue">{NOTA_LLANA_DE_CADENAS}</p>
         </div>
       ) : (

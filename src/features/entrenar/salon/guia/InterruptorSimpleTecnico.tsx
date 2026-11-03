@@ -27,7 +27,7 @@ export function InterruptorSimpleTecnico({ modo, alElegir }: { modo: ModoDeLaGui
           </button>
         )
       })}
-      <span className="text-[11px] text-tenue">{modo === 'simple' ? 'Palabras de todos los días' : 'Con nombres técnicos'}</span>
+      <span aria-live="polite" className="text-[11px] text-tenue">{modo === 'simple' ? 'Palabras de todos los días' : 'Con nombres técnicos'}</span>
     </div>
   )
 }

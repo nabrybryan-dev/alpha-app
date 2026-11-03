@@ -1,4 +1,5 @@
 import type { IdDeRegion } from '../../sujeto/regiones'
+import type { RespaldoDeCadena } from './zonasDePraxis'
 
 /**
  * Las zonas del cuerpo dichas sin la palabra técnica, para quien no entiende de anatomía.
@@ -92,5 +93,13 @@ export const FICHA_LLANA_DE_REGION: Readonly<Record<IdDeRegion, FichaLlanaDeRegi
   },
 }
 
+/** Cuánto se ha visto de cada línea, dicho llano. Sale del mismo nivel que la ficha técnica: no puede decir más. */
+export const ETIQUETA_LLANA_DE_RESPALDO: Readonly<Record<RespaldoDeCadena, string>> = {
+  verificada: 'Esta línea se ha visto en cuerpos disecados',
+  parcial: 'Esta línea se ha visto solo en parte en cuerpos disecados',
+  modelo: 'Es una idea: nadie ha visto esa conexión',
+  sin_evaluar: 'Es una idea que los estudios no revisaron',
+}
+
 export const NOTA_LLANA_DE_CADENAS =
-  'Esto se ha visto en cuerpos disecados. No está demostrado que la fuerza viaje por estas líneas en una persona viva.'
+  'No está demostrado que la fuerza viaje por estas líneas en una persona viva.'
