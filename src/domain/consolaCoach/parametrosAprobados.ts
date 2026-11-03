@@ -12,6 +12,13 @@ export type ParametrosCanonicos = Record<string, unknown>
 
 export type EstadoAprobacionParametros = 'sin_aprobar' | 'vigente' | 'vencida'
 
+/**
+ * Cuantos parametros trae la seccion «10. Parametros para decidir». Los NOMBRES no estan
+ * definidos en ningun contrato del repo (el agente los escribe), asi que se exige la cantidad.
+ * La RPC `aprobar_parametros_plan` repite este 10 (constante comentada en la 0158).
+ */
+export const CANTIDAD_DE_PARAMETROS = 10
+
 const CLAVE_SECCION = 'parametros_para_decidir'
 const CLAVE_APROBACION_DEL_CONTENIDO = 'aprobacion'
 
@@ -63,4 +70,10 @@ export function estadoDeAprobacionDeParametros(
   if (!aprobado) return 'sin_aprobar'
   if (!vigente) return 'vencida'
   return parametrosIguales(aprobado, vigente) ? 'vigente' : 'vencida'
+}
+
+/** ¿La seccion trae exactamente los diez parametros? `{}`, nueve u once no se aprueban. */
+export function traeLosDiezParametros(parametros: Record<string, unknown> | undefined): boolean {
+  if (!parametros) return false
+  return Object.keys(canonizarParametros(parametros)).length === CANTIDAD_DE_PARAMETROS
 }

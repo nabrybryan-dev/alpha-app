@@ -7,12 +7,14 @@ import { SeccionParametros } from './SeccionParametros'
 
 // Los tests corren siempre en modo demo: sin red, la aprobacion vive en memoria.
 
+const DIEZ: Record<string, unknown> = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`p${i + 1}`, i + 1]))
+
 function contenido(valores: Record<string, unknown>) {
   return { parametros_para_decidir: { ...valores, aprobacion: { estado: 'pendiente' } } }
 }
 
 function pintar(opciones: { id?: string; valores?: Record<string, unknown>; pendiente?: boolean; permiso?: boolean } = {}) {
-  const c = contenido(opciones.valores ?? { frecuencia_semanal: 4, pasos_dia: 8000 })
+  const c = contenido(opciones.valores ?? DIEZ)
   return render(
     <SeccionParametros
       p={diferenciaParametros(null, c)}
@@ -58,24 +60,24 @@ describe('Aprobar parametros', () => {
     expect(boton()).toBeDisabled()
     expect(screen.getByText(/ya están aprobados/)).toBeInTheDocument()
     const guardada = await leerParametrosAprobados('ape-1')
-    expect(guardada.ok && guardada.aprobacion?.parametros).toEqual({ frecuencia_semanal: 4, pasos_dia: 8000 })
+    expect(guardada.ok && guardada.aprobacion?.parametros).toEqual(DIEZ)
   })
 
   it('si cambia un valor, la aprobacion esta vencida y se puede aprobar de nuevo', async () => {
-    await aprobarParametrosPlan('ape-1', { frecuencia_semanal: 4, pasos_dia: 8000 })
-    pintar({ valores: { frecuencia_semanal: 4, pasos_dia: 9000 } })
+    await aprobarParametrosPlan('ape-1', DIEZ)
+    pintar({ valores: { ...DIEZ, p2: 99 } })
     await waitFor(() => expect(estadoVisible()).toHaveTextContent('Vencida: cambió un valor, vuelve a aprobar'))
     expect(boton()).toBeEnabled()
   })
 
   it('con los mismos valores en otro orden sigue vigente', async () => {
-    await aprobarParametrosPlan('ape-1', { pasos_dia: 8000, frecuencia_semanal: 4 })
+    await aprobarParametrosPlan('ape-1', Object.fromEntries(Object.entries(DIEZ).reverse()))
     pintar()
     await waitFor(() => expect(estadoVisible()).toHaveTextContent('Aprobados'))
   })
 
   it('no se arrastra a un plan nuevo aunque los valores sean identicos', async () => {
-    await aprobarParametrosPlan('ape-viejo', { frecuencia_semanal: 4, pasos_dia: 8000 })
+    await aprobarParametrosPlan('ape-viejo', DIEZ)
     pintar({ id: 'ape-nuevo' })
     await waitFor(() => expect(estadoVisible()).toHaveTextContent('Sin aprobar'))
     expect(boton()).toBeEnabled()
@@ -85,7 +87,7 @@ describe('Aprobar parametros', () => {
     pintar({ permiso: false })
     await waitFor(() => expect(estadoVisible()).toHaveTextContent('Sin aprobar'))
     expect(boton()).toBeDisabled()
-    expect(screen.getByText(/capacidad «aprobar plan estratégico»/)).toBeInTheDocument()
+    expect(screen.getByText(/Solo la coach puede aprobar parámetros/)).toBeInTheDocument()
   })
 
   it('plan ya decidido: deshabilitado y con el motivo a la vista', async () => {
@@ -93,5 +95,23 @@ describe('Aprobar parametros', () => {
     await waitFor(() => expect(estadoVisible()).toHaveTextContent('Sin aprobar'))
     expect(boton()).toBeDisabled()
     expect(screen.getByText(/El plan ya está decidido/)).toBeInTheDocument()
+  })
+
+  it('con fila muestra «Aprobados el <fecha>»', async () => {
+    await aprobarParametrosPlan('ape-1', DIEZ)
+    pintar()
+    await waitFor(() => expect(estadoVisible()).toHaveTextContent(/^Aprobados el .+ de \d{4}$/))
+  })
+
+  it('un plan con 9 o con 11 parametros, o sin ninguno, no se puede aprobar y dice por que', async () => {
+    const nueve: Record<string, unknown> = { ...DIEZ }
+    delete nueve.p10
+    for (const valores of [nueve, { ...DIEZ, p11: 11 }]) {
+      const { unmount } = pintar({ valores })
+      await waitFor(() => expect(estadoVisible()).toHaveTextContent('Sin aprobar'))
+      expect(boton()).toBeDisabled()
+      expect(screen.getByText(/El plan no trae los diez parámetros/)).toBeInTheDocument()
+      unmount()
+    }
   })
 })

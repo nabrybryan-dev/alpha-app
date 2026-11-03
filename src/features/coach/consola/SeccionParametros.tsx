@@ -8,6 +8,7 @@ import {
 import {
   estadoDeAprobacionDeParametros,
   parametrosDeContenido,
+  traeLosDiezParametros,
   type EstadoAprobacionParametros,
 } from '../../../domain/consolaCoach/parametrosAprobados'
 import type { DiferenciaParametros } from '../../../domain/consolaCoach/planRenovado'
@@ -18,7 +19,7 @@ export interface ContextoAprobacionParametros {
   planRenovadoId: string
   /** El plan sigue pendiente (propuesto o esperando a Bryan). */
   pendiente: boolean
-  /** Quien mira tiene `aprobar_plan_estrategico`, la misma puerta que aprobar el plan. */
+  /** Quien mira es la coach (rol coach): la RPC `aprobar_parametros_plan` exige `es_coach()`. */
   permiso: boolean
 }
 
@@ -38,6 +39,10 @@ const TEXTO_ESTADO: Record<EstadoAprobacionParametros, string> = {
 type Lectura = { estado: 'cargando' } | { estado: 'error'; error: string } | { estado: 'listo'; fila: ParametrosAprobadosFila | null }
 
 /**
+ * PENDIENTE DE BRYAN: la insignia existente «Aprobados» / «Pendientes de aprobar» de la sección sale del
+ * campo `aprobacion` que escribe el agente, no de esta aprobación; los textos se parecen. No se renombra
+ * hasta que Bryan decida.
+ *
  * «Aprobar parámetros» (0158): botón propio, separado del de aprobar el plan. Aprobar uno no
  * aprueba el otro. Pide confirmación en sitio, como el botón del plan, para que un toque
  * accidental no firme nada. La base vuelve a comprobar que los valores sean los del plan.
@@ -61,15 +66,21 @@ function AprobarParametros({ contexto, contenido }: { contexto: ContextoAprobaci
     }
   }, [planRenovadoId])
 
+  const fecha =
+    lectura.estado === 'listo' && lectura.fila
+      ? new Date(lectura.fila.aprobadoEn).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+      : undefined
   const estado = estadoDeAprobacionDeParametros(lectura.estado === 'listo' ? lectura.fila?.parametros : null, vigentes)
 
   const motivoNo = !permiso
-    ? 'Hace falta la capacidad «aprobar plan estratégico».'
+    ? 'Solo la coach puede aprobar parámetros'
     : !pendiente
       ? 'El plan ya está decidido.'
       : !vigentes
         ? 'El plan no trae parámetros para aprobar.'
-        : lectura.estado !== 'listo'
+        : !traeLosDiezParametros(vigentes)
+          ? 'El plan no trae los diez parámetros'
+          : lectura.estado !== 'listo'
           ? undefined
           : estado === 'vigente'
             ? 'Estos parámetros ya están aprobados.'
@@ -93,7 +104,7 @@ function AprobarParametros({ contexto, contenido }: { contexto: ContextoAprobaci
   return (
     <div className="mt-2 flex flex-col gap-1.5" data-testid="aprobar-parametros">
       <p aria-live="polite" className="text-[12.5px] font-bold text-texto" data-testid="estado-aprobacion-parametros">
-        {lectura.estado === 'cargando' ? 'Mirando la aprobación…' : lectura.estado === 'error' ? lectura.error : TEXTO_ESTADO[estado]}
+        {lectura.estado === 'cargando' ? 'Mirando la aprobación…' : lectura.estado === 'error' ? lectura.error : (estado === 'vigente' && fecha ? `Aprobados el ${fecha}` : TEXTO_ESTADO[estado])}
       </p>
       {!abierta && (
         <div className="flex flex-wrap items-center gap-2">

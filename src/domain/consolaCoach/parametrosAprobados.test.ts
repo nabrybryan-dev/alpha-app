@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   canonizarParametros,
+  CANTIDAD_DE_PARAMETROS,
   estadoDeAprobacionDeParametros,
   parametrosDeContenido,
   parametrosIguales,
+  traeLosDiezParametros,
 } from './parametrosAprobados'
 
 const DIEZ = {
@@ -119,5 +121,25 @@ describe('parametrosDeContenido', () => {
     expect(parametrosDeContenido(null)).toBeUndefined()
     expect(parametrosDeContenido({ parametros_para_decidir: [1] })).toBeUndefined()
     expect(parametrosDeContenido({ parametros_para_decidir: 'x' })).toBeUndefined()
+  })
+})
+
+describe('traeLosDiezParametros', () => {
+  it('son exactamente diez', () => {
+    expect(CANTIDAD_DE_PARAMETROS).toBe(10)
+    expect(traeLosDiezParametros(DIEZ)).toBe(true)
+  })
+
+  it('vacio, nueve u once no valen; tampoco sin seccion', () => {
+    expect(traeLosDiezParametros({})).toBe(false)
+    const nueve: Record<string, unknown> = { ...DIEZ }
+    delete nueve.sueno_h
+    expect(traeLosDiezParametros(nueve)).toBe(false)
+    expect(traeLosDiezParametros({ ...DIEZ, extra: 1 })).toBe(false)
+    expect(traeLosDiezParametros(undefined)).toBe(false)
+  })
+
+  it('una clave undefined no cuenta como parametro', () => {
+    expect(traeLosDiezParametros({ ...DIEZ, extra: undefined })).toBe(true)
   })
 })

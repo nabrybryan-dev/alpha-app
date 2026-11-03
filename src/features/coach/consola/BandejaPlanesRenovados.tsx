@@ -50,7 +50,7 @@ interface BandejaProps {
 }
 
 export function BandejaPlanesRenovados({ onVerPersona }: BandejaProps) {
-  const { cargando, tiene } = useCapacidades()
+  const { cargando, tiene, usuarioId } = useCapacidades()
   const puedeVer = !cargando && tiene('aprobar_plan_estrategico')
   const [planes, setPlanes] = useState<PlanRenovado[] | null>(null)
   // Por qué no se pudo leer la bandeja; `null` si no falló. Un fallo no es «no hay» (APP-F01).
@@ -85,7 +85,12 @@ export function BandejaPlanesRenovados({ onVerPersona }: BandejaProps) {
 
   if (!puedeVer) return null
 
-  const permisos = { aprobarPlanEstrategico: true, autorizarExcepcion: tiene('autorizar_excepcion') }
+  const permisos = {
+    aprobarPlanEstrategico: true,
+    autorizarExcepcion: tiene('autorizar_excepcion'),
+    // Aprobar PARAMETROS es solo del rol coach (0158), no de quien aprueba el plan.
+    esCoach: usuarioId ? db.usuarios.byId(usuarioId)?.rol === 'coach' : false,
+  }
   const actualizar = (plan: PlanRenovado) => setPlanes((previos) => (previos ?? []).map((p) => (p.id === plan.id ? plan : p)))
   const pendientes = planes ? planes.filter((p) => p.estado === 'propuesto' || p.estado === 'espera_bryan').length : 0
 
@@ -130,7 +135,7 @@ interface FilaProps {
   i: number
   plan: PlanRenovado
   ahora: number
-  permisos: { aprobarPlanEstrategico: boolean; autorizarExcepcion: boolean }
+  permisos: { aprobarPlanEstrategico: boolean; autorizarExcepcion: boolean; esCoach: boolean }
   onVerPersona?: (usuarioId: string) => void
   onDecidido: (plan: PlanRenovado) => void
 }
@@ -324,7 +329,7 @@ function FilaPlanRenovado({ i, plan, ahora, permisos, onVerPersona, onDecidido }
           aprobacion={{
             planRenovadoId: plan.id,
             pendiente: plan.estado === 'propuesto' || plan.estado === 'espera_bryan',
-            permiso: permisos.aprobarPlanEstrategico,
+            permiso: permisos.esCoach,
           }}
         />
       )}

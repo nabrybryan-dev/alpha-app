@@ -12,8 +12,9 @@
 -- separado del de aprobar el plan: aprobar uno NO aprueba el otro.
 --
 -- REGLAS DE BRYAN (2-nov), todas en la base y no en la pantalla:
---   1. Firma quien llama con su cuenta (`auth.uid()`), con la misma capacidad que ya abre la
---      puerta de aprobar el plan (`aprobar_plan_estrategico`). No hay mapeo a FIRMANTES.json.
+--   1. Firma SOLO la cuenta de coach (`public.es_coach()`: usuarios_app.rol = 'coach'), con su
+--      `auth.uid()`. Manuela NO puede, aunque pueda aprobar el plan (decision de Bryan, 2-nov,
+--      selector). No hay mapeo a FIRMANTES.json.
 --   2. La aprobacion se guarda aqui, en `parametros_aprobados`.
 --   3. VENCE si cambia cualquiera de los valores: la RPC solo guarda si lo que se le pasa es
 --      IGUAL (jsonb, sin importar el orden de las claves) a lo que el plan trae AHORA; si no,
@@ -21,6 +22,9 @@
 --   4. NO se arrastra a un plan nuevo: la fila cuelga de UNA aprobacion de plan
 --      (`plan_renovado_id`, unica). Otro plan renovado = otra fila = otra firma, aunque los
 --      valores sean identicos.
+--
+-- DUDA ABIERTA (no se cambia aqui): el `on conflict do update` sobrescribe firmante y fecha. Si
+-- la aprobacion vence y otro coach vuelve a firmar, se pierde quien firmo antes.
 --
 -- TABLA: sin montos ni datos de personas (solo los diez valores del plan y quien firmo).
 -- RLS en este mismo paso. Leer: coach y quien ya puede ver la bandeja. Escribir: SOLO por la
@@ -71,6 +75,10 @@ set search_path = public
 as $$
 declare
   quien       uuid := auth.uid();
+  -- Cuantos parametros trae la seccion «10. Parametros para decidir». Los nombres no estan
+  -- definidos en ningun contrato; se exige la cantidad. Origen: CANTIDAD_DE_PARAMETROS en
+  -- src/domain/consolaCoach/parametrosAprobados.ts (si cambia uno, cambia el otro).
+  c_cantidad  constant int := 10;
   v_estado    text;
   v_seccion   jsonb;
   v_vigentes  jsonb;
@@ -80,8 +88,8 @@ begin
     raise exception 'Falta sesión' using errcode = '28000';
   end if;
 
-  if not public.tiene_capacidad('aprobar_plan_estrategico') then
-    raise exception 'No tienes permiso para aprobar parámetros' using errcode = '42501';
+  if not public.es_coach() then
+    raise exception 'Solo la coach puede aprobar parámetros' using errcode = '42501';
   end if;
 
   if p_parametros is null or jsonb_typeof(p_parametros) <> 'object' then
@@ -109,6 +117,9 @@ begin
   end if;
 
   v_vigentes := v_seccion - 'aprobacion';
+  if (select count(*) from jsonb_object_keys(v_vigentes)) <> c_cantidad then
+    raise exception 'El plan no trae los diez parámetros' using errcode = '22023';
+  end if;
   if p_parametros is distinct from v_vigentes then
     raise exception 'Los valores cambiaron, vuelve a mirar' using errcode = '22023';
   end if;
@@ -129,7 +140,7 @@ revoke execute on function public.aprobar_parametros_plan(uuid, jsonb) from publ
 grant execute on function public.aprobar_parametros_plan(uuid, jsonb) to authenticated, service_role;
 
 comment on function public.aprobar_parametros_plan(uuid, jsonb) is
-  'Guarda la aprobacion de los parametros de un plan renovado PENDIENTE. Exige aprobar_plan_estrategico '
+  'Guarda la aprobacion de los parametros de un plan renovado PENDIENTE. Exige es_coach() y que la seccion traiga exactamente diez parametros '
   'y que p_parametros sea igual (jsonb) a la seccion parametros_para_decidir del plan sin `aprobacion`. '
   'Firma auth.uid(). Aprobar los parametros NO aprueba el plan.';
 
