@@ -21,12 +21,12 @@ const registrador = {
   usage: { input_tokens: 1800, output_tokens: 220 },
 }
 
-interface Opciones { rol?: string; insert?: number; riesgo?: 'NINGUNO' | 'ALTO' }
+interface Opciones { rol?: string; insert?: number; riesgo?: 'NINGUNO' | 'ALTO'; sinSaldo?: boolean }
 
 function entorno(o: Opciones = {}) {
   const llamadas: { url: string; init?: RequestInit }[] = []
   const lector = o.riesgo === 'ALTO'
-    ? { content: [{ type: 'text', text: JSON.stringify({ nivel: 'ALTO', cita: 'prueba', por_que: 'prueba' }) }] }
+    ? { content: [{ type: 'text', text: JSON.stringify({ nivel: 'RIESGO_VIDA', cita: 'sentadilla', por_que: 'prueba' }) }] }
     : lectorNinguno
   const fetchSim = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url)
@@ -39,6 +39,9 @@ function entorno(o: Opciones = {}) {
     if (/rest\/v1\/praxis_cola_dudas/.test(u)) return new Response(null, { status: 201 })
     if (/rest\/v1\/fichas_respuesta/.test(u)) return new Response('[]')
     if (u.startsWith('https://portero.prueba')) return new Response(JSON.stringify({ decision: 'atender', ficha: 'x', tres_primeras: [], quien: 'camilin' }))
+    if (u.includes('api.anthropic.com') && o.sinSaldo) {
+      return new Response(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } }), { status: 400 })
+    }
     if (u.includes('api.anthropic.com')) {
       const cuerpo = JSON.parse(String(init?.body ?? '{}')) as { system?: { text: string }[]; tools?: unknown }
       if (cuerpo.system?.[0]?.text === PROMPT_RIESGO) return new Response(JSON.stringify(lector))
@@ -52,7 +55,8 @@ function entorno(o: Opciones = {}) {
     ahora: () => AHORA,
   }
   const inserts = () => llamadas.filter((l) => /rest\/v1\/praxis_mensajes_equipo/.test(l.url) && l.init?.method === 'POST')
-  return { d, inserts }
+  const avisos = () => llamadas.filter((l) => /rest\/v1\/praxis_avisos_coach/.test(l.url) && l.init?.method === 'POST')
+  return { d, inserts, avisos }
 }
 
 const enviar = async (e: ReturnType<typeof entorno>, frase = FRASE) => {
@@ -107,9 +111,23 @@ describe('praxis-registro: mensajes del equipo', () => {
     expect(e.inserts()).toHaveLength(0)
   })
 
+  it('sin saldo de Anthropic (camino de respaldo sin modelo) la frase del equipo también se guarda, marcada «sin_modelo»', async () => {
+    const e = entorno({ sinSaldo: true })
+    await enviar(e)
+    expect(e.inserts()).toHaveLength(1)
+    expect(JSON.parse(String(e.inserts()[0].init?.body))).toEqual({ usuario_id: 'u-eq-1', frase: FRASE, intencion_registrador: ['sin_modelo'] })
+  })
+
+  it('sin saldo, un asesorado tampoco guarda nada', async () => {
+    const e = entorno({ sinSaldo: true, rol: 'asesorado' })
+    await enviar(e)
+    expect(e.inserts()).toHaveLength(0)
+  })
+
   it('una frase que el filtro de riesgo detiene no se guarda aquí', async () => {
     const e = entorno({ riesgo: 'ALTO' })
     await enviar(e)
+    expect(e.avisos()).toHaveLength(1) // el camino de riesgo se recorrió de verdad: la señal va por el aviso al coach
     expect(e.inserts()).toHaveLength(0)
   })
 })
