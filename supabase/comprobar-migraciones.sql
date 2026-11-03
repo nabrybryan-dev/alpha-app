@@ -2497,5 +2497,25 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0158 - parametros aprobados aparte del plan', 'parametros_aprobados: RLS, sin escritura directa; aprobar_parametros_plan: security definer, search_path fijo, sin anon',
+       case when to_regclass('public.parametros_aprobados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.parametros_aprobados')) then 'NO'
+            when has_table_privilege('anon', 'public.parametros_aprobados', 'select')
+              or has_table_privilege('anon', 'public.parametros_aprobados', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.parametros_aprobados', 'insert')
+              or has_table_privilege('authenticated', 'public.parametros_aprobados', 'update')
+              or has_table_privilege('authenticated', 'public.parametros_aprobados', 'delete')
+              or has_table_privilege('authenticated', 'public.parametros_aprobados', 'truncate') then 'NO'
+            when not has_table_privilege('authenticated', 'public.parametros_aprobados', 'select') then 'NO'
+            when to_regprocedure('public.aprobar_parametros_plan(uuid,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.aprobar_parametros_plan(uuid,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.aprobar_parametros_plan(uuid,jsonb)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.aprobar_parametros_plan(uuid,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.aprobar_parametros_plan(uuid,jsonb)', 'execute') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
