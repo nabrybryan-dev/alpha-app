@@ -20,6 +20,7 @@ import {
 } from '../../../domain/consolaCoach/planRenovado'
 import { cuentaAtras, ordenarBandeja } from '../../../domain/consolaCoach/primerPlan'
 import { Esqueleto, FalloBandeja, Tarjeta } from './piezas'
+import { SeccionParametros, type ContextoAprobacionParametros } from './SeccionParametros'
 import { useCapacidades } from './useCapacidades'
 
 /**
@@ -48,8 +49,10 @@ interface BandejaProps {
   onVerPersona?: (usuarioId: string) => void
 }
 
+const estaPendiente = (p: PlanRenovado) => p.estado === 'propuesto' || p.estado === 'espera_bryan'
+
 export function BandejaPlanesRenovados({ onVerPersona }: BandejaProps) {
-  const { cargando, tiene } = useCapacidades()
+  const { cargando, tiene, usuarioId } = useCapacidades()
   const puedeVer = !cargando && tiene('aprobar_plan_estrategico')
   const [planes, setPlanes] = useState<PlanRenovado[] | null>(null)
   // Por qué no se pudo leer la bandeja; `null` si no falló. Un fallo no es «no hay» (APP-F01).
@@ -84,9 +87,14 @@ export function BandejaPlanesRenovados({ onVerPersona }: BandejaProps) {
 
   if (!puedeVer) return null
 
-  const permisos = { aprobarPlanEstrategico: true, autorizarExcepcion: tiene('autorizar_excepcion') }
+  const permisos = {
+    aprobarPlanEstrategico: true,
+    autorizarExcepcion: tiene('autorizar_excepcion'),
+    // Aprobar PARAMETROS es solo del rol coach (0158), no de quien aprueba el plan.
+    esCoach: usuarioId ? db.usuarios.byId(usuarioId)?.rol === 'coach' : false,
+  }
   const actualizar = (plan: PlanRenovado) => setPlanes((previos) => (previos ?? []).map((p) => (p.id === plan.id ? plan : p)))
-  const pendientes = planes ? planes.filter((p) => p.estado === 'propuesto' || p.estado === 'espera_bryan').length : 0
+  const pendientes = planes ? planes.filter((p) => estaPendiente(p)).length : 0
 
   return (
     <Tarjeta
@@ -129,7 +137,7 @@ interface FilaProps {
   i: number
   plan: PlanRenovado
   ahora: number
-  permisos: { aprobarPlanEstrategico: boolean; autorizarExcepcion: boolean }
+  permisos: { aprobarPlanEstrategico: boolean; autorizarExcepcion: boolean; esCoach: boolean }
   onVerPersona?: (usuarioId: string) => void
   onDecidido: (plan: PlanRenovado) => void
 }
@@ -320,6 +328,11 @@ function FilaPlanRenovado({ i, plan, ahora, permisos, onVerPersona, onDecidido }
           planId={plan.planId}
           justificacion={justificacion}
           supuestos={plan.supuestos}
+          aprobacion={{
+            planRenovadoId: plan.id,
+            pendiente: estaPendiente(plan),
+            permiso: permisos.esCoach,
+          }}
         />
       )}
     </li>
@@ -333,10 +346,11 @@ interface VistaProps {
   planId: string
   justificacion: ReturnType<typeof leerJustificacion>
   supuestos: string[]
+  aprobacion: ContextoAprobacionParametros
 }
 
 /** El borrador legible y su diferencia con el vigente. Se lee al abrirlo, no al montar. */
-function VistaBorrador({ usuarioId, planId, justificacion, supuestos }: VistaProps) {
+function VistaBorrador({ usuarioId, planId, justificacion, supuestos, aprobacion }: VistaProps) {
   const [vista, setVista] = useState<EstadoVista>({ estado: 'cargando' })
 
   useEffect(() => {
@@ -354,7 +368,7 @@ function VistaBorrador({ usuarioId, planId, justificacion, supuestos }: VistaPro
     <div className="consola-panel-entra mt-2 flex flex-col gap-2.5 rounded-lg border border-linea bg-surface-1 p-2.5" style={{ '--consola-dx': 0 } as CSSProperties}>
       {vista.estado === 'cargando' && <Esqueleto lineas={3} />}
       {vista.estado === 'error' && <p className="text-xs text-rojo">{vista.error}</p>}
-      {vista.estado === 'listo' && <ContenidoBorrador datos={vista.datos} />}
+      {vista.estado === 'listo' && <ContenidoBorrador datos={vista.datos} aprobacion={aprobacion} />}
 
       {justificacion.length > 0 && (
         <section aria-label="Justificación">
@@ -383,7 +397,7 @@ function VistaBorrador({ usuarioId, planId, justificacion, supuestos }: VistaPro
   )
 }
 
-function ContenidoBorrador({ datos }: { datos: BorradorYVigente }) {
+function ContenidoBorrador({ datos, aprobacion }: { datos: BorradorYVigente; aprobacion: ContextoAprobacionParametros }) {
   const legible = leerPlanLegible(datos.borrador.contenido)
   const dif = diferenciaPlanes(datos.vigente?.contenido ?? null, datos.borrador.contenido)
   const hayCambiosDeFilas = dif.filasAnadidas.length + dif.filasCambiadas.length + dif.filasQuitadas.length > 0
@@ -481,6 +495,8 @@ function ContenidoBorrador({ datos }: { datos: BorradorYVigente }) {
           </div>
         )}
       </section>
+
+      <SeccionParametros p={dif.parametros} contenido={datos.borrador.contenido} contexto={aprobacion} />
 
       <section aria-label="Reglas">
         <h4 className="text-[11px] font-bold uppercase tracking-wide text-tenue">
