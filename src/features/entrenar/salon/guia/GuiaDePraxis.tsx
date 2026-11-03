@@ -102,7 +102,6 @@ function Zona({ id, p }: { id: IdDeRegion; p: GuiaDePraxisProps }) {
       <p className="text-sm font-semibold text-texto">{ficha.queHace}</p>
       <p className="mt-1 text-xs text-tenue">{ficha.partes}</p>
       <p className="mt-2 text-xs text-tenue" data-testigo="cadena-de-zona">
-        <span className="font-semibold text-texto">Cadena: </span>
         {cadena.cadena}
       </p>
       <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-tenue">{ETIQUETA_DE_RESPALDO[cadena.respaldo]}</p>
