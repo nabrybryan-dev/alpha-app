@@ -94,7 +94,7 @@ export const ESCORZO_DE_PARED = { grados: 14, perspectiva: 620 } as const
  */
 export const SUELO_DEL_SALON = {
   conRegistro: 'calc(var(--tope-nav) + 15rem)',
-  sinRegistro: 'calc(var(--tope-nav) + 3.5rem)',
+  sinRegistro: 'var(--tope-hoja)',
 } as const
 
 /** Dónde vive físicamente un hueco dentro del salón. */
@@ -154,6 +154,23 @@ const TODO_W: readonly NivelW[] = [0, 1, 2, 3, 4]
  * sexto sitio «provisional» vuelve la columna con scroll por la puerta de atrás.
  */
 export const HUECOS = {
+  /**
+   * EL CUERPO — la lectura del sujeto de Blender y sus capas (maqueta 7, paso 4 del rediseño).
+   *
+   * Piel · Músculo · Hueso a un lado, la lectura corta («Dorsal 2 · Bíceps 1») con el dolor en
+   * rojo en su propia línea, y el paso entre el cuerpo y el movimiento. Es el único sitio
+   * nuevo que admite el salón y existe PORQUE la maqueta aprobada lo pide: el texto de la
+   * lectura es del cuerpo y no cabe en una pared. Sin tope de caracteres propio: son cifras
+   * y nombres de región, y el detalle completo va a la hoja.
+   */
+  cuerpo: {
+    contiene: 'Las capas del cuerpo, la lectura de series por región y el dolor del check-in.',
+    ancla: 'orbita',
+    gesto: 'ninguno',
+    topeDeTexto: 0,
+    visibleEnW: TODO_W,
+  },
+
   /**
    * LAS PAREDES — lo corto y esencial del ejercicio.
    *

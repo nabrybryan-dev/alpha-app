@@ -5,6 +5,7 @@ import { db, useDbVersion } from '../../data/dbInstance'
 import { claveDe, estaVieja, type ItemDespensa } from '../../domain/nutricion/despensa'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * Lo que el asesorado tiene en casa.
@@ -43,6 +44,8 @@ import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 interface SheetDespensaProps {
   asesoradoId: string
   abierto: boolean
+  /** El interruptor de kcal: el buscador de la despensa no enseña energía si está apagado. */
+  verKcal?: boolean
   onCerrar: () => void
 }
 
@@ -54,7 +57,7 @@ function cicloDe(respuestas: Respuestas): number | undefined {
 
 const hoyIso = () => new Date().toISOString().slice(0, 10)
 
-export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaProps) {
+export function SheetDespensa({ asesoradoId, abierto, verKcal = true, onCerrar }: SheetDespensaProps) {
   useDbVersion()
   const [buscando, setBuscando] = useState(false)
 
@@ -77,13 +80,13 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
         </p>
       )}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={() => setBuscando(true)}
-        className="press mt-3 w-full rounded-2xl bg-accion py-3 text-xs font-semibold uppercase tracking-wide text-white"
+        className="mt-3"
       >
         Añadir lo que compré
-      </button>
+      </Boton3D>
 
       <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-tenue">
         En casa ({despensa.length})
@@ -127,6 +130,7 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
 
       <SheetBuscarAlimento
         abierto={buscando}
+        verKcal={verKcal}
         onCerrar={() => setBuscando(false)}
         onElegir={(alimento) => {
           db.despensa.agregar(asesoradoId, {

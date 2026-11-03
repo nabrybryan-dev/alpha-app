@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { puedeVerPraxis } from '../../domain/praxis/acceso'
+import { ComprobandoAcceso } from './ComprobandoAcceso'
 import { crearConexionPraxis } from './conexionReal'
 import type { Trato } from './motor/entorno'
 import { PraxisCosmos } from './PraxisCosmos'
@@ -22,9 +24,12 @@ import { PraxisCosmos } from './PraxisCosmos'
  */
 export default function PraxisPage() {
   const { usuario } = useSesion()
+  const { esCoach: ocupaElPuesto, cargando } = usePuestoCoach(usuario.rol)
   const [parametros] = useSearchParams()
 
-  if (!puedeVerPraxis(usuario.rol)) return <Navigate to="/" replace />
+  // Quien ocupa el puesto de coach (la cuenta personal de Bryan) entra; mientras se sabe, no se decide nada.
+  if (usuario.rol === 'asesorado' && cargando) return <ComprobandoAcceso />
+  if (!puedeVerPraxis(usuario.rol, undefined, ocupaElPuesto)) return <Navigate to="/" replace />
 
   // El trato lo elegirá la persona al inscribirse; mientras solo la vea el staff, se cambia con ?trato=usted.
   const trato: Trato = parametros.get('trato')?.toLowerCase() === 'usted' ? 'usted' : 'tu'

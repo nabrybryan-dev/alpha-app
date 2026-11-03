@@ -81,8 +81,8 @@ export function CamaraDelSalon({
         aria-label="Medir esta serie con la cámara"
         className="press grid h-[52px] w-[52px] place-items-center rounded-full border"
         style={{
-          borderColor: 'rgb(var(--accion-rgb) / 0.55)',
-          background: 'rgb(var(--ink-1000-rgb) / 0.6)',
+          borderColor: 'var(--salon-3d-borde-fino)',
+          background: 'var(--salon-3d-velo)',
           color: 'var(--accion)',
         }}
       >

@@ -1,78 +1,121 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
+import { movimientoReducido } from '../../../../components/ui/movimientoReducido'
+import { COLOR_DEL_ESTADO, estadoDelDia } from './estadoDelDia'
+import { Boton3D } from '../../../../components/ui/Boton3D'
 import {
+  ALTO_FILA,
   diaEnLectura,
+  diasTocables,
   encajar,
-  giroDelDia,
-  GRADOS_POR_PIXEL,
+  FILAS_A_CADA_LADO,
+  inclinacionDeFila,
   inercia,
-  PASO,
+  limitar,
+  opacidadDeFila,
+  UMBRAL_DE_ARRASTRE,
 } from './fisicaDelTambor'
 
 /**
- * LA SEMANA, EN UN TAMBOR.
+ * LA SEMANA, EN UN TAMBOR (Bryan, 30-oct: vuelve, como en la maqueta 7).
  *
- * Siete filas sobre un cilindro que se arrastra, coge inercia y encaja solo. Tocar un día
- * abre su sesión.
+ * Una columna de siete filas que se arrastra, coge inercia y encaja sola, con las vecinas
+ * escorzadas. Tocar un día lo CENTRA; el botón «Mirar este día» es lo que lo elige. Por eso
+ * elegir un día nunca empieza esa sesión: ni siquiera cambia la sala hasta confirmarlo.
  *
- * ## Por qué un tambor y no una lista
+ * ## Lo que falló la vez anterior y no puede repetirse
  *
- * En una lista de siete filas el dedo tapa tres, así que elegir el jueves obliga a mirar
- * dónde está la mano. En un tambor se tira y se suelta, y la fila de lectura —la que está
- * entre los dos filetes rojos— no se toca nunca.
+ * El tambor cilíndrico enseñaba tres días y dejaba dos de canto debajo de la ranura, sin
+ * poder tocarse. Aquí se ven y se tocan cinco a la vez y los siete se alcanzan: arrastrando
+ * (con inercia, o sin ella con movimiento reducido), con ↑ ↓ Inicio Fin, y con Tab, porque
+ * enfocar una fila la centra. `TamborDeLaSemana.test.tsx` lo prueba por cada vía.
  *
- * Y hay una segunda razón, de sitio: esto no es una pantalla nueva, es una capa que se
- * abre encima de la sala. Una lista con siete tarjetas sería otra pantalla; un cilindro
- * con las filas escorzándose deja ver que el salón sigue detrás.
+ * ## Lo que conserva de la lista desplegable que lo sustituyó
  *
- * ## `backface-visibility: hidden`, y no es un detalle
- *
- * Las filas de la mitad de atrás del cilindro están giradas hacia el otro lado. Sin
- * esconder su cara trasera se ven ESPEJADAS a través del hueco entre las de delante: se
- * lee «SETRAM» flotando encima de «MARTES» y no hay forma de entender por qué.
+ * Abre en el día que está en pantalla; Escape o tocar fuera cierran; al cerrar el foco vuelve
+ * a quien la abrió; `data-no-orbita` para que el dedo no gire la sala; y se puede volver a hoy.
  *
  * ## El giro se escribe en el nodo
  *
- * Sesenta veces por segundo mientras el dedo se mueve, y otras tantas durante la inercia.
- * Por estado, cada fotograma re-renderizaría las siete filas y el salón entero que hay
- * detrás. Lo único que sube a estado es qué día quedó elegido.
+ * Sesenta veces por segundo mientras el dedo se mueve. Por estado, cada fotograma
+ * re-renderizaría las siete filas y el salón entero. A estado solo sube qué día está en
+ * lectura (cuando cambia).
  */
 
 export interface TamborDeLaSemanaProps {
   semana: readonly DiaRuta[]
-  /** El día que está abierto ahora, para arrancar el tambor en él. */
+  /** El día que está en pantalla ahora: el tambor arranca en él. */
   diaActual: number
+  /** Se llama solo al confirmar («Mirar este día» o «Volver a hoy»), nunca al centrar. */
   onElegir: (indice: number) => void
   onCerrar: () => void
 }
 
-export function TamborDeLaSemana({
-  semana,
-  diaActual,
-  onElegir,
-  onCerrar,
-}: TamborDeLaSemanaProps) {
-  const cilindro = useRef<HTMLDivElement>(null)
-  const giro = useRef(giroDelDia(diaActual))
-  const gesto = useRef<{ y: number; giro: number; t: number; v: number } | null>(null)
-  const cuadro = useRef(0)
-  // Un arrastre no debe elegir el día que quedó bajo el dedo al soltar: se distingue por
-  // si hubo recorrido, no por el tiempo que duró.
-  const arrastro = useRef(false)
-  const [encajado, setEncajado] = useState(true)
+const redondear = (c: number) => String(Number(c.toFixed(3)))
 
-  const pintar = () => {
-    cilindro.current?.style.setProperty('--giro', `${giro.current.toFixed(2)}deg`)
+export function TamborDeLaSemana({ semana, diaActual, onElegir, onCerrar }: TamborDeLaSemanaProps) {
+  const n = semana.length
+  const inicio = limitar(diaActual, n)
+  const visor = useRef<HTMLDivElement>(null)
+  const filas = useRef<Array<HTMLButtonElement | null>>([])
+  const centro = useRef(inicio)
+  const gesto = useRef<{ y: number; centro: number; t: number; v: number } | null>(null)
+  const cuadro = useRef(0)
+  const temporizador = useRef(0)
+  // Un arrastre no debe elegir el día que queda bajo el dedo al soltar: se distingue por si hubo
+  // recorrido, no por el tiempo que duró.
+  const arrastro = useRef(false)
+  const [lectura, setLectura] = useState(inicio)
+  const [encajado, setEncajado] = useState(true)
+  const alAlcance = diasTocables(lectura, n)
+  const hoy = semana.findIndex((d) => d.esHoy)
+  const hoyIso = semana[hoy]?.fechaIso
+
+  const pintarNodos = () => {
+    const c = centro.current
+    visor.current?.style.setProperty('--centro', redondear(c))
+    filas.current.forEach((f, i) => {
+      if (!f) return
+      const d = i - c
+      f.style.transform = `translateY(${(d * ALTO_FILA).toFixed(1)}px) rotateX(${inclinacionDeFila(d).toFixed(1)}deg)`
+      f.style.opacity = opacidadDeFila(d).toFixed(2)
+    })
   }
 
-  useEffect(() => {
+  const pintar = () => {
+    pintarNodos()
+    setLectura(diaEnLectura(centro.current, n))
+  }
+
+  const irA = (dia: number) => {
+    cancelAnimationFrame(cuadro.current)
+    centro.current = limitar(dia, n)
+    setEncajado(true)
     pintar()
-    return () => cancelAnimationFrame(cuadro.current)
-  }, [])
+  }
+
+  // Primer pintado, el foco en el día que se ve y Escape. El foco vuelve a quien abrió la capa.
+  useEffect(() => {
+    pintarNodos()
+    const quienAbrio = document.activeElement as HTMLElement | null
+    filas.current[inicio]?.focus({ preventScroll: true })
+    const alPulsar = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') onCerrar()
+    }
+    document.addEventListener('keydown', alPulsar)
+    return () => {
+      document.removeEventListener('keydown', alPulsar)
+      cancelAnimationFrame(cuadro.current)
+      clearTimeout(temporizador.current)
+      quienAbrio?.focus?.({ preventScroll: true })
+    }
+    // Solo al montar: el giro vive en refs y `onCerrar` es estable en quien la usa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onCerrar])
 
   const alBajarDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
     cancelAnimationFrame(cuadro.current)
-    gesto.current = { y: e.clientY, giro: giro.current, t: performance.now(), v: 0 }
+    gesto.current = { y: e.clientY, centro: centro.current, t: e.timeStamp, v: 0 }
     arrastro.current = false
     setEncajado(false)
   }
@@ -80,39 +123,53 @@ export function TamborDeLaSemana({
   const alMoverDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
     const g = gesto.current
     if (!g) return
-    const ahora = performance.now()
-    const nuevo = g.giro + (e.clientY - g.y) * -GRADOS_POR_PIXEL
-    // La velocidad se mide del ÚLTIMO movimiento, no de todo el gesto: un arrastre largo
-    // que termina parado tiene velocidad media alta y velocidad final cero, y lo que la
-    // mano espera al soltar es lo segundo.
-    g.v = ((nuevo - giro.current) / Math.max(1, ahora - g.t)) * 16
+    const ahora = e.timeStamp
+    // El dedo sube = el tambor avanza hacia el sábado.
+    const nuevo = limitar(g.centro - (e.clientY - g.y) / ALTO_FILA, n)
+    // La velocidad se mide del ÚLTIMO movimiento, no de todo el gesto: un arrastre largo que
+    // termina parado tiene velocidad media alta y final cero, y la mano espera lo segundo.
+    g.v = ((nuevo - centro.current) / Math.max(1, ahora - g.t)) * 16
     g.t = ahora
-    giro.current = nuevo
+    centro.current = nuevo
     pintar()
-    if (Math.abs(e.clientY - g.y) > 6) arrastro.current = true
+    if (!arrastro.current && Math.abs(e.clientY - g.y) > UMBRAL_DE_ARRASTRE) {
+      arrastro.current = true
+      // Desde aquí el gesto es un arrastre: el clic que lo cierre ya no llegará a una fila.
+      try {
+        e.currentTarget.setPointerCapture?.(e.pointerId)
+      } catch {
+        /* sin captura el arrastre sigue funcionando mientras el dedo esté sobre el tambor */
+      }
+    }
   }
 
   const alSoltarDedo = () => {
     const g = gesto.current
     if (!g) return
     gesto.current = null
-    if (!arrastro.current) {
+    // El clic que sigue a un arrastre se ignora; después ya no hay arrastre que ignorar.
+    clearTimeout(temporizador.current)
+    temporizador.current = window.setTimeout(() => {
+      arrastro.current = false
+    }, 0)
+    // Sin movimiento, o con movimiento reducido: nada de inercia, encaja donde está.
+    if (!arrastro.current || movimientoReducido() || Math.abs(g.v) < 0.02) {
+      centro.current = encajar(centro.current, n)
       setEncajado(true)
+      pintar()
       return
     }
     let v = g.v
     const seguir = () => {
-      const paso = inercia(giro.current, v)
+      const paso = inercia(centro.current, v, n)
       if (!paso) {
-        giro.current = encajar(giro.current)
+        // El día se elige al PARAR, no al soltar: con inercia el tambor aún recorre filas.
+        centro.current = encajar(centro.current, n)
         setEncajado(true)
         pintar()
-        // El día se elige al PARAR, no al soltar: soltar con inercia todavía mueve el
-        // tambor varias filas, y elegir ahí abriría la sesión de un día que ya pasó.
-        onElegir(diaEnLectura(giro.current))
         return
       }
-      giro.current = paso.giro
+      centro.current = paso.centro
       v = paso.velocidad
       pintar()
       cuadro.current = requestAnimationFrame(seguir)
@@ -120,86 +177,135 @@ export function TamborDeLaSemana({
     cuadro.current = requestAnimationFrame(seguir)
   }
 
-  return (
-    <div data-no-orbita
-      data-hueco="semana"
-      role="dialog"
-      aria-label="Tu semana"
-      className="absolute inset-0 flex flex-col items-center justify-center"
-      style={{ zIndex: 'var(--z-elevado)', background: 'rgb(var(--ink-1000-rgb) / 0.86)' }}
-      onClick={() => {
-        if (!arrastro.current) onCerrar()
-      }}
-      onPointerDown={alBajarDedo}
-      onPointerMove={alMoverDedo}
-      onPointerUp={alSoltarDedo}
-      onPointerCancel={alSoltarDedo}
-    >
-      <p className="muro-rotulo text-xs">Tu semana</p>
+  const alPulsarTecla = (e: KeyboardEvent<HTMLDivElement>) => {
+    const dia = diaEnLectura(centro.current, n)
+    const destino =
+      e.key === 'ArrowDown' ? dia + 1
+      : e.key === 'ArrowUp' ? dia - 1
+      : e.key === 'PageDown' ? dia + 3
+      : e.key === 'PageUp' ? dia - 3
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? n - 1
+      : null
+    if (destino === null) return
+    e.preventDefault()
+    irA(destino)
+    filas.current[limitar(destino, n)]?.focus({ preventScroll: true })
+  }
 
+  return (
+    <div data-no-orbita data-hueco="semana" className="absolute inset-0">
       <div
-        className="relative mt-2.5 h-[360px] w-full"
-        style={{ perspective: '800px', perspectiveOrigin: '50% 50%', touchAction: 'none' }}
+        data-testid="fondo-de-la-semana"
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{ background: 'rgb(var(--ink-1000-rgb) / 0.78)' }}
+        onClick={onCerrar}
+      />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tu semana"
+        className="desplegar-semana pointer-events-auto overflow-hidden rounded-[18px] border border-ink-500 bg-ink-800 pb-3"
+        style={{
+          width: 'min(340px, calc(100% - 24px))',
+          boxShadow: '0 18px 40px -12px var(--salon-3d-sombra-menu)',
+        }}
       >
+        <p className="px-4 pb-1 pt-3 font-display text-sm font-black uppercase tracking-[0.06em] text-texto">
+          Tu semana
+        </p>
+
         <div
-          ref={cilindro}
-          data-tambor
-          className="absolute inset-0"
+          ref={visor}
+          data-testid="tambor-de-la-semana"
+          className="relative mx-2 overflow-hidden"
           style={{
-            transformStyle: 'preserve-3d',
-            transform: 'rotateX(var(--giro, 0deg))',
-            transition: encajado ? 'transform var(--dur-transicional) var(--muelle-transicional)' : 'none',
+            height: ALTO_FILA * (FILAS_A_CADA_LADO * 2 + 1),
+            perspective: '600px',
+            touchAction: 'none',
+            WebkitMaskImage: 'linear-gradient(transparent, #000 22%, #000 78%, transparent)',
+            maskImage: 'linear-gradient(transparent, #000 22%, #000 78%, transparent)',
           }}
+          onKeyDown={alPulsarTecla}
+          onPointerDown={alBajarDedo}
+          onPointerMove={alMoverDedo}
+          onPointerUp={alSoltarDedo}
+          onPointerCancel={alSoltarDedo}
         >
-          {semana.map((d, i) => (
-            <button
-              key={d.fechaIso}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (arrastro.current) return
-                giro.current = giroDelDia(i)
-                setEncajado(true)
-                pintar()
-                onElegir(i)
-              }}
-              className="absolute left-1/2 top-1/2 flex h-[56px] w-[280px] items-center justify-between gap-3 rounded-boton border border-ink-500 bg-ink-800 px-[18px] text-left"
-              style={{
-                margin: '-28px 0 0 -140px',
-                // Cada fila en su punto del cilindro, mirando hacia fuera.
-                transform: `rotateX(${(i * PASO).toFixed(3)}deg) translateZ(150px)`,
-                // Sin esto, las filas de atrás se ven ESPEJADAS por el hueco entre las de
-                // delante: se lee «SETRAM» encima de «MARTES».
-                backfaceVisibility: 'hidden',
-              }}
-            >
-              <span className="font-mono text-xs uppercase tracking-[0.16em] text-tenue">
-                {d.dia}
-              </span>
-              <span className="font-display text-[15px] font-black uppercase tracking-[0.02em] text-texto">
-                {d.titulo}
-              </span>
-            </button>
-          ))}
+          {semana.map((d, i) => {
+            const estado = estadoDelDia(d, hoyIso)
+            const enLectura = i === lectura
+            return (
+              <button
+                key={d.fechaIso}
+                ref={(el) => {
+                  filas.current[i] = el
+                }}
+                type="button"
+                aria-pressed={enLectura}
+                // Marca las filas que se ven y se tocan con el tambor quieto (las demás se alcanzan girando).
+                data-al-alcance={alAlcance.includes(i) ? 'si' : 'no'}
+                aria-label={`${d.dia.toLowerCase()} ${d.numero}: ${d.titulo}, ${estado.toLowerCase()}${d.esHoy ? ', hoy' : ''}`}
+                onFocus={() => irA(i)}
+                onClick={() => {
+                  if (arrastro.current) return
+                  irA(i)
+                }}
+                className="press absolute inset-x-0 flex items-center gap-3 rounded-boton px-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accion"
+                style={{
+                  top: '50%',
+                  height: ALTO_FILA - 4,
+                  marginTop: -(ALTO_FILA - 4) / 2,
+                  backfaceVisibility: 'hidden',
+                  transition: encajado ? 'transform var(--dur-transicional) var(--muelle-transicional), opacity var(--dur-transicional)' : 'none',
+                  background: enLectura ? 'rgb(var(--accion-rgb) / 0.14)' : undefined,
+                }}
+              >
+                <span className="flex w-[48px] shrink-0 flex-col leading-none">
+                  <span className={`font-mono text-xs uppercase tracking-[0.12em] ${d.esHoy ? 'text-accion' : 'text-tenue'}`}>
+                    {d.abreviatura}
+                  </span>
+                  <span className="cifras mt-1 text-[15px] font-bold text-texto">{d.numero}</span>
+                </span>
+                <span className="min-w-0 flex-1 truncate font-display text-[14px] font-black uppercase tracking-[0.02em] text-texto">
+                  {d.titulo}
+                </span>
+                <span className={`shrink-0 text-xs font-semibold ${COLOR_DEL_ESTADO[estado]}`}>{estado}</span>
+              </button>
+            )
+          })}
         </div>
 
-        {/* LA RANURA DE LECTURA, PINTADA ENCIMA DEL CILINDRO.
-            Estaba antes que él y no se veía: las filas van empujadas 150 px hacia el
-            observador —es el radio del tambor— así que se pintan por delante de cualquier
-            hermano que esté detrás, y el `z-index` no las alcanza porque viven en un
-            contexto 3D. Sacada del espacio y puesta después, la ranura vuelve a ser lo que
-            es: la abertura por la que se lee, no una fila más del tambor. */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[62px] w-[300px] -translate-x-1/2 -translate-y-1/2"
-          style={{
-            borderTop: '1px solid rgb(var(--accion-rgb) / 0.55)',
-            borderBottom: '1px solid rgb(var(--accion-rgb) / 0.55)',
-          }}
-        />
+        <div className="mt-2 flex flex-col gap-2 px-3">
+          <Boton3D bloque
+            type="button"
+            onClick={() => onElegir(diaEnLectura(centro.current, n))}
+          >
+            Mirar este día
+          </Boton3D>
+          <div className="flex gap-2">
+            {hoy !== -1 && (
+              <button
+                type="button"
+                onClick={() => onElegir(hoy)}
+                className="press min-h-[44px] flex-1 rounded-boton border border-ink-500 py-2 text-sm text-texto"
+              >
+                Volver a hoy
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onCerrar}
+              className="press min-h-[44px] flex-1 rounded-boton border border-ink-500 py-2 text-sm text-tenue"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       </div>
-
-      <p className="muro-rotulo text-xs">Desliza · toca el día</p>
+      </div>
     </div>
   )
 }

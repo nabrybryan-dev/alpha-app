@@ -12,7 +12,16 @@ import { SeccionDePresentacion } from './SeccionDePresentacion'
 import { SeccionMapaDelPlan } from './SeccionMapaDelPlan'
 import { SeccionPautadoVsHecho } from './SeccionPautadoVsHecho'
 import { SeccionTresSemanas } from './SeccionTresSemanas'
+import { SeccionTuPlan } from './SeccionTuPlan'
 import { SeccionVelocidadTecnica } from './SeccionVelocidadTecnica'
+import { Boton3D } from '../../../components/ui/Boton3D'
+
+/**
+ * `tecnica` es la presentación de siempre (siete secciones). `simple` es la resumida para quien no
+ * entiende de tecnología: solo Tu plan, Esta semana y Conclusiones. Se elige al presentar; no se
+ * guarda en la base (asignar una versión a cada persona pediría una migración y no se hizo).
+ */
+type ModoDePresentacion = 'simple' | 'tecnica'
 
 interface Props {
   datos: DatosPersona
@@ -29,30 +38,33 @@ interface Props {
  * hace ninguna lectura.
  */
 export function PresentarAlAsesorado({ datos, historial }: Props) {
-  const [abierta, setAbierta] = useState(false)
+  const [abierta, setAbierta] = useState<ModoDePresentacion | null>(null)
   const nombre = datos.usuario?.nombre
   if (!nombre) return null
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setAbierta(true)}
-        aria-haspopup="dialog"
-        className="inline-flex min-h-[44px] items-center justify-center rounded-boton bg-rojo px-5 text-sm font-bold text-white shadow-halo"
-      >
-        Presentar a {nombre}
-      </button>
+      {/* Dos botones, uno al lado del otro y en renglones aparte si no caben (a 369 px bajan uno
+          bajo otro). El de siempre («Presentar a <nombre>») es la presentación técnica, sin tocar;
+          «Presentar (simple)» la resume. */}
+      <div role="group" aria-label="Cómo presentar" className="flex flex-wrap items-center gap-2">
+        <Boton3D type="button" onClick={() => setAbierta('tecnica')} aria-haspopup="dialog">
+          Presentar a {nombre}
+        </Boton3D>
+        <Boton3D type="button" onClick={() => setAbierta('simple')} aria-haspopup="dialog">
+          Presentar (simple)
+        </Boton3D>
+      </div>
       {abierta && (
-        <PantallaCompleta titulo={`Presentación de ${nombre}`} onCerrar={() => setAbierta(false)}>
-          <ContenidoDeLaPresentacion datos={datos} historial={historial} nombre={nombre} />
+        <PantallaCompleta titulo={`Presentación de ${nombre}`} onCerrar={() => setAbierta(null)}>
+          <ContenidoDeLaPresentacion datos={datos} historial={historial} nombre={nombre} simple={abierta === 'simple'} />
         </PantallaCompleta>
       )}
     </>
   )
 }
 
-function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombre: string }) {
+function ContenidoDeLaPresentacion({ datos, historial, nombre, simple }: Props & { nombre: string; simple: boolean }) {
   const { activo, checkins, adherencias, perfil, hoy, plan, corridas, usuario } = datos
 
   // LA SEMANA DE AHORA SE DECIDE POR FECHA, NO POR `estado`. `activo` es el microciclo marcado
@@ -61,7 +73,11 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
   // personas). Con `activo` a secas, «Esta semana» enseñaba una semana sin empezar, en ceros, y el
   // mapa marcaba como «la de ahora» una casilla del futuro. Es la misma regla de la sección de
   // las tres semanas, para que las tres secciones hablen de la misma semana.
-  const enCurso = useMemo(() => tresSemanasDeLaPersona(historial, hoy).esta?.microciclo ?? activo, [historial, hoy, activo])
+  const tres = useMemo(() => tresSemanasDeLaPersona(historial, hoy), [historial, hoy])
+  const enCurso = tres.esta?.microciclo ?? activo
+  // Quien aún no empieza no tiene semana «de ahora»: su primera semana viene, y así se le dice.
+  const aunNoEmpieza = !tres.esta && Boolean(tres.siguiente)
+  const numeroDeAhora = aunNoEmpieza ? undefined : enCurso?.numero
 
   const resumen = useMemo(
     () => resumenSemanalParaPresentar(enCurso, checkins, adherencias, perfil?.medidas ?? [], hoy),
@@ -79,37 +95,49 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <SeccionDePresentacion indice={0} titulo="Esta semana">
+      <SeccionDePresentacion indice={0} titulo="Tu plan" subtitulo="Hacia dónde vamos y cómo se desarrolla, semana a semana.">
+        <SeccionTuPlan plan={plan} numeroActual={numeroDeAhora} />
+      </SeccionDePresentacion>
+
+      <SeccionDePresentacion indice={1} titulo={aunNoEmpieza ? 'Tu primera semana' : 'Esta semana'}>
         <PresentacionSemanal resumen={resumen} />
       </SeccionDePresentacion>
 
+      {!simple && (
       <SeccionDePresentacion
-        indice={1}
+        indice={2}
         titulo="Tu semana pasada, esta y la que viene"
         subtitulo="Lo que te pedimos y lo que hiciste, para que veas el antes, el ahora y lo que sigue."
       >
         <SeccionTresSemanas historial={historial} hoy={hoy} plan={plan} />
       </SeccionDePresentacion>
+      )}
 
-      <SeccionDePresentacion indice={2} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
-        <SeccionMapaDelPlan plan={plan} numeroActual={enCurso?.numero} ultimoCerrado={ultimoCerrado} />
+      {!simple && (
+      <SeccionDePresentacion indice={3} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
+        <SeccionMapaDelPlan plan={plan} numeroActual={numeroDeAhora} ultimoCerrado={ultimoCerrado} />
       </SeccionDePresentacion>
+      )}
 
+      {!simple && (
       <SeccionDePresentacion
-        indice={3}
+        indice={4}
         titulo="Lo que te pedimos y lo que hiciste"
         subtitulo="Semana a semana: las series y el volumen que tocaban, contra los que registraste."
       >
         <SeccionPautadoVsHecho filas={filas} />
       </SeccionDePresentacion>
+      )}
 
-      <SeccionDePresentacion indice={4} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
+      <SeccionDePresentacion indice={5} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
         <SeccionConclusiones corridas={corridas} conclusiones={conclusiones} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={5} titulo="Velocidad y técnica">
+      {!simple && (
+      <SeccionDePresentacion indice={6} titulo="Velocidad y técnica">
         <SeccionVelocidadTecnica nombre={nombre} />
       </SeccionDePresentacion>
+      )}
     </div>
   )
 }

@@ -62,14 +62,3 @@ export function preguntasPendientes(db: Db, usuarioId: string): Cuestionario[] {
 export function preguntaDelDia(db: Db, usuarioId: string): Cuestionario | undefined {
   return preguntasPendientes(db, usuarioId)[0]
 }
-
-/**
- * A qué microciclo vuelve la respuesta.
- *
- * Es el `pregunta_ref` del contrato de los agentes, y sin él la respuesta se queda
- * en la base sin nadie que la recoja. Devuelve `undefined` para los cuestionarios
- * del coach, que no vuelven a ninguna cadena.
- */
-export function referenciaDeLaCadena(cuestionario: Cuestionario): string | undefined {
-  return esDeLaCadena(cuestionario) ? cuestionario.ref : undefined
-}

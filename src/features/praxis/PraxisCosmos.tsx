@@ -7,6 +7,7 @@ import type { Trato } from './motor/entorno'
 import { Portada } from './partes/Portada'
 import { Privacidad } from './partes/Privacidad'
 import { SalaMarcado } from './partes/SalaMarcado'
+import { TarjetasPraxis } from './TarjetasPraxis'
 
 /**
  * La pantalla de Praxis, diseño COSMOS (aprobado por Bryan el 28-sep-2026).
@@ -85,6 +86,9 @@ const Escena = memo(function Escena({ trato, salida = '/', conexion = null }: Pr
       </div>
 
       <SalaMarcado trato={trato} conectada={conectada} sinFormulario={sinFormulario} />
+      {/* Las tarjetas 3D viven fuera del marcado del motor: React las pinta y el motor
+          solo avisa con eventos qué frase salió y cuándo empieza la Quieta. */}
+      <TarjetasPraxis />
       <div className="aviso" id="aviso" role="status" hidden />
     </div>
   )

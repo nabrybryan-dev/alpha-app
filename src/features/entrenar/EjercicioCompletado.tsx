@@ -1,4 +1,5 @@
 import { CheckDibujado } from './CheckDibujado'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 export interface ExCompletado {
   nombre: string
@@ -34,7 +35,7 @@ export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSegu
       // siga registrando series del ejercicio equivocado—, o sea que no necesita que
       // se vea el fondo: el velo va opaco. Un velo opaco además hace el escorzo del
       // panel más legible, no menos.
-      style={{ background: 'var(--ink-900)', zIndex: 'var(--z-scrim)' }}
+      style={{ background: 'rgb(var(--ink-900-rgb))', zIndex: 'var(--z-scrim)' }}
       role="dialog"
       aria-label="Ejercicio completado"
     >
@@ -57,14 +58,13 @@ export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSegu
             A continuación: <span className="text-silver-200">{ex.siguienteNombre}</span>
           </p>
         )}
-        <button
+        <Boton3D bloque
           type="button"
           onClick={onSeguir}
-          className="press mt-5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-          style={{ boxShadow: 'var(--glow-accion)' }}
+          className="mt-5"
         >
           {ex.siguienteId ? 'Siguiente ejercicio' : 'Seguir'}
-        </button>
+        </Boton3D>
       </div>
     </div>
   )

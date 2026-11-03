@@ -1,87 +1,108 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ALTO_FILA,
   diaEnLectura,
-  DIAS_DEL_TAMBOR,
+  diasTocables,
   encajar,
-  giroDelDia,
+  FILAS_A_CADA_LADO,
   inercia,
-  PASO,
+  inclinacionDeFila,
+  limitar,
+  UMBRAL_DE_ARRASTRE,
   VELOCIDAD_MINIMA,
 } from './fisicaDelTambor'
 
 /**
  * LA FÍSICA DEL TAMBOR, PROBADA.
  *
- * Lo que se vigila es que el tambor no pueda quedarse entre dos días —ni al soltar, ni al
- * dar varias vueltas, ni al girar hacia arriba—, porque un tambor que para a medio camino
- * abre la sesión del día equivocado sin que nadie lo note.
+ * El tambor de la semana (maqueta 7) es una columna de siete filas que se arrastra. Lo que se
+ * vigila: que no se quede entre dos días, que no salga de la semana (la semana no es un
+ * círculo: después del sábado no hay otro domingo) y, sobre todo, que desde cualquier día se
+ * llegue a los siete. El tambor cilíndrico que lo precedió enseñaba tres días y dejaba dos
+ * debajo de la ranura sin poder tocarse.
  */
 
-describe('diaEnLectura', () => {
-  it('cada día queda en su fila, ida y vuelta', () => {
-    for (let dia = 0; dia < DIAS_DEL_TAMBOR; dia++) {
-      expect(diaEnLectura(giroDelDia(dia)), `el día ${dia}`).toBe(dia)
+const N = 7
+
+describe('limitar y encajar', () => {
+  it('no sale de la semana, ni por arriba ni por abajo', () => {
+    expect(limitar(-3, N)).toBe(0)
+    expect(limitar(9.4, N)).toBe(N - 1)
+    expect(limitar(2.5, N)).toBe(2.5)
+  })
+  it('encaja siempre en un día entero dentro de la semana', () => {
+    for (const c of [0.2, 1.49, 3.5, 5.51, 6, -2, 40]) {
+      const e = encajar(c, N)
+      expect(Number.isInteger(e)).toBe(true)
+      expect(e).toBeGreaterThanOrEqual(0)
+      expect(e).toBeLessThanOrEqual(N - 1)
     }
   })
-
-  it('con el tambor girado hacia ARRIBA sigue dando un día real', () => {
-    // El resto de un negativo en JavaScript es negativo: `-8 % 7` da `-1`, y un índice de
-    // día en −1 no es ningún día. Girando varias vueltas hacia arriba se rompía.
-    for (let vueltas = 1; vueltas <= 3; vueltas++) {
-      const giro = giroDelDia(2) + 360 * vueltas
-      const dia = diaEnLectura(giro)
-      expect(dia, `${vueltas} vueltas arriba`).toBe(2)
-      expect(dia).toBeGreaterThanOrEqual(0)
-    }
-  })
-
-  it('varias vueltas hacia abajo devuelven el mismo día', () => {
-    expect(diaEnLectura(giroDelDia(5) - 360 * 4)).toBe(5)
-  })
-
-  it('a medio camino entre dos filas se queda con la más cercana', () => {
-    expect(diaEnLectura(giroDelDia(3) - PASO * 0.4)).toBe(3)
-    expect(diaEnLectura(giroDelDia(3) - PASO * 0.6)).toBe(4)
-  })
-})
-
-describe('encajar', () => {
-  it('deja el tambor SIEMPRE en una fila, nunca entre dos', () => {
-    for (const suelto of [0, 12.3, -51.7, 180.4, -359.9, 721.2]) {
-      const puesto = encajar(suelto)
-      expect(Math.abs(puesto / PASO - Math.round(puesto / PASO)), `soltado en ${suelto}`).toBeLessThan(1e-9)
-    }
-  })
-
-  it('no se va a la fila de al lado por un pelo', () => {
-    expect(encajar(giroDelDia(2) + 1)).toBeCloseTo(giroDelDia(2), 6)
+  it('el día en lectura es el entero más cercano y nunca un índice fuera de la semana', () => {
+    expect(diaEnLectura(2.4, N)).toBe(2)
+    expect(diaEnLectura(2.6, N)).toBe(3)
+    expect(diaEnLectura(-5, N)).toBe(0)
+    expect(diaEnLectura(99, N)).toBe(6)
   })
 })
 
 describe('inercia', () => {
-  it('frena y acaba parando, siempre', () => {
-    let giro = 0
-    let v = 40
+  it('con velocidad por debajo del mínimo se para', () => {
+    expect(inercia(3, VELOCIDAD_MINIMA / 2, N)).toBeNull()
+  })
+  it('frena en cada paso y acaba', () => {
+    let c = 1
+    let v = 0.8
     let pasos = 0
     for (;;) {
-      const siguiente = inercia(giro, v)
-      if (!siguiente) break
-      giro = siguiente.giro
-      v = siguiente.velocidad
-      pasos += 1
-      // Sin techo, un rozamiento mal puesto colgaría el bucle de animación del navegador.
-      expect(pasos, 'la inercia no para').toBeLessThan(500)
+      const p = inercia(c, v, N)
+      if (!p) break
+      expect(Math.abs(p.velocidad)).toBeLessThan(Math.abs(v))
+      c = p.centro
+      v = p.velocidad
+      expect(c).toBeLessThanOrEqual(N - 1)
+      if (++pasos > 500) throw new Error('la inercia no termina')
     }
-    expect(Math.abs(v)).toBeLessThan(VELOCIDAD_MINIMA)
+  })
+  it('contra el tope de la semana la inercia se anula', () => {
+    expect(inercia(N - 1, 0.9, N)).toBeNull()
+    expect(inercia(0, -0.9, N)).toBeNull()
+  })
+})
+
+describe('diasTocables: los siete se alcanzan', () => {
+  it('con un día centrado se ven y se tocan los de al lado, a cada lado', () => {
+    expect(diasTocables(3, N)).toEqual([1, 2, 3, 4, 5])
+    expect(diasTocables(0, N)).toEqual([0, 1, 2])
+    expect(diasTocables(6, N)).toEqual([4, 5, 6])
   })
 
-  it('un soltar sin velocidad no mueve nada', () => {
-    expect(inercia(120, 0)).toBeNull()
-    expect(inercia(120, VELOCIDAD_MINIMA / 2)).toBeNull()
+  it('desde CUALQUIER día, tocando el tocable más lejano hacia un lado y hacia el otro se llega a los siete', () => {
+    // Tocar un día lo centra. Repitiéndolo no puede quedar ningún día fuera de alcance
+    // (el fallo del tambor cilíndrico).
+    for (let inicio = 0; inicio < N; inicio++) {
+      const vistos = new Set<number>()
+      for (const extremo of ['ultimo', 'primero'] as const) {
+        let c = inicio
+        for (let k = 0; k < 10; k++) {
+          const t = diasTocables(c, N)
+          t.forEach((d) => vistos.add(d))
+          c = extremo === 'ultimo' ? t[t.length - 1] : t[0]
+        }
+      }
+      expect([...vistos].sort(), `desde el día ${inicio}`).toEqual([0, 1, 2, 3, 4, 5, 6])
+    }
   })
 
-  it('gira en el sentido en que se tiró', () => {
-    expect(inercia(0, 10)?.giro).toBeGreaterThan(0)
-    expect(inercia(0, -10)?.giro).toBeLessThan(0)
+  it('el escorzo de la última fila tocable sigue dentro del límite de la maqueta y cada fila es tocable (44 px)', () => {
+    expect(Math.abs(inclinacionDeFila(FILAS_A_CADA_LADO))).toBeLessThanOrEqual(70)
+    expect(ALTO_FILA).toBeGreaterThanOrEqual(44)
+  })
+})
+
+describe('arrastre contra toque', () => {
+  it('el umbral es corto: un dedo temblón no cuenta como arrastre, un recorrido de verdad sí', () => {
+    expect(UMBRAL_DE_ARRASTRE).toBeGreaterThanOrEqual(4)
+    expect(UMBRAL_DE_ARRASTRE).toBeLessThanOrEqual(10)
   })
 })

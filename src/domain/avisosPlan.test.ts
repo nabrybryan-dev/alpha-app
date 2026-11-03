@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   decidirAvisos,
+  decidirRecordatoriosCheckin,
+  destinatariosDelPlan,
+  autorizarLlamada,
+  lotesDeIds,
+  ROLES_DEL_RECORDATORIO_CHECKIN,
   minutosDeHora,
   relojLocal,
   type TareaAviso,
@@ -98,5 +103,125 @@ describe('avisos del organizador', () => {
     })
     expect(a.cuerpo).toContain('Abre Mi plan')
     expect(a.titulo.length).toBeLessThan(100)
+  })
+})
+
+// 2026-09-30 23:30 UTC = 18:30 en Bogotá; 22:30 UTC = 17:30; 2026-10-01 03:30 UTC = 22:30 del día 30.
+const SEIS_Y_MEDIA = new Date('2026-09-30T23:30:00Z')
+const CINCO_Y_MEDIA = new Date('2026-09-30T22:30:00Z')
+const DIEZ_Y_MEDIA = new Date('2026-10-01T03:30:00Z')
+
+describe('recordatorio de las 6 pm del check-in (desde el servidor)', () => {
+  const entrada = {
+    ahora: SEIS_Y_MEDIA,
+    suscritos: ['u-1', 'u-2'],
+    conCheckinHoy: new Set<string>(),
+    enviadosHoy: new Set<string>(),
+  }
+
+  it('avisa después de las 6 pm de Bogotá a quien está suscrito y no ha llenado el check-in', () => {
+    const avisos = decidirRecordatoriosCheckin(entrada)
+    expect(avisos.map((a) => a.usuario_id)).toEqual(['u-1', 'u-2'])
+    expect(avisos[0]).toMatchObject({ fecha_aviso: HOY, url: '/bienestar' })
+  })
+
+  it('no avisa antes de las 6 pm de Bogotá', () => {
+    expect(decidirRecordatoriosCheckin({ ...entrada, ahora: CINCO_Y_MEDIA })).toEqual([])
+  })
+
+  it('no avisa a quien ya llenó el check-in de hoy', () => {
+    const avisos = decidirRecordatoriosCheckin({ ...entrada, conCheckinHoy: new Set(['u-1']) })
+    expect(avisos.map((a) => a.usuario_id)).toEqual(['u-2'])
+  })
+
+  it('un solo aviso por persona y día: lo ya enviado no se repite', () => {
+    const avisos = decidirRecordatoriosCheckin({ ...entrada, enviadosHoy: new Set(['u-2']) })
+    expect(avisos.map((a) => a.usuario_id)).toEqual(['u-1'])
+  })
+
+  it('no avisa de madrugada ni muy entrada la noche', () => {
+    expect(decidirRecordatoriosCheckin({ ...entrada, ahora: DIEZ_Y_MEDIA })).toEqual([])
+  })
+
+  it('el texto no lleva datos de salud', () => {
+    const [a] = decidirRecordatoriosCheckin(entrada)
+    expect(`${a.titulo} ${a.cuerpo}`).not.toMatch(/kg|kcal|peso|sueño|dolor|ánimo|estrés/i)
+  })
+
+  it('sin suscritos no hay nada que decidir', () => {
+    expect(decidirRecordatoriosCheckin({ ...entrada, suscritos: [] })).toEqual([])
+  })
+})
+
+describe('los avisos del equipo no llegan a los asesorados', () => {
+  const BRYAN = '28c3cfe8-13ef-4f3e-95cc-f23c4f260bce'
+  const MANUELA = 'aa202ff5-74c1-4b76-9140-8ba44dc62f17'
+  const ids = { bryan: BRYAN, manuela: MANUELA }
+
+  it('de todas las suscripciones, solo Bryan y Manuela cuentan como destinatarios del plan', () => {
+    expect(destinatariosDelPlan(['u-asesorado', BRYAN, 'u-otra'], ids)).toEqual(['bryan'])
+    expect(destinatariosDelPlan(['u-asesorado'], ids)).toEqual([])
+    expect(destinatariosDelPlan([MANUELA, BRYAN], ids)).toEqual(['bryan', 'manuela'])
+  })
+
+  it('una tarea del equipo no produce aviso del plan si su dueño no es destinatario (un asesorado suscrito no basta)', () => {
+    const duenos = destinatariosDelPlan(['u-asesorado'], ids)
+    expect(decidirAvisos({ ...base, duenosConSuscripcion: duenos, tareas: [tarea()], ahora: OCHO_Y_MEDIA })).toEqual([])
+  })
+})
+
+describe('quién recibe el recordatorio del check-in (29-oct)', () => {
+  it('lo reciben los asesorados y la nutricionista, y el coach no', () => {
+    const roles: readonly string[] = ROLES_DEL_RECORDATORIO_CHECKIN
+    expect(roles).toContain('asesorado')
+    expect(roles).toContain('nutricionista')
+    expect(roles).not.toContain('coach')
+  })
+
+  it('que la nutricionista reciba el recordatorio no la vuelve destinataria de otra cosa: el plan sigue yendo solo por id', () => {
+    expect(destinatariosDelPlan(['u-nutri'], { bryan: 'u-bryan', manuela: 'u-manuela' })).toEqual([])
+  })
+})
+
+describe('lotesDeIds: la URL de las consultas no crece sin tope', () => {
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => `u${i}`)
+  it('parte en lotes de a lo sumo el tope y no pierde ningún id', () => {
+    const lotes = lotesDeIds(ids(250), 100)
+    expect(lotes.map((l) => l.length)).toEqual([100, 100, 50])
+    expect(lotes.flat()).toEqual(ids(250))
+  })
+  it('una lista vacía no hace ninguna consulta, y una corta va en un solo lote', () => {
+    expect(lotesDeIds([])).toEqual([])
+    expect(lotesDeIds(ids(3))).toEqual([ids(3)])
+  })
+  it('no repite ids', () => {
+    expect(lotesDeIds(['a', 'b', 'a'], 10)).toEqual([['a', 'b']])
+  })
+})
+
+describe('autorizarLlamada: solo una clave de servicio despierta la función', () => {
+  const esServicio = (token: string) => Promise.resolve(token === 'otra-de-servicio')
+  it('la clave idéntica a la que inyecta Supabase pasa sin preguntar', async () => {
+    let preguntas = 0
+    const r = await autorizarLlamada('Bearer clave', 'clave', async () => { preguntas++; return false })
+    expect(r).toBe(true)
+    expect(preguntas).toBe(0)
+  })
+  it('otra clave de servicio válida (la del cron en Vault) pasa si Auth la reconoce', async () => {
+    expect(await autorizarLlamada('Bearer otra-de-servicio', 'clave', esServicio)).toBe(true)
+  })
+  it('una clave que Auth no reconoce como de servicio no pasa', async () => {
+    expect(await autorizarLlamada('Bearer anon', 'clave', esServicio)).toBe(false)
+  })
+  it('sin cabecera, o sin Bearer, no pasa y no pregunta', async () => {
+    let preguntas = 0
+    const contar = async () => { preguntas++; return true }
+    expect(await autorizarLlamada(null, 'clave', contar)).toBe(false)
+    expect(await autorizarLlamada('clave', 'clave', contar)).toBe(false)
+    expect(await autorizarLlamada('Bearer ', 'clave', contar)).toBe(false)
+    expect(preguntas).toBe(0)
+  })
+  it('si preguntar a Auth falla, no pasa', async () => {
+    expect(await autorizarLlamada('Bearer x', 'clave', () => Promise.reject(new Error('red')))).toBe(false)
   })
 })

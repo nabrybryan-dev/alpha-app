@@ -25,7 +25,6 @@ interface VistaSemanaProps {
    * es una cifra sobre su cuerpo y es justo lo que hace útil la vista.
    */
   visibilidad: Visibilidad
-  onVolver: () => void
   onElegirDia: (fecha: string) => void
 }
 
@@ -33,7 +32,6 @@ export function VistaSemana({
   resumen,
   meta,
   visibilidad,
-  onVolver,
   onElegirDia,
 }: VistaSemanaProps) {
   // La barra más alta de la semana marca el tope, con la pauta como suelo para
@@ -58,15 +56,7 @@ export function VistaSemana({
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          aria-label="Volver al diario"
-          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
+      <header>
         <h1 className="font-display text-xl text-texto">Tu semana</h1>
       </header>
 

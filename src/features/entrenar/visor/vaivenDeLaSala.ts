@@ -21,8 +21,8 @@
  * del azimut y el último en escribir ganaría — que es como se pierde un arrastre a medias.
  *
  * Vive fuera del visor porque dentro solo se podría probar montando WebGL, y en jsdom no
- * hay WebGL. Es la misma regla que ya cumplen `gestoVertical`, `rumboDelJoystick`,
- * `fisicaDelTambor` y `hundirEnElCuerpo`.
+ * hay WebGL. Es la misma regla que ya cumplen `gestoVertical`, `rumboDelJoystick` y
+ * `hundirEnElCuerpo`.
  */
 
 /** Cuánto se abre el vaivén a cada lado, en grados. */

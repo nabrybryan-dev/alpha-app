@@ -19,7 +19,7 @@ import type { NivelW } from '../salon/huecos'
  *
  * Porque los umbrales de un gesto escritos dentro de un manejador de puntero solo se
  * pueden probar montando el componente y falsificando un dedo. Es la misma regla que ya
- * cumplen `gestoVertical.ts`, `rumboDelJoystick.ts` y `fisicaDelTambor.ts`.
+ * cumplen `gestoVertical.ts`, y `rumboDelJoystick.ts`.
  *
  * ## Los dos números, y qué protege cada uno
  *

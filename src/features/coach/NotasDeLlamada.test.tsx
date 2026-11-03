@@ -284,7 +284,8 @@ describe('NotasDeLlamada · anotar', () => {
     expect(screen.getByRole('button', { name: '+ Anotar llamada' })).toHaveClass('min-h-[44px]')
 
     await user.click(screen.getByRole('button', { name: '+ Anotar llamada' }))
-    expect(screen.getByRole('button', { name: 'Guardar nota' })).toHaveClass('min-h-[44px]')
+    // Guardar nota es el botón con cuerpo: su CSS fija min-height: 52px (Boton3D.test.tsx), por encima de los 44 px.
+    expect(screen.getByRole('button', { name: 'Guardar nota' })).toHaveClass('btn-3d')
     expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveClass('min-h-[44px]')
     for (const etiqueta of ['Qué se habló', 'Tareas que quedan (opcional)', 'Próxima reunión (opcional)']) {
       const label = screen.getByText(etiqueta)

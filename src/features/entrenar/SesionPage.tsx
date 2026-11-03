@@ -1,7 +1,7 @@
 import { nombreDelMicrociclo } from '../../domain/palabrasLlanas'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -32,6 +32,7 @@ import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
 import { EstudioDelPatron } from './visor/EstudioDelPatron'
 import type { Patron } from '../../domain/patrones/catalogo'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 interface Descanso {
   hasta: number
@@ -229,8 +230,8 @@ function SesionEnCurso() {
   if (cerrada) return <SesionCerrada sesion={sesion} />
 
   return (
-    // Entreno es oscura siempre (decisión de diseño), sin importar el tema global.
-    <div data-theme="dark" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
+    // Entreno sigue el tema de la persona (zona 8, decisión de Bryan 28-oct).
+    <div data-sesion="entrenar" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"
@@ -239,32 +240,9 @@ function SesionEnCurso() {
           // `src/test/fondos-de-tarjeta.test.ts`, que impide que se amplíen.
           style={{ '--foto': `url(${fondoDeLaSesion})`, '--foto-pos': 'center 18%' } as React.CSSProperties}
         >
-          {/* La sesión es el segundo nivel de Entrenar: atrás vuelve a la Ruta,
-              no a Hoy, aunque se haya entrado desde ahí. */}
-          <Link
-            to="/entrenar"
-            aria-label="Volver a tu ruta de entrenamiento"
-            // Sin `backdrop-blur`: este botón es `absolute` dentro de la tarjeta
-            // con foto, o sea contenido normal que SE DESPLAZA con el scroll, y un
-            // backdrop-filter ahí obliga a re-muestrear y desenfocar la región en
-            // cada fotograma —encima sobre una fotografía a sangre—. La regla está
-            // escrita en tokens.css: el blur solo va en superficies fijas.
-            // El contraste del icono no lo daba el desenfoque, lo da el velo de
-            // `.tarjeta-foto::after`; el fondo sólido se queda como estaba.
-            //
-            // OJO CON EL COLOR: tiene que ser `bg-black/40` y no `bg-ink-900/NN`.
-            // Los colores `ink-*` se declaran en `tailwind.config.js` como `var()`
-            // a secas, sin el marcador `<alpha-value>`, así que Tailwind DESCARTA
-            // el modificador de opacidad sin avisar y no genera ninguna regla: el
-            // botón se queda sin fondo. Comprobado en el navegador —
-            // `.bg-ink-900\/80` no existe en el CSS compilado—. `black` sí lo
-            // admite porque es un color por defecto en hexadecimal.
-            className="press absolute left-3.5 top-3.5 z-[2] grid h-11 w-11 place-items-center rounded-boton border border-white/20 bg-black/40 text-white"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </Link>
+          {/* Volver: lo hace el «‹» de la cabecera (`TopBar`), que te devuelve de donde viniste (Hoy o la Ruta).
+              Decisión de Bryan, 23-oct-2026: antes este sitio llevaba un enlace propio que mandaba siempre a la
+              Ruta, aunque se hubiera entrado desde Hoy. */}
           <p className="kicker">{nombreDelMicrociclo(microciclo.numero, simple)}</p>
           <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>
           {!todasRegistradas && (
@@ -370,11 +348,14 @@ function SesionEnCurso() {
       )}
 
       {/* Espacio para que el CTA fijo no tape el contenido inferior.
-          Reserva la barra de navegación + el CTA + un margen. Estaba en `h-16`
-          (64 px) cuando la franja tapada mide 124 px, así que al final de la página
-          quedaban 60 px de contenido imposibles de ver. */}
+          Reserva la barra de navegación + el CTA + un margen. Con el motivo
+          visible el bloque crece, así que el hueco también: antes eran 60 px
+          de contenido imposibles de ver al final de la página. */}
       {mostrarCTA && (
-        <div aria-hidden="true" style={{ height: 'calc(var(--tope-nav) + 5rem)' }} />
+        <div
+          aria-hidden="true"
+          style={{ height: puedeGuardar ? 'calc(var(--tope-nav) + 5rem)' : 'calc(var(--tope-nav) + 8.5rem)' }}
+        />
       )}
 
       {todasRegistradas && !sesion.testPost && (
@@ -470,21 +451,21 @@ function SesionEnCurso() {
             )}
             {mostrarCTA && (
               <>
-                <button
-                  type="button"
+                {/* Apagado NO es rojo translúcido (H-06 de la auditoría): `.btn-3d:disabled`
+                    pasa a la superficie neutra con el rótulo en `--tenue`, que sí se lee. */}
+                <Boton3D
+                  bloque
                   onClick={() => registroRef.current?.guardar()}
                   disabled={!puedeGuardar}
                   aria-describedby={puedeGuardar ? undefined : 'motivo-sin-confirmar'}
-                  className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
-                  style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
                 >
                   Guardar serie {ordenActual}
-                </button>
+                </Boton3D>
                 {!puedeGuardar && (
                   <MotivoSinConfirmar
                     id="motivo-sin-confirmar"
                     motivo={motivoSinGuardar ?? undefined}
-                    className="rounded-boton bg-ink-900/90 px-2 py-1"
+                    className="rounded-boton border border-linea bg-surface-1/95 px-2 py-1"
                   />
                 )}
               </>

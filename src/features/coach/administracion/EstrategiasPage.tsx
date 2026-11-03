@@ -3,6 +3,7 @@ import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
 import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import { BuzonMercadeo } from '../creadores/BuzonMercadeo'
+import { Cabecera } from './Cabecera'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
 import { InvestigacionInteractiva } from './InvestigacionInteractiva'
 import { InvestigacionMercadeo } from './InvestigacionMercadeo'
@@ -31,10 +32,10 @@ function EnlaceCreadores() {
   return (
     <Link
       to="/coach/creadores"
-      className="press inline-flex min-h-[48px] items-center justify-between gap-3 rounded-boton border border-texto px-4 text-[13px] font-bold text-texto"
+      className="press flex min-h-[56px] items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-2 px-4 text-[13px] font-bold text-texto"
     >
       <span>Abrir el tablero de creadores</span>
-      <span aria-hidden="true">›</span>
+      <span aria-hidden="true" className="text-tenue">›</span>
     </Link>
   )
 }
@@ -46,11 +47,11 @@ export default function EstrategiasPage() {
 
   return (
     <div className="flex flex-col gap-3.5">
-      <header className="flex flex-col gap-1 pt-1">
-        <p className={CLASE_ETIQUETA}>Mercadeo y bola de nieve</p>
-        <h2 className="font-display text-2xl uppercase text-texto">Estrategias</h2>
-        <p className="text-sm text-tenue">De lo general a lo concreto. Toca una tarjeta para ver el detalle.</p>
-      </header>
+      <Cabecera
+        rotulo="Mercadeo y bola de nieve"
+        titulo="Estrategias"
+        frase="De lo general a lo concreto. Toca una tarjeta para ver el detalle."
+      />
 
       {t.estado.tipo === 'cargando' && <Cargando texto="Cargando las estrategias…" />}
       {t.estado.tipo === 'fallo' && (

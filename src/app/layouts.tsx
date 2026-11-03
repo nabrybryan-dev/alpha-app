@@ -1,18 +1,23 @@
-import { useEffect } from 'react'
-import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
-import { db, hoyIso } from '../data/dbInstance'
-import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
-import { useCapacidades } from '../features/coach/consola/useCapacidades'
+import { db } from '../data/dbInstance'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
+import {
+  puedeVerAdministracion,
+  puedeVerConsola,
+  puedeVerCreadores,
+  puedeVerEstrategias,
+} from './accesoPanel'
+import { buscarRuta } from './rutas'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
   '/': 'Hoy',
   '/entrenar': 'Entrenar',
   '/bienestar': 'Bienestar',
+  '/semana': 'Semana',
   '/nutricion': 'Nutrición',
   '/progreso': 'Progreso',
   '/chat': 'Chat',
@@ -21,14 +26,19 @@ const titulos: Record<string, string> = {
   '/cuestionarios': 'Cuestionarios',
   '/marca': 'Marca',
   '/equipo': 'Equipo',
+  '/bandeja': 'Bandeja',
+  '/empresa': 'Empresa',
   '/mi-entreno': 'Mi entreno',
   '/equipo-nutricion': 'Nutrición',
   '/mi-plan': 'Mi plan',
+  '/yo': 'Yo',
 }
 
 function tituloDe(ruta: string, esStaff = false): string {
   const base = `/${ruta.split('/')[1] ?? ''}`
   if (esStaff && base === '/') return 'Mi día'
+  // La pestaña «Yo» del equipo es Mi entreno: su pantalla de cuenta se llama «Mi cuenta» (como en `rutas.ts`).
+  if (esStaff && base === '/yo') return 'Mi cuenta'
   return titulos[base] ?? 'Alpha'
 }
 
@@ -47,30 +57,20 @@ function esRutaPropiaDelCoach(ruta: string): boolean {
     ruta === '/' ||
     ruta === '/mi-entreno' ||
     ruta === '/equipo' ||
+    ruta.startsWith('/equipo/') ||
+    ruta === '/bandeja' ||
+    ruta === '/empresa' ||
     ruta === '/equipo-nutricion' ||
+    ruta === '/equipo-nutricion/cifras' ||
+    ruta === '/marca' ||
     ruta === '/entrenar' ||
     ruta.startsWith('/entrenar/')
   )
 }
 
-type Tiene = ReturnType<typeof useCapacidades>['tiene']
-
-function puedeEstrategia(tiene: Tiene): boolean {
-  return tiene('revisar_creadores') || tiene('responder_mercadeo') || tiene('decisiones_compartidas')
-}
-
-/** La barra de Bryan es la de Manuela; Estrategias y Administración siguen a SUS capacidades. */
-function BottomNavCoach() {
-  const { cargando, tiene } = useCapacidades()
-  return (
-    <BottomNav
-      espacios="staff"
-      opcionesCoach={{
-        estrategias: !cargando && puedeEstrategia(tiene),
-        administracion: !cargando && tiene('ver_administracion'),
-      }}
-    />
-  )
+/** La barra del equipo es la misma para Manuela y para Bryan (maqueta 7, pasos 9-11). */
+function barraDelStaff() {
+  return <BottomNav espacios="staff" />
 }
 
 /**
@@ -104,26 +104,8 @@ export function AsesoradoLayout() {
   const { pathname } = useLocation()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
 
-  // Recordatorio de las 6 pm: al abrir la app, al volver a ella y cada 10 min
-  // mientras esté abierta. Solo dispara si falta el check-in de hoy.
-  useEffect(() => {
-    if (usuario.rol === 'coach') return
-    const revisar = () => {
-      const hoy = hoyIso()
-      const hecho = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
-      void revisarRecordatorioBienestar(hecho, hoy)
-    }
-    revisar()
-    const alVolver = () => {
-      if (document.visibilityState === 'visible') revisar()
-    }
-    document.addEventListener('visibilitychange', alVolver)
-    const id = window.setInterval(revisar, 10 * 60 * 1000)
-    return () => {
-      document.removeEventListener('visibilitychange', alVolver)
-      window.clearInterval(id)
-    }
-  }, [usuario.id, usuario.rol])
+  // El recordatorio de las 6 pm del check-in ya no se dispara aquí: sale del servidor (Edge Function `avisos-plan`), así
+  // llega aunque la app esté cerrada. Se enciende en «Yo» (decisión de Bryan, 28-oct).
 
   // Dos cuentas de Bryan (0106). La cuenta «Alpha» (rol coach + `solo_tablero`) no tiene espacios: solo el
   // tablero. La PERSONAL sigue siendo `asesorado` (entrena, está en la cartera) y lleva el puesto de coach
@@ -145,7 +127,7 @@ export function AsesoradoLayout() {
       <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
         <Outlet />
       </main>
-      {esCoach ? <BottomNavCoach /> : <BottomNav espacios={espaciosDe(usuario.rol)} />}
+      {esCoach ? barraDelStaff() : <BottomNav espacios={espaciosDe(usuario.rol)} />}
     </div>
   )
 }
@@ -169,17 +151,11 @@ export function TableroLayout() {
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   if (!esCoach && cargando) return <ComprobandoAcceso texto="Comprobando tu acceso al tablero…" />
   if (!esCoach && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
-  // La cuenta Alpha no tiene a dónde volver; la personal sí.
-  const puedeVolver = esCoach && !cargando && !tiene('solo_tablero')
+  // Volver a «Mi día» lo hace el «‹» de la cabecera (`TopBar`, padre de `/tablero` en `rutas.ts`); la cuenta Alpha no lo lleva.
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo="Alpha · Tablero" />
       <main className="mx-auto max-w-[1600px] overflow-x-clip px-4 pb-8 pt-4">
-        {puedeVolver && (
-          <Link to="/" className="mb-2 inline-flex min-h-[44px] items-center underline">
-            Volver a mis espacios
-          </Link>
-        )}
         <Outlet />
       </main>
     </div>
@@ -190,6 +166,7 @@ export function CoachLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
+  const puesto = { esCoach, cargando, tiene }
   const enConsola = pathname.startsWith('/coach/consola')
   const enCreadores = pathname.startsWith('/coach/creadores')
   const enEstrategias = pathname.startsWith('/coach/estrategias')
@@ -203,7 +180,7 @@ export function CoachLayout() {
   // Administración del COACH también va por capacidad: sin `ver_administracion` no la ve (ni en la
   // barra ni en el marco) y, si llega por la URL, se le dice «sin permiso» en vez de la pantalla.
   if (esCoach && enAdmin) {
-    if (!tiene('ver_administracion')) {
+    if (!puedeVerAdministracion(puesto)) {
       return (
         <div className="min-h-dvh bg-bg">
           <TopBar titulo="Administración" />
@@ -211,9 +188,8 @@ export function CoachLayout() {
             <p role="alert" className="rounded-tarjeta border border-dashed border-linea p-4 text-sm text-tenue">
               Sin permiso: la administración se abre con el permiso de ver la administración, y todavía no lo tienes.
             </p>
-            <Link to="/coach" className="mt-3 inline-flex min-h-[44px] items-center underline">Volver</Link>
           </main>
-          <BottomNavCoach />
+          {barraDelStaff()}
         </div>
       )
     }
@@ -234,17 +210,16 @@ export function CoachLayout() {
         </div>
       )
     }
-    if (enConsola && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
-    if (enCreadores && !tiene('revisar_creadores')) return <Navigate to="/" replace />
+    if (enConsola && !puedeVerConsola(puesto)) return <Navigate to="/" replace />
+    if (enCreadores && !puedeVerCreadores(puesto)) return <Navigate to="/" replace />
     // Cada espacio de Manuela tiene su propia puerta, con capacidades que ya existen en la base
     // (Manuela ya tiene también `ver_administracion`): Estrategias con el buzón de mercadeo o el
     // tablero de creadores; Administración con el plan, las decisiones o `ver_administracion`. El
     // tablero de la 0102 se pide dentro de la pantalla: sin el permiso dice «sin permiso»; con él
-    // pero sin la tabla (0102 sin aplicar), «pendiente de activar».
-    if (enEstrategias && !tiene('responder_mercadeo') && !tiene('revisar_creadores')) return <Navigate to="/" replace />
-    if (enAdmin && !tiene('organizar_plan') && !tiene('decisiones_compartidas') && !tiene('ver_administracion')) {
-      return <Navigate to="/" replace />
-    }
+    // pero sin la tabla (0102 sin aplicar), «pendiente de activar». La condición vive en
+    // `accesoPanel.ts` para que Empresa ofrezca exactamente los mismos enlaces.
+    if (enEstrategias && !puedeVerEstrategias(puesto)) return <Navigate to="/" replace />
+    if (enAdmin && !puedeVerAdministracion(puesto)) return <Navigate to="/" replace />
   }
 
   // La consola necesita más ancho que el resto del panel: cartera lateral +
@@ -256,24 +231,9 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin })} />
-      <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
-        {esCoach ? (
-          <>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/asesorados">Cartera de asesorados</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/tablero">Tablero</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
-          </>
-        ) : (
-          <>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
-          </>
-        )}
-      </nav>
+      <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin }, pathname)} />
+      {/* Sin segunda navegación (H-08): la salida de cada pantalla es el «‹» de la cabecera (padre en
+          `rutas.ts`) y las herramientas, Empresa y la hoja «Herramientas» de la consola. */}
       {(esCoach || enCreadores || enAdmin || enEstrategias) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
@@ -282,7 +242,7 @@ export function CoachLayout() {
       </main>
       {/* Bryan (cuenta personal): la misma barra de cinco espacios que Manuela, en celular y en escritorio. */}
       {esCoach ? (
-        <BottomNavCoach />
+        barraDelStaff()
       ) : (
         <BottomNav espacios={espaciosDe(usuario.rol)} />
       )}
@@ -293,12 +253,14 @@ export function CoachLayout() {
 function tituloCoachLayout(
   esCoach: boolean,
   en: { enConsola: boolean; enEstrategias: boolean; enCreadores: boolean; enAdmin: boolean },
+  pathname: string,
 ): string {
   if (esCoach) {
-    if (en.enConsola) return 'Alpha · Asesorados'
+    if (en.enConsola) return 'Consola'
     if (en.enEstrategias || en.enCreadores) return 'Estrategia'
     if (en.enAdmin) return 'Administración'
-    return 'Panel del coach'
+    // «Panel del coach» se truncaba en la cabecera (H-16): cada pantalla lleva su propio nombre de `rutas.ts`.
+    return buscarRuta(pathname)?.titulo ?? 'Panel'
   }
   if (en.enEstrategias) return 'Estrategias'
   if (en.enAdmin) return 'Área administrativa'

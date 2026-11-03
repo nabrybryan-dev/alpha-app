@@ -50,3 +50,12 @@ export function sanearPlan(plan: PlanNutricional): PlanNutricional {
     seccionesEspeciales: lista(plan.seccionesEspeciales),
   }
 }
+
+/**
+ * Una carga por SQL puede dejar el blob sin `usuarioId` y las pantallas filtran por él: la persona
+ * tenía su semana en la base y la app le decía que no tenía ninguna (31-oct-2026). Solo se rellena
+ * lo que falta: un valor presente en el blob no se reescribe aquí.
+ */
+export function conDueno(m: Microciclo, usuarioId: unknown): Microciclo {
+  return !m.usuarioId && typeof usuarioId === 'string' ? { ...m, usuarioId } : m
+}

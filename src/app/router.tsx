@@ -1,6 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
+import { HistoriaInterna } from './HistoriaInterna'
+import { SoloEquipo } from './SoloEquipo'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { AsesoradoLayout, CoachLayout, TableroLayout } from './layouts'
 import { useSesion } from './SessionProvider'
@@ -9,6 +11,7 @@ const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
 const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
 const SesionPage = lazy(() => import('../features/entrenar/SesionPage'))
 const BienestarPage = lazy(() => import('../features/bienestar/BienestarPage'))
+const SemanaPage = lazy(() => import('../features/semana/SemanaPage'))
 const ProgresoPage = lazy(() => import('../features/progreso/ProgresoPage'))
 const DiarioDia = lazy(() => import('../features/nutricion/DiarioDia'))
 const NutricionLayout = lazy(() => import('../features/nutricion/NutricionLayout'))
@@ -22,8 +25,9 @@ const MarcaPage = lazy(() => import('../features/marca/MarcaPage'))
 const EquipoNutricionPage = lazy(() => import('../features/nutri/EquipoNutricionPage'))
 const CifrasAsesoradosPage = lazy(() => import('../features/nutri/CifrasAsesoradosPage'))
 const MiDiaCoachPage = lazy(() => import('../features/coach/MiDiaCoachPage'))
-const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
+const BandejaPage = lazy(() => import('../features/equipo/BandejaPage'))
+const EmpresaPage = lazy(() => import('../features/equipo/EmpresaPage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
@@ -38,6 +42,8 @@ const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'
 const PraxisPage = lazy(() => import('../features/praxis/PraxisPage'))
 const PraxisEjemploPage = lazy(() => import('../features/praxis/PraxisEjemploPage'))
 const IngresoPruebaPage = lazy(() => import('../features/praxis/IngresoPruebaPage'))
+const YoPage = lazy(() => import('../features/yo/YoPage'))
+const NoEncontradaPage = lazy(() => import('../features/noEncontrada/NoEncontradaPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -52,28 +58,29 @@ function envolver(children: ReactNode) {
 }
 
 /**
- * «/»: la portada del asesorado y del staff que entrena. Para Bryan, su «Mi día»: la cuenta Alpha (rol coach)
- * solo su puesto; la personal (asesorado con `puesto_de_coach`) su puesto Y, debajo, su día de asesorado —
- * entrena como cualquiera: check-in, nutrición de hoy, medidas.
+ * «/»: la portada del asesorado y la del equipo que también entrena. Para el staff es su «Mi día»:
+ * la banda de trabajo de los tres sombreros (paso 9) y, debajo, su propio día de asesorado —su
+ * check-in, su nutrición y sus medidas, que no se pierden—. La cuenta «Alpha» (rol coach) solo
+ * tiene el puesto: no entrena como asesorada y no lleva la segunda mitad.
  */
 function Inicio() {
   const { usuario } = useSesion()
   const { esCoach } = usePuestoCoach(usuario.rol)
   if (usuario.rol === 'coach') return envolver(<MiDiaCoachPage />)
-  return envolver(
-    esCoach ? (
+  if (usuario.rol === 'nutricionista' || esCoach) {
+    return envolver(
       <div className="flex flex-col gap-6">
         <MiDiaCoachPage />
         <HoyPage />
-      </div>
-    ) : (
-      <HoyPage />
-    ),
-  )
+      </div>,
+    )
+  }
+  return envolver(<HoyPage />)
 }
 
 export function AppRouter() {
   return (
+    <HistoriaInterna>
     <Routes>
       <Route element={<AsesoradoLayout />}>
         <Route index element={<Inicio />} />
@@ -82,9 +89,10 @@ export function AppRouter() {
         {/* La medicion se hace DENTRO de la serie (ver RegistroSerie). Esta
             pantalla es la mesa de trabajo: ajustes, la tanda entera y los
             criterios de la fase 2. Cuelga de Entrenar porque medir la barra es
-            parte de entrenar, no una herramienta de coach. */}
-        <Route path="entrenar/encoder" element={envolver(<EncoderPage />)} />
+            parte de entrenar, no una herramienta de coach. Solo equipo (paso 2). */}
+        <Route path="entrenar/encoder" element={envolver(<SoloEquipo destino="/entrenar"><EncoderPage /></SoloEquipo>)} />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
+        <Route path="semana" element={envolver(<SemanaPage />)} />
         <Route path="progreso" element={envolver(<ProgresoPage />)} />
         {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no
             hay forma de entrar por la URL saltandosela. */}
@@ -100,11 +108,20 @@ export function AppRouter() {
         <Route path="cuestionarios" element={envolver(<CuestionariosPage />)} />
         <Route path="contenidos" element={envolver(<ContenidosPage />)} />
         <Route path="logros" element={envolver(<LogrosPage />)} />
-        <Route path="marca" element={envolver(<MarcaPage />)} />
+        {/* «Yo» (28-oct): avisos, buzón de comentarios y clave; se llega desde el menú de cuenta. */}
+        <Route path="yo" element={envolver(<YoPage />)} />
+        <Route path="marca" element={envolver(<SoloEquipo><MarcaPage /></SoloEquipo>)} />
         {/* Espacios de Manuela (maqueta aprobada 28-sep): «Mi entreno» presenta la semana y
             lleva al salón (/entrenar, que no cambia); «Equipo» reúne cartera y aprobaciones. */}
         <Route path="mi-entreno" element={envolver(<MiEntrenoPage />)} />
-        <Route path="equipo" element={envolver(<EquipoPage />)} />
+        <Route path="equipo" element={envolver(<SoloEquipo><EquipoPage /></SoloEquipo>)} />
+        {/* La FICHA ÚNICA (paso 10): la misma pantalla para el coach y para Manuela. La
+            dirección vieja `/coach/asesorado/:id` se conserva abajo, apuntando a esta misma
+            pantalla: los enlaces ya enviados no se rompen. */}
+        <Route path="equipo/:usuarioId" element={envolver(<SoloEquipo><AsesoradoDetallePage /></SoloEquipo>)} />
+        {/* Bandeja (paso 9) y Empresa (paso 11) del equipo; también en la barra del staff. */}
+        <Route path="bandeja" element={envolver(<SoloEquipo><BandejaPage /></SoloEquipo>)} />
+        <Route path="empresa" element={envolver(<SoloEquipo><EmpresaPage /></SoloEquipo>)} />
         <Route path="equipo-nutricion" element={envolver(<EquipoNutricionPage />)} />
         {/* Organizador (0098): el plan de Manuela; el de Bryan cuelga de /coach. */}
         <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
@@ -131,9 +148,9 @@ export function AppRouter() {
         {/* «/coach» ya no cambia con el ancho de pantalla: la cuenta personal vuelve a su Mi día y la cuenta
             «Alpha» (`solo_tablero`) la manda el layout a /tablero. */}
         <Route index element={<Navigate to="/" replace />} />
-        {/* La cartera de asesorados: portada del coach hasta el rediseño por espacios; ahora se llega
-            desde Mi día o desde el enlace del panel. */}
-        <Route path="asesorados" element={envolver(<AsesoradosPage />)} />
+        {/* La cartera vieja ya no pinta una segunda lista: `/coach/asesorados` redirige a la
+            cartera única `/equipo`. La dirección se conserva para los enlaces que ya salieron. */}
+        <Route path="asesorados" element={<Navigate to="/equipo" replace />} />
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
         <Route path="consultas" element={envolver(<ConsultasPage />)} />
@@ -153,6 +170,10 @@ export function AppRouter() {
         {/* Organizador (0098): el plan de Bryan. */}
         <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
       </Route>
+      {/* Toda dirección que no existe (decisión de Bryan, 23-oct): una pantalla que lo dice y lleva a Hoy.
+          Antes se pintaba en blanco. Va fuera de los layouts, como Praxis. */}
+      <Route path="*" element={envolver(<NoEncontradaPage />)} />
     </Routes>
+    </HistoriaInterna>
   )
 }

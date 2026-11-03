@@ -1,0 +1,7 @@
+[
+ {"nombre":"de pie","sexo":"h","talla":1.80,"masa":80,"carga":100,"pose":{"tibia":0.05,"muslo":-0.05,"tronco":0.15,"cabeza":0.1,"barraT":0.1,"pieZ":0.05}},
+ {"nombre":"media sentadilla","sexo":"h","talla":1.80,"masa":80,"carga":100,"pose":{"tibia":0.3,"muslo":-0.8,"tronco":0.5,"cabeza":0.15,"barraT":0.1,"pieZ":0.05}},
+ {"nombre":"paralelo","sexo":"m","talla":1.65,"masa":62,"carga":60,"pose":{"tibia":0.45,"muslo":-1.45,"tronco":0.75,"cabeza":0.2,"barraT":0.1,"pieZ":0.04}},
+ {"nombre":"profunda","sexo":"h","talla":1.75,"masa":85,"carga":140,"pose":{"tibia":0.6,"muslo":-1.9,"tronco":0.9,"cabeza":0.3,"barraT":0.08,"pieZ":0.06}},
+ {"nombre":"barra vacia","sexo":"m","talla":1.70,"masa":70,"carga":20,"pose":{"tibia":0.4,"muslo":-1.3,"tronco":0.7,"cabeza":0.2,"barraT":0.1,"pieZ":0.05}}
+]

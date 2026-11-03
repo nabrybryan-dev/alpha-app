@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useSesionOpcional } from '../../../app/SessionProvider'
 import { Badge } from '../../../components/ui/Badge'
-import { Card } from '../../../components/ui/Card'
 import { responderPreguntaCoach, type RespuestaCoach } from '../../../data/consola/respuestasCoach'
 import { textoDeRespuesta, type PreguntaDeLaCadena } from '../../../domain/consolaCoach/preguntasDeLaCadena'
+import { ETIQUETA_SECCION } from './piezas'
 import { usePuestoCoach } from './usePuestoCoach'
 
 /**
@@ -58,10 +58,13 @@ export function PreguntasAlCoach({ pendientes, respondidas, estado, nombreDe, on
   const sinMigracion = estado.tipo === 'sin_tabla'
 
   return (
-    <Card destacada aria-label="Preguntas de la cadena para el coach">
+    <section
+      aria-label="Preguntas de la cadena para el coach"
+      className="consola-tarjeta rounded-tarjeta border border-rojo/50 bg-surface-1 p-4 shadow-sm"
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="kicker">Preguntas de la cadena para ti</p>
+          <p className={ETIQUETA_SECCION}>Preguntas de la cadena para ti</p>
           <p className="mt-1 text-sm text-tenue">
             Lo que los agentes te dejaron sin resolver. Tu respuesta la lee la cadena en la siguiente tanda.
           </p>
@@ -132,7 +135,7 @@ export function PreguntasAlCoach({ pendientes, respondidas, estado, nombreDe, on
           )}
         </div>
       )}
-    </Card>
+    </section>
   )
 }
 

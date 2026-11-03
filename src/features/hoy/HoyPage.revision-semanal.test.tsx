@@ -70,4 +70,12 @@ describe('la revisión de la semana en Hoy', () => {
     expect(screen.getByText('Escríbele a tu coach')).toBeInTheDocument()
     expect(screen.queryByText('Escríbele a tu coach o a tu nutricionista')).not.toBeInTheDocument()
   })
+
+  it('lleva a la Semana con «Ver toda tu semana», con la cuenta de lo que queda por hacer', () => {
+    renderizarHoy()
+    const enlace = screen.getByRole('link', { name: /^Ver toda tu semana/ })
+    expect(enlace).toHaveAttribute('href', '/semana')
+    const region = screen.getByRole('region', { name: 'Tu revisión de la semana' })
+    expect(region).toContainElement(enlace)
+  })
 })

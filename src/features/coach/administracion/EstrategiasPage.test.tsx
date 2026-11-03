@@ -118,6 +118,13 @@ describe('EstrategiasPage · orden de Bryan', () => {
     expect(within(b).queryByRole('link')).toBeNull()
   })
 
+  it('la salida es el «‹» de la cabecera: no pinta un «Volver a…» de texto', async () => {
+    montar()
+    await screen.findByRole('region', { name: 'Mercadeo' })
+    expect(screen.queryByRole('link', { name: /^Volver/i })).toBeNull()
+    expect(screen.queryByText(/^Volver a/i)).toBeNull()
+  })
+
   it('sin ver_administracion las secciones del tablero dicen «Sin permiso» y no se lee la tabla', async () => {
     montar()
     const m = await screen.findByRole('region', { name: 'Mercadeo' })

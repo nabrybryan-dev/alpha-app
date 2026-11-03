@@ -6,6 +6,7 @@ import type { DiaSemana } from '../../domain/calendario'
 import { claveBorrador, VACIO, type Borrador } from './borrador'
 import type { ResultadoCribado } from '../../data/repos'
 import type { Cribado, EstadoCribado } from '../../domain/types'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * El cribado de salud: las doce preguntas que abren o cierran la puerta clínica.
@@ -350,14 +351,13 @@ export function CribadoForm({
         </p>
       )}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={enviar}
         disabled={enviando}
-        className="press rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white disabled:opacity-40"
       >
         {enviando ? 'Guardando…' : 'Enviar'}
-      </button>
+      </Boton3D>
     </section>
   )
 }

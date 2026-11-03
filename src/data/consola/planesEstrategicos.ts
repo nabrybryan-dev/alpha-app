@@ -78,29 +78,3 @@ export async function planVigente(usuarioId: string): Promise<PlanEstrategico | 
     return null
   }
 }
-
-/**
- * Todas las versiones de una persona, de la más reciente a la más vieja — el historial
- * completo de revisiones inmutables. `planVigente` no es un caso particular de esta lista
- * filtrado en memoria porque pedir solo el vigente es una consulta más barata que traer
- * todo el historial para leer una fila.
- *
- * OJO (0087): para el staff esta lista incluye también los borradores y los rechazados
- * (`estado`), que no son historial publicado. Hoy nadie la pinta; quien la use, que filtre.
- * La ficha usa `planVigente`, que solo trae `vigente = true`.
- */
-export async function historialDePlanes(usuarioId: string): Promise<PlanEstrategico[]> {
-  if (!modoNube || !usuarioId) return []
-  try {
-    const { data, error } = await supabase()
-      .from(TABLA_PLANES_ESTRATEGICOS)
-      .select(SELECCION_PLANES_ESTRATEGICOS)
-      .eq('usuario_id', usuarioId)
-      .order('version', { ascending: false })
-
-    if (error || !data) return []
-    return (data as unknown as FilaPlanEstrategico[]).map(aPlanEstrategico)
-  } catch {
-    return []
-  }
-}

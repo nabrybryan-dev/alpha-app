@@ -227,6 +227,52 @@ describe('Praxis conectada · la frase marcada sigue sin entrar al hilo, sin gua
   })
 })
 
+describe('Praxis conectada · las tarjetas esperan al filtro de riesgo', () => {
+  it.each([
+    'me duele tanto que ya no quiero vivir',
+    'estoy cansada de vivir',
+    'ya no quiero vivir, me duele la rodilla',
+    'me duele la rodilla y me quiero matar',
+  ])('«%s» no enciende ninguna tarjeta', async (dicha) => {
+    const u = userEvent.setup()
+    const c = crear()
+    const oidas: string[] = []
+    const oir = (evento: Event) => {
+      const texto = (evento as CustomEvent<{ texto?: string }>).detail?.texto
+      if (texto) oidas.push(texto)
+    }
+    window.addEventListener('praxis:frasa', oir)
+    try {
+      const { $, raiz } = montar(c)
+      await abrir(u)
+      await decirle(u, $, dicha)
+      await waitFor(() => {
+        const enQuieta = raiz.querySelector('.quieta') !== null
+        const enCuidado = frase($).includes('hacerte daño')
+        expect(enQuieta || enCuidado).toBe(true)
+      }, ESPERA)
+      expect(oidas).not.toContain(dicha)
+      expect(raiz.querySelectorAll('.px-t')).toHaveLength(0)
+    } finally {
+      window.removeEventListener('praxis:frasa', oir)
+    }
+  })
+
+  it('una duda de cuidado retira las tarjetas que ya estaban en pantalla', async () => {
+    const u = userEvent.setup()
+    const c = crear()
+    const { $, raiz } = montar(c)
+    await abrir(u)
+    await decirle(u, $, 'me duele la rodilla')
+    await waitFor(() => expect(raiz.querySelectorAll('.px-t').length).toBeGreaterThan(0), ESPERA)
+
+    await decirle(u, $, 'a veces no aguanto más')
+
+    await waitFor(() => expect(frase($)).toContain('hacerte daño'), ESPERA)
+    expect(raiz.querySelectorAll('.px-t')).toHaveLength(0)
+  })
+})
+
 describe('Praxis conectada · el permiso nuevo y los textos (Bryan, 3-oct)', () => {
   it('quien aceptó el permiso VIEJO (v1) ve los permisos otra vez y Praxis no se activa hasta aceptar', async () => {
     localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v1' }))

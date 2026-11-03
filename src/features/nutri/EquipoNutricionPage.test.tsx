@@ -56,7 +56,8 @@ describe('EquipoNutricionPage', () => {
       expect(within(cartera).queryByText(u.nombre)).not.toBeInTheDocument()
     }
     expect(screen.queryByRole('link', { name: /Qué cifras ve cada asesorado/ })).toBeNull()
-    expect(screen.getByRole('link', { name: 'Volver a Equipo' })).toHaveAttribute('href', '/equipo')
+    // «Volver a Equipo» lo hace el «‹» de la cabecera (padre de /equipo-nutricion): el enlace no se repite.
+    expect(screen.queryByRole('link', { name: 'Volver a Equipo' })).toBeNull()
   })
 
   it('una selección inválida no abre la cartera completa como alternativa', () => {

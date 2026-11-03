@@ -1,7 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { CifraAnimada } from '../../../../components/ui/CifraAnimada'
+import { Cifra3D } from '../../../../components/ui/Cifra3D'
 import { Badge } from '../../../../components/ui/Badge'
-import { Card } from '../../../../components/ui/Card'
 import { corridasDeTodaLaCartera, type CadenaCorrida } from '../../../../data/consola/cadenaCorridas'
 import { db, hoyIso } from '../../../../data/dbInstance'
 import { ordenesRecientes, type Orden } from '../../../../data/consola/ordenes'
@@ -15,6 +14,7 @@ import { AccionesRevision } from '../AccionesRevision'
 import { BandejaPlanesRenovados } from '../BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../BandejaPrimerosPlanes'
 import { useDatoConsola } from '../datoConsola'
+import { ETIQUETA_SECCION } from '../piezas'
 import { conclusion, revisarCartera, type EstadoActivacion, type FilaCartera } from '../../revisionCartera'
 
 /**
@@ -83,8 +83,11 @@ function FilaPersona({
   const etiqueta = ETIQUETA_ESTADO[fila.estado]
 
   return (
-    <Card
-      className={`consola-tarjeta flex flex-col gap-2.5 ${seleccionada ? 'glass-destacada' : ''}`}
+    <section
+      aria-label={`Revisión de ${fila.usuario.nombre}`}
+      className={`consola-tarjeta flex flex-col gap-2.5 rounded-tarjeta border bg-surface-1 p-4 shadow-sm ${
+        seleccionada ? 'border-texto' : 'border-linea'
+      }`}
       style={{ '--i': i } as CSSProperties}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -96,7 +99,7 @@ function FilaPersona({
             aria-label={`Ver la ficha de ${fila.usuario.nombre}`}
           >
             <span className="font-display text-base text-texto underline-offset-4 group-hover:underline">{fila.usuario.nombre}</span>
-            <span className="text-[11px] font-bold text-rojo opacity-0 transition-opacity duration-base group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="text-[11px] font-bold text-tenue opacity-0 transition-opacity duration-base group-hover:opacity-100 group-focus-visible:opacity-100">
               Ver ficha →
             </span>
           </button>
@@ -153,7 +156,7 @@ function FilaPersona({
         ordenes={ordenes}
         onOrdenCreada={onOrdenCreada}
       />
-    </Card>
+    </section>
   )
 }
 
@@ -206,22 +209,22 @@ export function RevisionSemanaTab({ seleccionadoId, onVerPersona }: RevisionSema
       {/* Solo con `aprobar_plan_estrategico` (0087): el plan estratégico renovado. */}
       <BandejaPlanesRenovados onVerPersona={onVerPersona} />
 
-      <Card destacada>
-        <p className="kicker">La pregunta de Astra</p>
+      <section aria-label="La pregunta de Astra" className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <p className={ETIQUETA_SECCION}>La pregunta de Astra</p>
         <p className="mt-1 text-sm text-texto">
           ¿Quién tiene entrenamiento visible hoy y quién llegará al lunes sin plan?
         </p>
-        <div className="mt-2 flex flex-wrap gap-4 text-sm">
-          <span>
-            <span className="cifras text-2xl font-bold text-verde"><CifraAnimada valor={visibleHoy} /></span>{' '}
+        <div className="mt-2 flex flex-wrap items-end gap-6 text-sm">
+          <span className="flex items-baseline gap-2">
+            <Cifra3D valor={visibleHoy} tamano={30} etiqueta={`${visibleHoy} con entrenamiento visible hoy`} />
             <span className="text-tenue">con entrenamiento visible hoy</span>
           </span>
-          <span>
-            <span className="cifras text-2xl font-bold text-rojo"><CifraAnimada valor={sinPlanLunes} /></span>{' '}
+          <span className="flex items-baseline gap-2">
+            <Cifra3D valor={sinPlanLunes} tamano={30} rojo={sinPlanLunes > 0} etiqueta={`${sinPlanLunes} podrían llegar al lunes sin plan`} />
             <span className="text-tenue">podrían llegar al lunes sin plan</span>
           </span>
         </div>
-      </Card>
+      </section>
 
       <div className="grid grid-cols-1 gap-2.5 2xl:grid-cols-2">
         {ordenadas.map((fila, n) => (

@@ -6,6 +6,8 @@ import { CheckinForm } from '../../bienestar/CheckinForm'
 import { CheckDibujado } from '../../entrenar/CheckDibujado'
 
 interface ChequeoDeHoyProps {
+  /** El Hoy del staff queda como en main: sin botón 3D. */
+  clasico?: boolean
   usuarioId: string
   hoy: string
 }
@@ -29,7 +31,7 @@ function Casilla({ valor, etiqueta, rojo = false }: { valor: string; etiqueta: s
  * formulario —`CheckinForm`, con la misma regla de peso que Bienestar— y, hecho, se queda
  * en un resumen de tres casillas. El historial y las medidas siguen en /bienestar.
  */
-export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
+export function ChequeoDeHoy({ usuarioId, hoy, clasico = false }: ChequeoDeHoyProps) {
   const checkins = db.bienestar.byUsuario(usuarioId)
   const deHoy = checkins.find((c) => c.fecha === hoy)
   const verPeso = visibilidadDelAsesorado(usuarioId).verComposicion
@@ -67,14 +69,15 @@ export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
             />
           </div>
           <Link
-            to="/bienestar"
+            to="/progreso"
             className="press inline-flex min-h-[44px] items-center self-start text-xs font-semibold text-texto underline underline-offset-2"
           >
-            Ver mis últimos 7 días
+            Ver mi historial
           </Link>
         </>
       ) : (
         <CheckinForm
+          clasico={clasico}
           usuarioId={usuarioId}
           fecha={hoy}
           pesoInicial={pesoInicial}
@@ -83,6 +86,15 @@ export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
           onGuardar={(c) => db.bienestar.guardar(c)}
         />
       )}
+
+      {/* /bienestar sigue viva como detalle: allí están el resumen del día y el botón del
+          recordatorio de las 6 pm. Sin esta entrada, el asesorado se quedaba sin camino. */}
+      <Link
+        to="/bienestar"
+        className="press inline-flex min-h-[44px] items-center self-start text-xs font-semibold text-tenue underline underline-offset-2"
+      >
+        Ver todo y recordatorio
+      </Link>
     </section>
   )
 }

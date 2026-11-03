@@ -15,8 +15,17 @@ let cachePromesa: Promise<Capacidad[]> | undefined
 function capacidadesCacheadas(usuarioId: string): Promise<Capacidad[]> {
   if (cacheUsuarioId === usuarioId && cachePromesa) return cachePromesa
   cacheUsuarioId = usuarioId
-  cachePromesa = capacidadesDe(usuarioId)
-  return cachePromesa
+  // Si la consulta revienta, el hook NO se queda «cargando» para siempre: falla cerrado (ninguna capacidad) y el
+  // fallo no se guarda en el caché, para que la próxima vez se vuelva a preguntar.
+  const promesa: Promise<Capacidad[]> = capacidadesDe(usuarioId).catch(() => {
+    if (cachePromesa === promesa) {
+      cacheUsuarioId = undefined
+      cachePromesa = undefined
+    }
+    return []
+  })
+  cachePromesa = promesa
+  return promesa
 }
 
 /** Solo para pruebas: vacía el caché de módulo entre casos, para que cada uno arranque con

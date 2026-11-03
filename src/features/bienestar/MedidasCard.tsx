@@ -80,9 +80,9 @@ function Delta({ actual, previa }: { actual: number; previa?: number }) {
  * es la misma cosa en otro registro. Ver
  * `docs/specs/2026-08-25-piezas-sin-colocar-diseno.md`.
  *
- * POR QUÉ UNA COLUMNA Y NO UNA BANDA. Esta pantalla es CLARA
- * (`data-theme="light"`, fondo `#f7f7f5`), y en claro la pieza no puede ser suelo:
- * una banda oscura a sangre es justo lo que Contenidos tuvo que resolver montando
+ * POR QUÉ UNA COLUMNA Y NO UNA BANDA. Esta pantalla sigue el tema de la persona
+ * (decisión de Bryan del 28-oct); en claro el fondo es `#f7f7f5` y la pieza no puede ser
+ * suelo: una banda oscura a sangre es justo lo que Contenidos tuvo que resolver montando
  * la pieza como lámina. Aquí es un objeto con forma, y la forma no es un capricho:
  * un plano que sube por un cuerpo se lee en vertical.
  *

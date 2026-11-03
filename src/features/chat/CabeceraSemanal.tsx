@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { enlaceDeCabecera, type Cabecera } from './enlaceDeCabecera'
 
 interface CabeceraSemanalProps {
+  /** `nuevo` = el aspecto de la maqueta «Diseño final 3» (asesorado); `clasico` = el de main (staff, hasta el paso 9). */
+  diseno?: 'nuevo' | 'clasico'
   /**
    * De dónde sale el vídeo. Se inyecta para poder cambiarlo sin tocar esta
    * pantalla — ver `enlaceDeCabecera.ts`.
@@ -19,10 +21,13 @@ interface CabeceraSemanalProps {
  * no dice ni un número ni un nombre. Lo que cambia cada semana es la tarjeta de
  * abajo. Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`.
  */
-export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: CabeceraSemanalProps) {
+export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children, diseno = 'clasico' }: CabeceraSemanalProps) {
   const [cabecera, setCabecera] = useState<Cabecera | null>(null)
   const [cargando, setCargando] = useState(true)
   const montado = useRef(true)
+  const reproductor = useRef<HTMLMediaElement | null>(null)
+  const [verTexto, setVerTexto] = useState(false)
+  const [terminado, setTerminado] = useState(false)
 
   useEffect(() => {
     montado.current = true
@@ -55,6 +60,17 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
     }
   }, [traerEnlace])
 
+  // Sin texto en los datos, sin botón: no se inventa un resumen que nadie firmó.
+  const textoDeLaRevision = cabecera?.guion?.trim() ? cabecera.guion : undefined
+
+  const volverAOir = () => {
+    const medio = reproductor.current
+    if (!medio) return
+    medio.currentTime = 0
+    setTerminado(false)
+    void Promise.resolve(medio.play()).catch(() => undefined)
+  }
+
   return (
     <section
       role="region"
@@ -66,10 +82,16 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
         Tu revisión de la semana
       </p>
 
-      <div className="overflow-hidden rounded-2xl border border-linea bg-surface-1">
+      <div className={
+          diseno === 'nuevo'
+            ? 'overflow-hidden rounded-[22px] border border-hairline bg-surface-1 shadow-[var(--brillo),var(--sombra-card)]'
+            : 'overflow-hidden rounded-2xl border border-linea bg-surface-1'
+        }>
         {cabecera?.tipo === 'video' ? (
           <video
             src={cabecera.url}
+            ref={(el) => { reproductor.current = el }}
+            onEnded={() => setTerminado(true)}
             controls
             playsInline
             preload="metadata"
@@ -90,6 +112,8 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
               <p className="font-display text-sm text-texto">Bryan te cuenta tu semana</p>
               <p className="mt-0.5 text-xs text-tenue">Voz generada a partir de su voz, con revisión humana.</p>
               <audio
+                ref={(el) => { reproductor.current = el }}
+                onEnded={() => setTerminado(true)}
                 src={cabecera.url}
                 controls
                 preload="metadata"
@@ -104,6 +128,37 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
           </p>
         )}
       </div>
+
+      {cabecera && (terminado || textoDeLaRevision) && (
+        <div className="flex flex-col gap-2">
+          {textoDeLaRevision && (
+            <>
+              <button
+                type="button"
+                aria-expanded={verTexto}
+                onClick={() => setVerTexto((v) => !v)}
+                className="press min-h-11 w-full rounded-boton border border-linea bg-surface-1 px-4 py-2 text-sm font-bold text-texto"
+              >
+                {verTexto ? 'Ocultar el resumen' : 'Leer el resumen'}
+              </button>
+              {verTexto && (
+                <p className="whitespace-pre-line rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 text-sm leading-relaxed text-texto">
+                  {textoDeLaRevision}
+                </p>
+              )}
+            </>
+          )}
+          {terminado && (
+            <button
+              type="button"
+              onClick={volverAOir}
+              className="press min-h-11 self-start px-1 text-sm font-bold text-texto underline underline-offset-2"
+            >
+              Volver a oír
+            </button>
+          )}
+        </div>
+      )}
 
       {children}
     </section>

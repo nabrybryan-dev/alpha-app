@@ -1,7 +1,8 @@
 import { etiquetaDelTipoDeDia, tipoDiaDeLaFecha } from '../../domain/nutricion/tipoDiaDeLaFecha'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { useVolverInterno } from '../../app/volverInternoContexto'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
@@ -23,7 +24,15 @@ import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
 import { RECETAS, type Receta } from '../../data/recetas'
 import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
-import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from '../../domain/recetasProbadas'
+import {
+  anotar,
+  completarComidasViejas,
+  desanotar,
+  distintas,
+  rachaDeRecetas,
+  type HuellaDeReceta,
+  type RecetaProbada,
+} from '../../domain/recetasProbadas'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
 import { RecetasCarousel } from './RecetasCarousel'
 import { ResumenDia } from './ResumenDia'
@@ -71,6 +80,14 @@ const fechaBonita = (iso: string) => {
   return FECHA_LARGA.format(new Date(anio, mes - 1, dia))
 }
 
+/** La comida que deja una receta en el diario, para reconocer las anotaciones viejas. */
+function huellaDeReceta(recetaId: string): HuellaDeReceta | null {
+  const receta = RECETAS.find((r) => r.id === recetaId)
+  if (!receta) return null
+  const plan = recetaAlRegistro(receta, '')
+  return plan.puede ? { comida: plan.comida.comida, items: plan.items } : null
+}
+
 export default function DiarioDia() {
   const { usuario } = useSesion()
   useDbVersion()
@@ -102,8 +119,6 @@ export default function DiarioDia() {
   }, [ruta.state])
 
   const [fecha, setFecha] = useState(hoyIso())
-  /** Qué comida creó cada receta, para poder deshacer exactamente esa. */
-  const comidasDeReceta = useRef(new Map<string, string>())
 
   /**
    * Las recetas ya cocinadas, en el teléfono y con la clave del usuario.
@@ -114,9 +129,16 @@ export default function DiarioDia() {
    * para tirarle la racha a quien vuelve a entrar en su propio teléfono.
    */
   const claveProbadas = `alpha-recetas-${usuario.id}`
-  const [probadas, setProbadasEstado] = useState<RecetaProbada[]>(() =>
-    leerJSON<RecetaProbada[]>(claveProbadas, []),
-  )
+  const [probadas, setProbadasEstado] = useState<RecetaProbada[]>(() => {
+    const guardadas = leerJSON<RecetaProbada[]>(claveProbadas, [])
+    // Las anotaciones de antes de `comidas` se pasan una vez al formato nuevo
+    // y se guardan, para que salgan en «cocinadas hoy».
+    const completas = completarComidasViejas(guardadas, huellaDeReceta, (dia) =>
+      db.registroComidas.delDia(usuario.id, dia),
+    )
+    if (completas.some((p, i) => p !== guardadas[i])) escribirJSON(claveProbadas, completas)
+    return completas
+  })
   const setProbadas = (nuevas: RecetaProbada[]) => {
     setProbadasEstado(nuevas)
     escribirJSON(claveProbadas, nuevas)
@@ -128,6 +150,22 @@ export default function DiarioDia() {
   const [verSemana, setVerSemana] = useState(false)
   const [comidaAbierta, setComidaAbierta] = useState<TipoComida | null>(prefijo?.comida ?? null)
   const [elegido, setElegido] = useState<AlimentoIndice | null>(null)
+  const { registrar: registrarVolver } = useVolverInterno()
+
+  // El detalle de una comida y la vista Semana viven dentro de `/nutricion`, sin
+  // dirección propia. Su vuelta la pinta el «‹» de la cabecera, no un botón de la
+  // pantalla: aquí se le dice a `TopBar` qué cerrar mientras estén abiertos.
+  useEffect(() => {
+    if (detalle !== null) {
+      registrarVolver(() => setDetalle(null), 'Diario')
+      return () => registrarVolver(null)
+    }
+    if (verSemana) {
+      registrarVolver(() => setVerSemana(false), 'Diario')
+      return () => registrarVolver(null)
+    }
+    registrarVolver(null)
+  }, [detalle, verSemana, registrarVolver])
 
   const plan = db.nutricion.planByUsuario(usuario.id)
   // El tipo de día sale del plan y de la fecha que se mira; antes estaba fijo en ALTO.
@@ -189,12 +227,41 @@ export default function DiarioDia() {
    * Las quincenales de embarazo y lactancia, si hoy toca alguna.
    *
    * Contra `hoyIso()` y no contra `fecha`: abrir el diario del lunes pasado no
-   * es viajar en el tiempo, y una pregunta que toca hoy toca igual.
+   * es viajar en el tiempo, y una pregunta que toca hoy toca igual. Es un
+   * recordatorio, no una compuerta: el diario entero se puede usar sin tocarlo.
    */
   const quincenalesPendientes = preguntasQueVuelven(respuestasSuyas, hoyIso())
+
   const nombresDelDia = delDia.flatMap((comida) =>
     comida.items.map((item) => porId(item.alimentoId)?.nombre ?? ''),
   )
+
+  /**
+   * Las recetas que se cocinaron ESTE día, leídas de lo registrado.
+   *
+   * No de la ficha de la receta: los gramos y las kcal salen de la comida que
+   * de verdad quedó en el diario, así que si se borra desaparece de la lista y
+   * si la misma receta se cocina dos veces se ve dos veces.
+   */
+  const recetasDeHoy = probadas
+    .filter((p) => p.fecha === fecha)
+    .flatMap((p) => {
+      const receta = RECETAS.find((r) => r.id === p.recetaId)
+      if (!receta) return []
+      return (p.comidas ?? []).flatMap((comidaId) => {
+        const comida = delDia.find((c) => c.id === comidaId)
+        if (!comida) return []
+        return [
+          {
+            id: comidaId,
+            receta,
+            kcal: kcalDeComida(comida, porId),
+            comida: comida.comida,
+            hora: comida.momentoIso.slice(11, 16),
+          },
+        ]
+      })
+    })
 
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
 
@@ -212,17 +279,21 @@ export default function DiarioDia() {
       if (!plan.puede) return
       const comidaId = db.registroComidas.abrirComida({ ...plan.comida, usuarioId: usuario.id })
       for (const item of plan.items) db.registroComidas.agregarItem(usuario.id, comidaId, item)
-      comidasDeReceta.current.set(receta.id, comidaId)
-      setProbadas(anotar(probadas, receta.id, fecha))
+      setProbadas(anotar(probadas, receta.id, fecha, comidaId))
     },
     deshacer: (receta: Receta) => {
-      const comidaId = comidasDeReceta.current.get(receta.id)
+      // La última comida registrada de esa receta ese día. Se lee de lo
+      // persistido y no de un mapa en memoria: deshacer funciona aunque la
+      // pantalla se haya vuelto a montar.
+      const comidaId = [...probadas]
+        .reverse()
+        .find((p) => p.recetaId === receta.id && p.fecha === fecha)
+        ?.comidas?.at(-1)
       if (!comidaId) return
       db.registroComidas.borrarComida(usuario.id, comidaId)
-      comidasDeReceta.current.delete(receta.id)
       // La racha baja con la comida. Si no, el número seguiría diciendo que
       // cocinó algo que ya no está registrado en ninguna parte.
-      setProbadas(desanotar(probadas, receta.id, fecha))
+      setProbadas(desanotar(probadas, receta.id, fecha, comidaId))
     },
   }
 
@@ -308,6 +379,7 @@ export default function DiarioDia() {
   abierto={comidaAbierta !== null && elegido === null}
   recientes={recientes}
   consultaInicial={prefijo?.busqueda}
+  verKcal={visibilidad.verContadorKcal}
   onCerrar={() => setComidaAbierta(null)}
   onElegir={setElegido}
 />
@@ -318,6 +390,7 @@ export default function DiarioDia() {
   preguntarEstado={elegido ? preguntaDe(elegido) : null}
   nombreComida={destino ?? ''}
   gramosIniciales={prefijo?.gramos}
+  verKcal={visibilidad.verContadorKcal}
   onCerrar={() => setElegido(null)}
   onElegirEstado={(alimento) => {
     db.registroComidas.recordarPreferencia({
@@ -348,7 +421,6 @@ export default function DiarioDia() {
         resumen={resumenDeSemana(porDiaDeLaSemana, semana, porId, meta.kcal)}
         meta={meta}
         visibilidad={visibilidad}
-        onVolver={() => setVerSemana(false)}
         onElegirDia={(dia) => {
           setFecha(dia)
           setVerSemana(false)
@@ -365,7 +437,7 @@ export default function DiarioDia() {
       <>
         <DetalleComida
           comida={comida}
-          onVolver={() => setDetalle(null)}
+          verKcal={visibilidad.verContadorKcal}
           onAgregar={() => setComidaAbierta(detalle)}
           onQuitarItem={(itemId) => db.registroComidas.quitarItem(usuario.id, comida.id, itemId)}
           onCambiar={(cambios) =>
@@ -379,26 +451,11 @@ export default function DiarioDia() {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
-            Diario de comidas · {etiquetaDelTipoDeDia(plan, tipoDia)}
-          </p>
-          <h1 className="font-display text-xl capitalize text-texto">{fechaBonita(fecha)}</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => setVerSemana(true)}
-          className="press flex min-h-11 shrink-0 items-center rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
-        >
-          Semana
-        </button>
-        <Link
-          to="/nutricion/plan"
-          className="press flex min-h-11 shrink-0 items-center rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
-        >
-          Mi plan
-        </Link>
+      <header>
+        <h1 className="font-display text-xl text-texto">Nutrición</h1>
+        <p className="mt-0.5 text-xs text-tenue">
+          {fechaBonita(fecha)} · {etiquetaDelTipoDeDia(plan, tipoDia)}
+        </p>
       </header>
 
       {quincenalesPendientes.length > 0 && (
@@ -416,21 +473,33 @@ export default function DiarioDia() {
         </Link>
       )}
 
-      <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
+      <TiraSemana
+        fecha={fecha}
+        hoy={hoyIso()}
+        conRegistro={conRegistro}
+        onElegir={setFecha}
+        onSemana={() => setVerSemana(true)}
+      />
 
       <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
 
       <RecetasCarousel
         recetas={RECETAS}
-        kcalRestantes={Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))}
+        kcalRestantes={
+          visibilidad.verContadorKcal
+            ? Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))
+            : undefined
+        }
+        verKcal={visibilidad.verContadorKcal}
         registro={registroDeRecetas}
         cocinadas={distintas(probadas)}
         racha={rachaDeRecetas(probadas, fecha).actual}
+        cocinadasHoy={recetasDeHoy}
       />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-display text-sm text-texto">Tus {COMIDAS.length} comidas de hoy</h2>
+          <h2 className="font-display text-sm text-texto">Comidas</h2>
           <span className="cifras text-xs text-tenue">
             {hechas} / {COMIDAS.length}
           </span>
@@ -458,6 +527,7 @@ export default function DiarioDia() {
       <PanelCalibracion
         pruebas={pruebas}
         diasPesando={diasPesando}
+        verKcal={visibilidad.verContadorKcal}
         onRegistrar={({ alimentoId, estimados, reales }) =>
           db.calibracion.registrar({
             usuarioId: usuario.id,
@@ -474,6 +544,24 @@ export default function DiarioDia() {
           el coach pautó -algo que se lee, no donde se registra-. */}
       <Hidratacion usuarioId={usuario.id} />
       <AdherenciaDia usuarioId={usuario.id} />
+
+      {/* El plan completo, a un toque desde donde se registra. En la maqueta es
+          una fila al pie; la ruta de siempre se conserva. */}
+      <Link
+        to="/nutricion/plan"
+        aria-label="Tu plan"
+        className="press flex items-center justify-between gap-3 rounded-2xl border border-linea bg-surface-1 p-3"
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-texto">Tu plan</span>
+          <span className="block text-xs leading-snug text-tenue">
+            Menús, intercambios, mercado, suplementos y tu perfil
+          </span>
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-tenue">
+          ›
+        </span>
+      </Link>
 
       {hojas}
     </div>

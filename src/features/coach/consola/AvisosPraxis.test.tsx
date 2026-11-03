@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../../data/dbInstance'
 import type { AvisoPraxis } from '../../../data/consola/avisosPraxis'
@@ -227,7 +228,11 @@ describe('la migración sin aplicar y los fallos', () => {
 describe('arriba de todo en la consola', () => {
   it('está antes que la cartera y las pestañas', async () => {
     const { default: ConsolaCoachPage } = await import('./ConsolaCoachPage')
-    render(<ConsolaCoachPage />)
+    render(
+      <MemoryRouter>
+        <ConsolaCoachPage />
+      </MemoryRouter>,
+    )
     const modulo = await screen.findByRole('heading', { name: 'Avisos de Praxis' })
     const cartera = screen.getByRole('navigation', { name: 'Cartera de asesorados' })
     const pestanas = screen.getByRole('tablist', { name: 'Pestañas de la consola del coach' })
@@ -238,7 +243,11 @@ describe('arriba de todo en la consola', () => {
   it('un asesorado que llegara a la consola no ve el módulo', async () => {
     sesion.rol = 'asesorado'
     const { default: ConsolaCoachPage } = await import('./ConsolaCoachPage')
-    render(<ConsolaCoachPage />)
+    render(
+      <MemoryRouter>
+        <ConsolaCoachPage />
+      </MemoryRouter>,
+    )
     await screen.findByRole('tablist', { name: 'Pestañas de la consola del coach' })
     expect(screen.queryByRole('heading', { name: 'Avisos de Praxis' })).not.toBeInTheDocument()
     expect(datos.avisosPendientes).not.toHaveBeenCalled()

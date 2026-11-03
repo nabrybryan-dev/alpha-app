@@ -3,6 +3,7 @@ import { tramoDeHambre } from '../../domain/senales/hambre'
 import { tramoDeDolor } from '../../domain/senales/dolor'
 import { Stepper } from '../../components/ui/Stepper'
 import type { CampoAnotable, Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
@@ -12,6 +13,8 @@ const PESO_DE_FABRICA = 70
 const PASOS_DE_FABRICA = 8000
 
 interface CheckinFormProps {
+  /** El Hoy del staff queda como en main: sin botón 3D. */
+  clasico?: boolean
   usuarioId: string
   fecha: string
   /** Peso/pasos del último check-in, para arrancar los steppers cerca del valor real. */
@@ -43,8 +46,11 @@ function CampoPills({
 }) {
   return (
     <fieldset className="rounded-tarjeta border border-linea bg-surface-1 p-3.5 shadow-sm">
-      <legend className="mb-2.5 text-sm font-bold text-texto">{titulo}</legend>
-      <div className="flex gap-2">
+      {/* `legend` nativo se dibuja ENCIMA del borde del fieldset. Con `float`
+          vuelve al flujo de dentro de la tarjeta y el borde queda entero; el
+          `clear` de las opciones evita que se monten sobre el rótulo. */}
+      <legend className="float-left mb-2.5 w-full text-sm font-bold text-texto">{titulo}</legend>
+      <div className="clear-both flex gap-2">
         {opciones.map((o) => {
           const sel = valor === o
           return (
@@ -65,7 +71,7 @@ function CampoPills({
   )
 }
 
-export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, onGuardar }: CheckinFormProps) {
+export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, onGuardar, clasico = false }: CheckinFormProps) {
   const [pesoKg, setPesoKg] = useState(pesoInicial ?? PESO_DE_FABRICA)
   const [pasos, setPasos] = useState(pasosInicial ?? PASOS_DE_FABRICA)
   // Si la persona ya movió el campo, manda ella: una hidratación tardía no
@@ -193,8 +199,11 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Peso ayunas + Pasos como steppers en tarjetas paper */}
-      <div className={pedirPeso ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
+      {/* Peso ayunas + Pasos como steppers en tarjetas paper.
+          En 390 px van uno debajo del otro: a dos columnas, los 44 px de cada
+          tecla dejaban al valor sin sitio y «59 kg» se montaba sobre la unidad
+          o «8.800» se leía «880» (H-08). Desde `sm` vuelven a la pareja. */}
+      <div className={`grid grid-cols-1 gap-3 ${pedirPeso ? 'sm:grid-cols-2' : ''}`}>
         {pedirPeso && (
           <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
             <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />
@@ -264,14 +273,20 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
           Te falta{faltantes === 1 ? '' : 'n'} {faltantes} campo{faltantes === 1 ? '' : 's'} por marcar
         </p>
       )}
-      <button
-        type="button"
-        onClick={guardar}
-        className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-        style={{ boxShadow: 'var(--glow-accion)' }}
-      >
-        Guardar check-in
-      </button>
+      {clasico ? (
+        <button
+          type="button"
+          onClick={guardar}
+          className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
+          style={{ boxShadow: 'var(--glow-accion)' }}
+        >
+          Guardar check-in
+        </button>
+      ) : (
+        <Boton3D bloque type="button" onClick={guardar} className="mt-1">
+          Guardar check-in
+        </Boton3D>
+      )}
     </div>
   )
 }

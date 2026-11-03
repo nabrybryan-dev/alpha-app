@@ -1,7 +1,9 @@
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import type { TurnoId } from '../../domain/praxis/ingreso/guion'
+import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { puedeVerPraxis } from '../../domain/praxis/acceso'
+import { ComprobandoAcceso } from './ComprobandoAcceso'
 import { extraerIngreso } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
 import { IngresoPrueba } from './ingreso/IngresoPrueba'
@@ -19,8 +21,11 @@ const extraer = async (turno: TurnoId, texto: string) => extraerIngreso(await se
 
 export default function IngresoPruebaPage() {
   const { usuario } = useSesion()
+  const { esCoach, cargando } = usePuestoCoach(usuario.rol)
   const [parametros] = useSearchParams()
-  if (!puedeVerPraxis(usuario.rol)) return <Navigate to="/" replace />
+  // Quien ocupa el puesto de coach (la cuenta personal de Bryan) entra; mientras se sabe, no se decide nada.
+  if (usuario.rol === 'asesorado' && cargando) return <ComprobandoAcceso />
+  if (!puedeVerPraxis(usuario.rol, undefined, esCoach)) return <Navigate to="/" replace />
   const trato: Trato = parametros.get('trato')?.toLowerCase() === 'usted' ? 'usted' : 'tu'
   return <IngresoPrueba trato={trato} salida={usuario.rol === 'coach' ? '/coach' : '/'} extraer={extraer} />
 }

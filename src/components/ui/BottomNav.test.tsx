@@ -13,23 +13,24 @@ function etiquetas(espacios?: 'asesorado' | 'staff') {
 }
 
 describe('BottomNav', () => {
-  it('el asesorado conserva sus cinco pestañas de siempre', () => {
+  it('el asesorado cambia Bienestar por Semana y conserva las otras cuatro', () => {
     expect(etiquetas()).toEqual([
       ['Hoy', '/'],
       ['Entrenar', '/entrenar'],
-      ['Bienestar', '/bienestar'],
+      ['Semana', '/semana'],
       ['Nutrición', '/nutricion'],
       ['Progreso', '/progreso'],
     ])
   })
 
-  it('el staff que entrena (Manuela) ve sus cinco espacios, en el orden de la maqueta', () => {
+  it('el staff ve los cinco espacios de la maqueta 7 y Praxis, en su orden', () => {
     expect(etiquetas('staff')).toEqual([
       ['Mi día', '/'],
-      ['Mi entreno', '/mi-entreno'],
       ['Equipo', '/equipo'],
-      ['Estrategias', '/coach/estrategias'],
-      ['Administración', '/coach/administracion'],
+      ['Bandeja', '/bandeja'],
+      ['Empresa', '/empresa'],
+      ['Praxis', '/praxis'],
+      ['Yo', '/mi-entreno'],
     ])
   })
 
@@ -39,17 +40,21 @@ describe('BottomNav', () => {
         <BottomNav espacios="staff" />
       </MemoryRouter>,
     )
-    for (const nombre of ['Mi día', 'Mi entreno', 'Equipo', 'Estrategias', 'Administración']) {
+    for (const nombre of ['Mi día', 'Equipo', 'Bandeja', 'Empresa', 'Praxis', 'Yo']) {
       expect(screen.getByRole('link', { name: nombre })).toBeInTheDocument()
     }
   })
 
-  it('Bryan usa la barra de Manuela y solo pierde lo que su capacidad no cubre', () => {
+  it('Estrategias y Administración no desaparecen: se llega a ellas desde Empresa', () => {
     render(
       <MemoryRouter>
-        <BottomNav espacios="staff" opcionesCoach={{ estrategias: false, administracion: false }} />
+        <BottomNav espacios="staff" />
       </MemoryRouter>,
     )
-    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['Mi día', 'Mi entreno', 'Equipo'])
+    // La barra ya no las lleva como pestañas; su dirección propia sigue existiendo en las rutas
+    // (Empresa las enlaza). Lo que se vigila aquí es que la barra no las prometa dos veces.
+    expect(screen.queryByRole('link', { name: 'Estrategias' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Empresa' })).toHaveAttribute('href', '/empresa')
   })
 })

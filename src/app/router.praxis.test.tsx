@@ -93,10 +93,10 @@ describe('/praxis en el enrutador real', () => {
     expect(screen.getByRole('button', { name: 'Escribiendo' })).toBeInTheDocument()
   })
 
-  it('el panel del coach enlaza con Praxis, rotulada como solo del equipo', async () => {
+  it('Empresa enlaza con Praxis y sus dos pantallas, rotuladas como del equipo', async () => {
     localStorage.setItem('alpha-usuario', 'u-bryan')
-    renderizarEn('/coach/asesorados')
-    const enlace = await screen.findByRole('link', { name: 'Praxis (solo equipo)' })
+    renderizarEn('/empresa')
+    const enlace = await screen.findByRole('link', { name: /Praxis del equipo/ })
     expect(enlace).toHaveAttribute('href', '/praxis')
   })
 })

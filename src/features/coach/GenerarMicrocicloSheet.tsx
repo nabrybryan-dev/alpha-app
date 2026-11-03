@@ -7,6 +7,7 @@ import type { Microciclo } from '../../domain/types'
 import { microcicloPropuesto, proponerMicrociclo, type PropuestaMicrociclo } from './propuestaMicrociclo'
 import { datosRutaDe } from '../../data/ruta/datosRuta'
 import { peldanoAlcanzado, peldanoTrasMicrociclo } from '../../domain/nivelesAlfa'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 interface GenerarMicrocicloSheetProps {
   abierto: boolean
@@ -210,13 +211,12 @@ export function GenerarMicrocicloSheet({
               recalculada— cuando el actual termine y abras el panel de asesorados.
             </p>
           ) : (
-            <button
+            <Boton3D bloque
               type="button"
               onClick={guardar}
-              className="press w-full rounded-boton bg-accion py-3.5 font-display text-sm uppercase tracking-wide text-white"
             >
               Guardar como propuesta
-            </button>
+            </Boton3D>
           )}
         </div>
       )}

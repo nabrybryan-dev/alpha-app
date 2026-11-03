@@ -11,6 +11,11 @@ export interface MedioPublicado {
   grabadoEl?: string
   /** La pantalla no debe adivinar por la extensión cómo se reproduce una revisión. */
   tipo?: 'audio' | 'video'
+  /**
+   * El texto de la revisión (el guion que se leyó en voz alta), solo en la propia y solo si
+   * está firmada: la política de la 0068 ya no entrega la fila sin `aprobado_en`.
+   */
+  guion?: string
 }
 
 let cache: { valor: MedioPublicado | null; expira: number } | undefined
@@ -126,7 +131,7 @@ export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
 
     const { data: fila, error } = await supabase()
       .from('videos_semanales')
-      .select('path, semana, tipo')
+      .select('path, semana, tipo, guion')
       .eq('usuario_id', yo)
       .order('semana', { ascending: false })
       .limit(1)
@@ -153,6 +158,7 @@ export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
       url,
       grabadoEl: typeof fila?.semana === 'string' ? fila.semana : undefined,
       tipo: fila?.tipo === 'audio' ? 'audio' : 'video',
+      guion: typeof fila?.guion === 'string' && fila.guion.trim() ? fila.guion : undefined,
     }
   } catch {
     return null

@@ -4,13 +4,20 @@ import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
 import { FondoLoop } from '../../components/ui/FondoLoop'
 import { LOOP_HERO, POSTER_LOGIN } from './fondoHero'
 
-export function LoginPage() {
+/**
+ * `enlaceVencido`: llegó desde un enlace del correo que ya venció o ya se usó.
+ * Abre directo en pedir otro: sin esto volvía al login sin explicar nada, y quien
+ * aún no tiene contraseña se quedaba sin salida.
+ */
+export function LoginPage({ enlaceVencido = false }: { enlaceVencido?: boolean }) {
   const [correo, setCorreo] = useState('')
   const [clave, setClave] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    enlaceVencido ? 'Ese enlace ya venció o ya se usó. Escribe tu correo y te enviamos uno nuevo.' : '',
+  )
   const [aviso, setAviso] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [modo, setModo] = useState<'login' | 'recuperar'>('login')
+  const [modo, setModo] = useState<'login' | 'recuperar'>(enlaceVencido ? 'recuperar' : 'login')
 
   const entrar = async () => {
     setError('')
@@ -46,11 +53,11 @@ export function LoginPage() {
     })
     setCargando(false)
     if (fallo) {
-      setError(`No se pudo enviar el correo: ${fallo.message}`)
+      setError('No pudimos enviar el correo. Inténtalo de nuevo en unos minutos o escríbele a tu coach.')
       return
     }
     // No se revela si el correo existe o no (evita enumerar cuentas).
-    setAviso('Si tu correo está registrado, te llegará un enlace para crear una contraseña nueva. Revisa tu bandeja y la carpeta de spam.')
+    setAviso('Si tu correo está registrado, te llegará un enlace para crear tu contraseña. Revisa tu bandeja y la carpeta de spam.')
   }
 
   const campo =
@@ -126,7 +133,7 @@ export function LoginPage() {
                 : 'ENTRAR'
               : cargando
                 ? 'Enviando…'
-                : 'Enviar enlace de recuperación →'}
+                : 'Enviarme el enlace →'}
           </button>
 
           <button
@@ -138,12 +145,12 @@ export function LoginPage() {
             }}
             className="mt-1 text-center text-xs text-white/70 underline underline-offset-2 hover:text-white"
           >
-            {modo === 'login' ? '¿Olvidaste tu contraseña?' : '← Volver a iniciar sesión'}
+            {modo === 'login' ? '¿Primera vez o se te olvidó tu contraseña?' : '← Volver a iniciar sesión'}
           </button>
         </form>
 
         <p className="mt-5 text-center text-xs text-white/60">
-          ¿Sin cuenta? Tu coach te envía la invitación con tus credenciales.
+          ¿Primera vez? Usa el correo con el que te inscribiste y crea ahí tu contraseña.
         </p>
       </div>
     </div>

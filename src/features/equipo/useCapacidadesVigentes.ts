@@ -42,7 +42,8 @@ export function useCapacidadesVigentes(): CapacidadesVigentes {
     let turno = 0
     const preguntar = () => {
       const mio = ++turno
-      void capacidadesDe(usuarioId).then((lista) => {
+      // Si la consulta revienta: sin capacidades (falla cerrado), no «cargando» para siempre.
+      void capacidadesDe(usuarioId).catch((): Capacidad[] => []).then((lista) => {
         if (montado && mio === turno) setEstado({ usuarioId, capacidades: new Set(lista), listo: true })
       })
     }

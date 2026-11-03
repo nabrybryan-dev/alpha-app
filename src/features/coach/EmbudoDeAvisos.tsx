@@ -37,7 +37,11 @@ export function EmbudoDeAvisos() {
           .sort((a, b) => a - b)[0]
         setDias(primera ? Math.floor((Date.now() - primera) / 86_400_000) : 0)
       })
-      .catch(() => {})
+      .catch((e: unknown) => {
+        // Sin las decisiones no hay panel y se ve como «aún no hay datos»: se deja
+        // rastro, solo con el tipo de error (nunca el cuerpo, que puede traer datos).
+        console.error('EmbudoDeAvisos: no se pudieron traer las decisiones', e instanceof Error ? e.name : 'error')
+      })
     return () => {
       vigente = false
     }

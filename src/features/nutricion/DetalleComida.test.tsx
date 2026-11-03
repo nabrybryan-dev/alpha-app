@@ -34,14 +34,14 @@ const conArroz: RegistroComida = {
   ],
 }
 
-const pintar = (comida: RegistroComida = base) => {
+const pintar = (comida: RegistroComida = base, opciones: { verKcal?: boolean } = {}) => {
   const onCambiar = vi.fn()
   const onQuitarItem = vi.fn()
   const onAgregar = vi.fn()
   render(
     <DetalleComida
       comida={comida}
-      onVolver={vi.fn()}
+      verKcal={opciones.verKcal}
       onAgregar={onAgregar}
       onQuitarItem={onQuitarItem}
       onCambiar={onCambiar}
@@ -107,6 +107,12 @@ describe('DetalleComida', () => {
     it('sin aceite puesto, no hay aviso que dar', () => {
       pintar()
       expect(screen.queryByText(/no se ven en el plato/i)).not.toBeInTheDocument()
+    })
+
+    it('con el contador apagado no sale ninguna kcal, y el aviso del aceite sigue', () => {
+      pintar({ ...base, aceiteG: 14 }, { verKcal: false })
+      expect(screen.queryByText(/kcal/i)).toBeNull()
+      expect(screen.getByText(/no se ve en el plato/i)).toBeInTheDocument()
     })
   })
 

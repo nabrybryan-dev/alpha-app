@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import {
   contarQueRequierenAccion,
@@ -7,8 +6,9 @@ import {
   type Seccion,
   type SeccionLeida,
 } from '../../../domain/adminTablero'
-import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
+import { Cargando } from '../../plan/comun'
 import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
+import { Cabecera } from './Cabecera'
 import { JornadaLaboral } from './JornadaLaboral'
 import { RiesgosAdmin } from './RiesgosAdmin'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
@@ -41,7 +41,16 @@ type Filtro = 'todo' | 'accion'
 
 export default function AdministracionPage() {
   const t = useTableroAdmin()
-  const [filtro, setFiltro] = useState<Filtro>('todo')
+  // El filtro vive en la URL (no en `useState`): sobrevive a recargar y a volver, y el gesto
+  // atrás sale de la pantalla en vez de deshacer el filtro. Se escribe con `replace`.
+  const [parametros, setParametros] = useSearchParams()
+  const filtro: Filtro = parametros.get('filtro') === 'accion' ? 'accion' : 'todo'
+  const cambiarFiltro = (nuevo: Filtro) => {
+    const siguientes = new URLSearchParams(parametros)
+    if (nuevo === 'accion') siguientes.set('filtro', 'accion')
+    else siguientes.delete('filtro')
+    setParametros(siguientes, { replace: true })
+  }
 
   const puedePlan = t.esCoach || t.tiene('organizar_plan')
   const puedeDecisiones = t.esCoach || t.tiene('decisiones_compartidas')
@@ -63,17 +72,17 @@ export default function AdministracionPage() {
 
   return (
     <div className="flex flex-col gap-3.5">
-      <header className="flex flex-col gap-1 pt-1">
-        <p className={CLASE_ETIQUETA}>Empresa</p>
-        <h2 className="font-display text-2xl uppercase text-texto">Área administrativa</h2>
-        <p className="text-sm text-tenue">
-          {t.estado.tipo === 'ok'
+      <Cabecera
+        rotulo="Empresa"
+        titulo="Área administrativa"
+        frase={
+          t.estado.tipo === 'ok'
             ? corteReciente
               ? `Último corte cargado: ${corteReciente}. Toca una tarjeta para ver el detalle.`
               : 'Todavía no hay ningún corte cargado.'
-            : 'Cómo va el negocio, de lo de hoy a lo más detallado.'}
-        </p>
-      </header>
+            : 'Cómo va el negocio, de lo de hoy a lo más detallado.'
+        }
+      />
 
       {t.estado.tipo === 'cargando' && <Cargando texto="Cargando el área administrativa…" />}
       {t.estado.tipo === 'fallo' && (
@@ -81,7 +90,7 @@ export default function AdministracionPage() {
       )}
 
       {t.estado.tipo === 'ok' && (
-        <div role="group" aria-label="Filtro" className="flex items-center gap-2">
+        <div role="group" aria-label="Filtro" className="flex gap-1.5 overflow-x-auto pb-0.5">
           {(
             [
               ['todo', 'Todo'],
@@ -92,9 +101,9 @@ export default function AdministracionPage() {
               key={id}
               type="button"
               aria-pressed={filtro === id}
-              onClick={() => setFiltro(id)}
-              className={`press min-h-[44px] rounded-full border px-4 text-xs font-bold ${
-                filtro === id ? 'border-texto bg-texto text-bg' : 'border-linea text-texto'
+              onClick={() => cambiarFiltro(id)}
+              className={`press flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold ${
+                filtro === id ? 'border-texto bg-surface-3 text-texto' : 'border-linea bg-surface-1 text-tenue'
               }`}
             >
               {texto}
@@ -143,10 +152,7 @@ export default function AdministracionPage() {
 
       {t.estado.tipo === 'ok' && (
         <p className="text-[11.5px] text-tenue">
-          Lo que dice «FALTA» no es cero: es un dato que nadie ha cargado todavía. Cada tarjeta indica quién debe aportar la información.{' '}
-          <Link to="/" className="underline">
-            Volver a Mi día
-          </Link>
+          Lo que dice «FALTA» no es cero: es un dato que nadie ha cargado todavía. Cada tarjeta indica quién debe aportar la información.
         </p>
       )}
 

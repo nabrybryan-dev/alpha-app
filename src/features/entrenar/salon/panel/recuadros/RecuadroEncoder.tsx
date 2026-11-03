@@ -17,7 +17,7 @@ export function RecuadroEncoder() {
   return (
     <Link
       to="/entrenar/encoder"
-      className="press flex items-center justify-between gap-3 rounded-bloque border border-white/10 bg-ink-700 px-3.5 py-3 text-sm text-tenue"
+      className="press flex items-center justify-between gap-3 rounded-bloque border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-700 px-3.5 py-3 text-sm text-tenue"
     >
       <span className="flex items-center gap-2">
         <IconoCamara className="h-[18px] w-[18px] shrink-0" />

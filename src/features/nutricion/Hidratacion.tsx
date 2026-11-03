@@ -59,6 +59,9 @@ export function Hidratacion({ usuarioId }: { usuarioId: string }) {
             <p className="cifras text-xs text-tenue">
               <span className="font-display text-base text-texto">{litros(mlAnimado)}L</span>
               {` de ${litros(objetivoMl)}L`}
+              <span className="block text-xs">
+                {peso ? 'tu peso × 30 ml' : 'meta fija de 2 L'}
+              </span>
             </p>
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">

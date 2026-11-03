@@ -48,8 +48,8 @@ const DIAMETRO = 56
  * ocupan cada una la suya. Ver
  * `docs/specs/2026-08-25-piezas-sin-colocar-diseno.md`.
  *
- * POR QUÉ UN DISCO, Y NO UNA LÁMINA. Hoy es superficie CLARA
- * (`data-theme="light"`), y en claro la pieza no puede ser suelo. Podría ser una
+ * POR QUÉ UN DISCO, Y NO UNA LÁMINA. Hoy fue superficie CLARA
+ * (`data-theme="light"`; desde la Fase 3 solo la del staff, el asesorado sigue su tema), y en claro la pieza no puede ser suelo. Podría ser una
  * lámina rectangular, pero ese es ya el mecanismo de Contenidos y repetirlo es la
  * plantilla que la integración cinemática existe para quitar. Un disco es la única
  * forma que la frase pedía por su cuenta. Es también la decisión más discutible de
@@ -113,6 +113,7 @@ export function BloqueActual({
   perfil,
   pauta,
   simple = false,
+  verKcal = true,
 }: {
   perfil?: Perfil
   pauta?: PautaDelBloque
@@ -122,6 +123,8 @@ export function BloqueActual({
    * del coach: se quedan en su consola, no en la portada de quien pidió una app sin tecnicismos.
    */
   simple?: boolean
+  /** El interruptor de kcal: apagado, el gasto por pasos no se pinta (son todo kcal). */
+  verKcal?: boolean
 }) {
   if (!perfil) return null
 
@@ -152,7 +155,7 @@ export function BloqueActual({
   // mitad: sin las kcal, «sube los pasos» no dice cuánto vale subirlos. Siempre
   // marcado como estimado — sale de una fórmula, no de un acelerómetro.
   const neat = perfil.neat
-  if (!simple && (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined)) {
+  if (!simple && verKcal && (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined)) {
     const hoy = neat.kcalDia
     const meta = neat.kcalDiaEnMeta
     const valor =

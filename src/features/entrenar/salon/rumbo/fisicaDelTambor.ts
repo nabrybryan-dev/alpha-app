@@ -1,72 +1,96 @@
 /**
- * LA FÍSICA DEL TAMBOR DE LA SEMANA.
+ * LA FÍSICA DEL TAMBOR DE LA SEMANA (maqueta 7, vuelve el 30-oct).
  *
- * Se llama `fisicaDelTambor` y no `tamborDeLaSemana` por una razón de Windows: dos
- * archivos que solo se diferencian en la mayúscula inicial —el módulo puro y su
- * componente— chocan al compilar, y el error no habla de mayúsculas sino de un archivo
- * «ya incluido».
+ * Se llama `fisicaDelTambor` y no `tamborDeLaSemana` por una razón de Windows: dos archivos
+ * que solo se diferencian en la mayúscula inicial —el módulo puro y su componente— chocan al
+ * compilar, y el error no habla de mayúsculas sino de un archivo «ya incluido».
  *
- * Los siete días no van en una lista: van en un cilindro que se arrastra, coge inercia y
- * encaja solo. Aparte de que es lo que pide el diseño de la sala, hay una razón de uso: en
- * una lista de siete filas el dedo tapa tres, y elegir el jueves obliga a mirar dónde está
- * la mano. En un tambor se tira y se suelta; la fila de lectura no se toca nunca.
+ * ## Qué cambia respecto al tambor cilíndrico del 21-25 oct
+ *
+ * Aquel era un cilindro de siete filas a 360/7 grados: de frente solo se veían tres, y las dos
+ * de cada lado quedaban de canto debajo de la ranura, sin poder tocarse. Éste es el de la
+ * maqueta: una COLUMNA de siete filas con las vecinas escorzadas (±22° por fila), que no da la
+ * vuelta —la semana no es un círculo: tras el sábado no hay otro domingo— y se ve y se toca a
+ * dos filas de cada lado. Los días más lejanos se alcanzan arrastrando, con las flechas o
+ * enfocándolos con Tab, y hay una prueba de que desde cualquier día se llega a los siete.
+ *
+ * La posición es el `centro`: un número de fila (0 = primer día) que puede ser fraccionario
+ * mientras el dedo arrastra y es entero cuando el tambor encaja.
  *
  * ## Por qué la aritmética vive aquí y no en el componente
  *
- * Porque un umbral de inercia escrito dentro de un manejador de puntero solo se puede
- * probar montando el componente y moviendo un dedo falso a mano. Es la misma regla que ya
- * cumplen `capas/gestoVertical.ts` y `mando/rumboDelJoystick.ts`: el gesto se dibuja en el
- * componente, se calcula aquí.
+ * Un umbral de inercia escrito dentro de un manejador de puntero solo se puede probar
+ * montando el componente y moviendo un dedo falso. El gesto se dibuja en el componente, se
+ * calcula aquí.
  */
 
-/** Los siete días del cilindro. De aquí sale el paso entre filas. */
-export const DIAS_DEL_TAMBOR = 7
+/** Alto de cada fila, en píxeles: también lo que recorre el dedo por fila. Mayor que 44. */
+export const ALTO_FILA = 52
 
-/** Cuántos grados gira el tambor por cada fila. */
-export const PASO = 360 / DIAS_DEL_TAMBOR
+/** Cuántas filas se ven y se tocan a cada lado de la de lectura. */
+export const FILAS_A_CADA_LADO = 2
 
-/** Grados que gira el tambor por píxel arrastrado. */
-export const GRADOS_POR_PIXEL = 0.55
+/** Grados de escorzo por fila de distancia, y su máximo (los de la maqueta). */
+export const GRADOS_POR_FILA = 22
+export const INCLINACION_MAXIMA = 70
 
-/** Por debajo de esta velocidad la inercia se para y el tambor encaja. */
-export const VELOCIDAD_MINIMA = 0.4
+/** Píxeles de recorrido por debajo de los cuales el gesto es un toque, no un arrastre. */
+export const UMBRAL_DE_ARRASTRE = 6
+
+/** Filas por fotograma por debajo de las cuales la inercia se para y el tambor encaja. */
+export const VELOCIDAD_MINIMA = 0.02
 
 /** Cuánto se frena la inercia por fotograma. */
 export const ROZAMIENTO = 0.92
 
+/** Mantiene el centro dentro de la semana. */
+export function limitar(centro: number, n: number): number {
+  return Math.min(n - 1, Math.max(0, centro))
+}
+
+/** El día entero más cercano: donde el tambor se queda al soltar. */
+export function encajar(centro: number, n: number): number {
+  return Math.round(limitar(centro, n))
+}
+
+/** Qué día queda en la fila de lectura. Nunca un índice fuera de la semana. */
+export function diaEnLectura(centro: number, n: number): number {
+  return encajar(centro, n)
+}
+
+/** Escorzo de una fila a `distancia` filas de la de lectura (negativo arriba). */
+export function inclinacionDeFila(distancia: number): number {
+  return Math.min(INCLINACION_MAXIMA, Math.max(-INCLINACION_MAXIMA, -distancia * GRADOS_POR_FILA))
+}
+
+/** Opacidad de una fila a `distancia` filas de la de lectura (la de maqueta: 1 − 0,3·d, mínimo 0,2). */
+export function opacidadDeFila(distancia: number): number {
+  return Math.min(1, Math.max(0.2, 1 - Math.abs(distancia) * 0.3))
+}
+
+/** Los días que se ven y se pueden tocar con el tambor encajado en `centro`. */
+export function diasTocables(centro: number, n: number): number[] {
+  const c = encajar(centro, n)
+  const dias: number[] = []
+  for (let i = c - FILAS_A_CADA_LADO; i <= c + FILAS_A_CADA_LADO; i++) {
+    if (i >= 0 && i < n) dias.push(i)
+  }
+  return dias
+}
+
 /**
- * QUÉ DÍA QUEDA EN LA FILA DE LECTURA, dado el giro del tambor.
+ * EL SIGUIENTE PASO DE LA INERCIA, en filas.
  *
- * El módulo se hace DOS veces —una tras dividir y otra tras sumar siete— porque el resto
- * de un negativo en JavaScript es negativo: con `-8 % 7` sale `-1`, y un índice de día en
- * −1 no es ningún día. Girando el tambor hacia arriba varias vueltas, esto se rompería sin
- * la segunda vuelta.
- */
-export function diaEnLectura(giro: number): number {
-  return ((Math.round(-giro / PASO) % DIAS_DEL_TAMBOR) + DIAS_DEL_TAMBOR) % DIAS_DEL_TAMBOR
-}
-
-/** El giro que deja un día concreto en la fila de lectura. */
-export function giroDelDia(dia: number): number {
-  return -dia * PASO
-}
-
-/** El múltiplo de paso más cercano: donde el tambor se queda al soltar. */
-export function encajar(giro: number): number {
-  return Math.round(giro / PASO) * PASO
-}
-
-/**
- * EL SIGUIENTE PASO DE LA INERCIA.
- *
- * Devuelve `null` cuando ya no queda velocidad: quien lo llame encaja y para. Se devuelve
- * el par entero —giro y velocidad— en vez de mutar, para que un bucle de animación no
- * tenga que llevar dos cuentas suyas que puedan separarse.
+ * Devuelve `null` cuando ya no queda velocidad o se llegó al tope de la semana: quien lo
+ * llame encaja y para. Se devuelve el par entero en vez de mutar, para que un bucle de
+ * animación no lleve dos cuentas que puedan separarse.
  */
 export function inercia(
-  giro: number,
+  centro: number,
   velocidad: number,
-): { giro: number; velocidad: number } | null {
+  n: number,
+): { centro: number; velocidad: number } | null {
   if (Math.abs(velocidad) < VELOCIDAD_MINIMA) return null
-  return { giro: giro + velocidad, velocidad: velocidad * ROZAMIENTO }
+  if ((centro >= n - 1 && velocidad > 0) || (centro <= 0 && velocidad < 0)) return null
+  return { centro: limitar(centro + velocidad, n), velocidad: velocidad * ROZAMIENTO }
 }

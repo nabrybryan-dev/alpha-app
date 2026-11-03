@@ -1,65 +1,56 @@
 import { readFileSync } from 'node:fs'
 import { brotliDecompressSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
-import { puntoDeHueso, resolver } from '../../../domain/patrones/esqueleto'
 import { leerPieza } from '../escena/piezas3d'
 import { CREDITOS_DEL_GIMNASIO } from './creditos'
-import { PIEZAS_DEL_ATLAS } from './piezas'
+import { PIEZAS_DEL_ATLAS, piezasDelAtlas } from './piezas'
 
 /**
- * EL ATLAS ANATÓMICO, medido sobre las piezas de verdad.
+ * EL ATLAS ANATOMICO ES EL SUJETO DE BLENDER (aprobado por Bryan el 28/29-sep), medido sobre
+ * las piezas de verdad.
  *
- * Lo que aquí se vigila no es que el atlas «esté»: es que siga cumpliendo las tres cosas
- * que costaron encontrar, y que en cuanto una se rompa el cuerpo deje de verse sin que
- * nada falle en rojo.
- *
- * 1. **La escala.** El atlas viene en metros de persona (1,709 m) y nuestro sujeto no está
- *    en metros: mide 0,555. El convertidor hornea la conversión; si alguien la quita, el
- *    atlas sale tres veces más grande y en el cuadro solo entra el tórax.
- * 2. **El peso.** Son 1,09 MB comprimidos entre las dos, el doble que el gimnasio entero.
- *    Ese número es el que hace que esto se pueda tener dentro; si se dispara, hay que
- *    enterarse aquí y no en el móvil de alguien.
- * 3. **El crédito.** BodyParts3D es CC BY 4.0: usarlo sin nombrar la fuente lo deja fuera
- *    de licencia. No es una comprobación estética.
+ * - Escritorio: musculos completos (299 mil triangulos) y esqueleto completo.
+ * - Celular: musculos de 200 mil triangulos y esqueleto `-movil` (decision de Bryan, 23-oct).
+ * - La piel es la de la landing (`atlas-piel-alta`), alineada con estos musculos.
+ * - Ningun musculo profundo se quita: las 522 partes siguen en las dos versiones.
  */
 
-const PIEZAS = Object.entries(PIEZAS_DEL_ATLAS).map(([nombre, p]) => {
-  const ruta = `public${p.ruta}`
-  const crudo = readFileSync(ruta)
-  return {
-    nombre,
-    ruta,
-    crudo,
-    comprimida: readFileSync(`${ruta}.br`),
-    mallas: leerPieza(crudo.buffer.slice(crudo.byteOffset, crudo.byteOffset + crudo.byteLength)),
-  }
-})
+function cargar(ruta: string) {
+  const crudo = readFileSync(`public${ruta}`)
+  const comprimida = readFileSync(`public${ruta}.br`)
+  const mallas = leerPieza(crudo.buffer.slice(crudo.byteOffset, crudo.byteOffset + crudo.byteLength))
+  return { crudo, comprimida, mallas }
+}
 
-describe('las piezas del atlas', () => {
-  it('están las tres, con sus estructuras separadas y con nombre propio', () => {
-    // Esqueleto y musculatura vienen del atlas masculino (BodyParts3D); la piel, del
-    // femenino (Human Reference Atlas), que es lo unico de cuerpo que ese atlas trae.
-    expect(PIEZAS.map((p) => p.nombre).sort()).toEqual(['atlas-esqueleto', 'atlas-musculos', 'atlas-piel'])
-    expect(PIEZAS.find((p) => p.nombre === 'atlas-piel')!.mallas.length).toBe(1)
-    // Una estructura por malla, no una masa fundida: es lo que permitirá mañana encender un
-    // músculo solo. Fundirlas ahorraría llamadas de dibujo y perdería la anatomía.
-    const porNombre = Object.fromEntries(PIEZAS.map((p) => [p.nombre, p.mallas.length]))
-    expect(porNombre['atlas-esqueleto']).toBeGreaterThan(200)
-    expect(porNombre['atlas-musculos']).toBeGreaterThan(300)
+function triangulos(mallas: { indice: ArrayLike<number> }[]): number {
+  return mallas.reduce((s, m) => s + m.indice.length / 3, 0)
+}
+
+describe.each([
+  { nombre: 'escritorio', movil: false, musculos: '/piezas/atlas-musculos-alpha.pieza', esqueleto: '/piezas/atlas-esqueleto-alpha.pieza', trisMusculos: [299_000, 299_500], tope: 3.5e6 },
+  { nombre: 'celular', movil: true, musculos: '/piezas/atlas-musculos-alpha-movil-200k.pieza', esqueleto: '/piezas/atlas-esqueleto-alpha-movil.pieza', trisMusculos: [197_000, 197_500], tope: 2.2e6 },
+])('el sujeto de Blender en $nombre', ({ movil, musculos, esqueleto, trisMusculos, tope }) => {
+  const piezas = piezasDelAtlas(movil)
+
+  it('las tres capas siguen llamandose igual y apuntan a las piezas de Blender', () => {
+    expect(Object.keys(piezas).sort()).toEqual(['atlas-esqueleto', 'atlas-musculos', 'atlas-piel'])
+    expect(piezas['atlas-musculos'].ruta).toBe(musculos)
+    expect(piezas['atlas-esqueleto'].ruta).toBe(esqueleto)
+    expect(piezas['atlas-piel'].ruta).toBe('/piezas/atlas-piel-alta.pieza')
   })
 
-  it('encaja con nuestro esqueleto: cadera, rodilla, tobillo y hombro en su sitio', () => {
-    // Los dos cuerpos miden lo mismo, así que aquí no se comprueba una escala sino un
-    // ENCAJE. El atlas trae al varón de referencia: cadera a 0,912, rodilla a 0,449; el
-    // nuestro las tiene a 0,955 y 0,505 —tiene las piernas más cortas—. El convertidor
-    // estira por tramos entre articulaciones para llevarlas a las nuestras. Si alguien
-    // quita ese estirado, la rodilla se va 5,6 cm y el fémur atraviesa la rótula del
-    // muñeco sin que falle nada más.
-    const esq = resolver({}, [0, 0, 0], [0, 0, 0])
-    const alturaDe = (hueso: string, extremo: 0 | 1) => (puntoDeHueso(esq, hueso, extremo) as number[])[1]
+  it('los musculos: 522 partes con nombre y los triangulos de la entrega', () => {
+    const { mallas } = cargar(piezas['atlas-musculos'].ruta)
+    expect(mallas.length).toBe(522)
+    expect(mallas.every((m) => (m.textura ?? '').length > 0)).toBe(true)
+    const t = triangulos(mallas)
+    expect(t).toBeGreaterThanOrEqual(trisMusculos[0])
+    expect(t).toBeLessThanOrEqual(trisMusculos[1])
+  })
 
-    // Se mide sobre la pieza del esqueleto, que es donde están los huesos largos.
-    const mallas = PIEZAS.find((p) => p.nombre === 'atlas-esqueleto')!.mallas
+  it('el esqueleto trae sus 296 huesos y esta de pie en el suelo, a 1,71 m', () => {
+    const { mallas } = cargar(piezas['atlas-esqueleto'].ruta)
+    expect(mallas.length).toBe(296)
     let suelo = Infinity
     let techo = -Infinity
     for (const m of mallas) {
@@ -68,26 +59,33 @@ describe('las piezas del atlas', () => {
         techo = Math.max(techo, m.posicion[i])
       }
     }
-    // De pie en el suelo, no flotando ni hundido, y a la estatura del sujeto.
-    expect(suelo, 'el atlas no está de pie en el suelo').toBeCloseTo(0, 1)
-    expect(techo, 'el atlas no llega a la estatura del sujeto').toBeCloseTo(alturaDe('craneo', 1), 0)
-    // Y no es una escala global disfrazada: el hombro apenas se movió (3 mm) mientras la
-    // rodilla subía 5,6 cm. Si esto fuera un escalado uniforme, no podrían pasar las dos.
-    expect(techo - suelo).toBeGreaterThan(1.5)
+    expect(suelo).toBeCloseTo(0, 1)
+    expect(techo).toBeCloseTo(1.71, 1)
   })
 
   it('pesa lo que se dijo, y la copia comprimida es la MISMA pieza', () => {
     let total = 0
-    for (const p of PIEZAS) {
-      expect(Buffer.compare(brotliDecompressSync(p.comprimida), p.crudo), `${p.nombre}: el .br está desfasado`).toBe(0)
-      total += p.comprimida.byteLength
+    for (const p of Object.values(piezas)) {
+      const { crudo, comprimida } = cargar(p.ruta)
+      expect(Buffer.compare(brotliDecompressSync(comprimida), crudo), `${p.ruta}: el .br esta desfasado`).toBe(0)
+      total += comprimida.byteLength
     }
-    // 1,09 MB medidos. El margen deja sitio a un reexportado, no a que se doble.
-    expect(total).toBeLessThan(1.4e6)
+    expect(total).toBeLessThan(tope)
   })
+})
 
-  it('la fuente está acreditada, que es lo que exige su licencia', () => {
-    const autores = CREDITOS_DEL_GIMNASIO.map((f) => f.obra)
-    expect(autores.some((o) => /BodyParts3D/.test(o)), 'el atlas no está en los créditos').toBe(true)
+describe('compatibilidad', () => {
+  it('PIEZAS_DEL_ATLAS es la version de escritorio', () => {
+    expect(PIEZAS_DEL_ATLAS).toEqual(piezasDelAtlas(false))
+  })
+})
+
+describe('creditos', () => {
+  it('los musculos son de Z-Anatomy (CC BY-SA 4.0) y los huesos de BodyParts3D: las dos fuentes estan acreditadas', () => {
+    const obras = CREDITOS_DEL_GIMNASIO.map((f) => f.obra)
+    expect(obras.some((o) => /BodyParts3D/.test(o))).toBe(true)
+    const z = CREDITOS_DEL_GIMNASIO.find((f) => /Z-Anatomy/.test(f.obra))
+    expect(z, 'Z-Anatomy no esta en los creditos').toBeDefined()
+    expect(z!.licencia).toBe('CC BY-SA')
   })
 })

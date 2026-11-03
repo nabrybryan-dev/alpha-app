@@ -14,6 +14,7 @@ import type { EjercicioPrescrito, SerieRegistrada } from '../../../../domain/typ
 import { borrarClave, escribirJSON } from '../../../../lib/persistencia'
 import { HechoTalCual, MotivoSinConfirmar } from '../../HechoTalCual'
 import { borradorDePartida, claveDeBorrador, leerBorrador, type BorradorDeSerie } from './borrador'
+import { Boton3D } from '../../../../components/ui/Boton3D'
 
 /**
  * EL REGISTRO EN EL SUELO DEL SALÓN.
@@ -156,7 +157,7 @@ export function RegistroSerieSalon({
 
   if (completo) {
     return (
-      <div className="rounded-[14px] border border-white/10 bg-ink-900 px-3.5 py-3 text-center">
+      <div className="rounded-[14px] border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900 px-3.5 py-3 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-logrado">
           {ejercicio.sets} series registradas
         </p>
@@ -230,16 +231,15 @@ export function RegistroSerieSalon({
 
       {mostrarBoton && (
         <>
-          <button
+          <Boton3D bloque
             type="button"
             onClick={() => guardar('editada')}
             disabled={!puedeGuardar}
             aria-describedby={puedeGuardar ? undefined : idMotivo}
-            className="press mt-2.5 w-full rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
-            style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
+            className="mt-2.5"
           >
             Guardar serie {orden}
-          </button>
+          </Boton3D>
           {motivo && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" motivo={motivo} />}
         </>
       )}

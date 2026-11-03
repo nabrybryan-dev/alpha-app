@@ -5,6 +5,7 @@ import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
 import { escalar } from '../../domain/nutricion/porcion'
 import { revisarItem } from '../../domain/nutricion/topes'
 import { MARGENES } from '../../domain/nutricion/dia'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * Hoja de cantidad: cuánto comió de un alimento y cómo lo supo.
@@ -56,6 +57,8 @@ interface SheetCantidadProps {
   /** Gramos de arranque. Los pone "registrar lo que pauta el plan" cuando la
    *  línea del menú los dice ("70 g avena"). Sin esto, arranca en 100. */
   gramosIniciales?: number | null
+  /** El interruptor clínico: apagado, la hoja no enseña kcal en ningún sitio. */
+  verKcal?: boolean
   onCerrar: () => void
   /** Contestó la pregunta de crudo/cocido. Se recuerda para siempre. */
   onElegirEstado: (alimento: AlimentoIndice) => void
@@ -89,6 +92,7 @@ function CuerpoCantidad({
   preguntarEstado,
   nombreComida,
   gramosIniciales,
+  verKcal = true,
   onCerrar,
   onElegirEstado,
   onAgregar,
@@ -106,8 +110,11 @@ function CuerpoCantidad({
    * dato bueno aunque su composición esté incompleta-.
    */
   const avisos = useMemo(
-    () => (alimento.por100g.kcal === null ? [] : revisarItem(alimento.por100g, gramos)),
-    [alimento, gramos],
+    () =>
+      alimento.por100g.kcal === null
+        ? []
+        : revisarItem(alimento.por100g, gramos, verKcal),
+    [alimento, gramos, verKcal],
   )
 
   const kcal = redondear(escalado.kcal ?? null)
@@ -127,8 +134,8 @@ function CuerpoCantidad({
           ¿Cómo pesas el {nombreCorto(alimento.nombre)}?
         </p>
         <p className="mt-2 text-sm leading-snug text-tenue">
-          Lo recordamos para siempre. Es la respuesta que más error evita: el mismo alimento puede
-          multiplicar por tres sus calorías.
+          Lo recordamos para siempre. Es la respuesta que más error evita: el mismo alimento cambia
+          mucho según cómo lo peses.
         </p>
         <div className="mt-4 flex flex-col gap-2">
           {preguntarEstado.map((opcion) => (
@@ -142,9 +149,11 @@ function CuerpoCantidad({
                 <span className="block font-display text-base text-texto">{opcion.etiqueta}</span>
                 <span className="block text-xs leading-snug text-tenue">{opcion.pista}</span>
               </span>
-              <span className="cifras shrink-0 text-sm font-bold text-accion">
-                {redondear(opcion.alimento.por100g.kcal) ?? '—'} kcal
-              </span>
+              {verKcal && (
+                <span className="cifras shrink-0 text-sm font-bold text-accion">
+                  {redondear(opcion.alimento.por100g.kcal) ?? '—'} kcal
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -159,9 +168,11 @@ function CuerpoCantidad({
         <span className="rounded-full border border-linea bg-surface-2 px-2 py-0.5 uppercase tracking-wide">
           {alimento.estado}
         </span>
-        <span className="cifras">
-          {redondear(alimento.por100g.kcal) ?? '—'} kcal / 100 g
-        </span>
+        {verKcal && (
+          <span className="cifras">
+            {redondear(alimento.por100g.kcal) ?? '—'} kcal / 100 g
+          </span>
+        )}
       </div>
 
       <div className="mt-5">
@@ -176,8 +187,9 @@ function CuerpoCantidad({
           onCambiar={setGramos}
         />
         <p className="cifras mt-2 text-center text-sm text-tenue">
-          {kcal === null ? 'sin datos de energía' : `${kcal} kcal`}
-          {macros && ` · ${macros}`}
+          {verKcal && (kcal === null ? 'sin datos de energía' : `${kcal} kcal`)}
+          {verKcal && macros ? ' · ' : ''}
+          {macros}
         </p>
       </div>
 
@@ -246,14 +258,14 @@ function CuerpoCantidad({
         </p>
       ))}
 
-      <button
+      <Boton3D bloque
         type="button"
         onClick={() => onAgregar(alimento, gramos, fuePesado)}
         disabled={gramos <= 0}
-        className="press mt-5 w-full rounded-2xl bg-accion py-4 font-display text-sm uppercase tracking-wide text-white disabled:opacity-40"
+        className="mt-5"
       >
         Agregar a {nombreComida}
-      </button>
+      </Boton3D>
     </Sheet>
   )
 }
