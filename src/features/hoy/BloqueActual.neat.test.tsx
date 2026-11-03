@@ -66,4 +66,18 @@ describe('BloqueActual — gasto por pasos', () => {
 
     expect(screen.queryByText(/Gasto por pasos/i)).toBeNull()
   })
+
+  it('con el contador de kcal apagado no pinta el gasto por pasos (son todo kcal)', () => {
+    render(
+      <BloqueActual
+        perfil={perfilBase({ pasosObjetivo: 15000, neat: { kcalDia: 150, kcalDiaEnMeta: 310 } })}
+        verKcal={false}
+      />,
+    )
+
+    expect(screen.queryByText(/Gasto por pasos/i)).toBeNull()
+    expect(screen.queryByText(/kcal/i)).toBeNull()
+    // Los pasos, que no son energía, siguen siendo la meta del día.
+    expect(screen.getByText(/15.000\/día/)).toBeInTheDocument()
+  })
 })

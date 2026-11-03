@@ -9,21 +9,21 @@
  * lógica pura.
  */
 
+import { pixelRatioEfectivo } from './densidad'
 import { duenoDelGesto, type DuenoDelGesto, type ModoDeArrastre } from '../capas/gestoHorizontal'
 import { grados, limitar, M4, type Mat4, type Vec3 } from '../../../domain/patrones/algebra'
 import type { Malla } from '../../../domain/patrones/malla'
 import { compilar, FS, MAX_HUESOS, VS } from './sombreado'
 
 /**
- * Fondo del estudio. Se exporta porque el mismo color tiene que estar en el
- * `clearColor` del render y en el CSS del lienzo: si se separan, se ve un salto
- * de tono en el borde mientras la escena carga.
+ * Fondo del estudio por omisión (el del tema oscuro). El tema activo lo fija con
+ * `Motor.fijarFondo` desde `--salon-3d-lienzo`; el mismo color va en el CSS del lienzo,
+ * para que no se vea un salto de tono mientras la escena carga.
  */
 // El fondo gris azulado de la versión anterior lavaba la sala: las paredes carbón
 // quedaban prácticamente del mismo valor y en el móvil solo se leía el sujeto.
 // Un fondo profundo separa el volumen de la habitación y conserva el lenguaje Alpha.
-export const FONDO_ESTUDIO = '#0b0e12'
-const FONDO_RGB: [number, number, number] = [0.043, 0.055, 0.071]
+export const FONDO_RGB_ESTUDIO: [number, number, number] = [0.043, 0.055, 0.071]
 
 const NOMBRES_DE_BUFFER = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx'] as const
 
@@ -36,6 +36,21 @@ interface JuegoDeBuffers {
 }
 
 export class Motor {
+  /** El color con el que se limpia el lienzo: el del tema activo (`fijarFondo`). */
+  private fondo: [number, number, number] = [...FONDO_RGB_ESTUDIO]
+
+  private aclarado = 0
+
+  /** Cuánto se aclara la sala horneada (tema claro). */
+  fijarAclarado(n: number): void {
+    this.aclarado = n
+  }
+
+  /** Cambia el fondo del lienzo sin reconstruir el motor (cambio de tema). */
+  fijarFondo(rgb: readonly [number, number, number]): void {
+    this.fondo = [rgb[0], rgb[1], rgb[2]]
+  }
+
   private gl: WebGLRenderingContext
   private programa: WebGLProgram
   private buffers: Record<string, WebGLBuffer>
@@ -176,9 +191,12 @@ export class Motor {
     return this.texturas.has(nombre)
   }
 
+  /** Densidad de pixeles pedida por el ajuste adaptativo (`densidad.ts`); `null` = la del aparato. */
+  densidadDePixeles: number | null = null
+
   ajustarTamano(): number {
     const c = this.lienzo
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const dpr = pixelRatioEfectivo(window.devicePixelRatio, this.densidadDePixeles)
     const ancho = Math.round(c.clientWidth * dpr)
     const alto = Math.round(c.clientHeight * dpr)
     if (c.width !== ancho || c.height !== alto) {
@@ -433,6 +451,7 @@ export class Motor {
       gl.bindTexture(gl.TEXTURE_2D, textura ?? this.blanca)
       gl.uniform1f(u('u_conTextura'), textura ? 1 : 0)
       gl.uniform1f(u('u_horneada'), t.horneada ? 1 : 0)
+      gl.uniform1f(u('u_aclarado'), this.aclarado)
       gl.drawElements(gl.TRIANGLES, cuantos, tipoIndice, t.desde * bytes)
     }
     if (tandaActual !== 'opaca') {
@@ -454,7 +473,7 @@ export class Motor {
     haySuelo: boolean,
   ): void {
     const gl = this.gl
-    gl.clearColor(FONDO_RGB[0], FONDO_RGB[1], FONDO_RGB[2], 1)
+    gl.clearColor(this.fondo[0], this.fondo[1], this.fondo[2], 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.useProgram(this.programa)
 

@@ -28,7 +28,7 @@ export default function CoachChatPage() {
     return (
       <div className="flex flex-col gap-3">
         <button type="button" onClick={() => setAbiertoId(undefined)} className="text-left text-sm font-bold text-tenue">
-          ← Bandeja
+          ← Mensajes
         </button>
         <h2 className="font-display text-xl text-texto">{abierto.nombre}</h2>
         <Conversacion yoId={usuario.id} otroId={abierto.id} />
@@ -39,8 +39,8 @@ export default function CoachChatPage() {
   return (
     <div className="flex flex-col gap-4">
       <section>
-        <p className="kicker">Mensajes</p>
-        <h2 className="font-display text-3xl text-texto">Bandeja</h2>
+        <p className="kicker">Con tus asesorados</p>
+        <h2 className="font-display text-3xl text-texto">Mensajes</h2>
       </section>
       <section className="flex flex-col gap-2">
         {hilos.map(({ asesorado, ultimo, noLeidos }) => (

@@ -8,6 +8,19 @@ export const mateo: Usuario = {
   avatarIniciales: 'MR',
 }
 
+/**
+ * Nutricionista FICTICIA del demo: existe solo para poder abrir «Ver la app como» y revisar
+ * sus pantallas (/mi-plan, /equipo-nutricion, cifras, bandeja de planes) sin base real.
+ * NO entrena: sin perfil ni microciclo, y `db.usuarios.entrenan()` no la cuenta.
+ * Nombre inventado; no corresponde a ninguna persona real.
+ */
+export const nutricionistaDemo: Usuario = {
+  id: 'u-nutri-demo',
+  nombre: 'Nutricionista Demo',
+  rol: 'nutricionista',
+  avatarIniciales: 'ND',
+}
+
 export const sara: Usuario = {
   id: 'u-sara',
   nombre: 'Sara Duque',

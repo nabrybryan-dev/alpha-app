@@ -48,7 +48,6 @@ const pintar = (registrados: number[], visibilidad: Visibilidad = TODO_VISIBLE) 
       resumen={resumen(registrados)}
       meta={META}
       visibilidad={visibilidad}
-      onVolver={vi.fn()}
       onElegirDia={onElegirDia}
     />,
   )

@@ -41,4 +41,14 @@ type Igual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
 const rolesIguales: Igual<import('./acceso').Rol, import('../types').Rol> = true
 describe('el interruptor y el dominio hablan de los mismos roles', () => {
   it('el tipo Rol de acceso.ts es el del dominio', () => expect(rolesIguales).toBe(true))
+
+  // Decisión de Bryan, 23-oct-2026: Praxis se abre por PUESTO. La cuenta personal de Bryan es `asesorado` con
+  // la capacidad `puesto_de_coach`; los asesorados de verdad siguen sin entrar.
+  it('por puesto: el asesorado que ocupa el puesto de coach entra, el que no, no', () => {
+    expect(puedeVerPraxis('asesorado', false, true)).toBe(true)
+    expect(puedeVerPraxis('asesorado', false, false)).toBe(false)
+    expect(puedeVerPraxis('asesorado')).toBe(false)
+    expect(puedeVerPraxis('coach', false, false)).toBe(true)
+    expect(puedeVerPraxis('nutricionista', false, false)).toBe(true)
+  })
 })

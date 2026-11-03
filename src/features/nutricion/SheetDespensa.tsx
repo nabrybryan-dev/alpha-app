@@ -43,6 +43,8 @@ import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 interface SheetDespensaProps {
   asesoradoId: string
   abierto: boolean
+  /** El interruptor de kcal: el buscador de la despensa no enseña energía si está apagado. */
+  verKcal?: boolean
   onCerrar: () => void
 }
 
@@ -54,7 +56,7 @@ function cicloDe(respuestas: Respuestas): number | undefined {
 
 const hoyIso = () => new Date().toISOString().slice(0, 10)
 
-export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaProps) {
+export function SheetDespensa({ asesoradoId, abierto, verKcal = true, onCerrar }: SheetDespensaProps) {
   useDbVersion()
   const [buscando, setBuscando] = useState(false)
 
@@ -127,6 +129,7 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
 
       <SheetBuscarAlimento
         abierto={buscando}
+        verKcal={verKcal}
         onCerrar={() => setBuscando(false)}
         onElegir={(alimento) => {
           db.despensa.agregar(asesoradoId, {

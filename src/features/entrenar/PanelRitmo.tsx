@@ -40,19 +40,20 @@ export function PanelRitmo({ sesion, sesionId }: PanelRitmoProps) {
   return (
     <div className="glass rounded-panel border border-hairline p-3">
       <div className="flex items-center justify-between gap-2">
-        <div>
+        <div className="shrink-0">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">Duración estimada</p>
           <p className="cifras font-display text-2xl leading-none text-texto">
             ≈ {formatoDuracion(ritmo.totalSeg)}
           </p>
         </div>
-        <div className="min-w-0 text-right">
+        <div className="min-w-0 flex-1 text-right">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">Ahora</p>
-          {/* El nombre del bloque hace una entrada vertical cada vez que cambia */}
-          <p key={ritmo.bloqueActual ?? 'x'} className="entrada truncate font-display text-base leading-tight text-rojo">
+          {/* Sin `truncate`: «Bloque dinámico / control» se cortaba como «BLOQUE DE FU…»
+              en 390 px. Aquí el nombre del bloque es el dato, no un adorno. */}
+          <p key={ritmo.bloqueActual ?? 'x'} className="entrada break-words font-display text-sm leading-tight text-rojo">
             {bloque}
           </p>
-          <p className="truncate text-xs text-tenue">
+          <p className="text-xs text-tenue">
             Ejercicio {ritmo.ejercicioActual}/{ritmo.totalEjercicios} · ~{ritmo.restaEjercicioMin} min
           </p>
         </div>

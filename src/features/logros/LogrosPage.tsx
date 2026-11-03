@@ -46,7 +46,11 @@ export default function LogrosPage() {
           <AguilaInteractiva className="h-16 w-16" />
         </div>
         <p className="kicker">Tu nivel de disciplina</p>
-        <h2 className="mt-1 font-display text-4xl">{juego.nivel.nombre}</h2>
+        {/* En 390 px «DISCIPLINADO» se salía del borde derecho (H-11): el nombre
+            nunca se recorta, baja de tamaño y puede partirse. */}
+        <h2 className="mt-1 break-words font-display text-3xl leading-none sm:text-4xl">
+          {juego.nivel.nombre}
+        </h2>
         <p className="cifras mt-1 text-sm text-white/70">
           <CifraAnimada valor={juego.xp} /> XP acumulados
         </p>
@@ -64,7 +68,7 @@ export default function LogrosPage() {
           misma calle, con la pieza F corriendo por detrás y cada celda
           descubriendo hasta donde llegó su racha. El porqué está en
           `TiraDeRachas.tsx` y en el spec del 25-08. */}
-      <section className="entrada entrada-2">
+      <section className="entrada entrada-2 min-w-0">
         <TiraDeRachas celdas={rachas} />
       </section>
 

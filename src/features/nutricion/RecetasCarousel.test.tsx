@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { Receta } from '../../data/recetas'
+import { TODAS_LAS_RECETAS, type Receta } from '../../data/recetas'
 import { RecetasCarousel } from './RecetasCarousel'
 import type { RecetaRegistro } from './RecetaSheet'
 
@@ -46,7 +46,22 @@ describe('RecetasCarousel', () => {
     render(<RecetasCarousel recetas={TRES} />)
     expect(screen.getByText('Brownie de avena')).toBeInTheDocument()
     expect(screen.getByText('Bolitas')).toBeInTheDocument()
-    expect(screen.getByText('3 nuevas')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /, de @ejemplo\.cocina\./ })).toHaveLength(3)
+  })
+
+  /**
+   * La porción en gramos vuelve a la tarjeta: Bryan la firmó el 25-oct. Va
+   * aunque el contador de kcal esté apagado, porque no es una cifra de kcal.
+   */
+  it('enseña la porción en gramos, también con el contador apagado', () => {
+    const { unmount } = render(<RecetasCarousel recetas={TRES} />)
+    expect(
+      screen.getAllByRole('button', { name: /Te entra 22 g · 180 kcal/ }).length,
+    ).toBeGreaterThan(0)
+    unmount()
+
+    render(<RecetasCarousel recetas={TRES} verKcal={false} />)
+    expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
   })
 
   /** Sin recetas la sección entera desaparece: ni estado vacío, ni hueco. */
@@ -60,7 +75,7 @@ describe('RecetasCarousel', () => {
     fireEvent.click(screen.getByText('Brownie de avena'))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Tu ajuste Alfa')).toBeInTheDocument()
-    expect(screen.getByText('1 porción de 60 g')).toBeInTheDocument()
+    expect(screen.getByText(/1 porción de 60 g/)).toBeInTheDocument()
   })
 
   it('Esc cierra la hoja', () => {
@@ -70,11 +85,11 @@ describe('RecetasCarousel', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  describe('agregar al registro', () => {
+  describe('La cociné', () => {
     function abrirCon(registro: RecetaRegistro) {
       render(<RecetasCarousel recetas={TRES} registro={registro} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
-      return screen.getByRole('button', { name: /agregar al registro/i })
+      return screen.getByRole('button', { name: /la cociné/i })
     }
 
     it('agrega en un solo toque, sin diálogo de confirmación', () => {
@@ -93,7 +108,10 @@ describe('RecetasCarousel', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
       const aviso = screen.getByRole('status')
       expect(aviso).toHaveTextContent('Brownie de avena')
-      expect(aviso).toHaveTextContent('1 porción de 60 g agregada')
+      expect(aviso).toHaveTextContent('1 porción de 60 g')
+      // Un Postre se guarda como «Snack», no como «merienda»: el aviso tiene que
+      // decir la comida real en la que quedó registrado.
+      expect(aviso).toHaveTextContent('agregada a tu snack')
     })
 
     it('«Deshacer» revierte de verdad, no solo esconde el aviso', () => {
@@ -104,21 +122,10 @@ describe('RecetasCarousel', () => {
       expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 
-    it('el aviso se va solo a los 4 s', () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true })
-      try {
-        fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
-        act(() => {
-          vi.advanceTimersByTime(3900)
-        })
-        expect(screen.getByRole('status')).toBeInTheDocument()
-        act(() => {
-          vi.advanceTimersByTime(200)
-        })
-        expect(screen.queryByRole('status')).not.toBeInTheDocument()
-      } finally {
-        vi.useRealTimers()
-      }
+    it('el aviso se queda mientras no se deshaga: no se puede registrar dos veces', () => {
+      fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
+      expect(screen.getByRole('status')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /la cociné/i })).toBeNull()
     })
 
     it('«Deshacer» tiene 44px de área táctil', () => {
@@ -134,7 +141,7 @@ describe('RecetasCarousel', () => {
       const registro = { agregar: vi.fn(), deshacer: vi.fn() }
       render(<RecetasCarousel recetas={[recetaSinMedir()]} registro={registro} />)
       fireEvent.click(screen.getByText('Sopa de la abuela'))
-      const boton = screen.getByRole('button', { name: /agregar al registro/i })
+      const boton = screen.getByRole('button', { name: /la cociné/i })
       expect(boton).toBeDisabled()
       expect(screen.getByText(/todavía no trae sus ingredientes medidos/i)).toBeInTheDocument()
       fireEvent.click(boton)
@@ -161,13 +168,84 @@ describe('RecetasCarousel', () => {
     it('con dato, dice cuántas kcal quedan hoy', () => {
       render(<RecetasCarousel recetas={TRES} kcalRestantes={420} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
-      expect(screen.getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
+      expect(within(screen.getByRole('dialog')).getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
     })
 
     it('sin dato NO desaparece: cae al plan del día', () => {
       render(<RecetasCarousel recetas={TRES} />)
       fireEvent.click(screen.getByText('Brownie de avena'))
-      expect(screen.getByText('Según tu plan de hoy')).toBeInTheDocument()
+      expect(within(screen.getByRole('dialog')).getByText('Según tu plan de hoy')).toBeInTheDocument()
+    })
+
+    /**
+     * La hoja tampoco: hasta el 25-oct enseñaba la cifra grande y «Te quedan»
+     * aunque la nutricionista hubiera apagado el contador. Los gramos sí salen.
+     */
+    it('con el contador apagado la hoja no enseña kcal, y sí los gramos', () => {
+      render(<RecetasCarousel recetas={TRES} kcalRestantes={420} verKcal={false} />)
+      fireEvent.click(screen.getByText('Brownie de avena'))
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/)).toBeNull()
+      expect(within(hoja).queryByLabelText(/kilocalorías/)).toBeNull()
+      expect(within(hoja).getByText('Según tu plan de hoy')).toBeInTheDocument()
+      expect(within(hoja).getByText(/· 22 g/)).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /Te entra 22 g$/ }).length).toBeGreaterThan(0)
+    })
+
+    /**
+     * El contador de kcal es un interruptor clínico: si la nutricionista lo
+     * apagó, no puede reaparecer ni en la cabecera ni en lo cocinado hoy. La
+     * lista sigue diciendo QUÉ se cocinó y a qué comida fue, sin la cifra.
+     */
+    it('con el contador apagado no sale ninguna cifra de kcal', () => {
+      render(
+        <RecetasCarousel
+          recetas={TRES}
+          kcalRestantes={420}
+          verKcal={false}
+          cocinadasHoy={[
+            { id: 'c1', receta: TRES[0], kcal: 180, comida: 'snack', hora: '16:05' },
+            { id: 'c2', receta: TRES[0], kcal: 180, comida: 'snack', hora: '18:40' },
+          ]}
+        />,
+      )
+
+      expect(screen.queryByText(/Te quedan 420 kcal/)).toBeNull()
+      expect(screen.queryByText(/kcal/)).toBeNull()
+      // Las dos veces que se cocinó se ven, sin cifra.
+      const lista = screen.getByRole('list', { name: /cocinadas hoy/i })
+      expect(within(lista).getAllByText('Brownie de avena')).toHaveLength(2)
+    })
+
+    /**
+     * H-03: las notas de la receta son prosa del coach y llevan la cifra dentro
+     * («148 de las 445 kcal»), y la frase siguiente continúa con una cifra
+     * suelta («te quedas cerca de 380»). Con el interruptor apagado no puede
+     * quedar NINGUNA de las tres: la prueba mira las cifras, no la palabra.
+     * H-10: un «—» de Instagram no es una métrica.
+     */
+    it('los consejos de la receta no dejan ni una cifra de kcal y el «—» de vistas no se pinta', () => {
+      const real = TODAS_LAS_RECETAS.find((r) => r.id === 'rollitos-zanahoria-atun')
+      if (!real) throw new Error('falta la receta real de los rollitos')
+      const conProsa: Receta = {
+        ...real,
+        social: { views: '—', likes: '—', guardados: '—' },
+      }
+
+      render(<RecetasCarousel recetas={[conProsa]} verKcal={false} />)
+      fireEvent.click(screen.getByText('Rollitos bajos en hidratos'))
+
+      const hoja = screen.getByRole('dialog')
+      expect(within(hoja).queryByText(/kcal/i)).toBeNull()
+      for (const cifra of ['148', '445', '380']) {
+        expect(within(hoja).queryByText(new RegExp(cifra))).toBeNull()
+      }
+      // El consejo que no era una cifra sigue firmado y visible.
+      expect(within(hoja).getByText(/Cena redonda: 37 g de proteína/)).toBeInTheDocument()
+      expect(within(hoja).getByText(/Extiende la mezcla sin dejar agujeros/)).toBeInTheDocument()
+      expect(within(hoja).queryByText(/de vistas/)).toBeNull()
+      expect(within(hoja).queryByText(/me gusta/)).toBeNull()
     })
   })
 
@@ -175,9 +253,9 @@ describe('RecetasCarousel', () => {
   describe('esqueleto de carga', () => {
     it('reserva tres tarjetas del mismo ancho que las de verdad', () => {
       const { container } = render(<RecetasCarousel recetas={[]} cargando />)
-      const fantasmas = container.querySelectorAll('.w-\\[132px\\]')
+      const fantasmas = container.querySelectorAll('.w-\\[148px\\]')
       expect(fantasmas).toHaveLength(3)
-      expect(container.querySelector('.h-\\[176px\\]')).toBeInTheDocument()
+      expect(container.querySelector('.h-\\[150px\\]')).toBeInTheDocument()
     })
 
     it('no anuncia el hueco a quien navega por voz', () => {

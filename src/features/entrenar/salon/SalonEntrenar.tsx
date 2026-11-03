@@ -19,6 +19,7 @@ import type {
   SerieRegistrada,
   Sesion,
   SexoDeFicha,
+  CheckinDiario,
 } from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
@@ -50,11 +51,23 @@ import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './ma
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
-import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
+import { DesplegableDeLaSemana } from './rumbo/DesplegableDeLaSemana'
+import { diaEnPantalla } from './rumbo/diaEnPantalla'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
+import { useCapaDelSalon } from './momentos/useCapaDelSalon'
+import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
+import { cifrasEnUnaLinea } from './cuerpo/cifrasEnUnaLinea'
+import { PortadaDelCuerpo, type RangoDeLectura, type VistaDelSalon } from './cuerpo/PortadaDelCuerpo'
+import type { CapaDelCuerpo } from '../sujeto/pintura'
+import { estacionesDelCardio } from './estaciones/estacionesDelCardio'
+import { cargaAnterior } from './paredes/cargaAnterior'
+import { regionesConDolor, regionesDirectas, regionesPorTrabajar, seriesPorRegion, tinteDelCuerpo } from '../sujeto/tinte'
+import type { IdDeRegion } from '../sujeto/regiones'
+import { horaParaPintar, instantesDeLaTransicion } from '../sujeto/transicion'
+import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 
 /**
  * EL SALÓN: la pantalla `/entrenar`, y la primera que se ve al tocar ENTRENAR.
@@ -182,6 +195,11 @@ export interface SalonEntrenarProps {
   estaturaCm?: number
   /** Y sus proporciones, si alguna serie suya trae pista de pose. */
   proporciones?: ProporcionesDelCuerpo
+  /**
+   * El dolor del check-in de hoy, tal cual (0-10 y «dónde»). Con 4 o más, su región se pinta
+   * en rojo en el cuerpo. Sin check-in de hoy no se pasa nada: no se inventa dolor.
+   */
+  dolorDeHoy?: Pick<CheckinDiario, 'dolor' | 'dolorDonde'>
 }
 
 /** El ejercicio del que habla el salón: el primero que queda por terminar. */
@@ -246,7 +264,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   /**
    * EL DÍA QUE SE ESTÁ MIRANDO, cuando no es hoy.
    *
-   * `null` = hoy, que es como se abre siempre. Elegir otro día en el tambor no navega a
+   * `null` = hoy, que es como se abre siempre. Elegir otro día en la semana no navega a
    * otra pantalla ni cambia nada en la base: cambia QUÉ SALA se está viendo. Es la
    * diferencia entre consultar la semana y empezar la sesión de otro día por error.
    */
@@ -280,18 +298,22 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
   const [diaElegido, setDiaElegido] = useState<number | null>(null)
   const [semanaAbierta, setSemanaAbierta] = useState(false)
+  // Estable: la lista escucha Escape en un efecto que depende de esto.
+  const cerrarSemana = useCallback(() => setSemanaAbierta(false), [])
   /**
    * La sesión del día elegido, si hay uno.
    *
    * Sale del MISMO reparto que pinta la semana —`armarSemana`, ya calculado por el
    * dominio— y no de un segundo cruce por nombre de día: dos formas de repartir sesiones
-   * en días se separan, y entonces el tambor abriría una sesión y el calendario diría otra.
+   * en días se separan, y entonces la semana abriría una sesión y el calendario diría otra.
    */
   const sesionDelDiaElegido =
     diaElegido === null
       ? undefined
       : microciclo.sesiones.find((s) => s.id === props.semana[diaElegido]?.sesionId)
-  const sesionEnPantalla = sesionDelDiaElegido ?? sesion
+  // Con un día elegido manda ese día, AUNQUE sea de descanso: caer a la sesión por omisión
+  // pintaba los ejercicios del lunes bajo «MIÉRCOLES · viendo» (revisión ciega del 25-oct).
+  const sesionEnPantalla = diaElegido === null ? sesion : sesionDelDiaElegido
   const ejercicio =
     retenido ??
     (ejercicioManual !== null
@@ -369,6 +391,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     if (ejercicio) return patronDeCategoria(ejercicio.categoria, ejercicio.nombre)
     return patronDelBloque ? patronConEsfuerzo(patronDelBloque, esfuerzoDelBloque) : undefined
   }, [ejercicio, patronDelBloque, esfuerzoDelBloque])
+  // LA CAPA DE MOMENTOS, apagada salvo con `?momentos=ejemplo`: sujeto de ejemplo, nunca un asesorado.
+  const capaMomentos = useCapaDelSalon(window.location.search, patron?.categoria, ejercicio?.nombre)
   const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
   // EL MURO TAMBIÉN HABLA EN CARDIO. Sin contenido de pared no se monta el tablón, y hasta
   // el 2026-09-10 un día de cardio abría sin nombre y sin código de sala: la habitación
@@ -405,6 +429,65 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * hueco (`sinPatron.visibleEnW: [0]`).
    */
   const conEjeW = conSujeto && !!patron
+
+  /**
+   * EL CUERPO ES LA PORTADA (maqueta 7). Se abre en el sujeto de Blender, quieto, con lo
+   * trabajado encendido; «Ver el movimiento» vuelve a la escena de siempre, entera.
+   */
+  const [vista, setVista] = useState<VistaDelSalon>('cuerpo')
+  const [capaDelCuerpo, setCapaDelCuerpo] = useState<CapaDelCuerpo>('musculo')
+  const [rango, setRango] = useState<RangoDeLectura>('hoy')
+  const seriesDelCuerpo = useMemo(
+    () => seriesPorRegion(rango === 'hoy' ? (sesionEnPantalla ? [sesionEnPantalla] : []) : microciclo.sesiones),
+    [rango, sesionEnPantalla, microciclo.sesiones],
+  )
+  const doloridas = useMemo(() => regionesConDolor(props.dolorDeHoy), [props.dolorDeHoy])
+  /**
+   * LO QUE LA SESIÓN DEJA POR TRABAJAR, en rojo (Bryan, 25-oct). Solo con «Hoy»: la semana
+   * cuenta lo hecho, no lo pendiente. Y cuándo se cerró cada región en esta visita, para que
+   * pase del rojo a «trabajado» con una transición y no de golpe.
+   */
+  const porTrabajar = useMemo(
+    () => (rango === 'hoy' ? regionesPorTrabajar(sesionEnPantalla) : []),
+    [rango, sesionEnPantalla],
+  )
+  const [trabajadasEn, setTrabajadasEn] = useState<Partial<Record<IdDeRegion, number>>>({})
+  /**
+   * EL RELOJ DE LA TRANSICIÓN. El cuerpo se pinta a demanda: sin un cuadro nuevo, el rojo no
+   * avanza. Este estado se mueve SOLO en los instantes que `instantesDeLaTransicion` dice, y
+   * viaja al visor dentro de `cuerpo`, que es lo que le hace reconstruir.
+   */
+  const reducido = useMovimientoReducido()
+  const [relojDelCuerpo, setRelojDelCuerpo] = useState(0)
+  useEffect(() => {
+    const ahora = Date.now()
+    const temporizadores = instantesDeLaTransicion(trabajadasEn, ahora, reducido).map((t) =>
+      window.setTimeout(() => setRelojDelCuerpo(Date.now()), t - ahora),
+    )
+    return () => temporizadores.forEach((id) => window.clearTimeout(id))
+  }, [trabajadasEn, reducido])
+  const enCuerpo = conEjeW && vista === 'cuerpo'
+  // LA LINEA DE ARRIBA («Nombre arriba, en pequeno»): nombre y cifras del ejercicio, o, en un dia de
+  // cardio, el nombre de la ficha y sus cifras (tramos, minutos, intensidad).
+  const resumenDeLaPortada = useMemo(() => {
+    if (ejercicio) return { nombre: ejercicio.nombre, cifras: cifrasEnUnaLinea(ejercicio) }
+    if (!contenido) return undefined
+    const cifras = estacionesDelCardio(sesionEnPantalla?.bloquesCardio)
+      .map((e) => `${e.cifra} ${e.rotulo.toLowerCase()}`)
+      .join(' · ')
+    return { nombre: contenido.nombre, cifras }
+  }, [ejercicio, contenido, sesionEnPantalla])
+  const cuerpoParaElVisor = useMemo(
+    () =>
+      enCuerpo
+        ? {
+            capa: capaDelCuerpo,
+            tinte: tinteDelCuerpo(seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn),
+            ahora: horaParaPintar(relojDelCuerpo, reducido),
+          }
+        : undefined,
+    [enCuerpo, capaDelCuerpo, seriesDelCuerpo, doloridas, porTrabajar, trabajadasEn, relojDelCuerpo, reducido],
+  )
 
   const [w, setW] = useState<NivelW>(0)
   /**
@@ -753,7 +836,19 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     }
     // El ejercicio que se acaba de cerrar se queda en la sala mientras se lee que se
     // cerró. `ejercicioEnCurso` ya habría pasado al siguiente sin esto.
-    if (pasa.cierraElEjercicio) setRetenido(yaEscrito)
+    if (pasa.cierraElEjercicio) {
+      setRetenido(yaEscrito)
+      // Sus regiones arrancan la transición del rojo a «trabajado». Las que otro ejercicio
+      // aún trabaja siguen pendientes y en rojo: `tinteDelCuerpo` ignora la marca mientras.
+      // Arranca AL IRSE EL LOGRO, no al guardar: el logro tapa la sala `LOGRO_MS` y la
+      // transición pasaba entera debajo de él, sin que nadie la viera (medido el 25-oct).
+      const ahora = Date.now()
+      setRelojDelCuerpo(ahora)
+      setTrabajadasEn((previas) => ({
+        ...previas,
+        ...Object.fromEntries(regionesDirectas(yaEscrito).map((r) => [r, ahora + LOGRO_MS])),
+      }))
+    }
   }
   return (
     // `fixed inset-0`: el salón ES la pantalla. Va a `--z-elevado` (20) y no más arriba a
@@ -761,6 +856,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // encima: una pantalla que se come la navegación deja al asesorado sin salida.
     <div
       data-salon="entrenar"
+      // EL SALON SIGUE EL TEMA DE LA PERSONA (zona 8, decision de Bryan 28-oct): ya no fuerza
+      // `data-theme`. La escena relee los `--salon-3d-*` al cambiar el tema (`paletaDeLaSala`).
       data-w={w}
       // La cámara, legible desde fuera: el testigo mide si un gesto orbitó o no sin
       // adivinarlo por los píxeles. Solo se escribe cuando cambia (ver `alMirar`).
@@ -790,10 +887,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         // no vuelve a dibujar la escena, reescala la imagen ya pintada —como ampliar una
         // foto— y eso es lo que Bryan veía como «pixelea cuando se dan movimientos». Este
         // nodo ya no lleva transform ni filter, y `salon.test.tsx` lo vigila.
-        onPointerDown={conEjeW ? alBajarDedo : undefined}
-        onPointerMove={conEjeW ? alMoverDedo : undefined}
-        onPointerUp={conEjeW ? alSoltarDedo : undefined}
-        onPointerCancel={conEjeW ? alSoltarDedo : undefined}
+        // EL EJE W ES DE LA VISTA DE MOVIMIENTO: en el cuerpo oscurecia la sala sin cambiar el cuerpo.
+        onPointerDown={conEjeW && !enCuerpo ? alBajarDedo : undefined}
+        onPointerMove={conEjeW && !enCuerpo ? alMoverDedo : undefined}
+        onPointerUp={conEjeW && !enCuerpo ? alSoltarDedo : undefined}
+        onPointerCancel={conEjeW && !enCuerpo ? alSoltarDedo : undefined}
       >
         {conSujeto && patron ? (
           <>
@@ -817,6 +915,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                cuerpo={cuerpoParaElVisor}
+                momentos={capaMomentos}
                 // LOS HUESOS DE ESTA PERSONA: lo que el coach indicó en su ficha. Sin dato
                 // el visor usa su defecto, que es el neutro de siempre.
                 sexo={props.sexo}
@@ -890,6 +990,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             {/* LA HABITACIÓN, por encima del lienzo y por debajo de los rótulos. Trazo y
                 degradado: no tapa al sujeto, lo enmarca. */}
             <ArquitecturaSala />
+            <LecturaDeMomentos capa={capaMomentos} />
           </>
         ) : (
           // El hueco `sinPatron` de `huecos.ts`: MISMO SALÓN, con su sala y sus paredes, y
@@ -972,8 +1073,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 transition-opacity duration-base ease-salida"
               style={{
-                opacity: w * 0.1,
-                background: 'radial-gradient(90% 70% at 50% 45%, transparent 0%, #05060700 40%, #050607 100%)',
+                opacity: enCuerpo ? 0 : w * 0.1,
+                background:
+                  'radial-gradient(90% 70% at 50% 45%, transparent 0%, rgb(var(--salon-3d-vineta-rgb) / 0) 40%, rgb(var(--salon-3d-vineta-rgb)) 100%)',
               }}
             />
 
@@ -1002,7 +1104,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       </div>
 
       {/* ----------------------------------------------------------------- paredes */}
-      <ParedesDelSalon
+      {/* EN LA VISTA DE CUERPO LAS PAREDES NO SE PINTAN: sus cuadros cuelgan de la sala y, vistos
+          desde la camara del cuerpo, caen justo detras de la cabeza y del pecho. Nada se pierde:
+          el nombre y las cifras estan en el panel de abajo (recuadro `ejercicio`) y en la vista
+          de movimiento, que las enseña como siempre. */}
+      {!enCuerpo && (
+        <ParedesDelSalon
         sesion={sesionEnPantalla}
         ejercicio={ejercicio}
         contenido={contenido}
@@ -1015,6 +1122,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           lienzo={lienzo}
           azimutDeEntrada={patron?.camara.azimut ?? 0}
         />
+      )}
 
       {/* EL SUELO Y EL BORDE DE ABAJO.
           Aquí había un marco con `padding-bottom` del alto de la barra de navegación, con
@@ -1054,20 +1162,22 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* LA SEMANA, EN UN TAMBOR. Se abre tocando el día y se cierra al elegir uno o al
-            tocar fuera. Elegir NO empieza esa sesión: cambia qué sala se está viendo. */}
+        {/* LA SEMANA, DESPLEGADA. Se abre tocando el día y se cierra al elegir uno, al tocar
+            fuera o con Escape. Elegir NO empieza esa sesión: cambia qué sala se está viendo.
+            Elegir el día que ya se ve sin elegir nada vuelve a «sin elegir». */}
         {semanaAbierta && (
           <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-elevado)' }}>
-            <TamborDeLaSemana
+            <DesplegableDeLaSemana
               semana={props.semana}
-              diaActual={diaElegido ?? props.semana.findIndex((d) => d.esHoy)}
+              diaActual={diaEnPantalla(props.semana, sesionEnPantalla?.id, diaElegido)}
               onElegir={(i) => {
-                // Volver a HOY no se guarda como «un día elegido»: si se guardara, el
-                // salón dejaría de seguir a la sesión de hoy cuando la agenda cambiara.
-                setDiaElegido(props.semana[i]?.esHoy ? null : i)
+                setEjercicioManual(null)
+                // Las transiciones son de la sala que se cerró: no se llevan a otro día.
+                setTrabajadasEn({})
+                setDiaElegido(i === diaEnPantalla(props.semana, sesion?.id, null) ? null : i)
                 setSemanaAbierta(false)
               }}
-              onCerrar={() => setSemanaAbierta(false)}
+              onCerrar={cerrarSemana}
             />
           </div>
         )}
@@ -1082,6 +1192,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             sesion={sesionEnPantalla}
             semana={props.semana}
             diaElegido={diaElegido}
+            semanaAbierta={semanaAbierta}
             onAbrirSemana={() => setSemanaAbierta(true)}
           />
         </div>
@@ -1115,7 +1226,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // LOS DOS MANDOS, UNO SOBRE OTRO Y AL ALCANCE DEL PULGAR. El del reloj y el de
           // la cámara: los dos únicos aparatos que se OPERAN en este salón, con la misma
           // materia y el mismo tamaño. Todo lo demás se lee.
-          <div className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5">
+          // Por encima de las estaciones (z-contenido): un poste del suelo caia sobre la camara y se comia el toque.
+          <div
+            className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5"
+            style={{ zIndex: 'var(--z-elevado)' }}
+          >
             <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />
             <Joystick
               encendido={modoReloj !== 'sesion' || cargaEnLaPared}
@@ -1167,6 +1282,36 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             onAbrir={() => setFichaAbierta(true)}
             onCerrar={() => setFichaAbierta(false)}
             onGuardado={alGuardarSerie}
+          />
+        )}
+
+        {/* ------------------------------------------------------------------ cuerpo */}
+        {conEjeW && (
+          <PortadaDelCuerpo
+            vista={vista}
+            capa={capaDelCuerpo}
+            rango={rango}
+            series={seriesDelCuerpo}
+            doloridas={doloridas}
+            porTrabajar={porTrabajar}
+            alCambiarCapa={setCapaDelCuerpo}
+            alCambiarRango={setRango}
+            alCambiarVista={setVista}
+            resumen={resumenDeLaPortada}
+            reloj={
+              contenido
+                ? {
+                    sesion: sesionEnPantalla,
+                    ejercicio,
+                    textoDeCarga: contenido.carga,
+                    cargaPrevia: cargaAnterior(props.microcicloPrevio, ejercicio),
+                    modo: modoReloj,
+                    anclas: { abierto, cuenta: cuenta?.desde, duracion: cuenta?.duracion },
+                    alTerminarLaCuenta,
+                    cargaEnLaPared,
+                  }
+                : undefined
+            }
           />
         )}
 

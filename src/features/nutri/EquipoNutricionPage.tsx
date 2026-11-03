@@ -12,6 +12,7 @@ import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
 import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
+import { AlertasNutricionales } from './AlertasNutricionales'
 import { SheetVetados } from './SheetVetados'
 
 function fechaAtras(hoy: string, dias: number): string {
@@ -173,7 +174,6 @@ export default function EquipoNutricionPage() {
       <section className="pt-2">
         <p className="kicker">Evaluación nutricional del equipo</p>
         <h2 className="font-display text-3xl text-texto">{persona === null ? 'Nutrición Alpha' : filas[0]?.usuario.nombre ?? 'Persona no disponible'}</h2>
-        {persona !== null && <Link to="/equipo" className="inline-flex min-h-[44px] items-center text-sm text-tenue underline">Volver a Equipo</Link>}
         {/* Las tres cifras de la maqueta «Espacios de Alpha» (28-sep). Salen de las MISMAS
             filas que la lista de abajo, así que no pueden contar otra cosa que ella. */}
         <div
@@ -220,6 +220,10 @@ export default function EquipoNutricionPage() {
           </Link>
         )}
       </section>
+
+      {/* Alertas de seguridad nutricional (H-02): apagadas hasta que Manuela firme; sin filas no pinta nada.
+          Solo la nutricionista las ve (Bryan, 29-oct); un coach que entra aquí no las pide. */}
+      {persona === null && usuario.rol === 'nutricionista' && <AlertasNutricionales />}
 
       {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
           mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}

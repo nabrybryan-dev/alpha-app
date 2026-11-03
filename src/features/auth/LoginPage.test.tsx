@@ -38,11 +38,11 @@ describe('LoginPage', () => {
     const usuario = userEvent.setup()
     render(<LoginPage />)
 
-    await usuario.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
+    await usuario.click(screen.getByRole('button', { name: '¿Primera vez o se te olvidó tu contraseña?' }))
 
     expect(screen.queryByPlaceholderText('Contraseña')).toBeNull()
     expect(
-      screen.getByRole('button', { name: 'Enviar enlace de recuperación →' }),
+      screen.getByRole('button', { name: 'Enviarme el enlace →' }),
     ).toBeInTheDocument()
   })
 
@@ -50,8 +50,8 @@ describe('LoginPage', () => {
     const usuario = userEvent.setup()
     render(<LoginPage />)
 
-    await usuario.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
-    await usuario.click(screen.getByRole('button', { name: 'Enviar enlace de recuperación →' }))
+    await usuario.click(screen.getByRole('button', { name: '¿Primera vez o se te olvidó tu contraseña?' }))
+    await usuario.click(screen.getByRole('button', { name: 'Enviarme el enlace →' }))
 
     expect(screen.getByText('Escribe tu correo para enviarte el enlace')).toBeInTheDocument()
   })
@@ -63,7 +63,7 @@ describe('LoginPage', () => {
     await usuario.click(screen.getByRole('button', { name: 'ENTRAR' }))
     expect(screen.getByText('Escribe tu correo y tu contraseña')).toBeInTheDocument()
 
-    await usuario.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
+    await usuario.click(screen.getByRole('button', { name: '¿Primera vez o se te olvidó tu contraseña?' }))
     expect(screen.queryByText('Escribe tu correo y tu contraseña')).toBeNull()
   })
 

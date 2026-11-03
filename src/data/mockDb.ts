@@ -327,8 +327,13 @@ export function crearMockDb(): Db {
       list: () => ref.actual.usuarios,
       byId: (id) => ref.actual.usuarios.find((u) => u.id === id),
       asesorados: () => ref.actual.usuarios.filter((u) => u.rol === 'asesorado'),
+      // Una nutricionista cuenta solo si entrena de verdad (tiene perfil de entreno): la del demo no.
       entrenan: () =>
-        ref.actual.usuarios.filter((u) => u.rol === 'asesorado' || u.rol === 'nutricionista'),
+        ref.actual.usuarios.filter(
+          (u) =>
+            u.rol === 'asesorado' ||
+            (u.rol === 'nutricionista' && ref.actual.perfiles.some((p) => p.usuarioId === u.id)),
+        ),
     },
 
     perfiles: {

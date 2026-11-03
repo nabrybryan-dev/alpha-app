@@ -254,7 +254,11 @@ function PedirMotivo({
         // otro, y obligar a ir al ratón en cada veto sobra.
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !problema) onVetar()
-          if (e.key === 'Escape') onCancelar()
+          if (e.key === 'Escape') {
+            // Es de este campo: la hoja que lo contiene no debe cerrarse con la misma tecla.
+            e.preventDefault()
+            onCancelar()
+          }
         }}
         placeholder="alergia declarada, intolerancia, no le gusta…"
         className="mt-1 w-full rounded-2xl border border-linea bg-surface-1 px-3 py-2 text-sm text-texto"

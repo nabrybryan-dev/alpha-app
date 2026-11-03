@@ -3,10 +3,17 @@ import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { contarPorSombrero } from '../../domain/equipo/sombreros'
 import { resumenAsesorado, type ResumenAsesorado } from '../coach/resumenAsesorado'
 import { recordarPersonaEnConsola } from '../coach/consola/memoriaConsola'
 import { ocupaPuestoCoach } from '../coach/consola/usePuestoCoach'
+import { EmbudoDeAvisos } from '../coach/EmbudoDeAvisos'
+import { PanelMicrociclos } from '../coach/PanelMicrociclos'
+import { SaludDeDatos } from '../coach/SaludDeDatos'
+import { AvisosDeSeguridad } from './AvisosDeSeguridad'
+import { useFiltroSombrero } from './filtroSombreros'
 import { MensajesEquipo } from './MensajesEquipo'
+import { Sombreros } from './Sombreros'
 import { useCapacidadesVigentes } from './useCapacidadesVigentes'
 import { usePorAprobar, type PorAprobar } from './usePorAprobar'
 
@@ -193,7 +200,7 @@ function LeyendaSemaforo() {
   )
 }
 
-function FilaCartera({ r, conConsola, esCoach }: { r: ResumenAsesorado; conConsola: boolean; esCoach: boolean }) {
+function FilaCartera({ r, conConsola }: { r: ResumenAsesorado; conConsola: boolean }) {
   const contenido = (
     <>
       <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PUNTO[r.semaforo.color]}`} aria-hidden="true" />
@@ -212,8 +219,9 @@ function FilaCartera({ r, conConsola, esCoach }: { r: ResumenAsesorado; conConso
         <div className="grid grid-cols-2 gap-2 pb-3" aria-label={`Áreas de ${r.usuario.nombre}`}>
       {conConsola ? (
         <Link
-          // Bryan prescribe y aprueba: entra a la ficha de la persona. Manuela, a la consola.
-          to={esCoach ? `/coach/asesorado/${encodeURIComponent(r.usuario.id)}` : '/coach/consola'}
+          // FICHA ÚNICA (paso 10): la misma para el coach y para Manuela. La consola de siete
+          // pestañas sigue viva en Empresa › Entrenador, que es donde está la herramienta.
+          to={`/equipo/${encodeURIComponent(r.usuario.id)}`}
           onClick={() => recordarPersonaEnConsola(r.usuario.id)}
           aria-label={`Entrenamiento de ${r.usuario.nombre}`}
           className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea text-sm font-semibold text-texto"
@@ -239,6 +247,7 @@ export default function EquipoPage() {
   const { cargando, tiene } = capacidades
   const porAprobar = usePorAprobar(capacidades)
   const [verTodos, setVerTodos] = useState(false)
+  const filtro = useFiltroSombrero()
 
   // Bryan: el coach, o su cuenta personal (asesorado con `puesto_de_coach`, esperando a saberlo).
   const esCoach = ocupaPuestoCoach(usuario.rol, cargando, tiene)
@@ -247,6 +256,11 @@ export default function EquipoPage() {
 
   // Bryan abre la consola por ser coach (igual que `CoachLayout`); Manuela, por la capacidad.
   const conConsola = esCoach || (!cargando && tiene('leer_entrenamiento'))
+  // Los tres paneles de la cartera vieja eran del PANEL DEL COACH (en main solo se montaban en
+  // `AsesoradosPage`, detrás de su puerta). Sin ella, Manuela los veía y `PanelMicrociclos`
+  // podía escribir con `barrerYActivar` al abrir Equipo. Se exige lo mismo que la puerta de
+  // entonces (`CoachLayout`): ocupar el puesto de coach, sin más capacidades.
+  const conPanelesDelCoach = esCoach
   // La cartera (nombres y semáforos, que salen del entrenamiento) solo se calcula con
   // `leer_entrenamiento` (E-11 de la revisión de Codex del 28-sep): la capacidad no limita
   // solo el enlace a la consola, limita lo que se muestra. Sin ella, la lista queda vacía y
@@ -265,6 +279,21 @@ export default function EquipoPage() {
   const atencion = cartera.filter((r) => r.semaforo.color !== 'verde')
   const alDia = cartera.filter((r) => r.semaforo.color === 'verde')
 
+  // Las cifras de los chips son SOLO lo que esta pantalla sabe contar: personas que piden
+  // atención (Entreno) y planes esperando firma (Nutrición). Administración no tiene una
+  // cuenta propia aquí, así que su chip no lleva número: no se inventa.
+  const firmas =
+    (porAprobar?.primeros?.ok ? porAprobar.primeros.n : 0) +
+    (porAprobar?.renovados?.ok ? porAprobar.renovados.n : 0)
+  const cuenta = contarPorSombrero([
+    ...atencion.map(() => ({ sombrero: 'entreno' as const })),
+    ...Array.from({ length: firmas }, () => ({ sombrero: 'nutricion' as const })),
+  ])
+
+  const verEntreno = filtro === 'todo' || filtro === 'entreno'
+  const verNutricion = filtro === 'todo' || filtro === 'nutricion'
+  const verAdministracion = filtro === 'todo' || filtro === 'administracion'
+
   return (
     <div className="flex flex-col gap-3.5">
       <header className="flex flex-col gap-1 pt-1">
@@ -282,54 +311,80 @@ export default function EquipoPage() {
         )}
       </header>
 
-      <Link to="/equipo-nutricion" className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea font-semibold text-texto">Nutrición del equipo</Link>
+      <Sombreros cuenta={cuenta} />
 
-      {porAprobar && <TarjetaPorAprobar cuenta={porAprobar} />}
+      {/* La seguridad va fuera del filtro: con cualquier sombrero puesto, una alerta sigue delante. */}
+      <AvisosDeSeguridad conNombres={conConsola} />
 
-      <section
-        aria-label="Cartera"
-        className="entrada entrada-2 flex flex-col rounded-tarjeta border border-linea bg-surface-1 px-4 py-2 shadow-sm"
-      >
-        <p className="py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Cartera</p>
-        {conConsola && <LeyendaSemaforo />}
-        {cargando ? (
-          <p className="border-t border-linea py-3 text-sm text-tenue" aria-busy="true">Cargando tus permisos…</p>
-        ) : !conConsola ? (
-          <p className="border-t border-linea py-3 text-sm text-tenue">
-            La cartera se ve con el permiso de leer el entrenamiento, y todavía no lo tienes. Pídeselo al coach.
-          </p>
-        ) : cartera.length === 0 ? (
-          <p className="border-t border-linea py-3 text-sm text-tenue">Todavía no hay nadie en la cartera.</p>
-        ) : (
-          <ul>
-            {atencion.map((r) => (
-              <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} esCoach={esCoach} />
-            ))}
-            {verTodos && alDia.map((r) => <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} esCoach={esCoach} />)}
-            {alDia.length > 0 && (
-              <li>
-                <button
-                  type="button"
-                  aria-expanded={verTodos}
-                  onClick={() => setVerTodos((v) => !v)}
-                  className="press flex min-h-[56px] w-full items-center gap-3 border-t border-linea text-left"
-                >
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-verde" aria-hidden="true" />
-                  <span className="flex-1 text-sm font-semibold text-texto">{alDia.length} al día</span>
-                  <span className="text-xs text-tenue">{verTodos ? 'plegar' : 'ver todos'}</span>
-                </button>
-              </li>
-            )}
-          </ul>
-        )}
-      </section>
+      {verNutricion && (
+        <Link to="/equipo-nutricion" className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea font-semibold text-texto">Nutrición del equipo</Link>
+      )}
 
-      {conConsola && (
+      {verNutricion && porAprobar && <TarjetaPorAprobar cuenta={porAprobar} />}
+
+      {verEntreno && conPanelesDelCoach && (
+        <>
+          <SaludDeDatos />
+          <EmbudoDeAvisos />
+          <PanelMicrociclos />
+        </>
+      )}
+
+      {verEntreno && (
+        <section
+          aria-label="Cartera"
+          className="entrada entrada-2 flex flex-col rounded-tarjeta border border-linea bg-surface-1 px-4 py-2 shadow-sm"
+        >
+          <p className="py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Cartera</p>
+          {conConsola && <LeyendaSemaforo />}
+          {cargando ? (
+            <p className="border-t border-linea py-3 text-sm text-tenue" aria-busy="true">Cargando tus permisos…</p>
+          ) : !conConsola ? (
+            <p className="border-t border-linea py-3 text-sm text-tenue">
+              La cartera se ve con el permiso de leer el entrenamiento, y todavía no lo tienes. Pídeselo al coach.
+            </p>
+          ) : cartera.length === 0 ? (
+            <p className="border-t border-linea py-3 text-sm text-tenue">Todavía no hay nadie en la cartera.</p>
+          ) : (
+            <ul>
+              {atencion.map((r) => (
+                <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} />
+              ))}
+              {verTodos && alDia.map((r) => <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} />)}
+              {alDia.length > 0 && (
+                <li>
+                  <button
+                    type="button"
+                    aria-expanded={verTodos}
+                    onClick={() => setVerTodos((v) => !v)}
+                    className="press flex min-h-[56px] w-full items-center gap-3 border-t border-linea text-left"
+                  >
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-verde" aria-hidden="true" />
+                    <span className="flex-1 text-sm font-semibold text-texto">{alDia.length} al día</span>
+                    <span className="text-xs text-tenue">{verTodos ? 'plegar' : 'ver todos'}</span>
+                  </button>
+                </li>
+              )}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {verEntreno && conConsola && (
         <Link
           to="/coach/consola"
           className="press entrada entrada-3 flex min-h-[48px] items-center justify-center rounded-boton border border-texto font-display text-[13px] uppercase text-texto"
         >
           Abrir la consola completa
+        </Link>
+      )}
+
+      {verAdministracion && (
+        <Link
+          to="/empresa"
+          className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea font-semibold text-texto"
+        >
+          Ir a Empresa · las herramientas de Administración
         </Link>
       )}
 

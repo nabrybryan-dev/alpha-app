@@ -39,7 +39,8 @@ interface DetalleComidaProps {
   comida: RegistroComida
   /** Lo que el plan pauta para esta comida, si lo hay. */
   pauta?: string
-  onVolver: () => void
+  /** El interruptor clínico: apagado, el detalle no enseña kcal. */
+  verKcal?: boolean
   onAgregar: () => void
   onQuitarItem: (itemId: string) => void
   onCambiar: (cambios: Partial<Omit<RegistroComida, 'id' | 'usuarioId' | 'items'>>) => void
@@ -58,7 +59,7 @@ const etiquetaDe = (tabla: Record<string, number>, gramos: number | null) => {
 export function DetalleComida({
   comida,
   pauta,
-  onVolver,
+  verKcal = true,
   onAgregar,
   onQuitarItem,
   onCambiar,
@@ -89,22 +90,16 @@ export function DetalleComida({
   return (
     <div className="flex flex-col gap-4 pb-6">
       <header className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          aria-label="Volver al diario"
-          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             {comida.momentoIso.slice(11, 16)}
           </p>
           <h1 className="font-display text-xl text-texto">{NOMBRES[comida.comida]}</h1>
-          <p className="cifras mt-1 text-sm text-tenue">
-            <b className="text-texto">{kcal.toLocaleString('es-CO')}</b> kcal registradas
-          </p>
+          {verKcal && (
+            <p className="cifras mt-1 text-sm text-tenue">
+              <b className="text-texto">{kcal.toLocaleString('es-CO')}</b> kcal registradas
+            </p>
+          )}
         </div>
       </header>
 
@@ -144,7 +139,9 @@ export function DetalleComida({
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="cifras block text-sm font-bold text-texto">{item.gramos} g</span>
-                  <span className="cifras block text-xs text-tenue">{cifra(por?.kcal)} kcal</span>
+                  {verKcal && (
+                    <span className="cifras block text-xs text-tenue">{cifra(por?.kcal)} kcal</span>
+                  )}
                 </span>
                 <button
                   type="button"
@@ -249,9 +246,16 @@ export function DetalleComida({
 
             {grasaOculta && (
               <p className="mt-3 text-xs leading-snug text-tenue">
-                Ese aceite son{' '}
-                <b className="text-texto">{kcalDelAceite} kcal</b> que no se ven en el plato. Es la
-                parte del registro que más se olvida.
+                {verKcal ? (
+                  <>
+                    Ese aceite son <b className="text-texto">{kcalDelAceite} kcal</b> que no se ven
+                    en el plato. Es la parte del registro que más se olvida.
+                  </>
+                ) : (
+                  <>
+                    Ese aceite no se ve en el plato. Es la parte del registro que más se olvida.
+                  </>
+                )}
               </p>
             )}
           </>

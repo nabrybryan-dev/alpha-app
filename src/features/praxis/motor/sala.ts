@@ -68,6 +68,8 @@ function finAbrir(): void {
 }
 export function abrirSala(modo?: 'quieta' | 'demo', opt: { sinViaje?: boolean } = {}): void {
   const sala = $('#sala'), app = $('#app')
+  // Conversación nueva: las tarjetas 3D arrancan limpias (y salen del estado de Quieta).
+  window.dispatchEvent(new CustomEvent('praxis:abrir'))
   limpiarAnimsSala(); clearTimeout(Sala.tAbrir); Sala.limpiar = false
   const mini = $('#miniFirma'), rm = miniVisible()
   sala.hidden = false; SinSalto.reiniciar()
@@ -138,6 +140,8 @@ function finCierre(): void {
 export function cerrarSala(silencioso?: boolean): void {
   const sala = $('#sala')
   if (sala.hidden || Sala.estado === 'cerrando') return
+  // Las tarjetas 3D flotan sobre la sala, no dentro de ella: al cerrar, se van con la sala.
+  window.dispatchEvent(new CustomEvent('praxis:sala-cerrada'))
   const enApertura = Sala.estado === 'abriendo'
   const quedaba = !S.listo && !S.quieta && hayDatos()
   if (Mic.activo) detenerMic(false)

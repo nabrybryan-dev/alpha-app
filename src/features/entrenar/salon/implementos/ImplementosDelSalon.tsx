@@ -165,7 +165,7 @@ export function ImplementosDelSalon({
         // que un montón de etiquetas sueltas se lea como un estante y no como una nube.
         <span
           key={implemento.id}
-          className="flex w-full items-center gap-2 rounded-[10px] border border-white/10 bg-ink-900/85 px-2.5 py-1.5"
+          className="flex w-full items-center gap-2 rounded-[10px] border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900/85 px-2.5 py-1.5"
         >
           <svg
             viewBox="0 0 24 16"
@@ -191,7 +191,7 @@ export function ImplementosDelSalon({
       ))}
 
       {material.sinDeducir > 0 && (
-        <span className="w-full rounded-[10px] border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-xs leading-tight text-silver-500">
+        <span className="w-full rounded-[10px] border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900/85 px-2.5 py-1.5 text-xs leading-tight text-silver-500">
           {material.sinDeducir} sin material escrito
         </span>
       )}

@@ -196,6 +196,21 @@ describe('Praxis · la Quieta', () => {
   })
 })
 
+describe('Praxis · las tarjetas se van con la sala', () => {
+  it('cerrar la sala no deja tarjetas flotando fuera de ella', async () => {
+    ponerMedio(true)
+    const u = userEvent.setup()
+    const { $, raiz } = montar()
+    await abrirYAceptar(u)
+    await u.type($('#entrada'), 'me duele la rodilla{Enter}')
+    await waitFor(() => expect(raiz.querySelectorAll('.px-t').length).toBeGreaterThan(0))
+
+    await u.click($('#btnCerrar'))
+
+    expect(raiz.querySelectorAll('.px-t')).toHaveLength(0)
+  })
+})
+
 describe('Praxis · al salir no deja nada puesto', () => {
   it('desmontar quita la clase del body', async () => {
     const u = userEvent.setup()

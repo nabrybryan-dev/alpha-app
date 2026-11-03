@@ -1,6 +1,9 @@
 import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
-import type { Receta, RecetaNota } from '../../data/recetas'
-import { motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
+import { gramosDeReceta, type Receta, type RecetaNota } from '../../data/recetas'
+import { Boton3D } from '../../components/ui/Boton3D'
+import { Cifra3D } from '../../components/ui/Cifra3D'
+import { comidaDeReceta, motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
+import { sinCifrasDeKcal } from '../../domain/nutricion/textoSinKcal'
 import { ReelPlayer } from './ReelPlayer'
 
 /**
@@ -49,6 +52,8 @@ export interface RecetaSheetProps {
    * cambia al texto de plan. Es lo único que separa esto de un feed cualquiera.
    */
   kcalRestantes?: number
+  /** El interruptor de la nutricionista: apagado, la hoja no enseña ninguna kcal. */
+  verKcal?: boolean
   onCerrar: () => void
   /**
    * DECISIÓN PENDIENTE: sin esto el botón queda de muestra y no escribe nada.
@@ -60,13 +65,16 @@ export interface RecetaSheetProps {
   registro?: RecetaRegistro
 }
 
-/** Lo que dura el aviso antes de irse solo. */
-const MS_AVISO = 4000
-
-export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: RecetaSheetProps) {
+export function RecetaSheet({
+  receta,
+  kcalRestantes,
+  verKcal = true,
+  onCerrar,
+  registro,
+}: RecetaSheetProps) {
   const hoja = useRef<HTMLDivElement>(null)
-  const [agregada, setAgregada] = useState(false)
-  const reloj = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  /** La receta ya quedó registrada: el botón se retira y el aviso se queda. */
+  const [hecha, setHecha] = useState(false)
 
   // Esc cierra, y el foco entra en la hoja para no quedarse detrás del scrim.
   useEffect(() => {
@@ -78,20 +86,13 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
     return () => document.removeEventListener('keydown', alTeclear)
   }, [onCerrar])
 
-  // El aviso no puede sobrevivir al desmontaje: dejaría un temporizador
-  // escribiendo estado sobre una hoja que ya no existe.
-  useEffect(() => () => clearTimeout(reloj.current), [])
-
   const agregar = () => {
     registro?.agregar(receta)
-    setAgregada(true)
-    clearTimeout(reloj.current)
-    reloj.current = setTimeout(() => setAgregada(false), MS_AVISO)
+    setHecha(true)
   }
 
   const deshacer = () => {
-    clearTimeout(reloj.current)
-    setAgregada(false)
+    setHecha(false)
     registro?.deshacer(receta)
   }
 
@@ -111,56 +112,76 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
         aria-modal="true"
         aria-label={`${receta.nombre}, de ${receta.handle}`}
         onClick={(e) => e.stopPropagation()}
-        className="subir-hoja max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] border-t border-linea bg-surface-1 px-4 pb-0 pt-4"
+        className="subir-hoja flex max-h-[92dvh] w-full flex-col rounded-t-[22px] border-t border-linea bg-surface-1"
       >
-        <Cabecera receta={receta} onCerrar={onCerrar} />
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+          <Cabecera receta={receta} onCerrar={onCerrar} />
 
-        <div className="mt-3">
-          <ReelPlayer media={media} handle={receta.handle} />
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="cifras text-xs text-tenue">
-              {social.likes} me gusta · {social.guardados} guardados
-            </span>
-            {media.instagramPermalink && (
-              <a
-                href={media.instagramPermalink}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="press inline-flex items-center rounded-boton border border-linea px-3 text-xs font-bold text-texto"
-                style={{ minHeight: 44 }}
-              >
-                Ver en Instagram
-              </a>
-            )}
+          <div className="mt-3">
+            <ReelPlayer media={media} handle={receta.handle} />
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <MetricasSociales social={social} />
+              {media.instagramPermalink && (
+                <a
+                  href={media.instagramPermalink}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="press inline-flex items-center rounded-boton border border-linea px-3 text-xs font-bold text-texto"
+                  style={{ minHeight: 44 }}
+                >
+                  Ver en Instagram
+                </a>
+              )}
+            </div>
           </div>
+
+          <AjusteAlfa
+            ajuste={ajuste}
+            gramos={gramosDeReceta(receta)}
+            kcalRestantes={verKcal ? kcalRestantes : undefined}
+            verKcal={verKcal}
+          />
+
+          <Ingredientes receta={receta} />
+          <Preparacion pasos={receta.preparacion} />
         </div>
 
-        <AjusteAlfa ajuste={ajuste} kcalRestantes={kcalRestantes} />
-
-        <Ingredientes receta={receta} />
-        <Preparacion pasos={receta.preparacion} />
-
-        <PieFijo receta={receta} agregada={agregada} onAgregar={agregar} onDeshacer={deshacer} />
+        <PieFijo
+          receta={receta}
+          hecha={hecha}
+          onAgregar={agregar}
+          onDeshacer={deshacer}
+        />
       </div>
     </div>
   )
 }
 
+/** «—» no es una métrica: si el reel no la trae, no se pinta el hueco. */
+function MetricasSociales({ social }: { social: Receta['social'] }) {
+  const partes = [
+    social.likes && social.likes !== '—' ? `${social.likes} me gusta` : null,
+    social.guardados && social.guardados !== '—' ? `${social.guardados} guardados` : null,
+  ].filter(Boolean)
+  if (partes.length === 0) return <span />
+  return <span className="cifras text-xs text-tenue">{partes.join(' · ')}</span>
+}
+
 /**
- * El botón vive pegado al fondo del scroll, no al final del contenido: con la
- * receta larga quedaba a dos pantallas de distancia y había que ir a buscarlo.
+ * El botón ya no flota sobre el contenido: es el pie de la hoja.
  *
- * El degradado no es adorno — es lo que evita que el texto pase por debajo del
- * botón y se lea a medias mientras se desplaza.
+ * Antes era `sticky bottom-0` dentro del scroll y, al abrir la receta, tapaba los
+ * macros de «Tu ajuste Alfa» (H-05b de la auditoría). Ahora la hoja es una
+ * columna: el contenido scrollea y el pie se queda abajo, sin superponerse.
  */
 function PieFijo({
   receta,
-  agregada,
+  hecha,
   onAgregar,
   onDeshacer,
 }: {
   receta: Receta
-  agregada: boolean
+  hecha: boolean
   onAgregar: () => void
   onDeshacer: () => void
 }) {
@@ -169,15 +190,18 @@ function PieFijo({
   const motivo = motivoParaNoRegistrar(receta)
 
   return (
-    <div className="sticky bottom-0 z-10 -mx-4 mt-4 px-4">
-      {agregada && (
+    <div className="shrink-0 border-t border-linea bg-surface-1 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
+      {hecha && (
         <div
           role="status"
           className="aviso-registro mb-2 flex items-center gap-3 rounded-boton border border-linea bg-surface-3 px-3 py-2"
         >
-          <span className="min-w-0 flex-1 text-[12px] leading-snug text-silver-200">
+          <span className="min-w-0 flex-1 text-[12px] leading-snug text-texto">
             <span className="font-bold text-texto">{receta.nombre}</span>
-            <span className="text-tenue"> · {receta.ajuste.porcion} agregada</span>
+            <span className="text-tenue">
+              {' '}
+              · {receta.ajuste.porcion} agregada a tu {comidaDeReceta(receta)}
+            </span>
           </span>
           <button
             type="button"
@@ -190,28 +214,27 @@ function PieFijo({
         </div>
       )}
 
-      <div
-        className="relative pb-[max(16px,env(safe-area-inset-bottom))] pt-3"
-        // Atado al token, no a un hex: en tema claro el velo tiene que ser
-        // blanco. Los navegadores interpolan `transparent` en alfa
-        // premultiplicado, así que no aparece la banda gris de siempre.
-        style={{ background: 'linear-gradient(180deg, transparent 0%, var(--surface-1) 34%)' }}
-      >
-        {/* Filo de tinta: separa el botón del contenido que pasa por detrás. */}
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linea" />
-        <button
-          type="button"
-          onClick={onAgregar}
-          disabled={motivo !== null}
-          className={`press w-full rounded-boton text-[13px] font-bold uppercase tracking-wide ${
-            motivo ? 'border border-linea bg-surface-3 text-tenue' : 'bg-accion text-white'
-          }`}
-          style={{ height: 50 }}
-        >
-          Agregar al registro
-        </button>
-        {motivo && <p className="mt-1.5 text-center text-xs leading-snug text-tenue">{motivo}</p>}
-      </div>
+      {!hecha &&
+        (motivo ? (
+          <button
+            type="button"
+            disabled
+            className="w-full rounded-boton border border-linea bg-surface-3 text-[13px] font-bold uppercase tracking-wide text-tenue"
+            style={{ height: 50 }}
+          >
+            La cociné
+          </button>
+        ) : (
+          <Boton3D bloque onClick={onAgregar}>
+            La cociné
+          </Boton3D>
+        ))}
+      {!hecha && !motivo && (
+        <p className="mt-1.5 text-center text-xs leading-snug text-tenue">
+          Se agrega a tu día por ingredientes, en gramos.
+        </p>
+      )}
+      {motivo && <p className="mt-1.5 text-center text-xs leading-snug text-tenue">{motivo}</p>}
     </div>
   )
 }
@@ -225,7 +248,10 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-bold text-texto">{receta.handle}</p>
         <p className="cifras text-xs text-tenue">
-          Reel · {receta.media.duracion} · {receta.social.views} de vistas
+          Reel · {receta.media.duracion}
+          {receta.social.views && receta.social.views !== '—'
+            ? ` · ${receta.social.views} de vistas`
+            : ''}
         </p>
       </div>
       <button
@@ -246,28 +272,53 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
   )
 }
 
-function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalRestantes?: number }) {
+function AjusteAlfa({
+  ajuste,
+  gramos,
+  kcalRestantes,
+  verKcal,
+}: {
+  ajuste: Receta['ajuste']
+  gramos: number
+  kcalRestantes?: number
+  verKcal: boolean
+}) {
+  const porcion = [ajuste.porcion, ajuste.porcionNota].filter(Boolean).join(' ')
+  // Con el contador apagado se borra la frase que lleva la cifra, no se reescribe
+  // el consejo: el coach firma lo que dice, la app solo lo redacta.
+  const notas = ajuste.notas
+    .map((nota) => ({ ...nota, texto: verKcal ? nota.texto : sinCifrasDeKcal(nota.texto) }))
+    .filter((nota) => nota.texto !== '')
   return (
-    <section className="mt-4 rounded-[18px] border border-linea bg-ink-800 p-4">
+    <section className="mt-4 rounded-[18px] border border-linea bg-surface-2 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Tu ajuste Alfa</p>
-      <p className="cifras mt-1.5 text-[26px] font-bold leading-none text-texto">{ajuste.porcion}</p>
-      <p className="mt-1 text-xs text-tenue">{ajuste.porcionNota}</p>
+
+      <div className="mt-1.5 flex items-center gap-3">
+        {verKcal && (
+          <Cifra3D
+            valor={ajuste.kcal}
+            tamano={34}
+            sufijo=" kcal"
+            etiqueta={`${ajuste.kcal} kilocalorías por porción`}
+          />
+        )}
+        <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
+          {porcion}
+          {gramos > 0 && ` · ${gramos} g`}
+          <br />
+          {ajuste.prot} g proteína · {ajuste.carb} g carbohidratos · {ajuste.grasa} g grasa
+        </span>
+      </div>
+
       {/*
         Esta línea NUNCA se omite. Sin ella la porción es un número más y la
         sección se vuelve un feed de recetas; con ella, la receta está medida
         contra el día concreto de esta persona. Si falta el dato de kcal, se
         dice de dónde sale la porción, no se calla.
       */}
-      <p className="cifras mt-1 text-xs text-tenue">
+      <p className="cifras mt-1.5 text-xs font-semibold text-texto">
         {kcalRestantes === undefined ? 'Según tu plan de hoy' : `Te quedan ${kcalRestantes} kcal hoy`}
       </p>
-
-      <div className="mt-3 flex items-center justify-between gap-2 border-y border-linea py-2.5">
-        <Macro etiqueta="kcal" valor={ajuste.kcal} clase="text-texto" />
-        <Macro etiqueta="prot" valor={ajuste.prot} clase="text-azul" sufijo="g" />
-        <Macro etiqueta="carb" valor={ajuste.carb} clase="text-ambar" sufijo="g" />
-        <Macro etiqueta="grasa" valor={ajuste.grasa} clase="text-oro" sufijo="g" />
-      </div>
 
       {/* Solo se ve en desarrollo: en producción una receta sin notas no se
           sirve. Es lo que le dice al coach cuáles le faltan por escribir. */}
@@ -279,14 +330,14 @@ function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalR
       )}
 
       <ul className="mt-3 flex flex-col gap-3">
-        {ajuste.notas.map((nota) => (
+        {notas.map((nota) => (
           <li key={nota.tipo} className="flex gap-2.5">
             <span className={`mt-0.5 shrink-0 ${COLOR_NOTA[nota.tipo]}`}>{ICONO_NOTA[nota.tipo]}</span>
             <span className="min-w-0">
               <span className={`block text-xs font-bold uppercase tracking-[0.1em] ${COLOR_NOTA[nota.tipo]}`}>
                 {nota.label}
               </span>
-              <span className="mt-0.5 block text-[12.5px] leading-snug text-silver-300">{nota.texto}</span>
+              <span className="mt-0.5 block text-[12.5px] leading-snug text-tenue">{nota.texto}</span>
             </span>
           </li>
         ))}
@@ -306,7 +357,7 @@ function Ingredientes({ receta }: { receta: Receta }) {
   if (!lista || lista.length === 0) return null
 
   return (
-    <section className="mt-3 rounded-[18px] border border-linea bg-ink-800 p-4">
+    <section className="mt-3 rounded-[18px] border border-linea bg-surface-2 p-4">
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Qué lleva</p>
         {receta.rinde && <span className="cifras text-xs text-tenue">{receta.rinde}</span>}
@@ -323,7 +374,7 @@ function Ingredientes({ receta }: { receta: Receta }) {
 
         {lista.map((ing) => (
           <Fragment key={ing.nombre}>
-            <span className="text-[12.5px] leading-snug text-silver-200">
+            <span className="text-[12.5px] leading-snug text-texto">
               {ing.nombre}
               {ing.cambiado && (
                 <span className="ml-1 text-xs font-bold uppercase tracking-[0.08em] text-ambar">
@@ -357,7 +408,7 @@ function Ingredientes({ receta }: { receta: Receta }) {
 function Preparacion({ pasos }: { pasos?: string[] }) {
   if (!pasos || pasos.length === 0) return null
   return (
-    <section className="mt-3 rounded-[18px] border border-linea bg-ink-800 p-4">
+    <section className="mt-3 rounded-[18px] border border-linea bg-surface-2 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Cómo se hace</p>
       <ol className="mt-2.5 flex flex-col gap-2">
         {pasos.map((paso, i) => (
@@ -365,7 +416,7 @@ function Preparacion({ pasos }: { pasos?: string[] }) {
             <span className="cifras mt-0.5 shrink-0 text-xs font-bold text-accion">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <span className="text-[12.5px] leading-snug text-silver-300">{paso}</span>
+            <span className="text-[12.5px] leading-snug text-tenue">{paso}</span>
           </li>
         ))}
       </ol>
@@ -373,14 +424,4 @@ function Preparacion({ pasos }: { pasos?: string[] }) {
   )
 }
 
-function Macro({ etiqueta, valor, clase, sufijo }: { etiqueta: string; valor: number; clase: string; sufijo?: string }) {
-  return (
-    <span className="text-center">
-      <span className="cifras block text-xs font-bold uppercase tracking-[0.1em] text-tenue">{etiqueta}</span>
-      <span className={`cifras mt-0.5 block text-[15px] font-bold ${clase}`}>
-        {valor}
-        {sufijo}
-      </span>
-    </span>
-  )
-}
+

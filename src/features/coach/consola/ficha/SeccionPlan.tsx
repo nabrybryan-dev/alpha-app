@@ -1,5 +1,5 @@
 import { leerPlanLegible } from '../../../../domain/consolaCoach/planLegible'
-import { adherenciaPorMicrociclo, fechaCorta, tablaDelPlan } from '../../../../domain/consolaCoach/perfilCompleto'
+import { adherenciaPorMicrociclo, fechaCorta, sinMarkdown, tablaDelPlan } from '../../../../domain/consolaCoach/perfilCompleto'
 import { GraficaBarras } from '../graficas'
 import { Esqueleto, Falta, Tarjeta } from '../piezas'
 import type { DatosPersona } from '../usePersona'
@@ -95,7 +95,7 @@ export function SeccionPlanEstrategico({ datos, i, className = '' }: { datos: Da
           {legible.reglas.map((regla, n) => (
             <li key={n} className="flex gap-2 text-texto/90">
               <span className="cifras mt-0.5 shrink-0 text-[10.5px] font-bold text-rojo">R{n + 1}</span>
-              <span>{regla}</span>
+              <span>{sinMarkdown(regla)}</span>
             </li>
           ))}
         </ul>

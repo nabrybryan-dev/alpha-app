@@ -37,6 +37,19 @@ describe('microciclosDe', () => {
     expect(microciclos.find((m) => m.estado === 'activo')?.id).toBe('m23')
   })
 
+  it('un blob sin dueño toma el de la columna: la persona ve su semana', () => {
+    const sinDueno: Record<string, unknown> = { ...blob('m22', 'activo') }
+    delete sinDueno.usuarioId
+    const [m] = microciclosDe([{ id: 'm22', estado: 'activo', usuario_id: 'persona-columna', datos: sinDueno }])
+    expect(m.usuarioId).toBe('persona-columna')
+  })
+
+  it('un dueño ya presente en el blob no se reescribe', () => {
+    const datos = { ...blob('m22', 'activo'), usuarioId: 'persona-blob' }
+    const [m] = microciclosDe([{ id: 'm22', estado: 'activo', usuario_id: 'persona-columna', datos }])
+    expect(m.usuarioId).toBe('persona-blob')
+  })
+
   it('conserva todo lo demás del blob: las series no se tocan', () => {
     const conSesiones = {
       ...blob('m22', 'activo'),

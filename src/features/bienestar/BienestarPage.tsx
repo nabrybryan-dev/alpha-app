@@ -1,99 +1,40 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
-import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { IconoCampana } from '../../components/ui/Icono'
-import { Revelar } from '../../components/ui/Revelar'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
-import type { CheckinDiario } from '../../domain/types'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
+import { leerEstadoAvisos, type EstadoAvisos } from '../avisos/estadoAvisos'
 import { CheckinForm } from './CheckinForm'
+import { filasCheckin } from './filasCheckin'
+import { HistorialDeCheckins } from './HistorialDeCheckins'
 import { MedidasCard } from './MedidasCard'
 import { MensajesVidaBandeja } from './MensajesVidaBandeja'
 import { TarjetaVidaCard } from './TarjetaVidaCard'
-import { activarRecordatorios, permisoActual } from './recordatorio'
-import { tramoDeHambre } from '../../domain/senales/hambre'
-import { tramoDeDolor } from '../../domain/senales/dolor'
-
-function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
-  if (valor === 'BUENA' || valor === 'POCO') return 'verde'
-  if (valor === 'REGULAR') return 'ambar'
-  if (valor === 'MALA' || valor === 'MUCHO') return 'rojo'
-  return 'neutro'
-}
-
-/**
- * Filas [etiqueta, valor] de lo que el asesorado llenó hoy (solo lo diligenciado).
- *
- * `verPeso` viene de la decisión de la nutricionista. Dejar de PEDIR el peso sin
- * dejar de ENSEÑARLO no serviría de nada: los kilos que ya están guardados
- * seguirían apareciéndole cada día en su propio resumen.
- */
-function filasCheckin(c: CheckinDiario, verPeso: boolean): [string, string][] {
-  const filas: [string, string][] = []
-  if (verPeso && c.pesoKg !== undefined) filas.push(['Peso ayunas', `${c.pesoKg} kg`])
-  if (c.pasos !== undefined) filas.push(['Pasos de ayer', c.pasos.toLocaleString('es-CO')])
-  if (c.entreno) filas.push(['Entreno', c.entreno])
-  if (c.rendimiento) filas.push(['Rendimiento', c.rendimiento])
-  if (c.motivacion) filas.push(['Motivación', c.motivacion])
-  // Los dos, y sin mezclarlos: los check-ins viejos guardaron una categoría y
-  // los nuevos guardan un número. Enseñar «MUCHO» como si fuera un 8 diría que
-  // se midió algo que nadie midió.
-  if (c.hambreEscala !== undefined) {
-    filas.push(['Hambre', `${c.hambreEscala} / 10 · ${tramoDeHambre(c.hambreEscala).etiqueta}`])
-  } else if (c.hambre) {
-    filas.push(['Hambre', `${c.hambre} (escala antigua)`])
-  }
-  if (c.cansancio) filas.push(['Cansancio', c.cansancio])
-  if (c.estres) filas.push(['Estrés', c.estres])
-  if (c.horasSueno !== undefined) {
-    filas.push(['Sueño', `${c.horasSueno} h${c.calidadSueno ? ` · ${c.calidadSueno}` : ''}`])
-  }
-  if (c.alimentacion) filas.push(['Alimentación', c.alimentacion])
-  // El cero se enseña: «sin dolor» es un dato que la persona marcó, no un hueco.
-  if (c.dolor !== undefined) {
-    const donde = c.dolorDonde ? ` · ${c.dolorDonde}` : ''
-    filas.push(['Dolor', `${c.dolor} / 10 · ${tramoDeDolor(c.dolor).etiqueta}${donde}`])
-  }
-  return filas
-}
-
-function FilaHistorial({ checkin, verPeso }: { checkin: CheckinDiario; verPeso: boolean }) {
-  return (
-    <Card className="!p-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-texto">{checkin.fecha}</p>
-        <p className="text-xs text-tenue">
-          {verPeso && checkin.pesoKg ? `${checkin.pesoKg} kg` : ''} {checkin.horasSueno ? `· ${checkin.horasSueno} h sueño` : ''}
-        </p>
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {checkin.entreno && <Badge tono="neutro">{checkin.entreno}</Badge>}
-        {checkin.estres && <Badge tono={tonoDe(checkin.estres)}>Estrés {checkin.estres}</Badge>}
-        {checkin.cansancio && <Badge tono={tonoDe(checkin.cansancio)}>Cansancio {checkin.cansancio}</Badge>}
-        {checkin.calidadSueno && <Badge tono={tonoDe(checkin.calidadSueno)}>Sueño {checkin.calidadSueno}</Badge>}
-        {checkin.dolor !== undefined && checkin.dolor > 0 && (
-          <Badge tono={tramoDeDolor(checkin.dolor).etiqueta === 'leve' ? 'ambar' : 'rojo'}>
-            Dolor {checkin.dolor}{checkin.dolorDonde ? ` · ${checkin.dolorDonde}` : ''}
-          </Badge>
-        )}
-      </div>
-      {checkin.comentarios && <p className="mt-1.5 text-xs italic text-tenue">"{checkin.comentarios}"</p>}
-    </Card>
-  )
-}
 
 export default function BienestarPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
-  const [permiso, setPermiso] = useState(permisoActual())
+  // La tarjeta depende del estado REAL de los avisos, no solo del permiso del navegador: quien los apagó en «Yo»
+  // conserva el permiso pero no la suscripción, y sin la tarjeta no se enteraría de que no recibe el recordatorio.
+  // Sin soporte, bloqueado o sin preguntar también se ofrece «Yo» (que lo explica); solo `activo` no la necesita.
+  const [avisos, setAvisos] = useState<EstadoAvisos | null>(null)
+  useEffect(() => {
+    let vivo = true
+    void leerEstadoAvisos().then((e) => {
+      if (vivo) setAvisos(e)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
-  const ultimos = [...checkins].reverse().slice(0, 7)
   // Arranca los steppers cerca del último valor real registrado.
   const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
   const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
@@ -102,8 +43,9 @@ export default function BienestarPage() {
   const verPeso = visibilidadDelAsesorado(usuario.id).verComposicion
 
   return (
-    // Bienestar es superficie clara siempre (decisión de diseño), sin importar el tema global.
-    <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
+    // Sigue el tema de la persona (decisión de Bryan, 28-oct): en oscuro se veía la
+    // cabecera oscura sobre un cuerpo hueso, como dos apps pegadas.
+    <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
       <header className="entrada entrada-1">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">Test durante el día</p>
         <h2 className="mt-1 font-display text-3xl leading-none text-texto">Check-in diario</h2>
@@ -112,7 +54,8 @@ export default function BienestarPage() {
         </p>
       </header>
 
-      {permiso === 'default' && (
+      {/* El recordatorio de las 6 pm sale del servidor y se enciende en «Yo»: aquí solo se avisa a quien no lo tiene. */}
+      {avisos !== null && avisos !== 'activo' && (
         <Card className="entrada entrada-2 flex items-center justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-sm font-bold text-texto">
@@ -120,25 +63,16 @@ export default function BienestarPage() {
               Recordatorio de las 6 pm
             </p>
             <p className="mt-0.5 text-xs text-tenue">
-              Si a las 6 pm no has llenado tu check-in, te avisamos con una notificación.
+              Si a las 6 pm no has llenado tu check-in, te avisamos al teléfono aunque la app esté cerrada. Se enciende en Yo.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void activarRecordatorios().then((r) => setPermiso(r))
-            }}
-            className="press min-h-11 shrink-0 rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
+          <Link
+            to="/yo"
+            className="press inline-flex min-h-11 shrink-0 items-center rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
           >
-            Activar
-          </button>
+            Ir a Yo
+          </Link>
         </Card>
-      )}
-      {permiso === 'denied' && (
-        <p className="entrada entrada-2 text-center text-xs text-tenue">
-          Las notificaciones están bloqueadas en tu navegador — actívalas en la configuración del
-          sitio para recibir el recordatorio de las 6 pm.
-        </p>
       )}
 
       {deHoy ? (
@@ -186,14 +120,9 @@ export default function BienestarPage() {
         <TarjetaVidaCard usuarioId={usuario.id} />
       </div>
 
-      <section className="entrada entrada-4 flex flex-col gap-2">
-        <p className="kicker">Últimos 7 días</p>
-        {ultimos.map((c, i) => (
-          <Revelar key={c.id} retrasoMs={(i % 5) * 50}>
-            <FilaHistorial checkin={c} verPeso={verPeso} />
-          </Revelar>
-        ))}
-      </section>
+      <div className="entrada entrada-4">
+        <HistorialDeCheckins checkins={checkins} verPeso={verPeso} />
+      </div>
     </div>
   )
 }

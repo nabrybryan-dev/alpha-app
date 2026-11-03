@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { enlaceDeCabecera, type Cabecera } from './enlaceDeCabecera'
 
 interface CabeceraSemanalProps {
+  /** `nuevo` = el aspecto de la maqueta «Diseño final 3» (asesorado); `clasico` = el de main (staff, hasta el paso 9). */
+  diseno?: 'nuevo' | 'clasico'
   /**
    * De dónde sale el vídeo. Se inyecta para poder cambiarlo sin tocar esta
    * pantalla — ver `enlaceDeCabecera.ts`.
@@ -19,7 +21,7 @@ interface CabeceraSemanalProps {
  * no dice ni un número ni un nombre. Lo que cambia cada semana es la tarjeta de
  * abajo. Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`.
  */
-export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: CabeceraSemanalProps) {
+export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children, diseno = 'clasico' }: CabeceraSemanalProps) {
   const [cabecera, setCabecera] = useState<Cabecera | null>(null)
   const [cargando, setCargando] = useState(true)
   const montado = useRef(true)
@@ -66,7 +68,11 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
         Tu revisión de la semana
       </p>
 
-      <div className="overflow-hidden rounded-2xl border border-linea bg-surface-1">
+      <div className={
+          diseno === 'nuevo'
+            ? 'overflow-hidden rounded-[22px] border border-hairline bg-surface-1 shadow-[var(--brillo),var(--sombra-card)]'
+            : 'overflow-hidden rounded-2xl border border-linea bg-surface-1'
+        }>
         {cabecera?.tipo === 'video' ? (
           <video
             src={cabecera.url}

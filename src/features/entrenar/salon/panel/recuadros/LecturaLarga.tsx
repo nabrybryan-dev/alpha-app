@@ -49,7 +49,7 @@ export function LecturaLarga({ lecturas, foco }: LecturaLargaProps) {
           key={l.id}
           data-prescripcion={l.id}
           data-enfocada={l.id === foco ? '' : undefined}
-          className="grid grid-cols-[86px_1fr] items-start gap-4 border-t border-white/[0.08] py-5 first:border-t-0 first:pt-0"
+          className="grid grid-cols-[86px_1fr] items-start gap-4 border-t border-[rgb(var(--salon-3d-filete-rgb)/0.08)] py-5 first:border-t-0 first:pt-0"
         >
           <div>
             <p

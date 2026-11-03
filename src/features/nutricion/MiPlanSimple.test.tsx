@@ -49,11 +49,11 @@ const planDeKarin = planCon([
   menu('CHEAT', 'REFEED · domingo (mantenimiento)', 'Comida del refeed', ['200 g arroz cocido']),
 ])
 
-function pintar(plan: PlanNutricional) {
+function pintar(plan: PlanNutricional, opciones: { verKcal?: boolean } = {}) {
   const props = {
     plan,
+    verKcal: opciones.verKcal,
     onRegistrar: vi.fn(),
-    onVolver: vi.fn(),
     onVerCompleto: vi.fn(),
   }
   const vista = render(<MiPlanSimple {...props} />)
@@ -61,6 +61,42 @@ function pintar(plan: PlanNutricional) {
 }
 
 describe('MiPlanSimple · el título de cada bloque lo pone el plan', () => {
+  it('si la nota era solo la frase de kcal, no deja un párrafo vacío', () => {
+    const plan = planCon([
+      {
+        nombre: 'ALTO',
+        tipoDia: 'ALTO',
+        comidas: [
+          { hora: '13:00', titulo: 'Cena', alimentos: ['2 huevos'], nota: 'Son 200 kcal.' },
+        ],
+      },
+    ])
+    const { container } = pintar(plan, { verKcal: false })
+    expect(screen.getByText('Cena')).toBeInTheDocument()
+    expect(screen.queryByText(/200 kcal/)).toBeNull()
+    expect(container.querySelector('p:empty')).toBeNull()
+  })
+
+  it('una nota con una línea sin kcal conserva esa línea y su salto', () => {
+    const plan = planCon([
+      {
+        nombre: 'ALTO',
+        tipoDia: 'ALTO',
+        comidas: [
+          {
+            hora: '13:00',
+            titulo: 'Cena',
+            alimentos: ['2 huevos'],
+            nota: 'Pesa en crudo.\nSon 200 kcal.',
+          },
+        ],
+      },
+    ])
+    pintar(plan, { verKcal: false })
+    expect(screen.getByText('Pesa en crudo.')).toBeInTheDocument()
+    expect(screen.queryByText(/200 kcal/)).toBeNull()
+  })
+
   it('un menú CHEAT llamado «REFEED · domingo (mantenimiento)» sale con ese nombre, sin «día libre» ni «descanso»', () => {
     const { container } = pintar(planDeKarin)
 
@@ -173,14 +209,19 @@ describe('MiPlanSimple · letra, volver y la salida al plan completo', () => {
     expect(screen.getAllByText('Pesa en crudo.')[0]).toHaveClass('text-xs')
   })
 
-  it('el botón Volver mide 44 x 44 y llama a onVolver', async () => {
-    const usuario = userEvent.setup()
-    const { onVolver } = pintar(planDeKarin)
+  it('no trae un volver propio: el «‹» de la cabecera es el único', () => {
+    pintar(planDeKarin)
+    expect(screen.queryByRole('button', { name: 'Volver' })).toBeNull()
+    expect(screen.queryByText('←')).toBeNull()
+  })
 
-    const volver = screen.getByRole('button', { name: 'Volver' })
-    expect(volver).toHaveClass('h-11', 'w-11')
-    await usuario.click(volver)
-    expect(onVolver).toHaveBeenCalledTimes(1)
+  it('con el contador apagado, una nota con kcal pierde esa frase y conserva el resto', () => {
+    const plan = planCon([menu('ALTO', 'ALTO · pierna y empuje', 'Almuerzo', ['2 huevos'])])
+    plan.menus[0].comidas[0].nota = 'Son 300 kcal por porción. Pesa en crudo.'
+    pintar(plan, { verKcal: false })
+
+    expect(screen.queryByText(/kcal/i)).toBeNull()
+    expect(screen.getByText('Pesa en crudo.')).toBeInTheDocument()
   })
 
   it('al pie hay una salida al mercado, los suplementos y los cambios de alimentos', async () => {

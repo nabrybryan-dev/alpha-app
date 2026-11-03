@@ -2497,5 +2497,173 @@ select '0115 - observaciones del agente: seguridad y prescripciones se firman', 
             when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0147 - candado de microciclos: la app y la cadena no se pisan', 'origen y cargado_en en microciclos, triggers a_origen < b_candado < c_registrar_choque, regla con cerrado, avisos con RLS, ninguna de sus funciones para anon y decidir/vencer_primer_plan sin aprobar un choque',
+       case when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'microciclos' and column_name = 'origen') then 'NO'
+            when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'microciclos' and column_name = 'cargado_en') then 'NO'
+            -- Los tres triggers con los nombres que fuerzan el orden (Postgres: alfabético). Si alguien los
+            -- renombra y el candado queda antes que el origen, evalúa con el origen por defecto.
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_a_origen' and not tgisinternal) then 'NO'
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_b_candado' and not tgisinternal) then 'NO'
+            when not exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname = 'trg_microciclos_c_registrar_choque' and not tgisinternal) then 'NO'
+            when exists (select 1 from pg_trigger where tgrelid = 'public.microciclos'::regclass and tgname in ('trg_microciclos_poner_origen', 'trg_microciclos_candado') and not tgisinternal) then 'NO'
+            -- La regla cuenta los 'cerrado' (la plantilla cierra el activo antes de insertar el suyo).
+            when to_regprocedure('public.microciclo_choque(uuid,text,integer,text)') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.microciclo_choque(uuid,text,integer,text)')) not like '%''cerrado''%' then 'NO'
+            when to_regclass('public.microciclos_choques') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.microciclos_choques')) then 'NO'
+            when has_table_privilege('anon', 'public.microciclos_choques', 'select')
+              or has_table_privilege('authenticated', 'public.microciclos_choques', 'insert')
+              or has_table_privilege('authenticated', 'public.microciclos_choques', 'update') then 'NO'
+            when to_regprocedure('public.confirmar_pisar_microciclo(text)') is null then 'NO'
+            when to_regprocedure('public.descartar_choque_microciclo(uuid)') is null then 'NO'
+            when to_regprocedure('public.registrar_choque_microciclo(text)') is null then 'NO'
+            -- Ninguna función de la 0147 para anon (un uid nulo pasa la guarda `auth.uid() is not null and ...`).
+            when has_function_privilege('anon', 'public.confirmar_pisar_microciclo(text)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.descartar_choque_microciclo(uuid)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.registrar_choque_microciclo(text)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.microciclo_choque(uuid,text,integer,text)', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.activar_microciclo(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.confirmar_pisar_microciclo(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.descartar_choque_microciclo(uuid)', 'execute') then 'NO'
+            -- decidir/vencer_primer_plan ya no dan por activado lo que el candado frenó.
+            when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%Choque de microciclo%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.vencer_primer_plan()')) not like '%Choque de microciclo%' then 'NO'
+            -- confirmar no marca 'confirmado' sin haber activado.
+            when pg_get_functiondef(to_regprocedure('public.confirmar_pisar_microciclo(text)')) not like '%no quedó activa%' then 'NO'
+            -- «Activar igualmente» aprueba el plan que esperaba por choque (decidido por Bryan, 29-oct).
+            when pg_get_functiondef(to_regprocedure('public.confirmar_pisar_microciclo(text)')) not like '%update public.aprobaciones_primer_plan%' then 'NO'
+            else 'SI' end
+union all
+-- La 0149: quien recalcula lo estandarizado. Se mira lo que HACE la función: security definer con ruta fija,
+-- sin anon ni authenticated, con service_role, y que su cuerpo respete el veto del coach.
+select '0149 - estandarizado se recalcula', 'recalcular_estandarizado: security definer con search_path fijo, solo service_role, respeta el veto',
+       case when to_regprocedure('public.recalcular_estandarizado()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.recalcular_estandarizado()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.recalcular_estandarizado()')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.recalcular_estandarizado()', 'execute')
+              or has_function_privilege('authenticated', 'public.recalcular_estandarizado()', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.recalcular_estandarizado()', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.recalcular_estandarizado()')) not like '%origen = ''derivado''%' then 'NO'
+            else 'SI' end
+union all
+-- La 0146: avisos_checkin_enviados (recordatorio push del check-in de las 6 pm). Solo service_role escribe.
+select '0146 - avisos_checkin_enviados: RLS, solo service_role, un recordatorio por persona y dia', 'avisos_checkin_enviados con RLS; anon y authenticated sin select, insert, update ni delete; service_role con insert; indice unico por persona y dia',
+       case when to_regclass('public.avisos_checkin_enviados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.avisos_checkin_enviados')) then 'NO'
+            when has_table_privilege('anon', 'public.avisos_checkin_enviados', 'select')
+              or has_table_privilege('authenticated', 'public.avisos_checkin_enviados', 'select')
+              or has_table_privilege('authenticated', 'public.avisos_checkin_enviados', 'insert')
+              or has_table_privilege('authenticated', 'public.avisos_checkin_enviados', 'update')
+              or has_table_privilege('authenticated', 'public.avisos_checkin_enviados', 'delete')
+              or has_table_privilege('anon', 'public.avisos_checkin_enviados', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.avisos_checkin_enviados', 'insert') then 'NO'
+            when to_regclass('public.avisos_checkin_enviados_uno_por_persona_y_dia') is null then 'NO'
+            else 'SI' end
+union all
+select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_cola_dudas: RLS, select/insert solo authenticated, sin anon',
+       case when to_regclass('public.praxis_cola_dudas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_cola_dudas')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'r') <> 1 then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd = 'a') <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_cola_dudas') and p.polcmd in ('w', 'd')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_cola_dudas', 'select')
+              or has_table_privilege('anon', 'public.praxis_cola_dudas', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_cola_dudas', 'insert') then 'NO'
+            else 'SI' end
+
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'videos_semanales tiene correccion_pedida_por y motivo_version',
+       case when (select count(*) from information_schema.columns
+                   where table_schema = 'public' and table_name = 'videos_semanales'
+                     and column_name in ('correccion_pedida_por', 'motivo_version')) = 2 then 'SI' else 'NO' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'motivo_version solo admite correccion o republicacion_tecnica (o NULL), y solo con version > 1',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = 'public.videos_semanales'::regclass
+                            and conname = 'videos_semanales_motivo_version_check'
+                            and pg_get_constraintdef(oid) like '%republicacion_tecnica%'
+                            and pg_get_constraintdef(oid) like '%version > 1%') then 'SI' else 'NO' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'decidir_revision_semanal guarda quién pidió la corrección y no queda abierta a anon',
+       case when to_regprocedure('public.decidir_revision_semanal(uuid,date,integer,boolean,text)') is null then 'NO'
+            when pg_get_functiondef('public.decidir_revision_semanal(uuid,date,integer,boolean,text)'::regprocedure) not like '%correccion_pedida_por = auth.uid()%' then 'NO'
+            when has_function_privilege('anon', 'public.decidir_revision_semanal(uuid,date,integer,boolean,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'versionar_revision_semanal distingue correccion de republicacion_tecnica',
+       case when to_regprocedure('public.versionar_revision_semanal()') is null then 'NO'
+            when pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%republicacion_tecnica%'
+             and pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%''correccion''%' then 'SI'
+            else 'NO' end
+union all
+select '0152 - salud de Hermes en la consola', 'salud_hermes con RLS, solo la lee el puesto de coach y anon sin acceso',
+       case when to_regclass('public.salud_hermes') is null then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('public.salud_hermes')) then 'NO'
+            when has_table_privilege('anon', 'public.salud_hermes', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.salud_hermes', 'insert') then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'salud_hermes') <> 1 then 'NO'
+            when exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'salud_hermes'
+                          and policyname = 'salud_hermes_leer_coach' and qual like '%es_coach%') then 'SI'
+            else 'NO' end
+
+union all
+select '0148 - alertas nutricionales: apagadas hasta que Manuela firme', 'alertas_nutricion_ajustes (2 filas, constraint de firma, las dos apagadas, con RLS, sin anon, sin escritura de authenticated) y alertas_nutricion con RLS y solo lectura para authenticated',
+       case when to_regclass('public.alertas_nutricion_ajustes') is null or to_regclass('public.alertas_nutricion') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_nutricion_ajustes')) then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_nutricion')) then 'NO'
+            when (select count(*) from public.alertas_nutricion_ajustes) <> 2 then 'NO'
+            when not exists (select 1 from pg_constraint where conrelid = to_regclass('public.alertas_nutricion_ajustes')
+                               and conname = 'alertas_nutricion_ajustes_no_sin_firma' and contype = 'c') then 'NO'
+            when exists (select 1 from public.alertas_nutricion_ajustes where encendida) then 'NO'
+            when has_table_privilege('anon', 'public.alertas_nutricion_ajustes', 'select')
+              or has_table_privilege('anon', 'public.alertas_nutricion', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.alertas_nutricion_ajustes', 'update')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion_ajustes', 'insert')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion', 'insert')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion', 'update')
+              or has_table_privilege('authenticated', 'public.alertas_nutricion', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.alertas_nutricion', 'select') then 'NO'
+            else 'SI' end
+
+-- La 0116, puente con el laboratorio. Cuatro señales porque son cuatro efectos y cada uno puede faltar por separado.
+-- Solo cuentan objetos y permisos: no leen filas de nadie. Detalle y la parte informativa (login): `comprobar-0116.sql`.
+union all
+select '0116 - puente con el laboratorio', 'las tres vistas y consentimientos existen en el esquema lab, y consentimientos tiene RLS',
+       case when to_regclass('lab.consentimientos') is null or to_regclass('lab.lab_series') is null
+              or to_regclass('lab.lab_sujetos') is null or to_regclass('lab.lab_revocaciones') is null then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('lab.consentimientos')) then 'NO'
+            else 'SI' end
+union all
+select '0116 - puente con el laboratorio', 'el esquema lab no esta abierto a anon ni a authenticated',
+       case when not exists (select 1 from pg_namespace where nspname = 'lab') then 'NO'
+            when has_schema_privilege('anon', 'lab', 'usage') or has_schema_privilege('authenticated', 'lab', 'usage') then 'NO'
+            else 'SI' end
+union all
+select '0116 - puente con el laboratorio', 'lab_lector existe sin bypassrls ni superusuario y lee solo las tres vistas (SELECT), sin consentimientos ni tablas de la app',
+       case when not exists (select 1 from pg_roles where rolname = 'lab_lector') then 'NO'
+            when (select rolbypassrls or rolsuper from pg_roles where rolname = 'lab_lector') then 'NO'
+            when has_table_privilege('lab_lector', 'lab.consentimientos', 'select')
+              or has_table_privilege('lab_lector', 'public.microciclos', 'select')
+              or has_table_privilege('lab_lector', 'public.perfiles', 'select')
+              or has_table_privilege('lab_lector', 'public.usuarios_app', 'select')
+              or has_table_privilege('lab_lector', 'public.checkins', 'select')
+              or has_table_privilege('lab_lector', 'public.mensajes', 'select') then 'NO'
+            when (select count(*) from information_schema.role_table_grants
+                   where grantee = 'lab_lector' and privilege_type = 'SELECT' and table_schema = 'lab') <> 3 then 'NO'
+            when exists (select 1 from information_schema.role_table_grants
+                          where grantee = 'lab_lector' and (table_schema <> 'lab' or privilege_type <> 'SELECT')) then 'NO'
+            else 'SI' end
+union all
+select '0116 - puente con el laboratorio', 'una persona borrada de la app queda revocada sola (trigger en consentimientos)',
+       case when to_regclass('lab.consentimientos') is null then 'NO'
+            when exists (select 1 from pg_trigger
+                          where tgrelid = to_regclass('lab.consentimientos')
+                            and tgname = 'consentimientos_revocar_si_se_borro' and not tgisinternal) then 'SI'
+            else 'NO' end
 
 order by migracion, senal;

@@ -50,6 +50,15 @@ export type RecetaAlRegistro =
   | { puede: false; motivo: string }
 
 /**
+ * La comida del día en la que queda una receta. La comparten el registro y el
+ * aviso de «La cociné», para que digan lo mismo: un postre se guarda como
+ * «snack», no como «merienda».
+ */
+export function comidaDeReceta(receta: Receta): TipoComida {
+  return COMIDA_DE_CATEGORIA[receta.categoria]
+}
+
+/**
  * @param momentoIso Cuándo se agrega. La hora ordena el día, así que la pone
  *   quien llama —no este módulo—: la lógica pura no lee el reloj.
  */
@@ -87,7 +96,7 @@ export function recetaAlRegistro(receta: Receta, momentoIso: string): RecetaAlRe
     puede: true,
     comida: {
       momentoIso,
-      comida: COMIDA_DE_CATEGORIA[receta.categoria],
+      comida: comidaDeReceta(receta),
       // Cocinó él: la receta la hace en su cocina, con sus cantidades.
       cocinadoPorEl: true,
       // `null` = no se preguntó, distinto de cero. Quien sigue una receta ajena

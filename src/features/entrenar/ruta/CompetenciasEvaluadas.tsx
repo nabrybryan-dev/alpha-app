@@ -4,7 +4,7 @@ import { gradoDeCompetencia } from '../../../domain/rutaEntrenamiento'
 /** Rojo cuando está lograda, plata a medio camino, ámbar cuando es el punto débil. */
 const COLOR: Record<GradoCompetencia, { texto: string; barra: string }> = {
   alto: { texto: 'text-accion', barra: 'bg-accion' },
-  medio: { texto: 'text-silver-200', barra: 'bg-silver-200' },
+  medio: { texto: 'text-texto', barra: 'bg-tenue' },
   bajo: { texto: 'text-ambar', barra: 'bg-ambar' },
 }
 
@@ -15,7 +15,7 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
 
   return (
     <section>
-      <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.16em] text-silver-500">
+      <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.16em] text-tenue">
         Competencias evaluadas
       </h3>
       <div className="flex flex-col gap-2.5">
@@ -24,10 +24,10 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
           return (
             <article
               key={c.id}
-              className="escena-prof rounded-[13px] border border-ink-500 bg-ink-800 px-3.5 py-3"
+              className="escena-prof rounded-[13px] border border-linea bg-surface-2 px-3.5 py-3"
             >
               <div className="flex items-baseline justify-between gap-2.5">
-                <h4 className="text-[13.5px] font-bold text-silver-100">{c.nombre}</h4>
+                <h4 className="text-[13.5px] font-bold text-texto">{c.nombre}</h4>
                 <span className={`cifras text-[13px] font-bold ${color.texto}`}>{c.pct}%</span>
               </div>
               <div
@@ -36,7 +36,7 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label={c.nombre}
-                className="pozo-3d mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
+                className="pozo-3d mt-2.5 h-[5px] overflow-hidden rounded-full bg-linea"
               >
                 {/* `scaleX` y no `width`: aquí son N barras a la vez, una por
                     competencia, así que es donde más se nota pasar de N cálculos
@@ -47,7 +47,7 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
                   style={{ transform: `scaleX(${Math.max(0, Math.min(100, c.pct)) / 100})` }}
                 />
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-silver-400">{c.nota}</p>
+              <p className="mt-2 text-xs leading-relaxed text-tenue">{c.nota}</p>
             </article>
           )
         })}

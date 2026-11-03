@@ -36,7 +36,7 @@ function Grupo({ g }: { g: GrupoRiesgo }) {
           {g.riesgos.map((r) => {
             const c = textoCifra(r.cifra)
             return (
-              <li key={r.id} aria-label={r.titulo} className="flex flex-col gap-0.5 rounded-tarjeta border border-linea p-3 text-[13px]">
+              <li key={r.id} aria-label={r.titulo} className="flex flex-col gap-0.5 rounded-tarjeta border border-linea bg-surface-2 p-3 text-[13px]">
                 <span className="flex items-start justify-between gap-3">
                   <span className="font-semibold text-texto">{r.titulo}</span>
                   <span className={`cifras shrink-0 font-bold ${c.falta ? 'text-tenue' : 'text-rojo'}`}>{c.texto}</span>

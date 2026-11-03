@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Medida del fotograma</title>
+</head>
+<body>
+<pre id="estado">Midiendo... deja esta pestaña delante y sin tocar nada.</pre>
+<script type="module">
+  // Corre la medida de `medir-fotograma-salon.mjs` al abrirse y manda el JSON al receptor local
+  // (127.0.0.1:5197), que lo guarda en un archivo. ?capa=1 la mide con la capa encendida.
+  const q = new URLSearchParams(location.search)
+  const nombre = q.get('nombre') || 'medida'
+  const estado = document.getElementById('estado')
+  try {
+    const m = await import('/scripts/medir-fotograma-salon.mjs')
+    const opciones = { capa: q.get('capa') === '1' }
+    if (opciones.capa) {
+      const ruta = '/scripts/capa-momentos-medida.mjs'
+      const c = await import(/* @vite-ignore */ ruta)
+      await c.preparar()
+      opciones.extras = c.extras
+    }
+    const r = await m.medir(opciones)
+    const cuerpo = JSON.stringify(r)
+    await fetch('http://127.0.0.1:5197/' + encodeURIComponent(nombre), { method: 'POST', body: cuerpo })
+    document.body.innerHTML = '<pre id="estado"></pre>'
+    document.getElementById('estado').textContent = 'Listo. Ya puedes cerrar la pestana.\n\n' + JSON.stringify(r, null, 1)
+  } catch (e) {
+    const msg = 'ERR ' + e.message + '\n' + (e.stack || '')
+    try { await fetch('http://127.0.0.1:5197/' + encodeURIComponent(nombre) + '-error', { method: 'POST', body: msg }) } catch { /* sin receptor */ }
+    estado.textContent = msg
+  }
+</script>
+</body>
+</html>

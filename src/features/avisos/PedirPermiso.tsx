@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { guardarDecisionDeAviso } from '../../data/nube/avisos'
 import { pedirPermisoDelNavegador, soportaAvisos, suscribirse } from './suscripcion'
 import { claveVapidPublica } from './clavePublica'
+import { CLAVE_VISTO } from './estadoAvisos'
 
-/** Dónde se recuerda que a esta persona ya se le preguntó, en ESTE aparato. */
-const CLAVE_VISTO = 'alpha-aviso-preguntado'
 
 /** La clave pública del servidor de empuje (por defecto la incrustada; VITE_VAPID_PUBLIC_KEY la sobrescribe). */
 const CLAVE_PUBLICA = claveVapidPublica(import.meta.env.VITE_VAPID_PUBLIC_KEY)
@@ -65,7 +64,7 @@ export function PedirPermiso({ usuarioId }: PedirPermisoProps) {
       setTimeout(() => setOculto(true), 2500)
       return
     }
-    setMensaje('Sin problema. Puedes activarlo cuando quieras desde los ajustes de tu teléfono.')
+    setMensaje('Sin problema. Cuando quieras, mira el estado de los avisos en Yo, en el menú de tu cuenta (arriba a la derecha).')
     setTimeout(() => setOculto(true), 3500)
   }
 

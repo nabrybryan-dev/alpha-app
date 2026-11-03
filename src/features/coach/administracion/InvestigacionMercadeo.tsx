@@ -61,9 +61,12 @@ function FilaHallazgo({ h }: { h: Hallazgo }) {
 /** Tarjeta gris: sin dato, sin permiso o sin tabla. Sin cifra, sin verde, sin cero. */
 function TarjetaGris({ nombre, children }: { nombre: string; children: React.ReactNode }) {
   return (
-    <section aria-label={nombre} className="entrada rounded-tarjeta border border-dashed border-linea bg-surface-1 shadow-sm">
-      <div className="flex min-h-[64px] flex-col gap-1 p-4">
-        <span className={CLASE_ETIQUETA}>{nombre}</span>
+    <section
+      aria-label={nombre}
+      className="entrada rounded-tarjeta border border-dashed border-linea bg-surface-1 shadow-sm"
+    >
+      <div className="flex min-h-[64px] flex-col justify-center gap-1 p-4">
+        <span className="text-sm font-semibold text-texto">{nombre}</span>
         {children}
       </div>
     </section>

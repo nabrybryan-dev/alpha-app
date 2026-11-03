@@ -56,13 +56,6 @@ export default function AlDiaEmbarazo() {
             No hay nada que preguntarte por ahora. Te avisamos en quince días.
           </p>
         </header>
-        <button
-          type="button"
-          onClick={() => navegar('/nutricion')}
-          className="press w-full rounded-2xl bg-accion py-4 font-display text-sm uppercase tracking-wide text-white"
-        >
-          Volver al diario
-        </button>
       </div>
     )
   }

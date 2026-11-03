@@ -1,12 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import DiarioDia from './DiarioDia'
 import { CompuertaNutricion } from './CompuertaNutricion'
+import { HistoriaInterna } from '../../app/HistoriaInterna'
 import { SessionProvider } from '../../app/SessionProvider'
+import { useVolverInterno } from '../../app/volverInternoContexto'
 import { reiniciarDb } from '../../data/mockDb'
-import { db } from '../../data/dbInstance'
+import { db, hoyIso } from '../../data/dbInstance'
+import { RECETAS } from '../../data/recetas'
+import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
 
 /**
  * El camino crítico entero: tocar una comida, buscar, elegir, poner la cantidad
@@ -14,13 +18,31 @@ import { db } from '../../data/dbInstance'
  * pueden estar bien por separado y no encajar.
  */
 
+/**
+ * El «‹» que pinta `TopBar` cuando hay un estado interno abierto. Se reproduce
+ * aquí sin montar la cabecera entera (que pide permisos de coach): lo que se
+ * comprueba es que el diario REGISTRA su vuelta, no cómo la pinta la cabecera.
+ */
+function VolverDeLaCabecera() {
+  const { volver } = useVolverInterno()
+  if (!volver) return null
+  return (
+    <button type="button" onClick={volver}>
+      ‹ Diario
+    </button>
+  )
+}
+
 const pintar = () =>
   render(
     <MemoryRouter>
       <SessionProvider>
-        <CompuertaNutricion>
-          <DiarioDia />
-        </CompuertaNutricion>
+        <HistoriaInterna>
+          <VolverDeLaCabecera />
+          <CompuertaNutricion>
+            <DiarioDia />
+          </CompuertaNutricion>
+        </HistoriaInterna>
       </SessionProvider>
     </MemoryRouter>,
   )
@@ -31,7 +53,7 @@ const abrirYAgregar = async (comida: RegExp) => {
   await userEvent.click(screen.getByRole('button', { name: /agregar alimento/i }))
 }
 
-const volver = () => userEvent.click(screen.getByRole('button', { name: /volver al diario/i }))
+const volver = () => userEvent.click(screen.getByRole('button', { name: /‹ Diario/i }))
 
 const buscarYElegir = async (texto: string, nombreParcial: RegExp) => {
   await userEvent.type(screen.getByLabelText('Nombre del alimento'), texto)
@@ -116,6 +138,20 @@ describe('DiarioDia', () => {
   })
 
   it('cambiar de día no arrastra lo registrado', async () => {
+    // La tira no deja abrir días futuros. Un lunes no hay otro día abierto en la semana, y la
+    // prueba fallaba solo ese día (CI del lunes 26-oct a las 00:18 UTC): se corre como martes.
+    if (new Date().getDay() === 1) {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(Date.now() + 24 * 60 * 60 * 1000))
+    }
+    try {
+      await cambiarDeDiaNoArrastra()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  async function cambiarDeDiaNoArrastra() {
     pintar()
     await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('aceite de girasol', /aceite de girasol/i)
@@ -124,12 +160,12 @@ describe('DiarioDia', () => {
 
     // Cualquier otro día de la tira: el almuerzo vuelve a estar vacío.
     const dias = screen.getAllByRole('button', { name: /^\d{4}-\d{2}-\d{2}$/ })
-    const otro = dias.find((d) => d.getAttribute('aria-pressed') === 'false')
+    const otro = dias.find((d) => d.getAttribute('aria-pressed') === 'false' && !d.hasAttribute('disabled'))
     if (!otro) throw new Error('la tira no ofrece otro día')
     await userEvent.click(otro)
 
     expect(screen.getByRole('button', { name: /almuerzo, sin registrar/i })).toBeInTheDocument()
-  })
+  }
 
   describe('la compuerta', () => {
     it('sin la encuesta respondida, Nutrición no se abre', () => {
@@ -186,9 +222,12 @@ describe('DiarioDia', () => {
     })
   })
 
-  it('lleva a Mi plan', () => {
+  it('lleva a Tu plan', () => {
     pintar()
-    expect(screen.getByRole('link', { name: /mi plan/i })).toHaveAttribute('href', '/nutricion/plan')
+    expect(screen.getByRole('link', { name: /tu plan/i })).toHaveAttribute(
+      'href',
+      '/nutricion/plan',
+    )
   })
 
   /**
@@ -232,6 +271,21 @@ describe('DiarioDia', () => {
       expect(screen.queryByText('kcal')).not.toBeInTheDocument()
     })
 
+    it('tampoco reaparece en el carrusel de recetas', () => {
+      // El aviso de «te quedan» y lo cocinado hoy enseñaban kcal por su cuenta,
+      // sin mirar el interruptor. Con el contador apagado no sale ninguna.
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: true,
+        verObjetivoCalorico: true,
+        verContadorKcal: false,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.queryByText(/te quedan/i)).toBeNull()
+      expect(screen.queryByText(/kcal/i)).toBeNull()
+    })
+
     it('y aun así se puede seguir registrando: es lo único que no se toca', () => {
       db.visibilidad.decidir({
         usuarioId: 'u-valentina',
@@ -244,6 +298,67 @@ describe('DiarioDia', () => {
       expect(screen.getByRole('button', { name: /desayuno/i })).toBeInTheDocument()
       // El margen se queda: habla de la calidad del dato, no del cuerpo de nadie.
       expect(screen.getByText(/margen de tu registro/i)).toBeInTheDocument()
+    })
+  })
+
+  /**
+   * «Cocinadas hoy» tiene que salir de las comidas registradas, no de la ficha
+   * de la receta: si se cocina dos veces, son dos comidas y se ven dos veces; si
+   * la comida se borra, deja de estar cocinada.
+   */
+  describe('recetas cocinadas hoy', () => {
+    const receta = RECETAS[0]
+
+    const cocinar = () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: new RegExp(`^${receta.nombre}, de`) }),
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'La cociné' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    }
+
+    it('dos veces la misma receta se ven dos veces', () => {
+      pintar()
+      cocinar()
+      cocinar()
+
+      const lista = screen.getByRole('list', { name: /recetas cocinadas hoy/i })
+      expect(within(lista).getAllByText(receta.nombre)).toHaveLength(2)
+    })
+
+    it('si se borra la comida registrada, deja de aparecer', () => {
+      pintar()
+      cocinar()
+
+      expect(screen.getByRole('list', { name: /recetas cocinadas hoy/i })).toBeInTheDocument()
+      const comida = db.registroComidas
+        .delDia('u-valentina', hoyIso())
+        .find((c) => c.items.length > 0)
+      if (!comida) throw new Error('no se registró ninguna comida')
+      act(() => db.registroComidas.borrarComida('u-valentina', comida.id))
+
+      expect(screen.queryByRole('list', { name: /recetas cocinadas hoy/i })).toBeNull()
+    })
+
+    /**
+     * Las anotaciones de antes de `comidas` (solo receta y fecha) se pasan al
+     * formato nuevo al abrir el diario y salen en «cocinadas hoy».
+     */
+    it('una anotación vieja sale en cocinadas hoy y queda guardada en el formato nuevo', () => {
+      const plan = recetaAlRegistro(receta, `${hoyIso()}T16:05:00`)
+      if (!plan.puede) throw new Error('la receta de prueba no se puede registrar')
+      const comidaId = db.registroComidas.abrirComida({ ...plan.comida, usuarioId: 'u-valentina' })
+      for (const item of plan.items) db.registroComidas.agregarItem('u-valentina', comidaId, item)
+      const clave = 'alpha-recetas-u-valentina'
+      localStorage.setItem(clave, JSON.stringify([{ recetaId: receta.id, fecha: hoyIso() }]))
+
+      pintar()
+
+      const lista = screen.getByRole('list', { name: /recetas cocinadas hoy/i })
+      expect(within(lista).getAllByText(receta.nombre)).toHaveLength(1)
+      expect(JSON.parse(localStorage.getItem(clave) ?? '[]')).toEqual([
+        { recetaId: receta.id, fecha: hoyIso(), comidas: [comidaId] },
+      ])
     })
   })
 })

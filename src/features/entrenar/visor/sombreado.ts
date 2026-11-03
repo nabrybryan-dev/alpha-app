@@ -67,6 +67,8 @@ uniform float u_conTextura;
 // Si la luz ya viene grabada en el color: la pieza se enseña tal cual, sin volver a
 // iluminarla. Solo se le suma la bruma de la distancia, que es de la sala y no de la luz.
 uniform float u_horneada;
+// Cuánto se levanta lo horneado hacia la luz (tema claro). 0 = tal cual.
+uniform float u_aclarado;
 void main() {
   vec3 N = normalize(v_nrm);
   vec3 V = normalize(u_ojo - v_mundo);
@@ -146,6 +148,9 @@ void main() {
   // La textura se multiplica en el MISMO espacio en el que viene, sin pasar por lineal:
   // es el color de pantalla por la luz de pantalla, que es como se compone un horneado.
   vec3 horneado = v_col * mix(vec3(1.0), muestraPantalla, u_conTextura);
+  // En tema claro la sala de Blender (oscura, con hormigón y hierro) se aclara: pantalla
+  // suave que conserva el relieve y no toca el tema oscuro (u_aclarado = 0).
+  horneado = 1.0 - (1.0 - horneado) * (1.0 - 0.8 * u_aclarado);
 
   gl_FragColor = vec4(mix(acabado(c), horneado, u_horneada), v_alfa);
 }`

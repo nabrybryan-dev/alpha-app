@@ -3,7 +3,7 @@ import type { CadenaCorrida, EstadoCadenaCorrida } from '../../../data/consola/c
 import { resumenMicrociclo, type Semaforo } from '../../../domain/cumplimiento'
 import { filaDeLaPersona } from '../../../domain/consolaCoach/tableroAgentes'
 import { fechaCorta, leerCribado, partirObjetivo, seriePeso, tendencia } from '../../../domain/consolaCoach/perfilCompleto'
-import { Kpi } from './piezas'
+import { ETIQUETA_SECCION, Kpi } from './piezas'
 import type { DatosPersona } from './usePersona'
 
 /**
@@ -63,11 +63,11 @@ export function CabeceraPersona({ datos, semaforo }: CabeceraPersonaProps) {
           : 'neutro'
 
   return (
-    <header className="consola-cabecera flex flex-col gap-3" aria-label={`Resumen de ${usuario.nombre}`}>
+    <header className="flex flex-col gap-3" aria-label={`Resumen de ${usuario.nombre}`}>
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <div className="min-w-0">
-          <p className="kicker">{usuario.rol === 'asesorado' ? 'Asesorado' : 'Staff que entrena'}</p>
-          <h2 className="font-display mt-0.5 truncate text-[26px] leading-none text-texto lg:text-[32px]">
+          <p className={ETIQUETA_SECCION}>{usuario.rol === 'asesorado' ? 'Asesorado' : 'Staff que entrena'}</p>
+          <h2 className="font-display mt-0.5 truncate text-[28px] leading-none text-texto lg:text-[34px]">
             {usuario.nombre}
           </h2>
         </div>
@@ -115,18 +115,18 @@ export function CabeceraPersona({ datos, semaforo }: CabeceraPersonaProps) {
           tono="neutro"
         />
         <KpiEstado
-            i={3}
-            etiqueta="Riesgo"
-            texto={semaforo ? semaforo.motivo : 'Sin semáforo'}
-            detalle={
-              datos.cribado
-                ? `Cribado: ${cribado.motivo.toLowerCase()}`
-                : datos.lecturaRecortada
-                  ? 'Cribado: tu permiso no alcanza.'
-                  : 'Cribado: sin contestar.'
-            }
-            tono={tonoRiesgo}
-          />
+          i={3}
+          etiqueta="Riesgo"
+          texto={semaforo ? semaforo.motivo : 'Sin semáforo'}
+          detalle={
+            datos.cribado
+              ? `Cribado: ${cribado.motivo.toLowerCase()}`
+              : datos.lecturaRecortada
+                ? 'Cribado: tu permiso no alcanza.'
+                : 'Cribado: sin contestar.'
+          }
+          tono={tonoRiesgo}
+        />
         <KpiEstado
           i={4}
           etiqueta="Cadena"
@@ -145,7 +145,7 @@ export function CabeceraPersona({ datos, semaforo }: CabeceraPersonaProps) {
   )
 }
 
-const TONO_BARRA = { rojo: 'bg-rojo', ambar: 'bg-ambar', verde: 'bg-verde', azul: 'bg-azul', neutro: 'bg-linea' } as const
+const PUNTO_ESTADO = { rojo: 'bg-rojo', ambar: 'bg-ambar', verde: 'bg-verde', azul: 'bg-azul', neutro: 'bg-linea' } as const
 
 function KpiEstado({
   etiqueta,
@@ -157,16 +157,15 @@ function KpiEstado({
   etiqueta: string
   texto: string
   detalle: string
-  tono: keyof typeof TONO_BARRA
+  tono: keyof typeof PUNTO_ESTADO
   i: number
 }) {
   return (
     <div className="consola-tarjeta h-full min-w-0" style={{ '--i': i } as CSSProperties}>
-      <div className="relieve relative h-full overflow-hidden rounded-tarjeta border border-hairline bg-surface-2/70 px-3.5 py-3">
-        <span className={`absolute inset-x-0 top-0 h-[3px] ${TONO_BARRA[tono]}`} aria-hidden="true" />
-        <p className="truncate text-[10.5px] font-bold uppercase tracking-[0.14em] text-tenue">{etiqueta}</p>
+      <div className="relieve flex h-full min-w-0 flex-col overflow-hidden rounded-tarjeta border border-linea bg-surface-1 px-3.5 py-3">
+        <p className={`${ETIQUETA_SECCION} truncate`}>{etiqueta}</p>
         <p className="mt-1.5 flex items-center gap-1.5 text-[15px] font-bold leading-tight text-texto">
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONO_BARRA[tono]}`} aria-hidden="true" />
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PUNTO_ESTADO[tono]}`} aria-hidden="true" />
           <span className="min-w-0 truncate" title={texto}>
             {texto}
           </span>

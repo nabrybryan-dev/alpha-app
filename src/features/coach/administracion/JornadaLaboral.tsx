@@ -56,7 +56,7 @@ function Fila({ f, quienMira, ocupado, onTachar, onDeshacer }: {
   const t = f.tarea
   const hecha = t.estado === 'hecha'
   return (
-    <li aria-label={t.titulo} className="flex flex-col gap-2 rounded-tarjeta border border-linea p-3">
+    <li aria-label={t.titulo} className="flex flex-col gap-2 rounded-tarjeta border border-linea bg-surface-2 p-3">
       <span className={`text-sm font-semibold ${hecha ? 'text-tenue line-through' : 'text-texto'}`}>{t.titulo}</span>
       <Detalle f={f} />
       {puedeTachar(t, quienMira) && (
@@ -127,7 +127,7 @@ function ListaObjetivos({ titulo, filas, vacio }: { titulo: string; filas: Objet
       ) : (
         <ul className="flex flex-col gap-2">
           {filas.map(({ objetivo, avance }) => (
-            <li key={objetivo.id} aria-label={objetivo.titulo} className="flex flex-col gap-0.5 rounded-tarjeta border border-linea p-3">
+            <li key={objetivo.id} aria-label={objetivo.titulo} className="flex flex-col gap-0.5 rounded-tarjeta border border-linea bg-surface-2 p-3">
               <span className="text-sm font-semibold text-texto">{objetivo.titulo}</span>
               <span className="text-xs text-tenue">
                 {objetivo.fecha ? `Fecha: ${fechaLarga(objetivo.fecha)}` : 'Fecha: FALTA'} ·{' '}

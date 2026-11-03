@@ -27,7 +27,6 @@ vi.mock('../features/coach/consola/useCapacidades', () => ({
 vi.mock('../components/ui/TopBar', () => ({ TopBar: ({ titulo }: { titulo: string }) => <h1>{titulo}</h1> }))
 // Con marca visible para poder afirmar que el aviso aparece o NO aparece (en `/entrenar`, no).
 vi.mock('../features/plan/BannerPlanHoy', () => ({ BannerPlanHoy: () => <p>Aviso del plan de hoy</p> }))
-vi.mock('../features/bienestar/recordatorio', () => ({ revisarRecordatorioBienestar: () => Promise.resolve() }))
 
 const { AsesoradoLayout, TableroLayout } = await import('./layouts')
 
@@ -67,7 +66,7 @@ describe('AsesoradoLayout · el coach', () => {
     en('/')
     expect(screen.getByText('Inicio')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Mi día' })).toBeInTheDocument()
-    expect(hrefs()).toEqual(['/', '/mi-entreno', '/equipo', '/coach/estrategias', '/coach/administracion'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 
   it('la cuenta personal ve lo mismo en escritorio y en teléfono: «/» no depende del ancho', () => {
@@ -75,7 +74,7 @@ describe('AsesoradoLayout · el coach', () => {
     estado.capacidades = new Set(['ver_administracion'])
     en('/')
     expect(screen.getByText('Inicio')).toBeInTheDocument()
-    expect(hrefs()).toEqual(['/', '/mi-entreno', '/equipo', '/coach/administracion'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 
   it('la cuenta «Alpha» (solo_tablero): «/» y Mi entreno la llevan al tablero, sin barra de espacios', () => {
@@ -108,9 +107,9 @@ describe('AsesoradoLayout · el coach', () => {
     expect(screen.queryByText('Nutrición asesorado')).not.toBeInTheDocument()
   })
 
-  it('sin capacidad de administración ni de estrategia, esos espacios no se ofrecen', () => {
+  it('sin capacidad de administración ni de estrategia, la barra no esconde espacios: Empresa dice qué puede', () => {
     en('/')
-    expect(hrefs()).toEqual(['/', '/mi-entreno', '/equipo'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 })
 
@@ -119,7 +118,7 @@ describe('AsesoradoLayout · la cuenta personal de Bryan (asesorado con puesto_d
     estado.rol = 'asesorado'
     estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion', 'revisar_creadores'])
     en('/')
-    expect(hrefs()).toEqual(['/', '/mi-entreno', '/equipo', '/coach/estrategias', '/coach/administracion'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
     const r = en('/nutricion')
     expect(screen.getByText('Nutrición asesorado')).toBeInTheDocument()
     r.unmount()
@@ -137,7 +136,7 @@ describe('AsesoradoLayout · la cuenta personal de Bryan (asesorado con puesto_d
     estado.rol = 'asesorado'
     estado.capacidades = new Set(['ver_administracion', 'leer_entrenamiento'])
     en('/')
-    expect(hrefs()).toEqual(['/', '/entrenar', '/bienestar', '/nutricion', '/progreso'])
+    expect(hrefs()).toEqual(['/', '/entrenar', '/semana', '/nutricion', '/progreso'])
   })
 })
 
@@ -145,24 +144,24 @@ describe('AsesoradoLayout · los demás', () => {
   it('Manuela conserva sus cinco espacios, sin mirar capacidades', () => {
     estado.rol = 'nutricionista'
     en('/')
-    expect(hrefs()).toEqual(['/', '/mi-entreno', '/equipo', '/coach/estrategias', '/coach/administracion'])
+    expect(hrefs()).toEqual(['/', '/equipo', '/bandeja', '/empresa', '/praxis', '/mi-entreno'])
   })
 
   it('el asesorado nunca ve nada de staff', () => {
     estado.rol = 'asesorado'
     estado.capacidades = new Set(['ver_administracion', 'responder_mercadeo', 'leer_entrenamiento'])
     en('/')
-    expect(hrefs()).toEqual(['/', '/entrenar', '/bienestar', '/nutricion', '/progreso'])
+    expect(hrefs()).toEqual(['/', '/entrenar', '/semana', '/nutricion', '/progreso'])
     expect(screen.queryByText(/Estrategias|Administración|Equipo|Mi entreno/)).not.toBeInTheDocument()
   })
 })
 
 describe('TableroLayout', () => {
-  it('la cuenta personal también lo abre, con un enlace para volver a sus espacios', () => {
+  it('la cuenta personal también lo abre; volver a sus espacios lo hace el «‹» de la cabecera, no un enlace repetido', () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     en('/tablero')
     expect(screen.getByText('Contenido del tablero')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver a mis espacios' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: 'Volver a mis espacios' })).toBeNull()
   })
 
   it('la cuenta Alpha no tiene a dónde volver: ni barra ni enlaces', () => {

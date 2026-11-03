@@ -1,11 +1,18 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { useContadorAnimado } from '../../../components/ui/useContadorAnimado'
+import { Cifra3D } from '../../../components/ui/Cifra3D'
 
 /**
- * Las piezas con las que se arma cada pestaña de la consola: tarjeta con entrada
+ * Las piezas con las que se arma cada pestaña de la consola: tarjeta plana con entrada
  * escalonada, cifra KPI que cuenta hasta su valor, esqueleto de carga y el estado vacío
  * que dice QUÉ falta y CÓMO se consigue (nunca «sin datos» a secas).
+ *
+ * El lenguaje es el de Equipo y Empresa (zona 4): superficie plana con hairline, rótulo
+ * en plata y el rojo solo para lo que pide atención. Nada de cristal: el cristal es de la
+ * cabecera y de las hojas, no de una lista de trabajo.
  */
+
+/** El rótulo de sección del rediseño: plata, no rojo (el rojo es de las alarmas). */
+export const ETIQUETA_SECCION = 'text-[11px] font-bold uppercase tracking-[0.14em] text-tenue'
 
 interface TarjetaProps {
   titulo: string
@@ -15,18 +22,21 @@ interface TarjetaProps {
   /** Algo a la derecha del título: una insignia, una cifra, un filtro. */
   extra?: ReactNode
   children: ReactNode
+  /** Solo para lo que espera una firma o una decisión: borde rojo, no relleno. */
   destacada?: boolean
 }
 
 export function Tarjeta({ titulo, i = 0, className = '', extra, children, destacada = false }: TarjetaProps) {
   return (
     <section
-      className={`consola-tarjeta glass flex min-w-0 flex-col rounded-bloque p-4 ${destacada ? 'glass-destacada' : ''} ${className}`}
+      className={`consola-tarjeta flex min-w-0 flex-col rounded-tarjeta border bg-surface-1 p-4 shadow-sm ${
+        destacada ? 'border-rojo/50' : 'border-linea'
+      } ${className}`}
       style={{ '--i': i } as CSSProperties}
       aria-label={titulo}
     >
       <header className="mb-2.5 flex items-start justify-between gap-2">
-        <h3 className="kicker leading-tight">{titulo}</h3>
+        <h3 className={`${ETIQUETA_SECCION} leading-tight`}>{titulo}</h3>
         {extra}
       </header>
       {children}
@@ -46,7 +56,7 @@ interface KpiProps {
   i?: number
 }
 
-const TONO_KPI: Record<NonNullable<KpiProps['tono']>, string> = {
+const PUNTO_KPI: Record<NonNullable<KpiProps['tono']>, string> = {
   rojo: 'bg-rojo',
   ambar: 'bg-ambar',
   verde: 'bg-verde',
@@ -54,35 +64,33 @@ const TONO_KPI: Record<NonNullable<KpiProps['tono']>, string> = {
   neutro: 'bg-linea',
 }
 
-function CifraKpi({ valor, decimales }: { valor: number; decimales: number }) {
-  const animado = useContadorAnimado(valor, 900)
-  return <>{animado.toFixed(decimales)}</>
-}
-
 /** Una cifra grande con su etiqueta: lo primero que se lee de la persona. */
 export function Kpi({ etiqueta, valor, decimales = 0, sufijo, detalle, sinDato, tono = 'neutro', i = 0 }: KpiProps) {
   return (
-    // Dos capas a propósito: la entrada (animación sobre `transform`) y el relieve al pasar
-    // el puntero (transición sobre `transform`) no pueden vivir en el mismo elemento — la
-    // animación gana en la cascada y el relieve saltaría sin transición.
     <div className="consola-tarjeta min-w-0" style={{ '--i': i } as CSSProperties}>
-    <div className="relieve relative h-full min-w-0 overflow-hidden rounded-tarjeta border border-hairline bg-surface-2/70 px-3.5 py-3">
-      <span className={`absolute inset-x-0 top-0 h-[3px] ${TONO_KPI[tono]}`} aria-hidden="true" />
-      <p className="truncate text-[10.5px] font-bold uppercase tracking-[0.14em] text-tenue">{etiqueta}</p>
-      <p className="cifras mt-1 text-[26px] font-bold leading-none text-texto">
-        {valor === undefined ? (
-          <span className="text-tenue">—</span>
-        ) : (
-          <>
-            <CifraKpi valor={valor} decimales={decimales} />
-            {sufijo && <span className="ml-0.5 text-sm font-bold text-tenue">{sufijo}</span>}
-          </>
-        )}
-      </p>
-      <div className="mt-1.5 min-h-[16px] text-[11px] leading-snug text-tenue">
-        {valor === undefined ? sinDato : detalle}
+      <div className="relieve relative flex h-full min-w-0 flex-col overflow-hidden rounded-tarjeta border border-linea bg-surface-1 px-3.5 py-3">
+        <p className={`${ETIQUETA_SECCION} flex items-center gap-1.5 truncate`}>
+          {tono !== 'neutro' && <span className={`h-2 w-2 shrink-0 rounded-full ${PUNTO_KPI[tono]}`} aria-hidden="true" />}
+          {etiqueta}
+        </p>
+        <p className="mt-1.5 text-texto">
+          {valor === undefined ? (
+            <span className="cifras text-[26px] font-bold leading-none text-tenue">—</span>
+          ) : (
+            <Cifra3D
+              valor={valor}
+              decimales={decimales}
+              sufijo={sufijo ?? ''}
+              rojo={tono === 'rojo'}
+              tamano={28}
+              etiqueta={`${etiqueta}: ${valor}${sufijo ?? ''}`}
+            />
+          )}
+        </p>
+        <div className="mt-1.5 min-h-[16px] text-[11px] leading-snug text-tenue">
+          {valor === undefined ? sinDato : detalle}
+        </div>
       </div>
-    </div>
     </div>
   )
 }

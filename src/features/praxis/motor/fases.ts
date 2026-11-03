@@ -145,6 +145,7 @@ async function faseIdea(tok: number): Promise<void> {
   }
   montar(() => [bloqueEco(), tarjetaIdea(false)]); mostrarControles()
   const pd = decir(tu('Una idea para hoy, si te sirve. ', 'Una idea para hoy, si le sirve. ') + S.ideaTexto, tok)
+  // `decir` rechaza cuando el turno caduca (vigilar): se atiende en el `await` de abajo; aquí solo se evita que quede suelto.
   pd.catch(() => {})
   for (;;) {
     const e = await esperaTipo(tok, ['idea2'], (t) => { const v = siNo(t); return v == null ? null : { tipo: 'idea2', v: v ? 'llevo' : 'no' } })

@@ -156,7 +156,7 @@ export function RegistroSerieSalon({
 
   if (completo) {
     return (
-      <div className="rounded-[14px] border border-white/10 bg-ink-900 px-3.5 py-3 text-center">
+      <div className="rounded-[14px] border border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900 px-3.5 py-3 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-logrado">
           {ejercicio.sets} series registradas
         </p>
