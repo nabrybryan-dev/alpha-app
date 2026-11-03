@@ -595,6 +595,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     elevacion: patron?.camara.elevacion ?? 6,
     distancia: ENCUADRE_SALA.distancia,
   }))
+  const ultimaCamaraRef = useRef<EstadoDeCamara>(camara)
   const [lienzo, setLienzo] = useState({ ancho: 414, alto: 736 })
   const marcoRef = useRef<HTMLDivElement>(null)
   /**
@@ -933,18 +934,15 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 nombreEjercicio={ejercicio?.nombre}
                 alMirar={(c) => {
                   cuerpoRef.current = c.cuerpo
-                  // Se compara antes de guardar: el bucle avisa en cada fotograma que
-                  // cambia algo, y guardar un objeto nuevo cada vez re-renderizaría las
-                  // paredes sesenta veces por segundo aunque la cámara esté quieta.
-                  setCamara((v) =>
-                    v.azimut === c.azimut &&
-                    v.elevacion === c.elevacion &&
-                    v.distancia === c.distancia &&
-                    v.campo === c.campo &&
-                    mismoCentro(v.centro, c.centro)
-                      ? v
-                      : c,
-                  )
+                  // Se compara antes de pedirle nada a React: el visor avisa dos veces por fotograma y un
+                  // setCamara igual desde su efecto cuenta como anidado (a las 50 salta «Maximum update depth exceeded»).
+                  const v = ultimaCamaraRef.current
+                  if (
+                    v.azimut === c.azimut && v.elevacion === c.elevacion && v.distancia === c.distancia &&
+                    v.campo === c.campo && mismoCentro(v.centro, c.centro)
+                  ) return
+                  ultimaCamaraRef.current = c
+                  setCamara(c)
                 }}
                 // LA SALA SE DIBUJA SIEMPRE en el salón: es el salón. Lo que depende de
                 // que haya algo que marcar es el marcador del muro, y nada más.
