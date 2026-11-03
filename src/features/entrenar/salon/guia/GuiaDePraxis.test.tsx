@@ -42,6 +42,13 @@ describe('Praxis cuenta el día, paso a paso', () => {
     expect(screen.queryByText('campo de dudas')).toBeNull()
   })
 
+  it('una zona muestra su cadena, el nivel de respaldo en palabras y la nota que dice que la fuerza no está demostrada', () => {
+    render(<GuiaDePraxis {...props({ estado: 'cua' })} />)
+    expect(screen.getByText('Línea frontal superficial')).toBeInTheDocument()
+    expect(screen.getByText('Modelo mental, sin conexión verificada')).toBeInTheDocument()
+    expect(screen.getByText(/no está demostrado/)).toBeInTheDocument()
+  })
+
   it('«Seguir» pasa al siguiente paso con su zona, y «Atrás» vuelve', () => {
     const p = props()
     render(<GuiaDePraxis {...p} />)

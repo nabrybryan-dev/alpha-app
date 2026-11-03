@@ -81,7 +81,7 @@ export const FICHA_DE_REGION: Readonly<Record<IdDeRegion, FichaDeRegion>> = {
   },
 }
 
-export type RespaldoDeCadena = 'verificada' | 'parcial' | 'modelo'
+export type RespaldoDeCadena = 'verificada' | 'parcial' | 'modelo' | 'sin_evaluar'
 
 export interface CadenaDeRegion {
   cadena: string
@@ -94,6 +94,7 @@ export const ETIQUETA_DE_RESPALDO: Readonly<Record<RespaldoDeCadena, string>> = 
   verificada: 'Conexión vista en disección',
   parcial: 'Conexión parcial en disección',
   modelo: 'Modelo mental, sin conexión verificada',
+  sin_evaluar: 'Modelo mental, no evaluado en las revisiones',
 }
 
 /** Una sola nota al pie del bloque, no una por zona. */
@@ -108,7 +109,7 @@ export const CADENA_DE_REGION: Readonly<Record<IdDeRegion, CadenaDeRegion>> = {
   pecho: {
     cadena: VENTRAL,
     respaldo: 'verificada',
-    lectura: 'Un pectoral tenso tira los hombros hacia adelante: estirar el pectoral y fortalecer rotadores externos y romboides.',
+    lectura: 'Se suele relacionar un pectoral tenso con hombros adelantados. Es una orientación, no una regla.',
   },
   delt: { cadena: 'Cadena lateral del brazo: trapecio, deltoides, septo lateral y extensores del antebrazo', respaldo: 'verificada' },
   bic: { cadena: VENTRAL, respaldo: 'verificada' },
@@ -124,18 +125,17 @@ export const CADENA_DE_REGION: Readonly<Record<IdDeRegion, CadenaDeRegion>> = {
   dors: {
     cadena: 'Línea funcional posterior: dorsal ancho con el glúteo mayor del lado contrario',
     respaldo: 'verificada',
-    lectura: 'Pasa fuerza en diagonal entre espalda y cadera.',
   },
   lumb: { cadena: POSTERIOR, respaldo: 'verificada', lectura: 'Cadena de extensión: bisagras y peso muerto.' },
   glu: {
     cadena: 'Línea funcional posterior y línea lateral (glúteo medio)',
-    respaldo: 'verificada',
+    respaldo: 'parcial',
     lectura: 'El glúteo medio estabiliza la pelvis al apoyarte en una pierna.',
   },
   cua: { cadena: 'Línea frontal superficial', respaldo: 'modelo' },
   isq: { cadena: POSTERIOR, respaldo: 'verificada' },
-  adu: { cadena: 'Línea profunda frontal (aductores)', respaldo: 'modelo' },
-  gem: { cadena: 'Línea posterior superficial y, con los peroneos, línea lateral', respaldo: 'verificada' },
+  adu: { cadena: 'Línea profunda frontal (aductores)', respaldo: 'sin_evaluar' },
+  gem: { cadena: 'Línea posterior superficial y, con los peroneos, línea lateral', respaldo: 'parcial' },
 }
 
 export interface EnfoqueDeRegion {

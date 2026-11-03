@@ -54,7 +54,26 @@ describe('las fichas de las zonas', () => {
 })
 
 describe('las cadenas de las zonas', () => {
-  const respaldos = ['verificada', 'parcial', 'modelo']
+  const respaldos = ['verificada', 'parcial', 'modelo', 'sin_evaluar']
+
+  // Fijado contra Wilke 2016 y Wilke y Krause 2019: una cadena mezclada nunca sube de su parte más débil.
+  it('cada zona tiene el nivel de respaldo que dicen las dos revisiones', () => {
+    const nivel = Object.fromEntries(REGIONES.map(({ id }) => [id, CADENA_DE_REGION[id].respaldo]))
+    expect(nivel).toEqual({
+      pecho: 'verificada', delt: 'verificada', bic: 'verificada', tri: 'verificada', ante: 'verificada',
+      abd: 'modelo', obl: 'parcial', trap: 'parcial', dors: 'verificada', lumb: 'verificada',
+      glu: 'parcial', cua: 'modelo', isq: 'verificada', adu: 'sin_evaluar', gem: 'parcial',
+    })
+    expect(CADENA_DE_REGION.tri.cadena).toContain('dorsal')
+    expect(CADENA_DE_REGION.tri.cadena).not.toContain('ventral')
+  })
+
+  it('ninguna lectura afirma que la fuerza viaje por la cadena ni receta ejercicios', () => {
+    for (const { id } of REGIONES) {
+      const l = CADENA_DE_REGION[id].lectura ?? ''
+      expect(l, id).not.toMatch(/pasa fuerza|transmite|estirar|fortalecer/i)
+    }
+  })
 
   for (const { id } of REGIONES) {
     it(`${id}: trae su cadena, un respaldo válido y ningún porcentaje`, () => {
@@ -75,6 +94,7 @@ describe('las cadenas de las zonas', () => {
       verificada: 'Conexión vista en disección',
       parcial: 'Conexión parcial en disección',
       modelo: 'Modelo mental, sin conexión verificada',
+      sin_evaluar: 'Modelo mental, no evaluado en las revisiones',
     })
     expect(NOTA_DE_CADENAS).toContain('no está demostrado')
     expect(NOTA_DE_CADENAS).not.toContain('%')
