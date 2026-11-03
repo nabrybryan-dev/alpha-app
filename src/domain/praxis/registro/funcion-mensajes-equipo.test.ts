@@ -73,6 +73,7 @@ describe('praxis-registro: mensajes del equipo', () => {
     expect(e.inserts()).toHaveLength(1)
     const ins = e.inserts()[0]
     expect((ins.init?.headers as Record<string, string>).authorization).toBe('Bearer jwt-de-la-persona')
+    expect(ins.init?.signal).toBeDefined() // con tiempo máximo: una base lenta no retrasa la respuesta a la persona
     expect(JSON.parse(String(ins.init?.body))).toEqual({ usuario_id: 'u-eq-1', frase: FRASE, intencion_registrador: ['consulta'] })
   })
 

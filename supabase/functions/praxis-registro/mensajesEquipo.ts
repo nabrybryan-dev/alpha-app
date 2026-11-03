@@ -9,6 +9,7 @@
 
 /** Tope de la columna `frase` en `praxis_mensajes_equipo` (check de la migración 0159). */
 export const FRASE_MENSAJE_MAX = 600
+const TIMEOUT_MENSAJE_MS = 2000
 
 interface EntornoMensajes {
   entorno: { SUPABASE_URL: string; SUPABASE_ANON_KEY: string }
@@ -22,6 +23,7 @@ export async function guardarMensajeEquipo(d: EntornoMensajes, s: SesionMensajes
     const r = await d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/praxis_mensajes_equipo`, {
       method: 'POST',
       headers: { apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${s.token}`, 'content-type': 'application/json', prefer: 'return=minimal' },
+      signal: AbortSignal.timeout(TIMEOUT_MENSAJE_MS), // una base lenta no retrasa la respuesta a la persona
       body: JSON.stringify({
         usuario_id: s.usuarioId,
         frase: frase.trim().slice(0, FRASE_MENSAJE_MAX), // una frase más larga no se pierde, se guarda recortada

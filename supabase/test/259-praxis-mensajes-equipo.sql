@@ -56,8 +56,7 @@ begin
       ('d9000000-0000-0000-0000-000000000002', 'a nombre de la nutricionista');
     raise exception 'FALLO: el coach guardó un mensaje a nombre de otra persona';
   exception
-    when others then
-      if sqlerrm like 'FALLO:%' then raise; end if;
+    when insufficient_privilege then null; -- la RLS (with check) y los privilegios de columna dan 42501; cualquier otro error SÍ debe fallar la prueba
   end;
 end $$;
 
@@ -128,8 +127,7 @@ begin
       ('e9000000-0000-0000-0000-000000000001', 'una asesorada intenta guardar');
     raise exception 'FALLO: una asesorada guardó un mensaje';
   exception
-    when others then
-      if sqlerrm like 'FALLO:%' then raise; end if;
+    when insufficient_privilege then null; -- la RLS (with check) y los privilegios de columna dan 42501; cualquier otro error SÍ debe fallar la prueba
   end;
 end $$;
 
