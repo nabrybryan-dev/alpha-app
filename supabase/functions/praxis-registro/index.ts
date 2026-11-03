@@ -563,7 +563,7 @@ async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mens
   const fallo = json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
   if (esRegistro || (s.rol !== 'coach' && s.rol !== 'nutricionista' && s.puesto !== true)) return fallo
   const consulta = await consultarPortero(d, s, frase)
-  if (consulta.lectura) await encolarDuda(d, s, frase, consulta.lectura)
+  await guardarMensajeEquipo(d, s, frase, ['sin_modelo']); if (consulta.lectura) await encolarDuda(d, s, frase, consulta.lectura) // 0159: también sin saldo
   console.log('praxis-registro: respaldo sin modelo', consulta.contestada ? 'contesto' : 'no_contesto')
   if (!consulta.contestada) return fallo
   const propuesta = propuestaDeRespaldo(consulta.contestada)
