@@ -51,7 +51,7 @@
 -- el lector local borre sus carpetas. Si la persona se borra de la app, su fila queda revocada sola (trigger).
 --
 -- CÓMO COMPROBAR (después de aplicar): `supabase/comprobar-0116.sql` (solo lee). El CI corre las sesiones de
--- verdad: `supabase/test/216-laboratorio-puente.sql`.
+-- verdad: `supabase/test/222-laboratorio-puente.sql`.
 -- ============================================================================
 
 begin;

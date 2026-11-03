@@ -214,4 +214,4 @@ jobs:
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/252-trigger-revision-quien-pidio.sql
 
       - name: El puente con el laboratorio - lab_lector solo lee tres vistas de quien dio permiso, no ve tablas base y no escribe
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216-laboratorio-puente.sql
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/222-laboratorio-puente.sql
