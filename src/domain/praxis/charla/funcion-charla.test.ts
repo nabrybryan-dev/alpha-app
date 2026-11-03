@@ -32,7 +32,9 @@ function entorno(salidaRegistrador: unknown, nivelRiesgo = 'NINGUNO') {
   }
   const anthropic = () => llamadas.filter((l) => l.url.includes('api.anthropic.com'))
   const registradorCuerpos = () => anthropic().map((l) => JSON.parse(String(l.init?.body))).filter((b) => 'tools' in b)
-  const escrituras = () => llamadas.filter((l) => !l.url.includes('api.anthropic.com') && (l.init?.method ?? 'GET') !== 'GET' && !/auth\/v1/.test(l.url))
+  // Única escritura permitida (0159, decisión de Bryan, 3-nov-2026): la frase de una persona del EQUIPO queda en `praxis_mensajes_equipo`
+  // para etiquetar su intención. La charla sigue sin escribir nada más: ni registros ni turnos previos.
+  const escrituras = () => llamadas.filter((l) => !l.url.includes('api.anthropic.com') && (l.init?.method ?? 'GET') !== 'GET' && !/auth\/v1/.test(l.url) && !/rest\/v1\/praxis_mensajes_equipo$/.test(l.url))
   return { d, anthropic, registradorCuerpos, escrituras }
 }
 const post = (cuerpo: Record<string, unknown>) =>

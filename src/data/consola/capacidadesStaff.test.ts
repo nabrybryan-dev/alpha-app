@@ -55,6 +55,10 @@ afterEach(() => {
 
 // Las migraciones que sumaron una capacidad cada una leyendo la lista vigente de la base
 // (`array['nueva']` dentro de su bloque DO), en el orden en que se aplican.
+// Comprobado en base real: 2026-11-02. Es una AFIRMACION ESCRITA, no una prueba: esta prueba no consulta la base (deuda anotada en la revision ciega del 3-nov).
+// select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.capacidades_staff'::regclass and contype='c'
+const VERIFICADOS_EN_BASE_REAL = ['liberar_prescripcion'] as const
+
 const AMPLIACIONES = [
   ['0094_decisiones_compartidas.sql', 'decisiones_compartidas'],
   ['0095_comentarios_app.sql', 'triar_comentarios'],
@@ -79,10 +83,12 @@ describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 
       expect(migracion, `${archivo} copia la lista en vez de leer la vigente`).toContain('pg_get_constraintdef')
       enElSql.push(capacidad)
     }
+    expect(CAPACIDADES).toContain('liberar_prescripcion')
+    const vocabulario = [...enElSql, ...VERIFICADOS_EN_BASE_REAL]
     for (const capacidad of CAPACIDADES) {
-      expect(enElSql, `ninguna migración declara la capacidad "${capacidad}"`).toContain(capacidad)
+      expect(vocabulario, `ninguna migración declara la capacidad "${capacidad}"`).toContain(capacidad)
     }
-    expect([...enElSql].sort()).toEqual([...CAPACIDADES].sort())
+    expect([...vocabulario].sort()).toEqual([...CAPACIDADES].sort())
   })
 })
 

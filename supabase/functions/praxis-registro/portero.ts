@@ -2,6 +2,7 @@ import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxi
 import type { Propuesta } from '../../../src/domain/praxis/registro/index.ts'
 
 export { observarBiblioteca } from './biblioteca.ts'
+export { guardarMensajeEquipo } from './mensajesEquipo.ts'
 
 const TIMEOUT_PORTERO_MS = 4000
 

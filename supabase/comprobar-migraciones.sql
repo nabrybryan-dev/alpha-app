@@ -2713,5 +2713,21 @@ select '0116 - puente con el laboratorio', 'una persona borrada de la app queda 
                           where tgrelid = to_regclass('lab.consentimientos')
                             and tgname = 'consentimientos_revocar_si_se_borro' and not tgisinternal) then 'SI'
             else 'NO' end
+union all
+select '0159 - mensajes del equipo a Praxis', 'praxis_mensajes_equipo: RLS, equipo inserta y lee, sin etiquetas desde fuera, sin anon',
+       case when to_regclass('public.praxis_mensajes_equipo') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_mensajes_equipo')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_mensajes_equipo') and p.polcmd = 'r') <> 1 then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_mensajes_equipo') and p.polcmd = 'a') <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_mensajes_equipo') and p.polcmd in ('w', 'd')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_mensajes_equipo', 'select')
+              or has_table_privilege('anon', 'public.praxis_mensajes_equipo', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_mensajes_equipo', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_mensajes_equipo', 'delete') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'clase_propuesta', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'clase_confirmada', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'confirmada_en', 'insert') then 'NO'
+            when not has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'frase', 'insert') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
