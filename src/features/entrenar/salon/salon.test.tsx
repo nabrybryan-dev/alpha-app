@@ -289,29 +289,44 @@ describe('/entrenar es el salón', () => {
       ).toEqual([])
     })
 
-    it('con el panel bajado, el panel inferior no escribe ni una letra', async () => {
-      // El tirador es una barra sin texto: su nombre va en `aria-label`, que es un atributo
-      // y no un nodo. Es lo que permite cumplir la regla sin dejar el gesto sin manija.
+    it('lo que vive en el suelo se apoya encima de la hoja plegada, no debajo de ella', () => {
+      // La hoja plegada creció con el resumen y tapó los puntos de ejercicio, la leyenda y medio
+      // mando del reloj. jsdom no maqueta: aquí se fija el ancla; la medida se vio en el navegador.
+      // Con una sesión fija: la de hoy cambia con el día, y en el CI es otra hora (UTC).
+      montarConFuerza()
+      const microciclo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')!
+      const nombre = microciclo.sesiones.find((s) => s.ejercicios.length > 0)!.ejercicios[0].nombre
+      const puntos = screen.getByRole('button', { name: (n) => n.includes(nombre) }).parentElement?.parentElement
+      expect(puntos?.getAttribute('style')).toContain('--tope-hoja')
+    })
+
+    it('con el panel bajado la hoja plegada dice la sesión y ofrece empezarla (maqueta 7)', async () => {
+      // Antes el panel bajado no escribía ni una letra. La maqueta 7 aprobada pide lo contrario:
+      // plegada, la hoja dice «Torso B · hoy», cuántos ejercicios y «Empezar sesión». El texto
+      // sigue DENTRO del hueco `panelInferior`, así que la regla dura de la vista inicial se cumple.
       renderizarEntrenar()
       const salon = await esperarAlSalon()
       const panel = salon.querySelector('[data-hueco="panelInferior"]') as HTMLElement
       expect(panel).not.toBeNull()
-      expect(nodosDeTexto(panel)).toEqual([])
-      const tirador = panel.querySelector('button') as HTMLButtonElement
+      const resumen = panel.querySelector('[data-testid="resumen-de-la-hoja"]') as HTMLElement
+      expect(resumen, 'la hoja plegada no trae el resumen de la sesión').not.toBeNull()
+      expect(resumen.textContent).toMatch(/·\s*(hoy|[a-záéíóú]+)/i)
+      const boton = within(panel).getByRole('link', { name: /(Empezar|Continuar) sesión|Ver resumen/ })
+      expect(boton.getAttribute('href')).toMatch(/^\/entrenar\/sesion\//)
+      const tirador = panel.querySelector('button[aria-expanded]') as HTMLButtonElement
       expect(tirador.getAttribute('aria-expanded')).toBe('false')
       expect(tirador.getAttribute('aria-label')).toBe('Abrir el panel con todo el detalle')
     })
 
-    it('con el panel bajado no hay hoja oscura sobre la sala, solo la manija; la hoja aparece al abrir y no se corre de lado', async () => {
-      // Bryan, 2026-09-07, desde el iPhone: «una barra negra completa que no está acorde
-      // al diseño». En el kit el panel bajado no tiene fondo: solo la manija sobre la sala.
+    it('con el panel bajado la hoja ya lleva su fondo (lleva texto); al abrir se mantiene y no se corre de lado', async () => {
+      // Bryan, 2026-09-07: «una barra negra completa». Esa barra no tenía nada dentro. La maqueta 7
+      // la quiere con el resumen, así que el fondo se queda, por token, y se lee en claro y oscuro.
       const usuario = userEvent.setup()
       renderizarEntrenar()
       const salon = await esperarAlSalon()
       const panel = salon.querySelector('[data-hueco="panelInferior"]') as HTMLElement
       const hoja = panel.firstElementChild as HTMLElement
-      expect(hoja.className, 'la hoja bajada volvió a llevar fondo oscuro').not.toContain('bg-ink-900/95')
-      expect(hoja.style.boxShadow).toBe('none')
+      expect(hoja.className).toContain('bg-ink-900/95')
 
       await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
       expect(hoja.className, 'la hoja abierta tiene que llevar su fondo').toContain('bg-ink-900/95')
@@ -419,6 +434,7 @@ function montarConFuerza(elegirSesion?: (s: Sesion) => boolean) {
 /** Monta el salon con fuerza y abre la vista de MOVIMIENTO (donde viven el eje W y las paredes). */
 function montarEnMovimiento(...args: Parameters<typeof montarConFuerza>) {
   const r = montarConFuerza(...args)
+  fireEvent.click(screen.getByRole('button', { name: /Abrir Praxis/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
   return r
 }
@@ -437,6 +453,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     try {
     montarConFuerza()
     // Las paredes son de la vista de MOVIMIENTO: la portada es el cuerpo (paso 4) y no las pinta.
+    fireEvent.click(screen.getByRole('button', { name: /Abrir Praxis/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
@@ -889,14 +906,34 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     const lista = screen.getByRole('dialog', { name: 'Tu semana' })
-    expect(within(lista).getAllByRole('button')).toHaveLength(7)
+    expect(within(lista).getAllByRole('button', { name: /^(domingo|lunes|martes|miércoles|jueves|viernes|sábado)/i })).toHaveLength(7)
 
     fireEvent.click(within(lista).getAllByRole('button')[otro])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
 
     expect(screen.queryByRole('dialog', { name: 'Tu semana' })).toBeNull()
     const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
     expect(banda).toHaveTextContent(semana[otro].titulo)
     expect(within(banda).getByRole('button', { name: /cambiar de día/i })).toHaveTextContent(semana[otro].dia)
+  })
+
+  it('mirando otro día no se ofrece anotar: la ficha de la serie no existe, y al volver a hoy reaparece', () => {
+    const { microciclo, sesion } = montarConFuerza()
+    const semana = armarSemana(microciclo, hoyIso())
+    const otro = semana.findIndex((d) => d.sesionId !== undefined && d.sesionId !== sesion.id)
+    expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[otro])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
+    expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).toBeNull()
+    expect(screen.queryByRole('link', { name: /(Empezar|Continuar) sesión|Ver resumen/ })).toBeNull()
+
+    const hoy = semana.findIndex((d) => d.sesionId === sesion.id)
+    fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[hoy])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
+    expect(screen.queryByRole('button', { name: 'Abrir la ficha de la serie' })).not.toBeNull()
   })
 
   it('elegir un día de descanso no enseña la sesión de otro día', () => {
@@ -907,6 +944,7 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[descanso])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
 
     const banda = document.querySelector('[data-barra="sesion"]') as HTMLElement
     expect(banda).toHaveTextContent(/sin sesión/i)
@@ -924,22 +962,16 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     fireEvent.click(screen.getByRole('button', { name: /cambiar de día/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Tu semana' })).getAllByRole('button')[otro])
+    fireEvent.click(screen.getByRole('button', { name: /mirar este día/i }))
 
     const primero = sesionOtra.ejercicios.find((e) => e.series.length < (e.sets ?? 1)) ?? sesionOtra.ejercicios[0]
     expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toHaveTextContent(primero.nombre)
   })
 
-  it('el botón del cronómetro de la portada recibe toques aunque la franja no', () => {
-    montarConFuerza()
-    const franja = document.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')!.closest('.muro-escena')!
-    expect(franja.className).toContain('pointer-events-none')
-    expect(franja.className).toContain('[&_button]:pointer-events-auto')
-  })
-
-  it('en la portada del cuerpo (vista por defecto) el cronometro de la sesion sigue ahi', () => {
+  it('en la portada del cuerpo (vista por defecto) el cronómetro de sesión no estorba: vive en el movimiento', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
-    expect(salon.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')).not.toBeNull()
+    expect(salon.querySelector('[data-hueco="cuerpo"] [data-hueco-muro="reloj"]')).toBeNull()
     // Y las cuatro estaciones y la ficha de la serie, que no dependian de las paredes.
     expect(salon.querySelectorAll('[data-estacion]')).toHaveLength(4)
     expect(salon.querySelector('[data-cajon="serie"]')).not.toBeNull()

@@ -13,6 +13,7 @@ import {
 } from '../../domain/nutricion/calibracion'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * Entrenar el ojo para poder soltar la báscula.
@@ -190,16 +191,16 @@ function SheetPrueba({
       </div>
 
       {!confirmado ? (
-        <button
+        <Boton3D bloque
           type="button"
           onClick={() => {
             setConfirmado(true)
             setReales(estimados)
           }}
-          className="press mt-4 w-full rounded-2xl bg-accion py-4 font-display text-sm uppercase tracking-wide text-white"
+          className="mt-4"
         >
           Ya lo adiviné · ahora lo peso
-        </button>
+        </Boton3D>
       ) : (
         <>
           <div className="mt-5">
@@ -228,13 +229,13 @@ function SheetPrueba({
             </p>
           )}
 
-          <button
+          <Boton3D bloque
             type="button"
             onClick={() => onGuardar(estimados, reales)}
-            className="press mt-4 w-full rounded-2xl bg-accion py-4 font-display text-sm uppercase tracking-wide text-white"
+            className="mt-4"
           >
             Guardar la prueba
-          </button>
+          </Boton3D>
         </>
       )}
 

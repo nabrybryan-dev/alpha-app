@@ -35,6 +35,12 @@ describe('proponerRegistro', () => {
     expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
   })
 
+  it('lee las fichas con que contestó el portero y descarta lo que no sea texto', async () => {
+    conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: { portero: ['ficha-a', 7] } } })
+    const r = await proponerRegistro(sesion, { frase: '¿cuánto descanso?', mensajeId: 'm1', horaLocal: 'h' })
+    expect(r).toEqual({ ok: true, propuesta, tarjeta, mensajeId: 'm1', fichas: ['ficha-a'] })
+  })
+
   it('sin sesión de nube no llama a nadie', async () => {
     const espia = conFetch({ status: 200 })
     expect(await proponerRegistro(null, { frase: 'x', mensajeId: 'm1', horaLocal: 'h' })).toEqual({ ok: false, motivo: 'sin_sesion' })

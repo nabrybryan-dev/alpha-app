@@ -59,7 +59,11 @@ export function sinNombres(texto: string, trato: Trato): string {
 export type FalloDelRegistrador = 'no_desplegada' | 'sin_sesion' | 'red' | 'limite' | 'no_entendi' | 'frase'
 
 export type RespuestaDelRegistrador =
-  | { ok: true; propuesta: Propuesta; tarjeta: Tarjeta; mensajeId: string; /** La respuesta de charla del modelo; solo llega cuando no hay nada que guardar. */ charla?: string }
+  | {
+    ok: true; propuesta: Propuesta; tarjeta: Tarjeta; mensajeId: string
+    /** La respuesta de charla del modelo; solo llega cuando no hay nada que guardar. */ charla?: string
+    /** Las fichas con que el portero contestó la consulta (`meta.portero`): el mensaje de la tarjeta es esa respuesta. */ fichas?: string[]
+  }
   | { ok: false; motivo: FalloDelRegistrador }
 
 export type PasoTrasProponer =
@@ -95,6 +99,12 @@ const FALLOS: Record<FalloDelRegistrador, Record<Trato, string>> = {
   frase: { tu: 'Esa frase es muy larga para anotarla de una vez. Dímela por partes.', usted: 'Esa frase es muy larga para anotarla de una vez. Dígamela por partes.' },
 }
 
+/** Una consulta se contesta solo si el portero trajo su ficha: lo demás es el relleno de la función. */
+function pasoDeConsulta(r: Extract<RespuestaDelRegistrador, { ok: true }>, noSe: string, trato: Trato): PasoTrasProponer {
+  if (r.fichas?.length && r.tarjeta.mensaje) return { paso: 'dicho', texto: sinNombres(r.tarjeta.mensaje, trato) }
+  return { paso: 'no_se', texto: noSe, queFalto: 'sin_dato' }
+}
+
 /** Qué se muestra con lo que devolvió el registrador. Nada de aquí guarda. */
 export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): PasoTrasProponer {
   if (!r.ok) return { paso: 'fallo', texto: FALLOS[r.motivo][trato] }
@@ -127,7 +137,7 @@ export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): Paso
   const noSe = t('Eso no lo sé con lo que tengo, y no quiero adivinar.', 'Eso no lo sé con lo que tengo, y no quiero adivinar.')
   switch (propuesta.motivo) {
     case 'consulta':
-      return { paso: 'no_se', texto: noSe, queFalto: 'sin_dato' }
+      return pasoDeConsulta(r, noSe, trato)
     case 'charla':
       return { paso: 'dicho', texto: t('Aquí estoy para tu entreno, tu comida y tu día a día. Cuéntame qué anoto o pregúntame por tu plan.', 'Aquí estoy para su entreno, su comida y su día a día. Cuénteme qué anoto o pregúnteme por su plan.') }
     case 'microciclo_vencido':

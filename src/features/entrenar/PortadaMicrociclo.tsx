@@ -6,6 +6,7 @@ import type { Microciclo } from '../../domain/types'
 import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
 import { useInclinacionAlPuntero } from '../../lib/inclinacionAlPuntero'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
+import { Boton3D } from '../../components/ui/Boton3D'
 import { NotasDeLaSemana } from './NotasDeLaSemana'
 
 const CLAVE = 'alpha-portada-vista'
@@ -209,9 +210,9 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
         )}
 
         <div className="px-[18px] py-4">
-          <button type="button" onClick={cerrar} className="press w-full rounded-full bg-accion py-3 text-[13px] font-bold uppercase tracking-wide text-white">
+          <Boton3D bloque onClick={cerrar}>
             Empezar la semana
-          </button>
+          </Boton3D>
         </div>
       </section>
       </div>

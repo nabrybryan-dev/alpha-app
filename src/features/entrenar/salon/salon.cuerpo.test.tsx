@@ -84,6 +84,22 @@ function montar(opciones: { dolor?: { dolor: number; dolorDonde: string }; serie
   return { sets, conHechas: (n: number) => rerender(elemento(conHechas(n))) }
 }
 
+function abrirGuia() {
+  fireEvent.click(screen.getByRole('button', { name: /Abrir Praxis/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Todas las zonas' }))
+}
+
+/** Lo que estaba a los lados del cuerpo vive en la guía: la abre si hace falta. */
+function tocarOpcion(nombre: string) {
+  if (!screen.queryByRole('radio', { name: nombre })) abrirGuia()
+  fireEvent.click(screen.getByRole('radio', { name: nombre }))
+}
+
+function irAlMovimiento() {
+  abrirGuia()
+  fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+}
+
 beforeEach(() => {
   recibidas.length = 0
   localStorage.clear()
@@ -98,38 +114,37 @@ describe('la vista de cuerpo es la portada', () => {
     expect(cuerpo.tinte.dors).toEqual({ k: 1, dolor: false })
     expect(cuerpo.tinte.bic.k).toBeCloseTo(0.3 + 0.7 * (1.5 / 3)) // secundaria: la mitad
     expect(cuerpo.tinte.pecho).toEqual({ k: 0, dolor: false })
-    expect(screen.getByText('Dorsal 3 · Deltoides 1,5 · Bíceps 1,5')).toBeInTheDocument()
+    expect(screen.getByText('Hoy trabajaste: Dorsal 3 · Deltoides 1,5 · Bíceps 1,5')).toBeInTheDocument()
   })
 
   it('las capas Piel y Hueso llegan al visor', () => {
     montar({ seriesHechas: 1 })
-    fireEvent.click(screen.getByRole('radio', { name: 'Hueso' }))
+    tocarOpcion('Hueso')
     expect(ultimas().cuerpo!.capa).toBe('hueso')
-    fireEvent.click(screen.getByRole('radio', { name: 'Piel' }))
+    tocarOpcion('Piel')
     expect(ultimas().cuerpo!.capa).toBe('piel')
   })
 
   it('lo que la sesión deja por trabajar llega al visor en rojo y se dice debajo', () => {
     montar({ seriesHechas: 0 })
     expect(ultimas().cuerpo!.tinte.dors.pendiente).toBe(true)
-    const linea = document.querySelector('[data-testigo="por-trabajar"]')!
-    expect(linea).toHaveTextContent(/falta por trabajar/)
-    expect(linea.getAttribute('aria-label')).toMatch(/por trabajar: Dorsal/)
-    // Y abre la hoja de regiones, donde cada pendiente lo dice.
+    const linea = screen.getByRole('button', { name: /Abrir Praxis\..*Hoy te falta: Dorsal/ })
+    // Y abre lo que cuenta Praxis; en el índice de zonas, cada pendiente lo dice.
     fireEvent.click(linea)
-    const hoja = screen.getByRole('dialog', { name: 'Series por región' })
-    expect(within(hoja).getByText('Dorsal').closest('li')).toHaveTextContent('Por trabajar')
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las zonas' }))
+    const guia = document.querySelector('[data-testigo="guia-de-praxis"]') as HTMLElement
+    expect(within(guia).getByText('Dorsal').closest('li')).toHaveTextContent('Por trabajar')
   })
 
   it('con el ejercicio terminado no queda nada en rojo ni se dice', () => {
     montar({ seriesHechas: 8 })
     expect(ultimas().cuerpo!.tinte.dors.pendiente).toBeUndefined()
-    expect(document.querySelector('[data-testigo="por-trabajar"]')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Hoy te falta/ })).toBeNull()
   })
 
   it('con «Semana» no se pinta lo pendiente: la semana cuenta lo hecho', () => {
     montar({ seriesHechas: 0 })
-    fireEvent.click(screen.getByRole('radio', { name: 'Semana' }))
+    tocarOpcion('Semana')
     expect(ultimas().cuerpo!.tinte.dors.pendiente).toBeUndefined()
   })
 
@@ -221,14 +236,14 @@ describe('la vista de cuerpo es la portada', () => {
 
   it('en Piel no se dice lo que falta por trabajar, porque no se pinta', () => {
     montar({ seriesHechas: 0 })
-    fireEvent.click(screen.getByRole('radio', { name: 'Piel' }))
-    expect(document.querySelector('[data-testigo="por-trabajar"]')).toBeNull()
+    tocarOpcion('Piel')
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar Praxis' }))
+    expect(screen.queryByRole('button', { name: /Hoy te falta/ })).toBeNull()
   })
 
   it('la región que duele no se nombra «en rojo, por trabajar»: va a rayas', () => {
     montar({ seriesHechas: 0, dolor: { dolor: 7, dolorDonde: 'la espalda alta' } })
-    const linea = document.querySelector('[data-testigo="por-trabajar"]')
-    expect(linea?.getAttribute('aria-label') ?? '').not.toMatch(/Dorsal/)
+    expect(screen.queryByRole('button', { name: /Hoy te falta: .*Dorsal/ })).toBeNull()
   })
 
   it('el dolor del check-in llega al visor en rojo y se lee en su linea', () => {
@@ -246,14 +261,14 @@ describe('la vista de cuerpo es la portada', () => {
   it('sin series anotadas no se inventa tinte', () => {
     montar({ seriesHechas: 0 })
     expect(Object.values(ultimas().cuerpo!.tinte).every((t) => t.k === 0)).toBe(true)
-    expect(screen.getByText('Aún no hay series anotadas')).toBeInTheDocument()
+    expect(screen.queryByText(/Hoy trabajaste/)).toBeNull()
   })
 })
 
 describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin perdidas)', () => {
   it('sin vista de cuerpo, el visor recibe lo mismo que recibia antes: sala, tempo, cifras, fantasma, orbita con un dedo', () => {
     montar({ seriesHechas: 2 })
-    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    irAlMovimiento()
     const p = ultimas()
     expect(p.cuerpo).toBeUndefined()
     expect(p.conSala).toBe(true)
@@ -272,14 +287,14 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
   it('el panel de abajo (la hoja con lo largo) y la tira de ejercicios siguen en las dos vistas', () => {
     montar({ seriesHechas: 1 })
     expect(document.querySelector('[data-hueco="panelInferior"]')).not.toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    irAlMovimiento()
     expect(document.querySelector('[data-hueco="panelInferior"]')).not.toBeNull()
   })
 
   it('en el cuerpo no se pintan los cuadros de la pared (caerian detras de la cabeza), pero en el movimiento vuelven', () => {
     montar({ seriesHechas: 1 })
     expect(document.querySelector('[data-hueco="paredes"]')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    irAlMovimiento()
     expect(document.querySelector('[data-hueco="paredes"]')).not.toBeNull()
   })
 
@@ -300,7 +315,7 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
 
   it('en la vista de movimiento no se repite: ahi lo dicen los cuadros de la pared', () => {
     montar({ seriesHechas: 1 })
-    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    irAlMovimiento()
     expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toBeNull()
   })
 
@@ -315,7 +330,7 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
     dedo('pointerup', 200)
     expect(salon.getAttribute('data-w')).toBe('0')
     // Y en la vista de movimiento el mismo gesto SI atraviesa (la escalera W sigue entera).
-    fireEvent.click(screen.getByRole('button', { name: 'Ver el movimiento' }))
+    irAlMovimiento()
     dedo('pointerdown', 400)
     dedo('pointermove', 200)
     dedo('pointerup', 200)
@@ -324,10 +339,89 @@ describe('el movimiento sigue entero detras de «Ver el movimiento» (relevo sin
 
   it('la franja de la lectura no recibe toques fuera de su boton: no tapa el joystick ni la camara', () => {
     montar({ seriesHechas: 1 })
-    const boton = screen.getByRole('button', { name: 'Ver series por región' })
+    const boton = screen.getByRole('button', { name: /Abrir Praxis/ })
     expect(boton.className).toContain('pointer-events-auto')
     const franja = boton.parentElement as HTMLElement
     expect(franja.className).toContain('pointer-events-none')
     expect(franja.className).not.toContain('pointer-events-auto')
+  })
+  it('«Dar la vuelta» le pide al visor la espalda y, con otro toque, el frente', () => {
+    montar({ seriesHechas: 1 })
+    expect(ultimas().vuelta).toBeUndefined()
+    abrirGuia()
+    fireEvent.click(screen.getByRole('button', { name: /Dar la vuelta: ahora se ve el frente/ }))
+    expect(ultimas().vuelta).toMatchObject({ azimut: 180 })
+    const primera = ultimas().vuelta as { orden: number }
+    // El visor reporta su cámara con alMirar; aquí se simula que llegó a la espalda.
+    act(() => (ultimas().alMirar as (c: object) => void)({ azimut: 180, elevacion: 2, distancia: 5.1 }))
+    fireEvent.click(screen.getByRole('button', { name: /Dar la vuelta: ahora se ve la espalda/ }))
+    expect(ultimas().vuelta).toMatchObject({ azimut: 0 })
+    expect((ultimas().vuelta as { orden: number }).orden).toBeGreaterThan(primera.orden)
+  })
+})
+
+describe('la guía de Praxis abre las zonas sobre el cuerpo', () => {
+  function abrirDorsal() {
+    abrirGuia()
+    fireEvent.click(screen.getByRole('button', { name: /^Dorsal/ }))
+  }
+
+  it('en reposo, el centro no tiene teclas de capas, rango, cámara ni mando', () => {
+    montar({ seriesHechas: 1 })
+    expect(screen.queryByRole('radio')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ver el movimiento' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Dar la vuelta/ })).toBeNull()
+    expect(document.querySelector('[data-hueco="cuerpo"]')!.querySelectorAll('button')).toHaveLength(1)
+  })
+
+  it('abrir una zona la enciende sola, la muestra por su cara y se acerca', () => {
+    montar({ seriesHechas: 1 })
+    abrirDorsal()
+    const cuerpo = ultimas().cuerpo!
+    expect(cuerpo.tinte.dors).toEqual({ k: 1, dolor: false, enfocada: true })
+    expect(cuerpo.tinte.bic).toEqual({ k: 0, dolor: false })
+    // Y la barra de la sesión se aparta: con la cámara cerca caería sobre el torso.
+    expect(document.querySelector('[data-salon="entrenar"]')?.getAttribute('data-zona')).toBe('dors')
+    expect(ultimas().vuelta).toMatchObject({ azimut: 180, centro: [0, 0.9, 0], distancia: 2.4 })
+  })
+
+  it('explica la zona con los ejercicios de hoy y sus cifras reales', () => {
+    montar({ seriesHechas: 1 })
+    abrirDorsal()
+    const guia = document.querySelector('[data-testigo="guia-de-praxis"]') as HTMLElement
+    expect(guia).toHaveTextContent('Lleva el brazo hacia abajo y atrás')
+    expect(guia).toHaveTextContent('Remo con barra')
+    expect(guia).toHaveTextContent('Trabajo principal: cada serie cuenta 1 aquí.')
+    expect(guia).toHaveTextContent(/1 de \d+ anotadas/)
+  })
+
+  it('cerrar devuelve el cuerpo entero y lo pendiente', () => {
+    montar({ seriesHechas: 0 })
+    abrirDorsal()
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar Praxis' }))
+    expect(ultimas().vuelta).toMatchObject({ distancia: 5.1, centro: [0, 0.8, 0] })
+    expect(ultimas().cuerpo!.tinte.dors.pendiente).toBe(true)
+  })
+
+  it('tocar un ejercicio cierra la guía y lleva a él', () => {
+    montar({ seriesHechas: 1 })
+    abrirDorsal()
+    fireEvent.click(screen.getByRole('button', { name: /Remo con barra/ }))
+    expect(document.querySelector('[data-testigo="guia-de-praxis"]')).toBeNull()
+    expect(document.querySelector('[data-testigo="resumen-del-ejercicio"]')).toHaveTextContent('Remo con barra')
+  })
+
+  it('deslizar de lado pasa a la zona vecina; deslizar en vertical no', () => {
+    montar({ seriesHechas: 1 })
+    abrirDorsal()
+    const guia = document.querySelector('[data-testigo="guia-de-praxis"]') as HTMLElement
+    const dedo = (tipo: string, x: number, y: number) =>
+      fireEvent(guia, new MouseEvent(tipo, { bubbles: true, clientX: x, clientY: y }))
+    dedo('pointerdown', 200, 100)
+    dedo('pointerup', 200, 300)
+    expect(guia.getAttribute('aria-label')).toBe('Praxis: Dorsal')
+    dedo('pointerdown', 300, 100)
+    dedo('pointerup', 100, 110)
+    expect(guia.getAttribute('aria-label')).not.toBe('Praxis: Dorsal')
   })
 })

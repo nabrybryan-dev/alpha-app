@@ -5,6 +5,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { modoNube } from '../../data/supabase'
 import { agrupar, type Consulta, type Grupos } from './consultas'
 import { leerConsultas, marcarCorregida, marcarRevisada, type Datos } from './consultasNube'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 function mensajeDeError(e: unknown): string {
   return e instanceof Error ? e.message : 'Error inesperado'
@@ -174,13 +175,13 @@ export default function ConsultasPage() {
           <p className="font-display text-base text-texto">No se pudieron cargar las consultas</p>
           <p className="mt-1 text-sm text-tenue">{estado.mensaje}</p>
           {modoNube && (
-            <button
+            <Boton3D
               type="button"
               onClick={() => void cargar()}
-              className="press mt-3 rounded-boton bg-accion px-4 py-2.5 font-display text-sm uppercase tracking-wide text-white"
+              className="mt-3"
             >
               Reintentar
-            </button>
+            </Boton3D>
           )}
         </Card>
       </div>

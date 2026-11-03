@@ -20,7 +20,7 @@ import { tinteDelCuerpo } from './tinte'
  * con el hueso 0 (identidad); y la camara no es la del patron, es la de `encuadreDelCuerpo`.
  */
 
-const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 1], rojo: [1, 0, 0], tendon: [0.9, 0.9, 0.9] }
+const PALETA: Paleta = { base: [0.2, 0.2, 0.2], luz: [1, 1, 1], rojo: [1, 0, 0], tendon: [0.9, 0.9, 0.9], foco: [0.8, 0.7, 0.3], }
 
 function cargar(ruta: string): Malla[] {
   const b = readFileSync(ruta)

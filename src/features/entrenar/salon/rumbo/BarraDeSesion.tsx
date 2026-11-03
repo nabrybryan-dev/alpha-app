@@ -1,6 +1,6 @@
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
 import type { Sesion } from '../../../../domain/types'
-import { diaEnPantalla } from './diaEnPantalla'
+import { diaEnPantalla, relacionConHoy } from './diaEnPantalla'
 
 /**
  * LA BANDA DE ARRIBA: de quién es el día y qué sesión toca.
@@ -40,15 +40,6 @@ export interface BarraDeSesionProps {
   diaElegido?: number | null
   /** Si la semana está desplegada: el botón lo dice (`aria-expanded`) y gira su punta. */
   semanaAbierta?: boolean
-}
-
-/** Qué es el día en pantalla respecto a hoy, en una palabra. */
-function relacionConHoy(dia: DiaRuta, elegido: boolean, hoyIso: string | undefined): string {
-  if (dia.esHoy) return 'hoy'
-  if (elegido) return 'viendo'
-  // La sesión por omisión puede ser de un día YA PASADO (`sesionDestacada` cae atrás cuando
-  // no queda ninguna por delante): esa no es la próxima, está atrasada.
-  return hoyIso && dia.fechaIso < hoyIso ? 'atrasada' : 'próxima'
 }
 
 export function BarraDeSesion({

@@ -108,6 +108,8 @@ export interface TinteDeRegion {
   dolor: boolean
   /** La sesión la trabaja de forma directa y aún le queda algún ejercicio: se pinta en rojo. */
   pendiente?: boolean
+  /** Es la zona abierta en la guía de Praxis: se pinta sola, en su color. */
+  enfocada?: boolean
   /** Cuándo (ms, `Date.now()`) se terminó su último ejercicio en esta visita: arranca la transición. */
   trabajadaEn?: number
 }

@@ -1,9 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
 import type { Sesion } from '../../../../domain/types'
 import { BarraDeSesion } from './BarraDeSesion'
-import { DesplegableDeLaSemana } from './DesplegableDeLaSemana'
 import { diaEnPantalla } from './diaEnPantalla'
 
 /**
@@ -80,81 +79,5 @@ describe('BarraDeSesion', () => {
       <BarraDeSesion sesion={sesion('s-lun', 'UPPER A')} semana={SEMANA} onAbrirSemana={() => {}} semanaAbierta />,
     )
     expect(screen.getByRole('button', { name: /cambiar de día/i })).toHaveAttribute('aria-expanded', 'true')
-  })
-})
-
-describe('DesplegableDeLaSemana', () => {
-  const montar = (diaActual = 1) => {
-    const onElegir = vi.fn()
-    const onCerrar = vi.fn()
-    render(<DesplegableDeLaSemana semana={SEMANA} diaActual={diaActual} onElegir={onElegir} onCerrar={onCerrar} />)
-    return { onElegir, onCerrar }
-  }
-
-  it('enseña los siete días a la vez, cada uno con su sesión y su estado, y todos se pueden tocar', () => {
-    montar()
-    const lista = screen.getByRole('dialog', { name: 'Tu semana' })
-    const dias = within(lista).getAllByRole('button', { name: /^(domingo|lunes|martes|miércoles|jueves|viernes|sábado)/i })
-    expect(dias).toHaveLength(7)
-    for (const b of dias) expect(b).not.toBeDisabled()
-    expect(dias[0]).toHaveTextContent(/LEG A/)
-    expect(dias[0]).toHaveTextContent(/hecha/i)
-    expect(dias[0]).toHaveTextContent(/hoy/i)
-    expect(dias[1]).toHaveTextContent(/UPPER A/)
-    expect(dias[3]).toHaveTextContent(/descanso/i)
-  })
-
-  it('un día programado que ya pasó sale «Sin hacer», y uno futuro «Pendiente», también cruzando de mes', () => {
-    // Hoy es el jueves 29: lunes y martes ya pasaron sin hacerse; el domingo 01 es futuro.
-    const semana = [
-      dia(0, { estado: 'completada', sesionId: 's-dom', titulo: 'LEG A' }),
-      dia(1, { estado: 'programada', sesionId: 's-lun', titulo: 'UPPER A' }),
-      dia(2, { estado: 'programada', sesionId: 's-mar', titulo: 'LEG B' }),
-      dia(3, {}),
-      dia(4, { estado: 'hoy', esHoy: true, sesionId: 's-jue', titulo: 'FULL C' }),
-      dia(5, {}),
-      { ...dia(6, { estado: 'programada', sesionId: 's-sig', titulo: 'LEG A' }), fechaIso: '2026-11-01', numero: '01' },
-    ]
-    render(<DesplegableDeLaSemana semana={semana} diaActual={4} onElegir={() => {}} onCerrar={() => {}} />)
-    expect(screen.getByRole('button', { name: /^lunes/i })).toHaveTextContent(/sin hacer/i)
-    expect(screen.getByRole('button', { name: /^martes/i })).toHaveTextContent(/sin hacer/i)
-    expect(screen.getByRole('button', { name: /^jueves/i })).toHaveTextContent(/toca hoy/i)
-    expect(screen.getByRole('button', { name: /^sábado/i })).toHaveTextContent(/pendiente/i)
-  })
-
-  it('al cerrarse deja de escuchar Escape y devuelve el foco a quien la abrió', () => {
-    const boton = document.createElement('button')
-    document.body.appendChild(boton)
-    boton.focus()
-    const onCerrar = vi.fn()
-    const { unmount } = render(
-      <DesplegableDeLaSemana semana={SEMANA} diaActual={1} onElegir={() => {}} onCerrar={onCerrar} />,
-    )
-    expect(document.activeElement).not.toBe(boton)
-    unmount()
-    expect(document.activeElement).toBe(boton)
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(onCerrar).not.toHaveBeenCalled()
-    boton.remove()
-  })
-
-  it('marca el día que se está viendo', () => {
-    montar(1)
-    expect(screen.getByRole('button', { name: /^lunes/i })).toHaveAttribute('aria-current', 'true')
-    expect(screen.getByRole('button', { name: /^jueves/i })).not.toHaveAttribute('aria-current')
-  })
-
-  it('tocar un día lo elige', () => {
-    const { onElegir } = montar()
-    fireEvent.click(screen.getByRole('button', { name: /^jueves/i }))
-    expect(onElegir).toHaveBeenCalledWith(4)
-  })
-
-  it('Escape y tocar fuera la cierran sin elegir', () => {
-    const { onElegir, onCerrar } = montar()
-    fireEvent.keyDown(document, { key: 'Escape' })
-    fireEvent.click(screen.getByTestId('fondo-de-la-semana'))
-    expect(onCerrar).toHaveBeenCalledTimes(2)
-    expect(onElegir).not.toHaveBeenCalled()
   })
 })

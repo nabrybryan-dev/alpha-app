@@ -39,6 +39,11 @@ export type ModoDelReloj = 'sesion' | 'descanso' | 'excentrico'
  */
 export const SEGUNDOS_DE_EXCENTRICO = 3
 
+/** Si el mando dejó algo corriendo: una cuenta o la carga. El tiempo de sesión es el estado de reposo. */
+export function relojEnMarcha(modo: ModoDelReloj, cargaEnLaPared: boolean): boolean {
+  return modo !== 'sesion' || cargaEnLaPared
+}
+
 /** Cuánto dura la cuenta atrás de cada modo, en segundos. `0` = ese modo no cuenta atrás. */
 export function duracionDelModo(
   modo: ModoDelReloj,
