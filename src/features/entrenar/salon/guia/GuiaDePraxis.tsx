@@ -12,7 +12,8 @@ import { guionDelDia, type PasoDelGuion } from './guionDelDia'
 import { PasoDePraxis } from './PasoDePraxis'
 import { CADENA_DE_REGION, ETIQUETA_DE_RESPALDO, FICHA_DE_REGION, NOTA_DE_CADENAS, ordenDeZonas, trabajoDeRegion, type TrabajoDeRegion } from './zonasDePraxis'
 import type { EstadoDeLaGuia } from './useZonaDePraxis'
-import { InterruptorSimpleTecnico, useModoDeLaGuia } from './modoDeLaGuia'
+import { useModoDeLaGuia } from './modoDeLaGuia'
+import { InterruptorSimpleTecnico } from './InterruptorSimpleTecnico'
 import { FICHA_LLANA_DE_REGION, NOTA_LLANA_DE_CADENAS } from './zonasLlanas'
 
 /**
