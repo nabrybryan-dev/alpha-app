@@ -3,7 +3,7 @@ import { Chip } from '../../components/ui/Chip'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
 import type { DiaSemana } from '../../domain/calendario'
-import { claveBorrador, VACIO, type Borrador } from './borrador'
+import { borradorDesdePrevio, claveBorrador, VACIO, type Borrador } from './borrador'
 import type { ResultadoCribado } from '../../data/repos'
 import type { Cribado, EstadoCribado } from '../../domain/types'
 import { Boton3D } from '../../components/ui/Boton3D'
@@ -139,6 +139,12 @@ interface CribadoFormProps {
   onGuardado?: () => void
   contestar: (cribado: Cribado) => ResultadoCribado
   hoyIso: string
+  /**
+   * El cribado que ya trajo de la encuesta de inscripción, si lo hay. Rellena la pantalla
+   * para que confirme y complete en vez de repetir. Solo cuando no hay borrador: lo que
+   * ya tocó en el teléfono manda sobre la encuesta.
+   */
+  previo?: Cribado
 }
 
 export function CribadoForm({
@@ -147,10 +153,13 @@ export function CribadoForm({
   onGuardado,
   contestar,
   hoyIso,
+  previo,
 }: CribadoFormProps) {
-  const [borrador, setBorrador] = useState<Borrador>(() =>
-    leerJSON<Borrador>(claveBorrador(usuarioId), VACIO),
-  )
+  const [borrador, setBorrador] = useState<Borrador>(() => {
+    const guardado = leerJSON<Borrador>(claveBorrador(usuarioId), VACIO)
+    const empezado = Object.keys(guardado.respuestas).length > 0 || (guardado.dias?.length ?? 0) > 0
+    return empezado || !previo ? guardado : borradorDesdePrevio(previo)
+  })
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<'ya_estaba' | 'error' | undefined>()
   const [intento, setIntento] = useState(false)
@@ -264,6 +273,12 @@ export function CribadoForm({
           Doce preguntas, una sola vez. A casi todo el mundo le salen «no», y ese «no» hay que
           marcarlo igual: dejarlo en blanco no es lo mismo que decir que no.
         </p>
+        {previo && (
+          <p className="mt-2 text-sm text-texto">
+            Ya marcamos lo que contestaste en la encuesta de inscripción. Revísalo, completa
+            lo que falta y dinos qué días puedes entrenar.
+          </p>
+        )}
       </header>
 
       <div>
