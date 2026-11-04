@@ -1,6 +1,9 @@
 // Alta de un cliente en la APP de Alpha (proyecto sbzmbiwrnvegrticatza).
 //
 // POST { "email": string, "nombre": string }            → crea (o encuentra) la cuenta
+//      + "intake" opcional (las respuestas de la encuesta de la landing, sueltas o como
+//        { answers } / { client_intake: { answers } }) → deja ficha y cribado escritos,
+//        sin pisar nada que ya exista. Ver `desdeLanding.ts`.
 // POST { "accion": "borrar-prueba", "email": string }   → borra una cuenta de prueba (*@invalid.test)
 // Cabecera obligatoria: x-alpha-clave = ALPHA_LINKS_SECRET (secreto de ESTE proyecto).
 //
@@ -25,7 +28,13 @@
 //
 // Despliegue: verify_jwt = false (lo protege x-alpha-clave).
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import {
+  cribadoDesdeEncuesta,
+  fichaSeQuedaSinTocar,
+  perfilDesdeEncuesta,
+  respuestasDe,
+} from "./desdeLanding.ts";
 
 const env = (k: string) => Deno.env.get(k) ?? "";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +55,72 @@ function claveAleatoria(): string {
   const b = new Uint8Array(32);
   crypto.getRandomValues(b);
   return [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+/** La fecha de hoy en Colombia, que es donde vive la operación. */
+function hoyEnBogota(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+}
+
+type Volcado = "escrito" | "ya_tenia" | "sin_datos" | "error";
+
+/**
+ * Ficha y cribado desde la encuesta. NUNCA pisa: si la persona (o el coach) ya llenó su
+ * ficha o ya tiene un cribado, se deja como está. Un fallo aquí no tumba el alta: la
+ * cuenta y el link valen más que el volcado, y la app pregunta lo que falte.
+ */
+async function volcarEncuesta(
+  admin: SupabaseClient,
+  usuarioId: string,
+  intake: unknown,
+): Promise<{ perfil: Volcado; cribado: Volcado }> {
+  const a = respuestasDe(intake);
+  if (!a) return { perfil: "sin_datos", cribado: "sin_datos" };
+  const hoy = hoyEnBogota();
+
+  let perfil: Volcado = "error";
+  try {
+    const datos = perfilDesdeEncuesta(usuarioId, a, hoy);
+    const { data: fila, error } = await admin.from("perfiles").select("datos").eq("usuario_id", usuarioId).maybeSingle();
+    if (error) throw error;
+    if (fila && fichaSeQuedaSinTocar(fila.datos)) {
+      perfil = "ya_tenia";
+    } else if (fila) {
+      const { error: e } = await admin.from("perfiles").update({ datos }).eq("usuario_id", usuarioId);
+      if (e) throw e;
+      perfil = "escrito";
+    } else {
+      const { error: e } = await admin.from("perfiles").upsert({ usuario_id: usuarioId, datos }, { onConflict: "usuario_id", ignoreDuplicates: true });
+      if (e) throw e;
+      perfil = "escrito";
+    }
+  } catch (e) {
+    console.error("no se pudo volcar la ficha", (e as Error).message);
+  }
+
+  let cribado: Volcado = "error";
+  try {
+    const fila = cribadoDesdeEncuesta(a);
+    const { count, error } = await admin.from("cribado").select("id", { count: "exact", head: true }).eq("usuario_id", usuarioId);
+    if (error) throw error;
+    if ((count ?? 0) > 0) cribado = "ya_tenia";
+    else if (!fila) cribado = "sin_datos";
+    else {
+      const { error: e } = await admin.from("cribado").insert({ usuario_id: usuarioId, fecha: hoy, ...fila });
+      if (e) throw e;
+      cribado = "escrito";
+    }
+  } catch (e) {
+    console.error("no se pudo volcar el cribado", (e as Error).message);
+  }
+
+  return { perfil, cribado };
+}
+
+/** Sin `intake` en la petición, el alta es la de siempre y la respuesta no cambia. */
+async function volcadoSiLoPiden(admin: SupabaseClient, usuarioId: string, intake: unknown) {
+  if (intake === undefined) return {};
+  return { volcado: await volcarEncuesta(admin, usuarioId, intake) };
 }
 
 Deno.serve(async (req) => {
@@ -102,8 +177,12 @@ Deno.serve(async (req) => {
   // 3. Confirmar que la app dejó su fila (la crea el trigger al_crear_usuario).
   const { data: fila } = await admin.from("usuarios_app").select("id, nombre").eq("id", usuarioId).maybeSingle();
 
+  // 4. Lo que ya contestó en la landing, para que la app no se lo vuelva a pedir.
+  const volcado = await volcadoSiLoPiden(admin, usuarioId, cuerpo.intake);
+
   return responder(200, {
     usuario_id: usuarioId,
+    ...volcado,
     nuevo,
     nombre_en_app: fila?.nombre ?? null,
     link: data.properties?.hashed_token ? `${URL_APP}/#crear-clave=${data.properties.hashed_token}` : null,

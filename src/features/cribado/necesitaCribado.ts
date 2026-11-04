@@ -1,5 +1,34 @@
 import type { Db } from '../../data/repos'
-import type { Usuario } from '../../domain/types'
+import type { Cribado, Usuario } from '../../domain/types'
+
+/** Las doce claves que una fila `app` trae siempre (CHECK de la 0058). */
+export const CLAVES_DEL_CRIBADO = [
+  'diagnostico', 'quienLoLleva', 'tratamientoActivo', 'medicacionCronica',
+  'autorizacionSanitaria', 'restriccionesExplicitas', 'sintomasConEsfuerzo',
+  'nivelFuncional', 'queLeHanDichoQueNoHaga',
+  'parqEnfermedadCardiaca', 'parqMedicamentoPresion', 'parqHuesosArticulaciones',
+] as const satisfies readonly (keyof Cribado)[]
+
+/**
+ * Si el último cribado es el que vino de la encuesta de la landing y le falta alguna de
+ * las doce. Ese cribado lo escribe `alta-cliente` con solo lo que la landing pregunta con
+ * el mismo sentido; el resto queda sin poner, y sin poner NO es «no». Así que a esa
+ * persona se le abre la pantalla, pero rellena con lo suyo (`previoDeEncuesta`): confirma
+ * y completa, no repite.
+ *
+ * Solo `encuesta`. Una fila `wiki` incompleta sigue como estaba: esa decisión es del
+ * coach y no cambia con este arreglo.
+ */
+export function cribadoDeEncuestaIncompleto(c: Cribado | undefined): boolean {
+  if (!c || c.fuente !== 'encuesta') return false
+  return CLAVES_DEL_CRIBADO.some((k) => c[k] === undefined || c[k] === 'no_declarado')
+}
+
+/** El cribado de la encuesta para rellenar la pantalla, si es lo último que hay. */
+export function previoDeEncuesta(db: Db, usuario: Usuario): Cribado | undefined {
+  const c = db.cribado.byUsuario(usuario.id)
+  return c?.fuente === 'encuesta' ? c : undefined
+}
 
 /**
  * Si a esta persona hay que pedirle el cribado de salud.
@@ -38,7 +67,8 @@ import type { Usuario } from '../../domain/types'
  */
 export function necesitaCribado(db: Db, usuario: Usuario): boolean {
   if (usuario.rol !== 'asesorado') return false
-  return db.cribado.byUsuario(usuario.id) === undefined
+  const c = db.cribado.byUsuario(usuario.id)
+  return c === undefined || cribadoDeEncuestaIncompleto(c)
 }
 
 /**

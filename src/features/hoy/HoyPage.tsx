@@ -23,7 +23,7 @@ import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { preguntaPendienteDelCoach } from '../../domain/preguntaDelCoach'
 import { hayBorradorDeCribado } from '../cribado/borrador'
 import { CribadoForm } from '../cribado/CribadoForm'
-import { necesitaPantallaDeSalud } from '../cribado/necesitaCribado'
+import { necesitaPantallaDeSalud, previoDeEncuesta } from '../cribado/necesitaCribado'
 import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { useGamificacion } from '../logros/useGamificacion'
@@ -277,6 +277,7 @@ export default function HoyPage() {
         guardarDias={(dias) => db.perfiles.guardarDiasDisponibles(usuario.id, dias)}
         contestar={db.cribado.contestar}
         hoyIso={hoy}
+        previo={previoDeEncuesta(db, usuario)}
       />
     </div>
   ) : null
