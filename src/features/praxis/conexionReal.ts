@@ -2,6 +2,7 @@ import { db } from '../../data/dbInstance'
 import { leerLoQuePraxisVe } from '../../data/praxis/fuente'
 import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/preguntasEnEspera'
 import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
+import { deshacerRegistro, elegirParaDeshacer } from '../../data/praxis/deshacer'
 import { aplicarAguaDePraxis } from '../../data/praxis/agua'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
@@ -14,6 +15,7 @@ import type { ConexionPraxis } from './motor/conexion'
  *   leer       → el almacén local de la persona con sesión, por la lista blanca. Solo lectura.
  *   proponer   → la Edge Function `praxis-registro`, con el JWT de la persona. No guarda.
  *   guardar    → la misma función, ruta /guardar: solo lo que la persona confirmó.
+ *   deshacer   → la misma función, ruta /deshacer: propone y quita SOLO con el toque en «Sí, quitar».
  *   preguntar  → la bandeja de «pregunta en espera» (migración 0105).
  *
  * AL REGISTRADOR VIAJA LO MÍNIMO: la frase, la hora, el agua de hoy y si la persona ve sus
@@ -57,6 +59,10 @@ export function crearConexionPraxis(
       if (!r.ok) return r
       // Agua por la RPC (apagada por defecto): fija el total que devuelve la base. Ver `data/praxis/agua.ts`.
       return { ok: true, resultados: await aplicarAguaDePraxis({ usuarioId, mensajeId: p.mensajeId, registros: p.registros, resultados: r.resultados }) }
+    },
+    deshacer: {
+      elegir: async (registroId) => elegirParaDeshacer(await sesionDeFunciones(), registroId),
+      confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p),
     },
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),

@@ -41,6 +41,19 @@ describe('proponerRegistro', () => {
     expect(r).toEqual({ ok: true, propuesta, tarjeta, mensajeId: 'm1', fichas: ['ficha-a'] })
   })
 
+  it("si la función responde {tipo:'deshacer'}, devuelve la propuesta de quitar y no una tarjeta de guardar", async () => {
+    const tarjetaFirmada = { campo: 'deshacer', registro_id: '11111111-1111-4111-8111-111111111111', tipo: 'series', descripcion: '3 series', vence_en: '2026-11-05T15:02:00.000Z', token: 'firma' }
+    conFetch({ status: 200, cuerpo: { tipo: 'deshacer', propuesta: { accion: 'confirmar_deshacer', texto: 'Voy a quitar las series. ¿Lo quito?', botones: [], tarjeta: tarjetaFirmada }, meta: {} } })
+    const r = await proponerRegistro(sesion, { frase: 'deshaz lo último', mensajeId: 'm9', horaLocal: 'h' })
+    expect(r).toMatchObject({ ok: true, mensajeId: 'm9', deshacer: { accion: 'confirmar_deshacer', tarjeta: tarjetaFirmada } })
+    expect(r).not.toHaveProperty('propuesta')
+  })
+
+  it("un {tipo:'deshacer'} con propuesta ilegible no se pinta: no_entendi", async () => {
+    conFetch({ status: 200, cuerpo: { tipo: 'deshacer', propuesta: { accion: 'confirmar_deshacer', texto: 't', tarjeta: null } } })
+    expect(await proponerRegistro(sesion, { frase: 'deshaz', mensajeId: 'm', horaLocal: 'h' })).toEqual({ ok: false, motivo: 'no_entendi' })
+  })
+
   it('sin sesión de nube no llama a nadie', async () => {
     const espia = conFetch({ status: 200 })
     expect(await proponerRegistro(null, { frase: 'x', mensajeId: 'm1', horaLocal: 'h' })).toEqual({ ok: false, motivo: 'sin_sesion' })

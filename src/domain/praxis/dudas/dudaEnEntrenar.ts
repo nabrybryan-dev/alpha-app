@@ -20,6 +20,7 @@ export type ResultadoDeDuda =
   | { tipo: 'quieta'; linea: LineaDeAyuda }
 
 const PARA_ANOTAR = 'Eso suena a algo para anotar, y aquí solo contesto dudas. Anótalo en la hoja de series.'
+const PARA_QUITAR = 'Eso suena a quitar un registro, y aquí solo contesto dudas. Pídeselo a Praxis.'
 const SIN_RESPALDO = 'Eso no lo sé con lo que tengo, y no quiero adivinar.'
 const NO_PUDE = 'No pude preguntar. Inténtalo otra vez en un momento.'
 const MUCHAS = 'Van muchas preguntas en la última hora. Inténtalo más tarde.'
@@ -44,6 +45,8 @@ export function dudaTrasResponder(r: RespuestaDelRegistrador): ResultadoDeDuda {
       return { tipo: 'cuidado' }
     case 'salud':
       return { tipo: 'salud', texto: paso.texto }
+    case 'deshacer':
+      return { tipo: 'anotar', texto: PARA_QUITAR }
     case 'confirmar':
     case 'aclarar':
       return { tipo: 'anotar', texto: PARA_ANOTAR }
@@ -53,6 +56,6 @@ export function dudaTrasResponder(r: RespuestaDelRegistrador): ResultadoDeDuda {
       return { tipo: 'fallo', texto: NO_PUDE }
     case 'charla':
     case 'dicho':
-      return r.fichas?.length ? { tipo: 'respuesta', texto: paso.texto, fichas: r.fichas } : { tipo: 'no_se', texto: SIN_RESPALDO }
+      return 'fichas' in r && r.fichas?.length ? { tipo: 'respuesta', texto: paso.texto, fichas: r.fichas } : { tipo: 'no_se', texto: SIN_RESPALDO }
   }
 }

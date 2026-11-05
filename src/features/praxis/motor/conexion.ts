@@ -4,6 +4,8 @@ import type { QueFalto } from '../../../domain/praxis/plan/responder'
 import type { ContextoCharla } from '../../../domain/praxis/charla/modelo'
 import type { MarcaDeRiesgo } from '../../../domain/praxis/riesgo'
 import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
+import type { RespuestaDeElegir } from '../../../data/praxis/deshacer'
+import type { ResultadoDeshacer, TarjetaFirmada } from '../../../domain/praxis/deshacer/pantalla'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
 
 /**
@@ -37,6 +39,14 @@ export interface ConexionPraxis {
   releerRiesgo?: (frase: string) => Promise<MarcaDeRiesgo | null>
   /** Guarda lo que la persona confirmó con un toque. */
   guardar: (p: { mensajeId: string; registros: RegistroPropuesto[]; confirmaSesion: boolean }) => Promise<RespuestaDeGuardar>
+  /**
+   * «Deshacer» (apagado en el servidor con `PRAXIS_LIBRO`): `elegir` pide la tarjeta de UN candidato; `confirmar` quita, y solo se
+   * llama tras el toque en «Sí, quitar». AUSENTE = la pantalla no puede quitar nada. Nunca lanzan.
+   */
+  deshacer?: {
+    elegir: (registroId: string) => Promise<RespuestaDeElegir>
+    confirmar: (p: { tarjeta: TarjetaFirmada; mensajeId: string }) => Promise<ResultadoDeshacer>
+  }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
   preguntar: (p: { frase: string; queFalto: QueFalto; citas: string[] }) => Promise<ResultadoDejarPregunta>
   /** Las preguntas en espera de la persona: las abiertas y las ya respondidas. */
