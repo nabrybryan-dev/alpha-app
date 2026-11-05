@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
  * Auditoría de la maqueta «Praxis única» (build-v8, v17) contra `tokens.css`: congela los tokens que HOY son
  * idénticos en los dos temas. No define ni cambia ningún valor de `tokens.css`; solo lo mira.
  *
- * Cómo se leyó: el tema oscuro es la suma de todos los bloques `:root, [data-theme="dark"]` de nivel superior;
+ * Cómo se leyó: el tema oscuro es la suma de todos los bloques `:root, [data-theme="dark"]` y `:root` de nivel superior;
  * el claro es ese oscuro con encima los bloques `[data-theme="light"]` (así lo resuelve el navegador). Los
  * `var(--x)` se resuelven, los colores se pasan a `rgb(r,g,b)` y se quitan espacios sobrantes, para que
  * `#d9d7d0`, `rgb(217 215 208)` y `rgb(var(--linea-rgb))` se comparen como lo mismo.
@@ -69,7 +69,8 @@ const bloques = bloquesDeNivelSuperior()
 const oscuro: Record<string, string> = {}
 const claroSolo: Record<string, string> = {}
 for (const [sel, cuerpo] of bloques) {
-  if (sel.endsWith(SEL_OSCURO)) Object.assign(oscuro, declaraciones(cuerpo))
+  // Un `:root` a secas (p. ej. el bloque de movimiento) vale para los dos temas: entra en la base, en orden.
+  if (sel.endsWith(SEL_OSCURO) || sel === ':root') Object.assign(oscuro, declaraciones(cuerpo))
   if (sel === SEL_CLARO) Object.assign(claroSolo, declaraciones(cuerpo))
 }
 const claro = { ...oscuro, ...claroSolo }
