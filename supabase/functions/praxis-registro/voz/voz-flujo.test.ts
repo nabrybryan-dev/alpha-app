@@ -180,6 +180,7 @@ describe('caso 7: gasto sin freno, con aviso, y tope de salida fijo', () => {
     await vozDelConcepto(d, ENTRADA)
     const cuerpo = JSON.parse(String((f.mock.calls[0][1] as RequestInit).body))
     expect(cuerpo.max_tokens).toBe(MAX_TOKENS_REDACTOR)
+    expect(cuerpo.reasoning_effort).toBe('low') // Enmienda 4: none fue rápido pero peor (13 de 40 largas, mezcla de piezas)
     expect(MAX_TOKENS_REDACTOR).toBe(4000)
   })
 })
