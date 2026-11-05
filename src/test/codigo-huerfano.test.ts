@@ -127,6 +127,10 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
   'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
     'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
+  // Deshacer por frase (paso D1, 5-nov-2026): selector y mensajes puros sobre un libro SIMULADO.
+  'src/domain/praxis/deshacer/proponer.ts#proponerDeshacer':
+    'Espera la migración del libro praxis_registros_aplicados (paso D2) y la ruta /deshacer (D3); mientras tanto ' +
+    'solo lo ejercita proponer.test.ts con un libro en memoria. Lo consumirá la Edge Function praxis-registro.',
   // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
   'src/domain/sujeto/reparto.ts#bandasDeReparto':
     'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',
