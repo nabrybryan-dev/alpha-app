@@ -22,10 +22,21 @@ function vectorValido(cuerpo: unknown): number[] | null {
   return Array.isArray(v) && v.length === DIMENSION && v.every((n) => typeof n === 'number' && Number.isFinite(n)) ? (v as number[]) : null
 }
 
+export interface BusquedaBiblioteca { resultado: ResultadoBiblioteca; mejor: { id: string; coseno: number } | null }
+
+/** Solo mira: devuelve el resultado, como siempre. */
 export async function observarBiblioteca(d: EntornoBiblioteca, token: string, frase: string): Promise<ResultadoBiblioteca> {
-  const fin = (resultado: ResultadoBiblioteca, detalle = '') => {
+  return (await buscarEnBiblioteca(d, token, frase)).resultado
+}
+
+/**
+ * Lo mismo que `observarBiblioteca` (la misma línea de registro), pero devuelve además el mejor concepto hallado, para la
+ * voz natural (etapa B1, 4-nov-2026). Quien lo usa decide; esto no cambia nada de lo que recibe la persona.
+ */
+export async function buscarEnBiblioteca(d: EntornoBiblioteca, token: string, frase: string): Promise<BusquedaBiblioteca> {
+  const fin = (resultado: ResultadoBiblioteca, detalle = '', mejor: BusquedaBiblioteca['mejor'] = null): BusquedaBiblioteca => {
     console.log('praxis-registro: biblioteca', resultado, detalle)
-    return resultado
+    return { resultado, mejor }
   }
   try {
     const { PORTERO_URL: url, PORTERO_CLAVE: clave } = d.entorno
@@ -48,7 +59,7 @@ export async function observarBiblioteca(d: EntornoBiblioteca, token: string, fr
     if (!rb.ok) return fin(`busqueda_http_${rb.status}`)
     const piezas = (await rb.json()) as { id: string; coseno: number }[]
     if (piezas.length === 0) return fin('nada')
-    return fin('encontro', piezas.map((p) => `${p.id}:${p.coseno.toFixed(3)}`).join(' '))
+    return fin('encontro', piezas.map((p) => `${p.id}:${p.coseno.toFixed(3)}`).join(' '), { id: piezas[0].id, coseno: piezas[0].coseno })
   } catch (e) {
     return fin(`error_${e instanceof Error ? e.name : 'desconocido'}`)
   }

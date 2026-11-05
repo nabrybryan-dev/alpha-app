@@ -1,7 +1,10 @@
 import { fichasNecesarias, leerPortero, respuestaDeConsulta, type FichaParaPraxis, type LecturaPortero, type RespuestaDeConsulta } from '../../../src/domain/praxis/consultas/portero.ts'
 import type { Propuesta } from '../../../src/domain/praxis/registro/index.ts'
 
-export { observarBiblioteca } from './biblioteca.ts'
+export { observarBiblioteca, buscarEnBiblioteca } from './biblioteca.ts'
+// La voz natural del concepto (etapa B1, 4-nov-2026): apagada si PRAXIS_REDACTOR no es «sombra» ni «encendido».
+export { vozEnLaConsulta, conVoz, metaDeVoz, entornoVoz } from './voz/conectar.ts'
+export type { EntornoVoz } from './voz/vozConcepto.ts'
 export { guardarMensajeEquipo } from './mensajesEquipo.ts'
 
 const TIMEOUT_PORTERO_MS = 4000
