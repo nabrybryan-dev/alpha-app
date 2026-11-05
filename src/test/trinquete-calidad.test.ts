@@ -36,7 +36,7 @@ const ARCHIVOS_LARGOS: Record<string, number> = {
   'src/features/entrenar/salon/SalonEntrenar.tsx': 1342,
   'src/features/entrenar/visor/VisorPatron.tsx': 1510,
   'src/features/entrenar/visor/motor.ts': 870,
-  'supabase/functions/praxis-registro/index.ts': 1020,
+  'supabase/functions/praxis-registro/index.ts': 973,
 }
 
 /** `archivo:funcion` (con `#n` si el nombre se repite en el archivo) -> complejidad. */
@@ -136,8 +136,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'supabase/functions/alta-cliente/index.ts:(anonima)': 25,
   'supabase/functions/avisos-plan/index.ts:manejar': 23,
   'supabase/functions/praxis-registro/index.ts:guardar': 33,
-  'supabase/functions/praxis-registro/index.ts:manejar': 21,
-  'supabase/functions/praxis-registro/index.ts:proponer': 38,
+  'supabase/functions/praxis-registro/index.ts:proponer': 37,
   'supabase/functions/responder-chat/index.ts:manejar': 46,
 }
 

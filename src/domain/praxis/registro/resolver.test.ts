@@ -136,10 +136,14 @@ describe('reglas que importan', () => {
     expect(b.reemplaza?.antes).toEqual({ cargaKg: 65, reps: 10 })
   })
 
-  it('borrar no existe: no se inventa la operación (CE-049)', () => {
+  // CAMBIADO A PROPÓSITO (D3, 5-nov-2026): antes exigía `no_soportado` («borrar no existe»). Deshacer ya existe, pero
+  // en la función (`deshacer.ts`: gramática cerrada, libro, confirmación). El resolver sigue sin borrar nada ni inventar
+  // qué quitar: si el modelo etiqueta «deshacer», pide una orden clara. Sigue sin haber registro propuesto.
+  it('el modelo etiqueta deshacer: no se inventa qué quitar, se pide la orden clara (CE-049)', () => {
     const { p } = correr('CE-049')
     expect(p.accion).toBe('nada')
-    expect(p.motivo).toBe('no_soportado')
+    expect(p.motivo).toBe('deshacer_sin_orden_clara')
+    expect(p.registros).toEqual([])
   })
 
   it('un microciclo vencido no escribe y guarda el borrador (CE-051)', () => {
