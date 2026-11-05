@@ -2,7 +2,7 @@
 -- 0162 · Praxis: series y adherencia llenan el libro, y la función de DESHACER
 -- ============================================================================
 --
--- SIN APLICAR, espera visto bueno de Bryan. Escrita el 5-nov-2026 (pasos D2 y D3 del plano
+-- APLICADA en la base real el 5-nov-2026 con el sí de Bryan, tras pasar la prueba 262 en el CI del PR #424 (las 4 señales de comprobar-migraciones dan SI). Escrita el 5-nov-2026 (pasos D2 y D3 del plano
 -- CONEXIONES-OPERATIVAS-PRAXIS-20261104). Nada la llama todavía: la Edge Function `praxis-registro` seguirá
 -- usando `fijar_series_ejercicio` y el upsert de adherencia hasta que otro cambio, aparte, pase a estas RPC.
 -- La prueba `supabase/test/262-praxis-libro-series-adherencia.sql` corre en el CI sobre base vacía.
