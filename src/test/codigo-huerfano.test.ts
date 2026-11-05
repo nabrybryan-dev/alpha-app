@@ -39,6 +39,10 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+  'src/domain/praxis/registro/mensajeLargo.ts':
+    'Mensaje largo a las áreas del check-in (5-nov-2026): propuesta pura que la persona confirma en la tarjeta. ' +
+    'Lo consumirá la Edge Function praxis-registro (fuera de src/) cuando se enchufe el paso en el enrutador; ' +
+    'hoy solo lo ejercitan sus pruebas. Espera la aprobación de Bryan de la tabla ampliada.',
   'src/domain/praxis/enrutarPraxis.ts':
     'Enrutador de la Praxis única por reglas (F1, 4-nov-2026), en sombra: lo consume la Edge Function praxis-registro ' +
     '(sombra.ts → meta.decision), no la app. La app lo enchufa en el paso F3, cuando Praxis navegue.',
