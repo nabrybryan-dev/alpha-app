@@ -224,3 +224,6 @@ jobs:
 
       - name: Los mensajes del equipo a Praxis solo los guarda y lee el equipo, a su nombre, sin etiquetas desde fuera
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/259-praxis-mensajes-equipo.sql
+
+      - name: El libro de lo que Praxis guardó es de cada persona, nadie lo escribe directo y el agua de una tarjeta se suma una sola vez, en el día de Bogotá
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/261-praxis-registros-aplicados.sql

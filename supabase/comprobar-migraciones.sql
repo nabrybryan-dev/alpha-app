@@ -2730,4 +2730,29 @@ select '0159 - mensajes del equipo a Praxis', 'praxis_mensajes_equipo: RLS, equi
             when not has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'frase', 'insert') then 'NO'
             else 'SI' end
 
+union all
+select '0161 - libro de registros de Praxis y agua', 'praxis_registros_aplicados: RLS, lectura solo propia, clave unica de tarjeta, nadie escribe directo, sin anon',
+       case when to_regclass('public.praxis_registros_aplicados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_registros_aplicados')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados')) <> 1 then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polcmd = 'r') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.praxis_registros_aplicados')
+                               and k.conname = 'praxis_registros_aplicados_tarjeta_unica' and k.contype = 'u') then 'NO'
+            when has_table_privilege('anon', 'public.praxis_registros_aplicados', 'select')
+              or has_table_privilege('anon', 'public.praxis_registros_aplicados', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'select') then 'NO'
+            else 'SI' end
+union all
+select '0161 - libro de registros de Praxis y agua', 'praxis_aplicar_agua existe, es security definer con search_path fijo y la ejecutan los usuarios, no anon',
+       case when to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
