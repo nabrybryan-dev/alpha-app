@@ -121,6 +121,10 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Deshacer por frase (paso D1, 5-nov-2026): selector y mensajes puros sobre un libro SIMULADO.
+  'src/domain/praxis/deshacer/proponer.ts#proponerDeshacer':
+    'Espera la migración del libro praxis_registros_aplicados (paso D2) y la ruta /deshacer (D3); mientras tanto ' +
+    'solo lo ejercita proponer.test.ts con un libro en memoria. Lo consumirá la Edge Function praxis-registro.',
   // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
   'src/domain/sujeto/reparto.ts#bandasDeReparto':
     'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',
