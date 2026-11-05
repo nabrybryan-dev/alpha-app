@@ -35,11 +35,6 @@ const ESTRES: [RegExp, Valor3][] = [
   [/\b(estresadisim|estresad|agobiad|estres alto|mucho estres)/, 'MUCHO'],
   [/\b(cero estres|sin estres|tranquil|relajad)/, 'POCO'],
 ]
-const ANIMO: [RegExp, Valor3][] = [
-  [/\b(buen animo|contentisim|contento|contenta|feliz|animad|alegre|de diez)/, 'MUCHO'],
-  [/\b(bajon|triste|desanimad|bajoneada|bajoneado)/, 'POCO'],
-  [/\b(animo estoy bien|animo normal|estoy bien)/, 'REGULAR'],
-]
 const RENDIMIENTO: [RegExp, Calidad3][] = [
   // «súper» solo intensifica (5-nov-2026): sin palabra buena al lado no da valor, y «súper mal» es MALA.
   [/\b(mal|fatal|pesimo|flojo|sin fuerza)/, 'MALA'],
@@ -206,7 +201,8 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     let destino = ''
     if (campo === 'cansancio') { valor = buscar(CANSANCIO, n); destino = 'cansancio' }
     else if (campo === 'estres') { valor = buscar(ESTRES, n); destino = 'estres' }
-    else if (campo === 'animo') { valor = buscar(ANIMO, n); destino = 'animo' }
+    // Ánimo (decisión de Bryan, 5-nov-2026): `CheckinDiario` no tiene ese campo, así que no se mapea; queda visible.
+    else if (campo === 'animo') { descartado.push({ cita: e.cita, motivo: 'el check-in no tiene campo de ánimo: no se anota' }); continue }
     else if (campo === 'ganas_de_entrenar') { valor = ganasDeEntrenar(e.cita); destino = 'motivacion' }
     else if (campo === 'rendimiento') { valor = buscar(RENDIMIENTO, n); destino = 'rendimiento' }
     else if (campo === 'alimentacion') { valor = buscar(ALIMENTACION, n); destino = 'alimentacion' }
