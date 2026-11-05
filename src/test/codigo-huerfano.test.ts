@@ -39,9 +39,9 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
-  'src/domain/praxis/camposParaTipo.ts':
-    'F6 (4-nov-2026): tipo de pregunta a campo de la pieza. Solo lo consume la Edge Function praxis-registro (sombra.ts, ' +
-    'nombres de campo en meta.decision.campos_por_tipo), no la app. Mostrar el texto de la pieza falta: exige leer praxis_conceptos.',
+  'src/domain/praxis/enrutarPraxis.ts':
+    'Enrutador de la Praxis única por reglas (F1, 4-nov-2026), en sombra: lo consume la Edge Function praxis-registro ' +
+    '(sombra.ts → meta.decision), no la app. La app lo enchufa en el paso F3, cuando Praxis navegue.',
   'src/domain/praxis/consultas/portero.ts':
     'Consultas del equipo contestadas con una ficha (Bryan, 25-oct-2026); lo consume la Edge Function praxis-registro, no la app.',
 
@@ -121,12 +121,6 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
-  // F1 (4-nov-2026): dejó de ser módulo suelto porque camposParaTipo.ts (F6) importa su tipo TipoPregunta, pero sus
-  // funciones las llama solo la Edge Function praxis-registro (sombra.ts, fuera de src/), no la app. F3 las enchufa a la app.
-  'src/domain/praxis/enrutarPraxis.ts#enrutarPraxis':
-    'Enrutador por reglas en sombra: lo llama praxis-registro/sombra.ts (Deno, fuera de src/); la app lo usará en F3 (navegar).',
-  'src/domain/praxis/enrutarPraxis.ts#decisionParaMeta':
-    'Recorte de la decisión para meta.decision: lo llama praxis-registro/sombra.ts (Deno, fuera de src/).',
   // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
   // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
   'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
