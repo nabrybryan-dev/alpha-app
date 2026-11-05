@@ -1,4 +1,4 @@
-import { MAX_CANDIDATOS, VENTANA_HORAS, type RegistroLibro, type TipoRegistroLibro } from './tipos'
+import { MAX_CANDIDATOS, VENTANA_HORAS, type RegistroLibro, type TipoRegistroLibro } from './tipos.ts'
 
 const MS_HORA = 3_600_000
 

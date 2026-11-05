@@ -1,4 +1,4 @@
-import type { TipoRegistroLibro } from './tipos'
+import type { TipoRegistroLibro } from './tipos.ts'
 
 /** Lo que la persona pidió quitar, leído con una gramática cerrada (sin modelo). */
 export interface PedidoDeshacer {

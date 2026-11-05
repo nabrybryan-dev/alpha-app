@@ -421,6 +421,7 @@ export type AccionPropuesta = 'tarjeta' | 'preguntar' | 'derivar' | 'nada'
 export type MotivoNada =
   | 'microciclo_vencido'
   | 'no_soportado'
+  | 'deshacer_sin_orden_clara'
   | 'omitidos'
   | 'consulta'
   | 'charla'

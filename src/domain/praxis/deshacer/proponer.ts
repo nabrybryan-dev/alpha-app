@@ -1,6 +1,6 @@
-import { candidatosParaDeshacer, diaLocal, minutosLocales, vigentesEnVentana } from './candidatos'
-import type { PedidoDeshacer } from './pedido'
-import { MAX_CANDIDATOS, VIGENCIA_CONFIRMACION_MIN, type RegistroLibro, type TipoRegistroLibro } from './tipos'
+import { candidatosParaDeshacer, diaLocal, minutosLocales, vigentesEnVentana } from './candidatos.ts'
+import type { PedidoDeshacer } from './pedido.ts'
+import { MAX_CANDIDATOS, VIGENCIA_CONFIRMACION_MIN, type RegistroLibro, type TipoRegistroLibro } from './tipos.ts'
 
 /** Tarjeta de confirmación: la orden NUNCA ejecuta, solo la propone (diseño §4). */
 export interface TarjetaConfirmarDeshacer {
