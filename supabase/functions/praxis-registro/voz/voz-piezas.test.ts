@@ -51,6 +51,14 @@ const CON_DATOS: { frase: string; quitar: string[] }[] = [
   { frase: 'cuándo conviene que Mateo haga drop sets en máquina?', quitar: ['Mateo'] },
   { frase: 'llama a Daniela al 312-456-78-90 y pregúntale cómo le fue', quitar: ['Daniela', '312-456-78-90'] },
   { frase: 'Por qué Felipe se cansa tanto con las pausas cortas?', quitar: ['Felipe'] },
+  // Nombre poco común en mitad de la frase: solo lo quita la regla de la mayúscula (no está en ninguna lista).
+  { frase: 'cuánto descanso le dejo a Wenceslao en sentadilla', quitar: ['Wenceslao'] },
+]
+// Enmienda 4: nombres que ABREN la frase y NO están en la app (se escapó uno así en la medición del 4-nov, n=16).
+const ABREN_FRASE: { frase: string; quitar: string[] }[] = [
+  { frase: 'Sebastián pregunta si puede hacer drop sets en sentadilla', quitar: ['Sebastián'] },
+  { frase: 'Yuliana dice que le duele la espalda baja. ¿Qué es una descarga?', quitar: ['Yuliana'] },
+  { frase: '¿Cuánto descanso? Martha entrena a las cinco', quitar: ['Martha'] },
 ]
 const LIMPIAS = [
   'cuánto descanso entre series en máquina?',
@@ -71,6 +79,17 @@ describe('caso 10: el limpiador quita nombres y teléfonos', () => {
     for (const dato of quitar) expect(texto).not.toContain(dato)
     expect(quitados).toBeGreaterThan(0)
     expect(texto.includes(MARCA_NOMBRE) || texto.includes(MARCA_TELEFONO)).toBe(true)
+  })
+  it.each(ABREN_FRASE)('quita el nombre que abre la frase y no está en la app: «$frase»', ({ frase, quitar }) => {
+    const { texto } = limpiarPregunta(frase, [])
+    for (const dato of quitar) expect(texto).not.toContain(dato)
+  })
+  it('LÍMITE DECLARADO: un nombre poco común que abre la frase y no está en la app se escapa (n=16 del 4-nov)', () => {
+    // Si algún día se arregla, esta prueba se pone en rojo: cambiar a not.toContain y actualizar este comentario.
+    expect(limpiarPregunta('¿Por qué las superseries no cuestan resultados? Clotilde quiere saber', []).texto).toContain('Clotilde')
+  })
+  it('«Dolores» no está en la lista: en una consulta es dolor', () => {
+    expect(limpiarPregunta('Dolores de rodilla después de sentadilla, ¿qué es una descarga?', []).texto).toContain('Dolores')
   })
   it.each(LIMPIAS)('no toca la frase limpia «%s»', (frase) => {
     expect(limpiarPregunta(frase, NOMBRES_CONOCIDOS)).toEqual({ texto: frase, quitados: 0 })

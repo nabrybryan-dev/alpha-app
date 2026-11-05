@@ -11,6 +11,13 @@ import type { CampoConcepto, TipoPregunta } from './tipoPregunta.ts'
 /** Tope de salida por respuesta (diseño, sección 3: la ronda 3 mostró razonamiento comiéndose 3.000). */
 export const MAX_TOKENS_REDACTOR = 4000
 export const MAX_TOKENS_LECTOR = 400
+/**
+ * Esfuerzo de razonamiento del redactor. Con el de omisión (`high`) 5 de 40 respuestas pasaron de 8 s; con `low`
+ * (Enmienda 2), 4 de 40. Con `none` (Enmienda 3) fue rápido pero escribió de más y mezcló piezas: Enmienda 4 (Bryan,
+ * 4-nov-2026) vuelve a `low` y lo que pase de 8 s recibe lo de hoy.
+ * Valores según api-docs.deepseek.com: none, low, high, max.
+ */
+export const ESFUERZO_REDACTOR = 'low'
 /** Tras un «sin saldo», no se insiste durante este rato (caso 3 del criterio). */
 export const PAUSA_SIN_SALDO_MS = 10 * 60 * 1000
 
@@ -51,7 +58,7 @@ function leerJson(texto: string): Record<string, unknown> | null {
   }
 }
 
-export interface Redaccion { estado: EstadoLlamada; respuesta?: string; hueco?: boolean; tokens: number }
+export interface Redaccion { estado: EstadoLlamada; respuesta?: string; hueco?: boolean; tokens: number; tokensRazonamiento?: number }
 
 export async function redactar(
   d: DepsModelos, clave: string | undefined, entrada: { pregunta: string; tipo: TipoPregunta; campos: Partial<Record<CampoConcepto, unknown>> }, plazoMs: number,
@@ -66,6 +73,7 @@ export async function redactar(
       body: JSON.stringify({
         model: MODELO_REDACTOR,
         max_tokens: MAX_TOKENS_REDACTOR,
+        reasoning_effort: ESFUERZO_REDACTOR,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: PROMPT_REDACTOR },
@@ -78,17 +86,24 @@ export async function redactar(
       return { estado: 'sin_saldo', tokens: 0 }
     }
     if (!r.ok) return { estado: `http_${r.status}`, tokens: 0 }
-    const cuerpo = (await r.json().catch(() => null)) as { choices?: { message?: { content?: string } }[]; usage?: { total_tokens?: number } } | null
-    const tokens = cuerpo?.usage?.total_tokens ?? 0
-    const contenido = cuerpo?.choices?.[0]?.message?.content ?? ''
-    if (!contenido.trim()) return { estado: 'vacio', tokens }
-    const j = leerJson(contenido)
-    if (!j || typeof j.respuesta !== 'string') return { estado: 'json_invalido', tokens }
-    if (!j.respuesta.trim()) return { estado: 'vacio', tokens }
-    return { estado: 'ok', respuesta: j.respuesta, hueco: j.hueco === true, tokens }
+    return leerRedaccion((await r.json().catch(() => null)) as CuerpoDeepSeek | null)
   } catch (e) {
     return { estado: estadoDeError(e), tokens: 0 }
   }
+}
+
+type CuerpoDeepSeek = { choices?: { message?: { content?: string } }[]; usage?: { total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } } }
+
+/** Lee la respuesta de DeepSeek: vacía, JSON inválido o la redacción con sus tokens (y los de razonamiento, si vienen). */
+function leerRedaccion(cuerpo: CuerpoDeepSeek | null): Redaccion {
+  const tokens = cuerpo?.usage?.total_tokens ?? 0
+  const tokensRazonamiento = cuerpo?.usage?.completion_tokens_details?.reasoning_tokens
+  const contenido = cuerpo?.choices?.[0]?.message?.content ?? ''
+  if (!contenido.trim()) return { estado: 'vacio', tokens }
+  const j = leerJson(contenido)
+  if (!j || typeof j.respuesta !== 'string') return { estado: 'json_invalido', tokens }
+  if (!j.respuesta.trim()) return { estado: 'vacio', tokens }
+  return { estado: 'ok', respuesta: j.respuesta, hueco: j.hueco === true, tokens, tokensRazonamiento }
 }
 
 export type MotivoRechazo = 'otro_tipo' | 'hecho_fuera_de_campos'

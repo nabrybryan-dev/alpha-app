@@ -9,11 +9,16 @@
  * 2. Palabra con mayúscula inicial que NO abre la oración: se toma como nombre, salvo siglas en mayúscula (RIR) y las
  *    marcas propias (Alpha, Praxis).
  * 3. La palabra que sigue a un tratamiento (Sr., Sra., Dr., Dra., don, doña) es nombre aunque abra oración.
+ * 4. Palabra con mayúscula inicial que está en la lista de nombres comunes (`nombresComunes.ts`, Enmienda 4), en
+ *    cualquier posición: cubre el nombre que abre la frase y no está en la app.
  * Teléfono: un tramo de dígitos con espacios, guiones, puntos o paréntesis que sume 7 dígitos o más.
  *
- * Límite declarado: un nombre que abre la oración y no está en la lista NO se quita (no hay forma de distinguir
- * «Carolina pregunta» de «Sentadilla pesada» sin diccionario). Por eso la lista de nombres conocidos es obligatoria.
+ * Límite declarado: un nombre que abre la oración y no está en ninguna de las dos listas NO se quita (no hay forma de
+ * distinguir «Carolina pregunta» de «Sentadilla pesada» sin diccionario). Se escapó así uno inventado en la medición del
+ * 4-nov (b2-sin-pensar, n=16); por eso la lista de nombres comunes.
  */
+
+import { NOMBRES_COMUNES } from './nombresComunes.ts'
 
 export const MARCA_NOMBRE = '[nombre]'
 export const MARCA_TELEFONO = '[teléfono]'
@@ -55,6 +60,7 @@ export function limpiarPregunta(texto: string, nombresConocidos: readonly string
     const mayusculaInicial = /^\p{Lu}\p{Ll}/u.test(palabra)
     const esNombre =
       conocidos.has(llave) ||
+      (mayusculaInicial && NOMBRES_COMUNES.has(llave)) ||
       tratamientoAntes ||
       (mayusculaInicial && !PERMITIDAS.has(llave) && !TRATAMIENTOS.has(llave) && !abreOracion(todo, i))
     if (!esNombre) return palabra
