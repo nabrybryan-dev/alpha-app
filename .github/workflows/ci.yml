@@ -230,3 +230,6 @@ jobs:
 
       - name: Series y adherencia de Praxis llenan el libro una sola vez por tarjeta, y deshacer solo lo propio, del mismo día de Bogotá, con confirmación
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/262-praxis-libro-series-adherencia.sql
+
+      - name: Deshacer el agua de Praxis solo lo propio, del mismo día de Bogotá, con confirmación, y avisa si el total cambió después
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/263-praxis-deshacer-agua.sql
