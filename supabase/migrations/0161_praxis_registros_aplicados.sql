@@ -2,10 +2,9 @@
 -- 0161 · Praxis: el libro de lo que se guardó (praxis_registros_aplicados) y la RPC del agua
 -- ============================================================================
 --
--- SIN APLICAR, espera visto bueno de Bryan (5-nov-2026). Escrita para revisar. NO se ha ejecutado en ninguna base
--- real. Se aplica a mano en el SQL Editor, completa, DESPUÉS del visto bueno y ANTES de desplegar la función
--- `praxis-registro` que la use. Comprobarla con su fila en `comprobar-migraciones.sql` y con
--- `supabase/test/261-praxis-registros-aplicados.sql` (corre en el CI sobre una base de pruebas vacía).
+-- APLICADA en la base real el 5-nov-2026, con el sí de Bryan («ve con esto»), después de que la prueba
+-- `supabase/test/261-praxis-registros-aplicados.sql` pasara en el CI (PR #424). Comprobarla con su fila en
+-- `comprobar-migraciones.sql`. Se aplicó ANTES de desplegar ninguna función que la use: hoy nadie la llama.
 --
 -- NÚMERO. 0161 = el siguiente libre. Revisadas las migraciones de todas las ramas (remotas y locales) el 5-nov:
 -- main llega a 0160; `app/perfil-desde-landing` y `lab/puente-0160` también llegan a 0160; ninguna rama tiene
@@ -55,12 +54,9 @@
 --   Ojo: borrar el libro pierde el `antes` y deja sin deshacer lo ya guardado. El agua ya sumada en `hidratacion`
 --   NO se resta sola; mirar antes: select * from praxis_registros_aplicados where tipo = 'agua'.
 --
--- A REVISAR (lo que decide Bryan):
---   1. security definer en vez de invoker (arriba).
---   2. Techo duro de 10 L por día.
---   3. Que el coach no lea el libro.
---   4. `mensaje_id` como texto (hasta 120 caracteres): confirmar que la app lo manda estable entre reintentos.
---   5. `on delete cascade` desde `usuarios_app`: borrar una cuenta borra su libro (igual que `hidratacion`).
+-- DECIDIDO POR BRYAN (5-nov-2026): techo de 10 L por día; el equipo lee el libro. Queda por confirmar al
+-- conectar la app: `mensaje_id` estable entre reintentos de la misma tarjeta (de eso depende no sumar dos veces).
+-- `security definer` en vez de invoker (arriba) y `on delete cascade` desde `usuarios_app` (igual que `hidratacion`).
 -- ============================================================================
 
 begin;
@@ -92,7 +88,7 @@ create table if not exists public.praxis_registros_aplicados (
 comment on table public.praxis_registros_aplicados is
   'Libro de lo que Praxis guardó de verdad (0161, 2026-11-05): una fila por tarjeta, con antes/despues para deshacer. '
   'Clave unica (usuario_id, mensaje_id, indice) = idempotencia. Solo lo escriben las funciones praxis_* (security definer, auth.uid()); '
-  'cada persona lee solo lo suyo.';
+  'Lee la persona lo suyo y el equipo (es_staff) todo; nadie escribe directo.';
 
 create index if not exists praxis_registros_aplicados_recientes
   on public.praxis_registros_aplicados (usuario_id, creado_en desc);
