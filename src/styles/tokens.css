@@ -4425,3 +4425,38 @@ body.praxis-sala-abierta { overflow:hidden; }
   background-color: rgb(var(--ink-600-rgb));
   color: var(--silver-400);
 }
+
+/* ---------- Nutricion: tarjetas con el estandar de la maqueta (C3) ----------
+   Solo aspecto. Tarjeta 22, fila de comida 18, pista de macros hundida. */
+.nutri-resumen {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  box-shadow: var(--brillo), var(--sombra-card);
+  padding: 16px;
+}
+.nutri-fila-comida {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  box-shadow: var(--brillo);
+}
+.nutri-pista-kcal {
+  height: 8px;
+  border-radius: 9px;
+  background: var(--surface-3);
+  box-shadow: var(--sombra-hundido);
+}
+.nutri-pista-relleno {
+  border-radius: 9px;
+}
+.nutri-tile-macro {
+  border-radius: 18px;
+  background-color: var(--surface-2);
+  background-image: var(--relleno-hundido);
+  box-shadow: var(--sombra-hundido);
+}
+.nutri-chip-margen {
+  border-radius: 99px;
+}
