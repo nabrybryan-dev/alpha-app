@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { Sesion } from '../../../../domain/types'
+import type { Sesion } from '../../types'
 import { interpretarOrden, respuestaDeLaOrden } from './ordenesDeVoz'
 
 const sesion = {

@@ -1,3 +1,4 @@
+import { normalizarNombre } from '../../../../domain/praxis/ordenes/normalizarNombre'
 import type { EjercicioPrescrito, Microciclo } from '../../../../domain/types'
 
 /**
@@ -52,12 +53,5 @@ export function cargaAnterior(
   return undefined
 }
 
-/** Sin acentos, sin mayúsculas y sin espacios de más. Lo comparten la carga y la huella de referencia. */
-export function normalizarNombre(nombre: string): string {
-  return nombre
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase()
-}
+/** Sin acentos ni mayúsculas: vive en el dominio (lo comparten las órdenes de voz); se re-exporta para no cambiar a los demás. */
+export { normalizarNombre }

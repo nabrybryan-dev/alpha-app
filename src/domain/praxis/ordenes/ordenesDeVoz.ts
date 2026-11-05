@@ -1,7 +1,7 @@
-import { filtroDeRiesgo, derivarPorRiesgo } from '../../../../domain/praxis/riesgo'
-import type { Sesion } from '../../../../domain/types'
-import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
-import { normalizarNombre } from '../paredes/cargaAnterior'
+import { filtroDeRiesgo, derivarPorRiesgo } from '../riesgo'
+import type { Sesion } from '../../types'
+import { NOMBRE_DE_REGION, type IdDeRegion } from './regiones'
+import { normalizarNombre } from './normalizarNombre'
 
 /**
  * LAS ÓRDENES DE VOZ DE LA GUÍA: de lo que entendió el reconocedor a qué hacer con el sujeto.
