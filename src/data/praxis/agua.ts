@@ -1,4 +1,5 @@
 import { db } from '../dbInstance'
+import type { Db } from '../repos'
 import { reportarError } from '../errores/reportarError'
 import { modoNube, supabase } from '../supabase'
 import type { ResultadoDeRegistro } from '../../domain/praxis/conversacion'
@@ -58,10 +59,22 @@ const porDefecto = (): DependenciasAgua => ({
     if (!modoNube) return null
     try { return (await supabase().auth.getSession()).data.session?.user.id ?? null } catch { return null }
   },
-  fijar: (usuarioId, fecha, ml) => db.nutricion.fijarHidratacion(usuarioId, fecha, ml),
+  fijar: (usuarioId, fecha, ml) => fijarTotalDelDia(db.nutricion, usuarioId, fecha, ml),
   anotarFallo: (aviso) => reportarError(new Error(aviso), { donde: 'praxis:agua' }),
   ahora: () => new Date(),
 })
+
+/**
+ * FIJA el total del día con lo que ya hay: suma la diferencia entre el total de la base y el del teléfono.
+ * `registrarHidratacion` sube a la nube el total resultante, igual que haría un método «fijar» propio, sin
+ * hacer crecer `repos.ts`, `mockDb.ts` ni `sync.ts` (trinquete de calidad, 5-nov-2026).
+ */
+export function fijarTotalDelDia(
+  nutricion: Pick<Db['nutricion'], 'hidratacionDe' | 'registrarHidratacion'>, usuarioId: string, fecha: string, ml: number,
+): void {
+  const delta = Math.max(0, ml) - nutricion.hidratacionDe(usuarioId, fecha)
+  if (delta !== 0) nutricion.registrarHidratacion(usuarioId, fecha, delta)
+}
 
 /** El día de Bogotá (UTC-5, sin horario de verano), igual que la RPC. 23:30 allá es el día siguiente en UTC. */
 export function diaDeBogota(ahora: Date): string {

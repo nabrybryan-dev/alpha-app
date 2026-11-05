@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ResultadoDeRegistro } from '../../domain/praxis/conversacion'
 import type { RegistroPropuesto } from '../../domain/praxis/registro/tipos'
 import { crearMockDb } from '../mockDb'
-import { PRAXIS_AGUA_POR_RPC, aplicarAguaDePraxis, diaDeBogota, type DependenciasAgua } from './agua'
+import { PRAXIS_AGUA_POR_RPC, aplicarAguaDePraxis, diaDeBogota, fijarTotalDelDia, type DependenciasAgua } from './agua'
 
 /**
  * El agua de Praxis por la RPC `praxis_aplicar_agua` (0161). La RPC se simula con el mismo libro que la real:
@@ -33,7 +33,7 @@ function rpcSimulada(ahora: () => Date) {
 function montar(extra: Partial<DependenciasAgua> = {}, ahora = AHORA) {
   const db = crearMockDb()
   const sim = rpcSimulada(() => ahora)
-  const fijar = vi.fn((u: string, f: string, ml: number) => db.nutricion.fijarHidratacion(u, f, ml))
+  const fijar = vi.fn((u: string, f: string, ml: number) => fijarTotalDelDia(db.nutricion, u, f, ml))
   const anotarFallo = vi.fn()
   const deps: Partial<DependenciasAgua> = {
     encendido: true, rpc: sim.rpc, usuarioDeLaSesion: async () => USUARIO, fijar, anotarFallo, ahora: () => ahora, ...extra,
@@ -173,14 +173,14 @@ describe('si la RPC falla, se comporta como hoy', () => {
   }
 })
 
-describe('fijarHidratacion del almacén', () => {
+describe('fijarTotalDelDia', () => {
   it('fija en vez de sumar y no baja de cero', () => {
     const db = crearMockDb()
     db.nutricion.registrarHidratacion(USUARIO, HOY, 300)
-    db.nutricion.fijarHidratacion(USUARIO, HOY, 900)
-    db.nutricion.fijarHidratacion(USUARIO, HOY, 900)
+    fijarTotalDelDia(db.nutricion, USUARIO, HOY, 900)
+    fijarTotalDelDia(db.nutricion, USUARIO, HOY, 900)
     expect(db.nutricion.hidratacionDe(USUARIO, HOY)).toBe(900)
-    db.nutricion.fijarHidratacion(USUARIO, HOY, -5)
+    fijarTotalDelDia(db.nutricion, USUARIO, HOY, -5)
     expect(db.nutricion.hidratacionDe(USUARIO, HOY)).toBe(0)
   })
 })

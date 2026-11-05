@@ -67,6 +67,22 @@ function aplicarTabla(vida: Partial<VidaExtraida>): RegistroCheckin | null {
   return r.registros.find((x): x is RegistroCheckin => x.campo === 'checkin') ?? null
 }
 
+type Intentar = (area: string, campo: CampoCheckin, vida: Partial<VidaExtraida>, sinFiltros?: boolean) => void
+
+/** Dolor (solo el cero explícito; lo demás, al filtro clínico) y sueño (calidad y horas) de un trozo. */
+function dolorYSueno(n: string, cita: string, intentar: Intentar, descartado: TrozoDescartado[]): void {
+  if (/\b(dolor\w*|dolen|duel\w*|molest\w*)/.test(n)) {
+    if (sinDolorExplicito(cita)) intentar('dolor', 'dolor', { sin_dolor: cita }, true)
+    else descartado.push({ area: 'dolor', cita, motivo: 'el dolor no se escribe por esta vía: lo maneja el filtro clínico' })
+  }
+  if (/\b(dorm\w*|sueno|desvel\w*|insomnio)\b/.test(n)) {
+    if (/\b(dorm\w*|desvel\w*|insomnio)\b/.test(n)) intentar('sueño', 'calidadSueno', { calidad_sueno: cita })
+    else descartado.push({ area: 'sueño', cita, motivo: '«sueño» sin decir cómo dormió: no se convierte en un valor' })
+    const h = HORAS.exec(n)
+    if (h) intentar('sueño (horas)', 'horasSueno', { sueno_horas: h[0] })
+  }
+}
+
 export function proponerDesdeMensajeLargo(texto: string): ResultadoMensajeLargo {
   const marca = filtroDeRiesgo(texto)
   if (marca) return { tipo: 'riesgo', marca }
@@ -106,16 +122,7 @@ export function proponerDesdeMensajeLargo(texto: string): ResultadoMensajeLargo 
     const hablaDeGanas = /\bganas\b/.test(n) && /\b(entren\w*|gym|gimnasio|rutina)\b/.test(n)
     const hablaDeHambre = /\b(hambre|hambrient\w*)\b/.test(n)
 
-    if (/\b(dolor\w*|dolen|duel\w*|molest\w*)/.test(n)) {
-      if (sinDolorExplicito(cita)) intentar('dolor', 'dolor', { sin_dolor: cita }, true)
-      else descartado.push({ area: 'dolor', cita, motivo: 'el dolor no se escribe por esta vía: lo maneja el filtro clínico' })
-    }
-    if (/\b(dorm\w*|sueno|desvel\w*|insomnio)\b/.test(n)) {
-      if (/\b(dorm\w*|desvel\w*|insomnio)\b/.test(n)) intentar('sueño', 'calidadSueno', { calidad_sueno: cita })
-      else descartado.push({ area: 'sueño', cita, motivo: '«sueño» sin decir cómo dormió: no se convierte en un valor' })
-      const h = HORAS.exec(n)
-      if (h) intentar('sueño (horas)', 'horasSueno', { sueno_horas: h[0] })
-    }
+    dolorYSueno(n, cita, intentar, descartado)
     if (/\b(estres\w*|agobi\w*|tranquil\w*|relajad\w*)/.test(n)) intentar('estrés', 'estres', { escalas: [{ campo: 'estres', cita }] })
     if (/\b(energia|cansad\w*|cansanc\w*|agotad\w*|destruid\w*|rendid\w*|reventad\w*|hecho polvo|muert[oa])\b/.test(n) && !/\bmuert[oa] de\b/.test(n)) {
       intentar('energía', 'cansancio', { escalas: [{ campo: 'cansancio', cita }] })
