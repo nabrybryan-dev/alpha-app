@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { AnilloDelDia } from './AnilloDelDia'
 
@@ -16,7 +16,7 @@ describe('AnilloDelDia', () => {
     expect(container.querySelector('.cifra-3d')!.textContent).toBe('0%')
   })
 
-  it('parcial: plata para lo hecho y rojo para hoy, uno a continuacion del otro', () => {
+  it('parcial: plata para lo hecho y rojo para hoy, uno a continuacion del otro', async () => {
     const { container } = render(<AnilloDelDia hecho={0.5} hoy={0.2} etiqueta="70 % del día" />)
     const plata = trazo(container, 'hecho')!
     const rojo = trazo(container, 'hoy')!
@@ -26,14 +26,15 @@ describe('AnilloDelDia', () => {
     expect(arco(rojo)).toBeCloseTo(0.2 * LARGO, 3)
     expect(Number(rojo.getAttribute('stroke-dashoffset'))).toBeCloseTo(-0.5 * LARGO, 3)
     expect(plata.getAttribute('stroke-width')).toBe('9')
-    expect(container.querySelector('.cifra-3d')!.textContent).toBe('70%')
+    // Cifra3D cuenta desde 0 al montar (useContadorAnimado, ~900 ms): se espera a que llegue.
+    await waitFor(() => expect(container.querySelector('.cifra-3d')!.textContent).toBe('70%'), { timeout: 3000 })
   })
 
-  it('100 %: los arcos suman la vuelta entera y no la pasan', () => {
+  it('100 %: los arcos suman la vuelta entera y no la pasan', async () => {
     const { container } = render(<AnilloDelDia hecho={0.8} hoy={0.9} etiqueta="100 % del día" />)
     const suma = arco(trazo(container, 'hecho')!) + arco(trazo(container, 'hoy')!)
     expect(suma).toBeCloseTo(LARGO, 3)
-    expect(container.querySelector('.cifra-3d')!.textContent).toBe('100%')
+    await waitFor(() => expect(container.querySelector('.cifra-3d')!.textContent).toBe('100%'), { timeout: 3000 })
   })
 
   it('sin dato: raya en la cifra y ningun arco, aunque haya "hoy"', () => {
