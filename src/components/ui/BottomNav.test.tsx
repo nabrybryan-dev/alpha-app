@@ -62,9 +62,7 @@ describe('BottomNav', () => {
 })
 
 describe('BottomNav: agujero negro de Praxis', () => {
-  const tokens = readFileSync(join(__dirname, '../../styles/tokens.css'), 'utf8').replace(/
-/g, '
-')
+  const tokens = readFileSync(join(__dirname, '../../styles/tokens.css'), 'utf8').replace(/\r\n/g, '\n')
 
   it('Praxis (staff) pinta el agujero negro y sigue siendo enlace con nombre escrito', () => {
     render(
