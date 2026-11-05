@@ -25,8 +25,8 @@
 --   · Una sola tabla para los tres (y series/adherencia): comida y check-in añadirán sus RPC en migraciones propias.
 --
 -- QUIÉN PUEDE QUÉ.
---   · LEER: solo la persona dueña de la fila (`usuario_id = auth.uid()`). Ni el coach: `hidratacion` sí deja
---     que el coach escriba filas ajenas, pero el libro no es una tabla de trabajo del coach.
+--   · LEER: la persona dueña de la fila (`usuario_id = auth.uid()`) y el equipo (`es_staff()`), igual que
+--     `hidratacion_lee_staff` (decisión de Bryan, 5-nov-2026). El equipo LEE; no escribe ni deshace en el libro.
 --   · ESCRIBIR: nadie con sesión directamente (sin políticas de insert/update/delete y sin privilegios). Solo
 --     la función de abajo, `security definer` con `search_path` fijo, que NO recibe `usuario_id`: toma
 --     `auth.uid()`. Una persona no puede inventarse filas del libro ni escribir a nombre de otra.
@@ -103,6 +103,11 @@ drop policy if exists praxis_registros_aplicados_leer_propio on public.praxis_re
 create policy praxis_registros_aplicados_leer_propio on public.praxis_registros_aplicados
   for select to authenticated
   using (usuario_id = (select auth.uid()));
+
+drop policy if exists praxis_registros_aplicados_lee_staff on public.praxis_registros_aplicados;
+create policy praxis_registros_aplicados_lee_staff on public.praxis_registros_aplicados
+  for select to authenticated
+  using ((select public.es_staff()));
 
 revoke all on public.praxis_registros_aplicados from anon, public;
 revoke all on public.praxis_registros_aplicados from authenticated;
