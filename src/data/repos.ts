@@ -157,6 +157,11 @@ export interface NutricionRepo {
   hidratacionDe(usuarioId: string, fecha: string): number
   /** Suma deltaMl (puede ser negativo para corregir) al total del día, con piso en 0. */
   registrarHidratacion(usuarioId: string, fecha: string, deltaMl: number): void
+  /**
+   * FIJA el total del día (no suma). Lo usa Praxis con el total que devuelve el servidor
+   * (`praxis_aplicar_agua`): sumar un delta en el teléfono duplicaría lo que el servidor ya sumó.
+   */
+  fijarHidratacion(usuarioId: string, fecha: string, ml: number): void
 }
 
 export interface PerfilNutricionRepo {

@@ -413,6 +413,20 @@ export function crearDbSincronizada(local: Db): Db {
           },
         })
       },
+      fijarHidratacion: (usuarioId, fecha, ml) => {
+        local.nutricion.fijarHidratacion(usuarioId, fecha, ml)
+        if (!tablaHidratacionLista()) return
+        encolar({
+          tabla: 'hidratacion',
+          tipo: 'upsert',
+          payload: {
+            id: `hid-${usuarioId}-${fecha}`,
+            usuario_id: usuarioId,
+            fecha,
+            ml: local.nutricion.hidratacionDe(usuarioId, fecha),
+          },
+        })
+      },
       marcarAdherencia: (usuarioId, fecha, estado, comentario) => {
         local.nutricion.marcarAdherencia(usuarioId, fecha, estado, comentario)
         encolar({

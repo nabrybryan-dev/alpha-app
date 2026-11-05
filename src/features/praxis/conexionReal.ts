@@ -2,6 +2,7 @@ import { db } from '../../data/dbInstance'
 import { leerLoQuePraxisVe } from '../../data/praxis/fuente'
 import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/preguntasEnEspera'
 import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
+import { aplicarAguaDePraxis } from '../../data/praxis/agua'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
@@ -51,7 +52,12 @@ export function crearConexionPraxis(
     },
     // Apagado, NO existe y la frase marcada no sale del teléfono. Encendido, la pantalla solo la usa si el permiso guardado es de la versión que la cubre.
     ...(lecturaDelModeloSobreMarcadas ? { releerRiesgo: async (frase: string) => releerRiesgo(await sesionDeFunciones(), frase) } : {}),
-    guardar: async (p) => guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() }),
+    guardar: async (p) => {
+      const r = await guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() })
+      if (!r.ok) return r
+      // Agua por la RPC (apagada por defecto): fija el total que devuelve la base. Ver `data/praxis/agua.ts`.
+      return { ok: true, resultados: await aplicarAguaDePraxis({ usuarioId, mensajeId: p.mensajeId, registros: p.registros, resultados: r.resultados }) }
+    },
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),
     irAlFormulario,

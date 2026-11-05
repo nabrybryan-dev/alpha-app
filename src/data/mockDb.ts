@@ -626,6 +626,15 @@ export function crearMockDb(): Db {
           }
         })
       },
+      fijarHidratacion: (usuarioId, fecha, ml) => {
+        mutar((estado) => ({
+          ...estado,
+          hidratacion: [
+            ...(estado.hidratacion ?? []).filter((h) => !(h.usuarioId === usuarioId && h.fecha === fecha)),
+            { id: `hid-${usuarioId}-${fecha}`, usuarioId, fecha, ml: Math.max(0, ml) },
+          ],
+        }))
+      },
     },
 
     perfilNutricion: {
