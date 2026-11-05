@@ -51,6 +51,8 @@ import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
 import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca, guardarMensajeEquipo } from './portero.ts'
+import { decisionEnSombra, type DecisionEnSombra } from './sombra.ts' // F1: el enrutador de la Praxis única, en sombra
+import { cronometro, medir } from './reloj.ts'
 export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
@@ -442,7 +444,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
       meta: {
-        modelo: leida.consultado ? MODELO_HAIKU : null, derivada: true, aviso_bryan: true, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES,
+        modelo: leida.consultado ? MODELO_HAIKU : null, derivada: true, aviso_bryan: true, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES, decision: decisionEnSombra(s, frase, false),
         ...(leida.origen === 'modelo' ? { lector_riesgo: leida.lector, version_prompt_riesgo: SHA16_PROMPT_RIESGO } : {}),
       },
     })
@@ -499,7 +501,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   const [salida, riesgo] = await Promise.all([medir(reloj, 'registro', registrador), riesgoEnCurso])
   reloj.anotar('total')
   console.log('praxis-registro: tiempos', JSON.stringify(reloj.tiempos)) // sin la frase: solo milisegundos
-  if (!riesgo) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null)
+  if (!riesgo) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null, decisionEnSombra(s, frase, rapido !== null))
   const marcaModelo = marcaDesdeModelo(riesgo.nivel)
   if (marcaModelo) {
     const propuesta = derivarPorRiesgo(marcaModelo)
@@ -509,11 +511,11 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       tarjeta: construirTarjeta(propuesta, mensajeId),
       meta: {
         modelo: MODELO_HAIKU, derivada: true, aviso_bryan: true, lector_riesgo: riesgo.nivel,
-        version_prompt_riesgo: SHA16_PROMPT_RIESGO, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES,
+        version_prompt_riesgo: SHA16_PROMPT_RIESGO, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES, decision: decisionEnSombra(s, frase, rapido !== null),
       },
     })
   }
-  if (!salida) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null)
+  if (!salida) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null, decisionEnSombra(s, frase, rapido !== null))
 
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
   const { extraccion, citasInvalidas } = validarExtraccion(frase, salida.entrada)
@@ -545,7 +547,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       tokens_entrada: salida.tokensEntrada,
       tokens_salida: salida.tokensSalida,
       latencia_ms: d.ahora().getTime() - t0,
-      tiempos_ms: reloj.tiempos,
+      tiempos_ms: reloj.tiempos, decision: decisionEnSombra(s, frase, rapido !== null),
     },
   })
 }
@@ -559,7 +561,7 @@ const consultarPortero = (d: Dependencias, s: Sesion, frase: string) =>
  * es un registro, la frase que ya pasó el diccionario puede contestarse con una ficha sin bandera de salud. Todo lo
  * demás sigue siendo el 502 de siempre: aquí no se redacta nada ni se interpreta la frase.
  */
-async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mensajeId: string, esRegistro: boolean): Promise<Response> {
+async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mensajeId: string, esRegistro: boolean, decision?: DecisionEnSombra): Promise<Response> {
   const fallo = json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
   if (esRegistro || (s.rol !== 'coach' && s.rol !== 'nutricionista' && s.puesto !== true)) return fallo
   const consulta = await consultarPortero(d, s, frase)
@@ -567,7 +569,7 @@ async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mens
   console.log('praxis-registro: respaldo sin modelo', consulta.contestada ? 'contesto' : 'no_contesto')
   if (!consulta.contestada) return fallo
   const propuesta = propuestaDeRespaldo(consulta.contestada)
-  return json({ propuesta, tarjeta: construirTarjeta(propuesta, mensajeId), meta: { modelo: null, respaldo: 'sin_modelo', portero_resultado: consulta.resultado, portero: consulta.contestada.fichas } })
+  return json({ propuesta, tarjeta: construirTarjeta(propuesta, mensajeId), meta: { modelo: null, respaldo: 'sin_modelo', portero_resultado: consulta.resultado, portero: consulta.contestada.fichas, decision } })
 }
 
 const TIMEOUT_JUEZ_MS = 4000
@@ -775,19 +777,6 @@ async function ingresar(d: Dependencias, s: Sesion, cuerpo: CuerpoIngreso): Prom
       tiempos_ms: reloj.tiempos,
     },
   })
-}
-
-/* ——— Cronómetro por paso: dónde se van los segundos de cada mensaje ——— */
-interface Reloj { inicio: number; tiempos: Record<string, number>; anotar: (paso: string) => void }
-function cronometro(): Reloj {
-  const ahora = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
-  const inicio = ahora()
-  const r: Reloj = { inicio, tiempos: {}, anotar: (paso) => { r.tiempos[paso] = Math.round(ahora() - inicio) } }
-  return r
-}
-/** Anota cuándo terminó la promesa, contando desde el inicio del reloj. */
-function medir<T>(reloj: Reloj, paso: string, p: Promise<T>): Promise<T> {
-  return p.finally(() => reloj.anotar(paso))
 }
 
 interface CuerpoGuardar {

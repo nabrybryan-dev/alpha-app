@@ -36,7 +36,7 @@ const ARCHIVOS_LARGOS: Record<string, number> = {
   'src/features/entrenar/salon/SalonEntrenar.tsx': 1342,
   'src/features/entrenar/visor/VisorPatron.tsx': 1510,
   'src/features/entrenar/visor/motor.ts': 870,
-  'supabase/functions/praxis-registro/index.ts': 1031,
+  'supabase/functions/praxis-registro/index.ts': 1020,
 }
 
 /** `archivo:funcion` (con `#n` si el nombre se repite en el archivo) -> complejidad. */
