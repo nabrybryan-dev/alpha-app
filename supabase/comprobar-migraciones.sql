@@ -2731,11 +2731,12 @@ select '0159 - mensajes del equipo a Praxis', 'praxis_mensajes_equipo: RLS, equi
             else 'SI' end
 
 union all
-select '0161 - libro de registros de Praxis y agua', 'praxis_registros_aplicados: RLS, lectura solo propia, clave unica de tarjeta, nadie escribe directo, sin anon',
+select '0161 - libro de registros de Praxis y agua', 'praxis_registros_aplicados: RLS, lectura propia y del equipo, clave unica de tarjeta, nadie escribe directo, sin anon',
        case when to_regclass('public.praxis_registros_aplicados') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_registros_aplicados')) then 'NO'
-            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados')) <> 1 then 'NO'
-            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polcmd = 'r') then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados')) <> 2 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polcmd <> 'r') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polname = 'praxis_registros_aplicados_lee_staff') then 'NO'
             when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.praxis_registros_aplicados')
                                and k.conname = 'praxis_registros_aplicados_tarjeta_unica' and k.contype = 'u') then 'NO'
             when has_table_privilege('anon', 'public.praxis_registros_aplicados', 'select')

@@ -143,7 +143,7 @@ select pruebas.afirmar((select count(*) from public.praxis_registros_aplicados) 
   'otra persona no ve exactamente su propia fila del libro');
 
 -- ════════════════════════════════════════════════════════════════════════
--- Coach: suma solo en su fila
+-- Coach: suma solo en su fila y LEE el libro ajeno (equipo, decisión del 5-nov)
 -- ════════════════════════════════════════════════════════════════════════
 reset role;
 select pruebas.soy('f6000000-0000-0000-0000-000000000002');
@@ -151,8 +151,10 @@ set role authenticated;
 select pruebas.exigir_rls();
 
 select public.praxis_aplicar_agua('msg-c', 0, 200);
-select pruebas.afirmar((select count(*) from public.praxis_registros_aplicados) = 1,
-  'el coach ve libro ajeno o no ve el suyo');
+select pruebas.afirmar((select count(*) from public.praxis_registros_aplicados where usuario_id = 'f6000000-0000-0000-0000-000000000002') = 1,
+  'el coach no ve su propio libro');
+select pruebas.afirmar(exists (select 1 from public.praxis_registros_aplicados where usuario_id <> 'f6000000-0000-0000-0000-000000000002'),
+  'el coach no ve el libro ajeno (el equipo debe leerlo)');
 
 reset role;
 select pruebas.afirmar((select ml from public.hidratacion where usuario_id = 'f6000000-0000-0000-0000-000000000002') = 200,
