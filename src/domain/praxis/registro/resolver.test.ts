@@ -144,6 +144,10 @@ describe('reglas que importan', () => {
     expect(p.accion).toBe('nada')
     expect(p.motivo).toBe('deshacer_sin_orden_clara')
     expect(p.registros).toEqual([])
+    // El resolver no sabe si el libro (PRAXIS_LIBRO) está encendido: su texto debe ser verdad en los dos casos.
+    // No puede enseñar «deshaz lo último», que con el libro apagado no se atiende (revisión del PR #424, 5-nov-2026).
+    expect(p.respuesta).not.toMatch(/deshaz/i)
+    expect(p.respuesta).toMatch(/valor correcto/)
   })
 
   it('un microciclo vencido no escribe y guarda el borrador (CE-051)', () => {

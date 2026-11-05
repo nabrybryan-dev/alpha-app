@@ -552,7 +552,8 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
       // una gramática cerrada y con el libro de lo aplicado (`praxis-registro/deshacer.ts`), con confirmación. Si el modelo
       // etiqueta «deshacer» es que la frase no siguió esa gramática: no se adivina qué quitar, se pide la orden clara.
       motivo: 'deshacer_sin_orden_clara',
-      respuesta: 'Para quitar algo que anotaste dime cuál, por ejemplo «deshaz lo último» o «deshaz lo del agua»; te pido confirmación antes de tocar nada. También puedes quitarlo en la pantalla de la sesión, o darme el valor correcto y lo corrijo.',
+      // El texto vale con el libro encendido o apagado: no enseña una orden que quizá no se atienda (revisión de #424).
+      respuesta: 'No tengo claro qué quieres quitar, así que no toqué nada. Si me dices el valor correcto, lo corrijo con tu confirmación; o quítalo en la pantalla de la sesión.',
     }
   }
 
