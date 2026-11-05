@@ -121,6 +121,12 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
+  // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
+  'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
+    'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
+  'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
+    'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
   // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
   'src/domain/sujeto/reparto.ts#bandasDeReparto':
     'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',
