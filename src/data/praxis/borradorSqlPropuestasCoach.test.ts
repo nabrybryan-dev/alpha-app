@@ -68,10 +68,10 @@ describe('esquema', () => {
     }
   })
 
-  it('el motivo «dolor» no entra a la tabla y la regla firmada no puede ser true', () => {
+  it('el motivo «dolor» no entra a la tabla y la regla firmada no puede ser false', () => {
     expect(codigo).toMatch(/motivo\s+text[^\n]*check\s*\(motivo in \('cansancio', 'tecnica', 'otro'\)\)/)
     expect(codigo).not.toMatch(/motivo[^\n]*'dolor'/)
-    expect(codigo).toMatch(/regla_firmada\s+boolean not null default false check \(regla_firmada = false\)/)
+    expect(codigo).toMatch(/regla_firmada\s+boolean not null default true check \(regla_firmada = true\)/)
   })
 
   it('la propuesta nunca es igual ni mayor a la serie de origen (check de tabla)', () => {

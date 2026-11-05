@@ -30,7 +30,7 @@ describe('armarPropuestaDeCarga', () => {
     if (r.tipo !== 'fila') return
     expect(r.fila).toMatchObject({
       tipo: 'bajar_carga', ejercicioId: 'press-banca', microcicloId: 'mc-1', cansancio: 'algo', motivo: 'cansancio',
-      serieCargaKg: 100, serieReps: 8, serieRir: 1, rirObjetivo: 2, cargaPropuestaKg: 95, razonSinCalculo: null, reglaFirmada: false,
+      serieCargaKg: 100, serieReps: 8, serieRir: 1, rirObjetivo: 2, cargaPropuestaKg: 95, razonSinCalculo: null, reglaFirmada: true,
     })
     expect(r.fila.unRmKg).toBeGreaterThan(100)
   })

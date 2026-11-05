@@ -82,7 +82,7 @@ function cargaValida(f: Record<string, unknown>): boolean {
   if (!esNum(f.serieCargaKg) || f.serieCargaKg <= 0 || !entre(f.serieReps, 1, 100) || !entre(f.serieRir, 0, 10) || !entre(f.rirObjetivo, 0, 15)) return false
   if (!esNum(f.saltoKg) || f.saltoKg <= 0) return false
   if (f.unRmKg !== null && (!esNum(f.unRmKg) || f.unRmKg <= 0)) return false
-  if (f.reglaFirmada !== false) return false
+  if (f.reglaFirmada !== true) return false
   if (f.cargaPropuestaKg === null) return dentro(f.razonSinCalculo, ['fuera_de_tabla', 'no_baja'])
   // «Nunca igual ni mayor» también aquí, como el check del borrador SQL.
   return f.razonSinCalculo === null && esNum(f.cargaPropuestaKg) && f.cargaPropuestaKg > 0 && f.cargaPropuestaKg < f.serieCargaKg && f.unRmKg !== null

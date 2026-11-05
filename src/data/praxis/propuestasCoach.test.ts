@@ -64,8 +64,8 @@ describe('insertar: la persona inserta lo suyo', () => {
     expect(r).toEqual({ ok: false, motivo: 'campo_no_permitido' })
   })
 
-  it('una carga con regla firmada = true se rechaza (la regla sigue sin revisión profesional)', async () => {
-    const r = await repo.insertar(persona, PERSONA, { ...carga(), reglaFirmada: true } as never)
+  it('una carga con regla firmada = false se rechaza (la regla está firmada y encendida desde el 4-nov)', async () => {
+    const r = await repo.insertar(persona, PERSONA, { ...carga(), reglaFirmada: false } as never)
     expect(r).toEqual({ ok: false, motivo: 'campo_no_permitido' })
   })
 

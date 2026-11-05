@@ -25,8 +25,8 @@
 --      «vencida» en rojo suave. NO hay respuesta automática de Praxis (espera al psicólogo y al abogado).
 --   6. El cálculo de la carga se hace en la app; la base solo comprueba rangos y que la propuesta baje.
 --      La consola recalcula desde la serie de origen y marca «no coincide» si difiere.
---   7. `regla_firmada` es false y un check lo obliga: la tabla del RIR por cansancio está firmada por
---      Bryan pero con revisión profesional pendiente. El día que se pase a true hace falta otra migración.
+--   7. `regla_firmada` es true y un check lo obliga: la tabla del RIR por cansancio la firmó Bryan (21-oct) y
+--      la encendió el 4-nov-2026. La revisión profesional, por ser carga, sigue pendiente aparte.
 --   8. `aplicada_en` solo se fija cuando el coach aplicó la carga al plan y la escritura confirmó.
 --   9. No se anota en `anotarDecision`: esta fila ya guarda quién, cuándo y qué kilos.
 --
@@ -65,7 +65,7 @@ create table if not exists public.praxis_propuestas_coach (
   carga_propuesta_kg numeric(6,2) check (carga_propuesta_kg > 0),
   razon_sin_calculo  text check (razon_sin_calculo in ('fuera_de_tabla', 'no_baja')),
   salto_kg           numeric(4,2) check (salto_kg > 0),
-  regla_firmada      boolean not null default false check (regla_firmada = false),
+  regla_firmada      boolean not null default true check (regla_firmada = true),
 
   -- Solo 'voy_a_escribirte' (null en 'bajar_carga'). Listas cerradas y un identificador de ficha.
   origen_contacto    text check (origen_contacto in ('ficha', 'filtro_clinico')),

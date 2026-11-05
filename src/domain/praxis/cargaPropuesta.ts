@@ -18,16 +18,15 @@ import type { SerieVista } from './plan/listaBlanca'
  *   3. La carga nueva es el 1RM por el coeficiente de las MISMAS reps al RIR objetivo, redondeada
  *      al salto de la barra o la máquina y nunca igual ni mayor a la actual.
  *
- * LA TABLA NO ESTÁ FIRMADA. Ninguna página dice «con este cansancio, sube tanto el RIR» para un
- * PEDIDO de la persona: las dos páginas citadas hablan del PRS previo a la sesión y de bajar
- * entre series. Mientras el coach no la firme, `reglaFirmada` sale en `false` y la consola no debe
- * presentar el número como decisión, solo como punto de partida.
+ * LA TABLA ESTÁ FIRMADA POR EL COACH (Bryan, 21-oct-2026, «firmarla tal cual») y ENCENDIDA el 4-nov-2026
+ * por decisión suya: `reglaFirmada` sale en `true`. La revisión de un profesional, por ser carga, sigue
+ * pendiente aparte. El coach sigue siendo el único que escribe la carga: esto solo la propone.
  */
 
 export type Cansancio = 'algo' | 'mucho'
 export type MotivoDeBajada = 'cansancio' | 'tecnica' | 'dolor' | 'otro'
 
-/** Cuánto sube el RIR objetivo según el cansancio declarado. PROVISIONAL, sin firmar. */
+/** Cuánto sube el RIR objetivo según el cansancio declarado. Firmada por el coach (21-oct-2026). */
 export const SUBE_RIR_POR_CANSANCIO: Readonly<Record<Cansancio, number>> = { algo: 1, mucho: 2 }
 
 /** Salto de carga por defecto (kg): discos de 1,25 por lado. */
@@ -52,7 +51,7 @@ export type PropuestaDeBajada =
       rirObjetivo: number
       reps: number
       unRmEstimadoKg: number
-      reglaFirmada: false
+      reglaFirmada: true
     }
   | { tipo: 'no_calcula'; razon: RazonSinCalculo }
   | { tipo: 'derivar_a_salud' }
@@ -90,6 +89,6 @@ export function proponerBajadaDeCarga(pedido: PedidoDeBajada): PropuestaDeBajada
     rirObjetivo,
     reps: ultima.reps,
     unRmEstimadoKg: unRm,
-    reglaFirmada: false,
+    reglaFirmada: true,
   }
 }

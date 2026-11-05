@@ -14,8 +14,8 @@ import { filtroDeRiesgo } from './riesgo'
  *   - 12 horas de plazo; pasado el plazo la fila queda «vencida» (rojo suave en la bandeja).
  *   - La respuesta automática de Praxis tras el plazo NO existe todavía: va APAGADA y, aun encendida,
  *     no habla de salud, de riesgo, de ánimo ni de cargas (espera la revisión del psicólogo y del abogado).
- *   - La regla del RIR por cansancio está firmada por Bryan pero con revisión profesional pendiente:
- *     `reglaFirmada` sigue en `false`.
+ *   - La regla del RIR por cansancio está firmada por Bryan (21-oct) y encendida por él el 4-nov-2026:
+ *     `reglaFirmada` es `true`. La revisión profesional, por ser carga, sigue pendiente aparte.
  */
 export type TipoPropuesta = 'bajar_carga' | 'voy_a_escribirte'
 export type EstadoPropuesta = 'pendiente' | 'aceptada' | 'ajustada' | 'rechazada' | 'atendida'
@@ -52,7 +52,7 @@ export interface FilaBajarCarga {
   cargaPropuestaKg: number | null
   razonSinCalculo: Extract<RazonSinCalculo, 'fuera_de_tabla' | 'no_baja'> | null
   saltoKg: number
-  reglaFirmada: false
+  reglaFirmada: true
 }
 
 export interface FilaVoyAEscribirte {
@@ -97,7 +97,7 @@ export function armarPropuestaDeCarga(pedido: PedidoCarga): ResultadoArmarCarga 
     ejercicioId: pedido.ejercicioId,
     cansancio: pedido.cansancio,
     motivo: pedido.motivo,
-    reglaFirmada: false as const,
+    reglaFirmada: true as const,
   }
   const salto = pedido.saltoKg !== undefined && Number.isFinite(pedido.saltoKg) && pedido.saltoKg > 0 ? pedido.saltoKg : SALTO_KG_POR_DEFECTO
   if (calculo.tipo === 'propuesta') {

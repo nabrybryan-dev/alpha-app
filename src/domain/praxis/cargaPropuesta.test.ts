@@ -66,7 +66,7 @@ describe('proponerBajadaDeCarga', () => {
 
   it('devuelve lo necesario para auditar: 1RM estimado y la tabla de reglas sin firmar', () => {
     const r = proponerBajadaDeCarga(pedido())
-    expect(r).toMatchObject({ tipo: 'propuesta', unRmEstimadoKg: 139.9, reglaFirmada: false })
+    expect(r).toMatchObject({ tipo: 'propuesta', unRmEstimadoKg: 139.9, reglaFirmada: true })
   })
 
   it('la regla provisional sale de lo escrito: 04 (PRS 0-2: RIR +1/+2) y es coherente con 05 (caida de 3-5 %)', () => {
