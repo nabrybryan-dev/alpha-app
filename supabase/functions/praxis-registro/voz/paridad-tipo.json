@@ -1,0 +1,166 @@
+{
+ "nota": "Generado con tipo_de de tono-ronda3/medir_tono.py sobre preguntas-tono.json (preguntas escritas por Claude, sin frases reales).",
+ "sha256_medir_tono_py": "a4c668d6c7ee710793d368baf367fca99f5f7b7dab795ed5f3a3835ba6094c87",
+ "casos": [
+  {
+   "texto": "cuánto descanso entre series en curl de bíceps o elevaciones laterales?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cada cuánto conviene llegar al fallo en una serie?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuántas series semanales mínimas mantienen un grupo muscular que no es prioridad?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuántas series por grupo y por semana arrancan para un intermedio?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuántos días de frecuencia semanal se manejan para un avanzado?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuánta pérdida de velocidad se maneja para hipertrofia?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuánto cuesta en masa muscular parar dos meses?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cada cuánto tiempo se hace una descarga y cuánto dura?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuántas repeticiones salen con el 60 % del 1RM?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "cuánto cardio a la semana se cita de referencia para quien empieza con resistencia?",
+   "tipo_python": "cantidad_o_momento"
+  },
+  {
+   "texto": "por qué las técnicas de intensidad cansan más aunque ahorren tiempo?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué las superseries ahorran tiempo sin costar resultados?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué importa medir la velocidad con la misma escala en toda la serie?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué el ciclo neural no apaga la vía estructural?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué un día malo no borra lo ya construido?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué se autorregula si no da más fuerza?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué el RIR es menos fiable lejos del fallo?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué el nombre de una fase no garantiza lo que hace?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué periodizar casi no se nota en hipertrofia?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "por qué se dice que hay pocos estudios en mujeres sobre pérdida de velocidad?",
+   "tipo_python": "razon"
+  },
+  {
+   "texto": "qué son las dos familias de técnicas de intensidad?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "qué es periodizar frente a planificar?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "qué es un microciclo dentro de las estructuras del entrenamiento?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "qué es la periodización ondulante?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "en qué consiste el modelo de bloques de Verkhoshansky?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "qué significa trabajar con un rango amplio de intensidad?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "qué es la velocidad de la primera repetición y para qué se mide?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "qué son los microciclos de carga y de recuperación?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "en qué consiste una sesión completa de entrenamiento?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "en qué consiste el ajuste que hace el coach con los registros?",
+   "tipo_python": "definicion"
+  },
+  {
+   "texto": "puedo usar drop sets en máquinas en vez de barra libre?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "el cliente quiere ganar músculo y hacer cardio, se interfiere?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "el cliente corre cuatro veces por semana, es demasiado cardio?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "el cliente solo tiene 40 minutos, puedo acortar los descansos?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "y si el cliente duerme poco, hay una regla fija de qué hacer?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "el cliente solo puede venir dos días, alcanza?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "debo bajar el volumen a un tercio en semanas de poco tiempo?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "puedo usar myo-reps con alguien sin experiencia?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "debo usar la misma pérdida de velocidad con todos los clientes?",
+   "tipo_python": "mi_caso"
+  },
+  {
+   "texto": "y si el cliente llega a la parcial, sigue siendo RIR 0?",
+   "tipo_python": "mi_caso"
+  }
+ ]
+}
