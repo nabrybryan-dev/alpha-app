@@ -2755,5 +2755,39 @@ select '0161 - libro de registros de Praxis y agua', 'praxis_aplicar_agua existe
             when has_function_privilege('anon', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_aplicar_series existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_series(text,integer,text,text,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_series(text,integer,text,text,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_aplicar_adherencia existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_adherencia(text,integer,date,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_adherencia(text,integer,date,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_deshacer existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_series_actuales (ayudante interno) existe y no la ejecuta ni anon ni authenticated; fijar_series_ejercicio sigue invoker (no se tocó)',
+       case when to_regprocedure('public.praxis_series_actuales(text,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.praxis_series_actuales(text,text)', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_series_actuales(text,text)', 'execute') then 'NO'
+            when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.fijar_series_ejercicio(text,text,jsonb)')) then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
