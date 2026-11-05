@@ -57,7 +57,7 @@ describe('praxis-registro: decisión del enrutador en sombra', () => {
   it('una consulta del equipo lleva la decisión en meta: pasa al portero con su tipo', async () => {
     const r = await enviar(entorno())
     expect(r.status).toBe(200)
-    expect(r.cuerpo.meta?.decision).toEqual({ ruta: null, paso: 6, origen: 'reglas', pasaA: 'portero', tipo: 'cantidad' })
+    expect(r.cuerpo.meta?.decision).toEqual({ ruta: null, paso: 6, origen: 'reglas', pasaA: 'portero', tipo: 'cantidad', campos_por_tipo: { tipo: 'cantidad', campos: ['respuesta'] } })
   })
 
   it('ni meta.decision ni la línea del registro llevan la frase o la persona', async () => {
