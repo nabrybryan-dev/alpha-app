@@ -50,7 +50,7 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
-import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca, guardarMensajeEquipo } from './portero.ts'
+import { consultarAlPortero, propuestaDeRespaldo, buscarEnBiblioteca, guardarMensajeEquipo, vozEnLaConsulta, conVoz, metaDeVoz, entornoVoz, type EntornoVoz } from './portero.ts'
 export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
@@ -66,7 +66,7 @@ declare const Deno:
   | { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
   | undefined
 
-export interface Entorno {
+export interface Entorno extends EntornoVoz {
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   ANTHROPIC_API_KEY: string | undefined
@@ -521,11 +521,11 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   await guardarMensajeEquipo(d, s, frase, extraccion.intencion) // 0159: la frase del equipo que pasó el riesgo queda para etiquetar su intención; nunca rompe la respuesta
   // Consulta del equipo: el portero la intenta contestar con una ficha. Ya pasó los dos filtros de riesgo.
   // El resolutor llama «consulta» también a la charla: el portero solo entra si el modelo la etiquetó consulta.
-  const consulta = resuelta.motivo === 'consulta' && extraccion.intencion.includes('consulta') ? await medir(reloj, 'portero', consultarPortero(d, s, frase)) : null
+  const consulta = resuelta.motivo === 'consulta' && extraccion.intencion.includes('consulta') ? await medir(reloj, 'portero', consultarPortero(d, s, frase, extraccion.intencion.includes('clinico'))) : null
   const portero = consulta?.contestada ?? null
   // Cola de dudas del taller: si el portero no halló ficha o dudó, la frase del equipo queda anotada. Nunca rompe la respuesta.
   if (consulta?.lectura) await medir(reloj, 'cola', encolarDuda(d, s, frase, consulta.lectura))
-  const propuesta = portero ? { ...resuelta, respuesta: portero.respuesta, notas_coach: [...resuelta.notas_coach, portero.nota] } : resuelta
+  const propuesta = portero ? { ...resuelta, respuesta: portero.respuesta, notas_coach: [...resuelta.notas_coach, portero.nota] } : conVoz(resuelta, consulta)
   // La charla: solo si no hay nada que guardar, preguntar ni derivar. Es TEXTO: no crea tarjeta de confirmación ni escribe nada.
   const textoCharla = !rapido && cabeCharla(propuesta, { intencionCharla: extraccion.intencion.includes('charla') && !extraccion.intencion.includes('consulta') }) ? leerRespuestaCharla(salida.entrada, contextoCharla) : null
   return json({
@@ -541,7 +541,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       version_resolutores: VERSION_RESOLUTORES,
       camino: rapido ? 'rapido' : 'modelo', // «rapido»: el registrador no llamó al modelo
       ...(consulta ? { portero_resultado: consulta.resultado } : {}),
-      ...(portero ? { portero: portero.fichas } : {}), // solo ids de ficha, nunca la frase
+      ...(portero ? { portero: portero.fichas } : {}), ...metaDeVoz(consulta), // solo ids y estados, nunca la frase
       tokens_entrada: salida.tokensEntrada,
       tokens_salida: salida.tokensSalida,
       latencia_ms: d.ahora().getTime() - t0,
@@ -551,8 +551,8 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
 }
 
 /** La consulta al portero vive en `portero.ts`: esto solo le pone el entorno y la lectura con el JWT de la persona. */
-const consultarPortero = (d: Dependencias, s: Sesion, frase: string) =>
-  Promise.all([consultarAlPortero(d, frase, (ruta) => leer<FichaParaPraxis[]>(d, s, ruta)), observarBiblioteca(d, s.token, frase)]).then(([consulta]) => consulta)
+const consultarPortero = (d: Dependencias, s: Sesion, frase: string, alerta?: boolean) => // sin ficha y con `alerta` dada, la voz del concepto (voz/conectar.ts); sin modelo, nunca
+  Promise.all([consultarAlPortero(d, frase, (ruta) => leer<FichaParaPraxis[]>(d, s, ruta)), buscarEnBiblioteca(d, s.token, frase)]).then(async ([consulta, b]) => ({ ...consulta, voz: alerta === undefined ? null : await vozEnLaConsulta({ entorno: d.entorno, fetch: d.fetch, ahoraMs: () => d.ahora().getTime() }, (ruta) => leer(d, s, ruta), frase, { ...consulta, conceptoMejor: b.mejor }, alerta) }))
 
 /**
  * Claude no respondió (sin saldo, caído o ilegible; decisión de Bryan, 31-oct-2026). Solo para el equipo y solo si no
@@ -1022,7 +1022,7 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         PRAXIS_CAMINO_RAPIDO: entorno('PRAXIS_CAMINO_RAPIDO'),
         PRAXIS_RIESGO_MAS_GRAVE: entorno('PRAXIS_RIESGO_MAS_GRAVE'),
         PORTERO_URL: entorno('PORTERO_URL'),
-        PORTERO_CLAVE: entorno('PORTERO_CLAVE'),
+        PORTERO_CLAVE: entorno('PORTERO_CLAVE'), ...entornoVoz(entorno),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),
