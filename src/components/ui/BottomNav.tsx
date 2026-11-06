@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { IconoAgujeroNegro } from './Icono'
+import { BARRA_MAQUETA_ACTIVA, conPraxisAlCentro } from '../../domain/barraMaqueta'
 
 function Icono({ children }: { children: ReactNode }) {
   return (
@@ -149,8 +150,68 @@ export type EspaciosNav = 'asesorado' | 'staff'
 
 export function BottomNav({
   espacios = 'asesorado',
-}: { espacios?: EspaciosNav } = {}) {
+  barraMaqueta = BARRA_MAQUETA_ACTIVA,
+}: { espacios?: EspaciosNav; barraMaqueta?: boolean } = {}) {
   const pestanas = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+  if (barraMaqueta) {
+    return <BarraMaqueta pestanas={conPraxisAlCentro(pestanas)} />
+  }
+  return <BarraFlotante pestanas={pestanas} />
+}
+
+type Pestana = (typeof pestanasStaff)[number]
+
+/**
+ * Barra de la maqueta v17 (`build-v8/1-css.css:337-343`): ancho completo pegada abajo, cristal con
+ * borde superior, pestañas con icono y nombre, y una marca roja de 34 x 3 px asomando por arriba
+ * de la pestaña activa. Respeta la zona segura de abajo y de los lados; la marca no se anima
+ * con movimiento reducido.
+ */
+function BarraMaqueta({ pestanas }: { pestanas: Pestana[] }) {
+  return (
+    <nav
+      aria-label="Navegación principal"
+      data-barra="maqueta"
+      className="glass glass-blur fixed inset-x-0 bottom-0 flex items-stretch rounded-none border-x-0 border-b-0"
+      style={{
+        zIndex: 'var(--z-nav)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
+    >
+      {pestanas.map((p) => (
+        <NavLink
+          key={p.ruta}
+          to={p.ruta}
+          end={p.ruta === '/'}
+          viewTransition
+          className={({ isActive }) =>
+            `relative flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-[3px] text-[11px] font-bold tracking-[0.01em] ${
+              isActive ? 'text-texto' : 'text-tenue'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <span
+                aria-hidden="true"
+                data-indicador={isActive ? 'activo' : 'inactivo'}
+                className={`absolute -top-px left-1/2 h-[3px] w-[34px] -translate-x-1/2 rounded-b bg-rojo transition-opacity duration-200 ease-salida motion-reduce:transition-none ${
+                  isActive ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+              {p.icono}
+              <span className="max-w-full truncate">{p.etiqueta}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
+function BarraFlotante({ pestanas }: { pestanas: Pestana[] }) {
   return (
     <nav
       aria-label="Navegación principal"
