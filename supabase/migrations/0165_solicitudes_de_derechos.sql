@@ -45,7 +45,10 @@ create index if not exists solicitudes_derechos_coach on public.solicitudes_dere
 alter table public.solicitudes_derechos enable row level security;
 
 revoke all on public.solicitudes_derechos from public, anon, authenticated;
-grant select, insert on public.solicitudes_derechos to authenticated;
+grant select on public.solicitudes_derechos to authenticated;
+-- Crear: solo estas cuatro columnas. creada_en la pone la base (revisor ciego 3, MEDIO-4:
+-- si la persona pudiera ponerla, adelantaria o frenaria la purga de su detalle).
+grant insert (persona_id, coach_id, derecho, detalle) on public.solicitudes_derechos to authenticated;
 -- Responder toca solo estas tres columnas: quién pidió qué no se puede reescribir.
 grant update (respondida_en, respondida_por, respuesta) on public.solicitudes_derechos to authenticated;
 grant all on public.solicitudes_derechos to service_role;
@@ -74,9 +77,10 @@ create policy solicitudes_derechos_leer on public.solicitudes_derechos
 drop policy if exists solicitudes_derechos_responder on public.solicitudes_derechos;
 create policy solicitudes_derechos_responder on public.solicitudes_derechos
   for update to authenticated
+  -- Solo se responde una vez: una respuesta firmada no se reescribe (revisor ciego 3, MEDIO-5).
   using (
-    coach_id = (select auth.uid())
-    or (select public.tiene_capacidad('leer_entrenamiento'))
+    respondida_en is null
+    and (coach_id = (select auth.uid()) or (select public.tiene_capacidad('leer_entrenamiento')))
   )
   with check (
     respondida_por = (select auth.uid())
@@ -90,7 +94,7 @@ create or replace function public.purgar_solicitudes_derechos(p_ahora timestampt
 returns table (detalles_borrados int, filas_borradas int)
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_detalles int;

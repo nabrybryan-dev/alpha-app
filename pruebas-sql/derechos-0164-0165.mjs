@@ -94,6 +94,7 @@ async function correr(m0164, m0165) {
     await control('NO al coach anterior', () => rechaza(PERSONA, 'insert into solicitudes_derechos(persona_id, coach_id, derecho) values ($1,$2,\'conocer\')', [PERSONA, COACH_VIEJO]))
     await control('NO a nombre de otra persona', () => rechaza(PERSONA, 'insert into solicitudes_derechos(persona_id, coach_id, derecho) values ($1,$2,\'conocer\')', [OTRA, COACH]))
     await control('NO con la respuesta ya puesta', () => rechaza(PERSONA, "insert into solicitudes_derechos(persona_id, coach_id, derecho, respuesta) values ($1,$2,'conocer','hecho')", [PERSONA, COACH]))
+    await control('NO con fecha de creación puesta por la persona', () => rechaza(PERSONA, "insert into solicitudes_derechos(persona_id, coach_id, derecho, creada_en) values ($1,$2,'conocer', now() - interval '3 years')", [PERSONA, COACH]))
     await control('NO un derecho inventado', () => rechaza(PERSONA, "insert into solicitudes_derechos(persona_id, coach_id, derecho) values ($1,$2,'otro')", [PERSONA, COACH]))
     await control('NO detalle de 501', () => rechaza(PERSONA, "insert into solicitudes_derechos(persona_id, coach_id, derecho, detalle) values ($1,$2,'conocer',repeat('x',501))", [PERSONA, COACH]))
 
@@ -109,12 +110,25 @@ async function correr(m0164, m0165) {
       igual(r.affectedRows ?? 0, 0, 'filas cambiadas por la persona')
     })
     await control('nadie reescribe el derecho pedido', () => rechaza(COACH, "update solicitudes_derechos set derecho = 'conocer' where id = $1", [sid]))
+    await control('la persona no borra su constancia', () => rechaza(PERSONA, 'delete from solicitudes_derechos where id = $1', [sid]))
     await control('nadie la borra por la app', () => rechaza(COACH, 'delete from solicitudes_derechos where id = $1', [sid]))
     await control('el coach responde', async () => {
       const r = await como(COACH, 'update solicitudes_derechos set respondida_en = now(), respondida_por = $1, respuesta = $2 where id = $3', [COACH, 'Atendida', sid])
       igual(r.affectedRows, 1, 'filas respondidas')
     })
-    await control('el coach no firma a nombre de otro', () => rechaza(COACH, 'update solicitudes_derechos set respondida_por = $1 where id = $2', [NUTRI, sid]))
+    await control('una respuesta firmada no se reescribe', async () => {
+      const r = await como(COACH, "update solicitudes_derechos set respondida_en = now() + interval '5 years', respondida_por = $1, respuesta = $2 where id = $3", [COACH, 'Otra', sid])
+      igual(r.affectedRows ?? 0, 0, 'filas reescritas')
+    })
+    await control('el coach no firma a nombre de otro', async () => {
+      // Sobre una solicitud SIN responder: una ya respondida ni se toca (0 filas).
+      const otra = (await como(OTRA, "insert into solicitudes_derechos(persona_id, coach_id, derecho) values ($1,$2,'conocer') returning id", [OTRA, COACH])).rows[0].id
+      try {
+        await rechaza(COACH, 'update solicitudes_derechos set respondida_en = now(), respondida_por = $1, respuesta = $2 where id = $3', [NUTRI, 'firmada por otro', otra])
+      } finally {
+        await db.query('delete from solicitudes_derechos where id = $1', [otra])
+      }
+    })
 
     // ── 0165: la constancia sobrevive al borrado de la cuenta ──
     await control('borrar la cuenta deja la constancia', async () => {
@@ -166,6 +180,8 @@ const sustituir = (texto, a, b) => {
 const mutantes = [
   ['M1 0164 sin mirar el destinatario', sustituir(m0164, 'and ((select public.es_staff()) or public.es_staff_id(para_id))', ''), m0165],
   ['M2 0165 acepta cualquier coach, no solo el vigente', m0164, sustituir(m0165, 'where a.persona_id = (select auth.uid()) and a.asignado_hasta is null', 'where a.persona_id = (select auth.uid()) order by a.asignado_desde limit 1')],
+  ['M4 0165 deja escribir creada_en', m0164, sustituir(m0165, 'grant insert (persona_id, coach_id, derecho, detalle)', 'grant insert')],
+  ['M5 0165 deja reescribir una respuesta', m0164, sustituir(m0165, '    respondida_en is null\n    and (coach_id', '    (coach_id')],
   ['M3 0165 con llave foránea en cascada', m0164, sustituir(m0165, '  persona_id     uuid not null,', '  persona_id     uuid not null references public.usuarios_app(id) on delete cascade,')],
 ]
 let vivos = 0
