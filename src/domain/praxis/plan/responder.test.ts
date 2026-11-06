@@ -27,9 +27,9 @@ const ve: LoQuePraxisVe = {
     ] }],
   }],
   perfil: { objetivos: 'Ganar fuerza en pierna', tiempoSesionMin: 60 },
-  checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['checkins', 'plan_de_comida'],
+  checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['checkins', 'plan_de_comida'],
 }
-const vacio: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo', 'perfil', 'checkins', 'plan_de_comida'] }
+const vacio: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo', 'perfil', 'checkins', 'plan_de_comida'] }
 const HOY = '2026-10-01'
 
 describe('esPregunta', () => {
@@ -194,5 +194,67 @@ describe('responderDelPlan · preguntar por qué bajó no es pedir que baje', ()
     const r = responderDelPlan('¿por qué me baja el peso del press banca?', ve, HOY)
     expect(r.tipo).toBe('parcial')
     expect(r.texto).toContain('pasaste de 40 a 37,5 kg')
+  })
+})
+
+describe('responderDelPlan · agua de hoy y semana: solo el dato y su fecha', () => {
+  const con: LoQuePraxisVe = {
+    ...ve,
+    aguaHoy: { fecha: HOY, ml: 750 },
+    adherenciaSemana: { desde: '2026-09-28', hasta: HOY, si: 2, parcial: 1, no: 0, diasTranscurridos: 4 },
+  }
+
+  it('«¿cuánta agua llevo?» cita los ml y la fecha', () => {
+    const r = responderDelPlan('¿cuánta agua llevo?', con, HOY)
+    expect(r.tipo).toBe('respuesta')
+    expect(r.texto).toContain('750 ml')
+    expect(r.texto).toContain(HOY)
+    expect(r.citas).toEqual([`AGUA · ${HOY}`])
+  })
+
+  it('sin agua anotada: «aún no tengo ese dato», no «0 ml»', () => {
+    const r = responderDelPlan('¿cuánta agua llevo?', ve, HOY)
+    expect(r.tipo).toBe('no_se')
+    expect(r.texto).toContain(SIN_DATO)
+    expect(r.texto).not.toMatch(/\b0 ml/)
+  })
+
+  it('«¿cuánta agua debo tomar?» es un consejo: no se contesta con la cifra de hoy', () => {
+    const r = responderDelPlan('¿cuánta agua debo tomar?', con, HOY)
+    expect(r.texto).not.toContain('750')
+  })
+
+  it('«¿cómo voy esta semana?» dice lo marcado y cuántos días faltan por marcar, sin consejo', () => {
+    const r = responderDelPlan('¿cómo voy esta semana?', con, HOY)
+    expect(r.tipo).toBe('respuesta')
+    expect(r.texto).toContain('sí 2, parcial 1, no 0')
+    expect(r.texto).toContain('1 día sin marcar')
+    expect(r.texto).toContain('2026-09-28')
+    expect(r.texto).not.toMatch(/deberías|te recomiendo|intenta|procura/i)
+    expect(r.citas).toEqual([`ADHERENCIA · 2026-09-28 a ${HOY}`])
+  })
+
+  it('sin marcas en la semana: sin dato', () => {
+    const r = responderDelPlan('¿cómo voy esta semana?', ve, HOY)
+    expect(r.tipo).toBe('no_se')
+    expect(r.texto).toContain(SIN_DATO)
+  })
+
+  it('«¿qué me toca esta semana?» sigue siendo del plan, no de la comida', () => {
+    expect(responderDelPlan('¿qué me toca esta semana?', con, HOY).texto).toContain('microciclo 6')
+  })
+
+  it('en usted', () => {
+    expect(responderDelPlan('¿cómo voy esta semana?', con, HOY, 'usted').texto).toContain('marcó')
+  })
+})
+
+describe('responderDelPlan · agua y semana no pisan el porqué ni el cambio', () => {
+  const con: LoQuePraxisVe = { ...ve, aguaHoy: { fecha: HOY, ml: 750 } }
+  it('«¿por qué llevo poca agua?» no se contesta con la cifra como si fuera la causa', () => {
+    expect(responderDelPlan('¿por qué llevo poca agua?', con, HOY).queFalto).toBe('porque_no_escrito')
+  })
+  it('«¿me subes el agua?» sigue siendo un cambio que se le deja al coach', () => {
+    expect(responderDelPlan('¿me subes el agua de hoy?', con, HOY).tipo).toBe('pide_cambio')
   })
 })

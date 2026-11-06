@@ -55,7 +55,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/domain/patrones/movimiento.ts:poseAnimada': 28,
   'src/domain/praxis/conversacion.ts:pasoTrasProponer': 21,
   'src/domain/praxis/ingreso/extraer.ts:validarIngreso': 38,
-  'src/domain/praxis/plan/responder.ts:responderDelPlan': 28,
+  'src/domain/praxis/plan/responder.ts:responderSobreElPlan': 27,
   'src/domain/praxis/registro/comida.ts:resolverComida': 85,
   'src/domain/praxis/registro/ejercicio.ts:sinNombre': 22,
   'src/domain/praxis/registro/esquema.ts:validarExtraccion': 26,

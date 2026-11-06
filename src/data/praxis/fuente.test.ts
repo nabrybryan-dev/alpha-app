@@ -48,4 +48,18 @@ describe('leerLoQuePraxisVe', () => {
     leerLoQuePraxisVe(db, 'u-valentina', HOY)
     expect(JSON.stringify([db.microciclos.byUsuario('u-valentina'), db.bienestar.byUsuario('u-valentina')])).toBe(antes)
   })
+
+  it('agua, check-in y semana: solo de la persona con sesión; la otra no se cuela', () => {
+    const db = crearMockDb()
+    db.nutricion.registrarHidratacion('u-valentina', HOY, 500)
+    db.nutricion.registrarHidratacion('u-otra', HOY, 900)
+    db.nutricion.marcarAdherencia('u-otra', HOY, 'si')
+    const suya = leerLoQuePraxisVe(db, 'u-valentina', HOY)
+    expect(suya.aguaHoy).toEqual({ fecha: HOY, ml: 500 })
+    const ajena = leerLoQuePraxisVe(db, 'u-nadie', HOY)
+    expect(ajena.aguaHoy).toBeNull()
+    expect(ajena.checkinHoy).toBeNull()
+    expect(ajena.adherenciaSemana).toBeNull()
+    expect(leerLoQuePraxisVe(db, 'u-otra', HOY).aguaHoy?.ml).toBe(900)
+  })
 })

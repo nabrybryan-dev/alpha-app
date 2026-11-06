@@ -7,7 +7,7 @@ import { SALUD_SIN_REGISTRO, decidirTurno, pasoTrasProponer, resumenDeGuardado, 
  * seguridad: primero el filtro de riesgo por reglas, después lo que se contesta sin
  * modelo, y solo al final el registrador (que es el único camino que llega a un modelo).
  */
-const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo'] }
+const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo'] }
 const HOY = '2026-10-01'
 
 describe('decidirTurno · seguridad primero', () => {
