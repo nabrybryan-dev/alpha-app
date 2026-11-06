@@ -2,6 +2,7 @@ import type { FalloDelRegistrador, RespuestaDeGuardar, RespuestaDelRegistrador, 
 import type { ContextoCharla } from '../../domain/praxis/charla/modelo'
 import { limpiarTurnos } from '../../domain/praxis/charla/modelo'
 import { leerMarcaDelServidor } from '../../domain/praxis/masGrave'
+import { leerPropuestaDeshacer } from '../../domain/praxis/deshacer/pantalla'
 import type { MarcaDeRiesgo } from '../../domain/praxis/riesgo'
 import type { Propuesta, RegistroPropuesto } from '../../domain/praxis/registro/tipos'
 import type { Tarjeta } from '../../domain/praxis/registro/tarjeta'
@@ -79,6 +80,17 @@ function sinVacios(o: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null))
 }
 
+/** Las fichas con que el portero contestó: solo las que son texto. */
+function fichasDe(portero: unknown): string[] {
+  return Array.isArray(portero) ? portero.filter((f): f is string => typeof f === 'string') : []
+}
+
+function respuestaDeDeshacer(datos: unknown, mensajeId: string): RespuestaDelRegistrador | null {
+  if ((datos as { tipo?: unknown } | null)?.tipo !== 'deshacer') return null
+  const deshacer = leerPropuestaDeshacer((datos as { propuesta?: unknown }).propuesta)
+  return deshacer ? { ok: true, deshacer, mensajeId } : { ok: false, motivo: 'no_entendi' }
+}
+
 export async function proponerRegistro(sesion: SesionDeFunciones | null, p: PeticionProponer): Promise<RespuestaDelRegistrador> {
   if (!sesion?.access_token || !sesion.url) return { ok: false, motivo: 'sin_sesion' }
   const r = await llamar(sesion, RUTA, sinVacios({
@@ -92,13 +104,15 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
     charla: p.charla ? { trato: p.charla.trato, nombre: p.charla.nombre ?? undefined, turnos: limpiarTurnos(p.charla.turnos), apertura: p.charla.apertura ?? undefined } : undefined,
   }))
   if (!r.ok) return r
+  // Libro encendido y la frase pedía deshacer: la propuesta es de otra forma. Sin `tipo:'deshacer'` todo sigue como siempre.
+  const alQuitar = respuestaDeDeshacer(r.datos, p.mensajeId)
+  if (alQuitar) return alQuitar
   const datos = r.datos as { propuesta?: Propuesta; tarjeta?: Tarjeta; charla?: { texto?: unknown }; meta?: { portero?: unknown } } | null
   if (!datos?.propuesta || !datos.tarjeta || !Array.isArray(datos.propuesta.registros) || !Array.isArray(datos.tarjeta.lineas)) {
     return { ok: false, motivo: 'no_entendi' }
   }
   const charla = typeof datos.charla?.texto === 'string' && datos.charla.texto.trim() ? datos.charla.texto.trim() : undefined
-  const portero = datos.meta?.portero
-  const fichas = Array.isArray(portero) ? portero.filter((f): f is string => typeof f === 'string') : []
+  const fichas = fichasDe(datos.meta?.portero)
   return { ok: true, propuesta: datos.propuesta, tarjeta: datos.tarjeta, mensajeId: p.mensajeId, ...(charla ? { charla } : {}), ...(fichas.length ? { fichas } : {}) }
 }
 

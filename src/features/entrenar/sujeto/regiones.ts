@@ -21,32 +21,9 @@
  *   y extensores largos) → `gem`. El antebrazo incluye los intrínsecos que nacen en él.
  */
 
-export type IdDeRegion =
-  | 'pecho' | 'delt' | 'bic' | 'tri' | 'ante' | 'abd' | 'obl' | 'trap'
-  | 'dors' | 'lumb' | 'glu' | 'cua' | 'isq' | 'adu' | 'gem'
+import { REGIONES, NOMBRE_DE_REGION, type IdDeRegion } from '../../../domain/praxis/ordenes/regiones'
 
-/** Las quince, en el orden en que la maqueta las nombra. */
-export const REGIONES: readonly { id: IdDeRegion; nombre: string }[] = [
-  { id: 'pecho', nombre: 'Pectoral' },
-  { id: 'delt', nombre: 'Deltoides' },
-  { id: 'bic', nombre: 'Bíceps' },
-  { id: 'tri', nombre: 'Tríceps' },
-  { id: 'ante', nombre: 'Antebrazo' },
-  { id: 'abd', nombre: 'Abdomen' },
-  { id: 'obl', nombre: 'Oblicuos' },
-  { id: 'trap', nombre: 'Trapecio' },
-  { id: 'dors', nombre: 'Dorsal' },
-  { id: 'lumb', nombre: 'Lumbares' },
-  { id: 'glu', nombre: 'Glúteo' },
-  { id: 'cua', nombre: 'Cuádriceps' },
-  { id: 'isq', nombre: 'Isquiotibiales' },
-  { id: 'adu', nombre: 'Aductores' },
-  { id: 'gem', nombre: 'Gemelos' },
-]
-
-export const NOMBRE_DE_REGION: Record<IdDeRegion, string> = Object.fromEntries(
-  REGIONES.map((r) => [r.id, r.nombre]),
-) as Record<IdDeRegion, string>
+export { REGIONES, NOMBRE_DE_REGION, type IdDeRegion }
 
 /** Músculos por región, con el nombre de la pieza SIN el sufijo de lado. */
 export const MUSCULOS_POR_REGION: Record<IdDeRegion, readonly string[]> = {

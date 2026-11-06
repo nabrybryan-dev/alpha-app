@@ -35,14 +35,10 @@ const ESTRES: [RegExp, Valor3][] = [
   [/\b(estresadisim|estresad|agobiad|estres alto|mucho estres)/, 'MUCHO'],
   [/\b(cero estres|sin estres|tranquil|relajad)/, 'POCO'],
 ]
-const ANIMO: [RegExp, Valor3][] = [
-  [/\b(buen animo|contentisim|contento|contenta|feliz|animad|alegre|de diez)/, 'MUCHO'],
-  [/\b(bajon|triste|desanimad|bajoneada|bajoneado)/, 'POCO'],
-  [/\b(animo estoy bien|animo normal|estoy bien)/, 'REGULAR'],
-]
 const RENDIMIENTO: [RegExp, Calidad3][] = [
-  [/\b(fuerte|super|excelente|muy bien|me fue bien|a full|volando)/, 'BUENA'],
+  // «súper» solo intensifica (5-nov-2026): sin palabra buena al lado no da valor, y «súper mal» es MALA.
   [/\b(mal|fatal|pesimo|flojo|sin fuerza)/, 'MALA'],
+  [/\b(fuerte|excelente|muy bien|super bien|me fue bien|me fue super bien|a full|volando)/, 'BUENA'],
   [/\b(regular|normal|mas o menos)/, 'REGULAR'],
 ]
 const ALIMENTACION: [RegExp, Calidad3][] = [
@@ -60,6 +56,8 @@ function buscar<T>(tabla: [RegExp, T][], n: string): T | null {
 export function calidadDeSueno(cita: string): Calidad3 | null {
   const n = normalizarTexto(cita)
   if (/\bno (dormi|he dormido|estuvo)[^,]{0,12}\bmal\b/.test(n)) return 'REGULAR'
+  // La negación de lo bueno es MALA (5-nov-2026): «no dormí bien» salía BUENA porque «bien» ganaba.
+  if (/\bno (dormi|he dormido|descanse|he descansado|estuvo)[^,]{0,12}\b(bien|rico|profundo|de corrido)\b/.test(n)) return 'MALA'
   if (/\b(fatal|mal|pesimo|horrible|terrible|pesado|no pude dormir|insomnio)/.test(n)) return 'MALA'
   if (/\b(de corrido|rico|profundo|excelente|genial|muy bien|bien)\b/.test(n)) return 'BUENA'
   if (/\b(normal|regular|mas o menos|maso menos)\b/.test(n)) return 'REGULAR'
@@ -203,7 +201,8 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     let destino = ''
     if (campo === 'cansancio') { valor = buscar(CANSANCIO, n); destino = 'cansancio' }
     else if (campo === 'estres') { valor = buscar(ESTRES, n); destino = 'estres' }
-    else if (campo === 'animo') { valor = buscar(ANIMO, n); destino = 'animo' }
+    // Ánimo (decisión de Bryan, 5-nov-2026): `CheckinDiario` no tiene ese campo, así que no se mapea; queda visible.
+    else if (campo === 'animo') { descartado.push({ cita: e.cita, motivo: 'el check-in no tiene campo de ánimo: no se anota' }); continue }
     else if (campo === 'ganas_de_entrenar') { valor = ganasDeEntrenar(e.cita); destino = 'motivacion' }
     else if (campo === 'rendimiento') { valor = buscar(RENDIMIENTO, n); destino = 'rendimiento' }
     else if (campo === 'alimentacion') { valor = buscar(ALIMENTACION, n); destino = 'alimentacion' }

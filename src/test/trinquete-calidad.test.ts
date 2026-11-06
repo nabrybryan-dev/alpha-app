@@ -36,7 +36,7 @@ const ARCHIVOS_LARGOS: Record<string, number> = {
   'src/features/entrenar/salon/SalonEntrenar.tsx': 1342,
   'src/features/entrenar/visor/VisorPatron.tsx': 1510,
   'src/features/entrenar/visor/motor.ts': 870,
-  'supabase/functions/praxis-registro/index.ts': 1031,
+  'supabase/functions/praxis-registro/index.ts': 973,
 }
 
 /** `archivo:funcion` (con `#n` si el nombre se repite en el archivo) -> complejidad. */
@@ -53,7 +53,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/domain/ondulacion.ts:ondularEjercicio': 34,
   'src/domain/patrones/malla.ts:tubo': 24,
   'src/domain/patrones/movimiento.ts:poseAnimada': 28,
-  'src/domain/praxis/conversacion.ts:pasoTrasProponer': 27,
+  'src/domain/praxis/conversacion.ts:pasoTrasProponer': 21,
   'src/domain/praxis/ingreso/extraer.ts:validarIngreso': 38,
   'src/domain/praxis/plan/responder.ts:responderDelPlan': 28,
   'src/domain/praxis/registro/comida.ts:resolverComida': 85,
@@ -112,7 +112,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/features/praxis/motor/bienestar.ts:renderDetalle': 27,
   'src/features/praxis/motor/bienestar.ts:renderMini': 35,
   'src/features/praxis/motor/cabecera.ts:mostrarControles': 23,
-  'src/features/praxis/motor/conversacion.ts:registrar': 29,
+  'src/features/praxis/motor/conversacion.ts:registrar': 26,
   'src/features/praxis/motor/cosmos.ts:cuadro': 25,
   'src/features/praxis/motor/cosmos.ts:dibujar': 26,
   'src/features/praxis/motor/dom.ts:parchear': 21,
@@ -136,8 +136,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'supabase/functions/alta-cliente/index.ts:(anonima)': 25,
   'supabase/functions/avisos-plan/index.ts:manejar': 23,
   'supabase/functions/praxis-registro/index.ts:guardar': 33,
-  'supabase/functions/praxis-registro/index.ts:manejar': 21,
-  'supabase/functions/praxis-registro/index.ts:proponer': 38,
+  'supabase/functions/praxis-registro/index.ts:proponer': 37,
   'supabase/functions/responder-chat/index.ts:manejar': 46,
 }
 

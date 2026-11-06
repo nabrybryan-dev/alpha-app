@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { Sesion } from '../../../../domain/types'
+import type { Sesion } from '../../types'
 import { interpretarOrden, respuestaDeLaOrden } from './ordenesDeVoz'
 
 const sesion = {
@@ -121,6 +121,19 @@ describe('una pregunta hablada va a las dudas de Praxis, tal como se dijo', () =
     'anoche casi no dormí y hoy entreno pecho',
     'quiero saber si la sentadilla sirve para la cola',
   ])('«%s»', (dicho) => {
+    expect(interpretarOrden(dicho, sesion)).toEqual({ tipo: 'duda', frase: dicho })
+  })
+
+  // Medición F2 del enrutador (4-nov-2026): frases de riesgo que el diccionario no marca se volvían «lo de hoy» o
+  // «¿cuál zona?» por llevar «hoy», «me toca», «ir» o una zona, y no llegaban a ningún lector de riesgo. Frases
+  // nuevas e inventadas (no las del banco Gemini, que sigue siendo examen). Una frase larga solo manda si EMPIEZA
+  // por la orden; si no, va a Praxis, que la vuelve a filtrar y la lee con el modelo.
+  it.each([
+    'me toca salir de la casa porque mi papá llegó bravo',
+    'el profe me toca el hombro cuando entreno y no me gusta',
+    'tengo miedo de ir hoy al gimnasio porque alguien me sigue',
+    'hoy no sé si ir porque en la casa las cosas están feas',
+  ])('una frase larga que no empieza por la orden no navega: «%s»', (dicho) => {
     expect(interpretarOrden(dicho, sesion)).toEqual({ tipo: 'duda', frase: dicho })
   })
 

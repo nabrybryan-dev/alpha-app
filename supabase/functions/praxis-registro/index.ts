@@ -38,19 +38,25 @@
 import {
   MODELO_HAIKU, PROMPT_SISTEMA, ESQUEMA_REGISTRO, VERSION_ESQUEMA, VERSION_PROMPT, VERSION_RESOLUTORES,
   armarContexto, armarMensajeUsuario, construirTarjeta, prepararAdherencia, prepararSeries,
-  prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion, caminoRapido,
+  prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion,
 } from '../../../src/domain/praxis/registro/index.ts'
 // El MISMO filtro de riesgo y el MISMO interruptor que la pantalla (revisión del PR #331).
 import { derivarPorRiesgo, filtroDeRiesgo, type MarcaDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
 // La otra mitad de «diccionario + modelo en cada mensaje» (decisión firmada del 29-sep).
 import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO, leerSalidaRiesgo, marcaDesdeModelo, type LecturaModelo } from '../../../src/domain/praxis/riesgoModelo.ts'
 import { hayQueConsultarAlModelo, masGrave } from '../../../src/domain/praxis/masGrave.ts'
-import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 // El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
 import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca, guardarMensajeEquipo } from './portero.ts'
+import { decisionEnSombra, type DecisionEnSombra } from './sombra.ts' // F1: el enrutador de la Praxis única, en sombra
+import { cronometro, medir } from './reloj.ts'
+import { CORS, json } from './http.ts'
+import { horaConfiable, subDelJwt } from './hora.ts'
+import { deshacer, deshacerPorFrase, adherenciaGuardar, seriesGuardar, type EntornoLibro } from './deshacer.ts'
+import { intentarCaminoRapido, puedeEntrar } from './apoyo.ts'
+export { horaBogota, horaConfiable, subDelJwt } from './hora.ts'
 export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
 import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
@@ -66,7 +72,7 @@ declare const Deno:
   | { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
   | undefined
 
-export interface Entorno {
+export interface Entorno extends EntornoLibro {
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   ANTHROPIC_API_KEY: string | undefined
@@ -84,15 +90,6 @@ export interface Dependencias {
   fetch: typeof fetch
   ahora: () => Date
 }
-
-const CORS = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
-  'access-control-allow-methods': 'POST, OPTIONS',
-}
-
-const json = (cuerpo: unknown, status = 200): Response =>
-  new Response(JSON.stringify(cuerpo), { status, headers: { 'content-type': 'application/json', ...CORS } })
 
 // Es un FALLO del servidor (el modelo no respondió o su respuesta no se pudo leer), no un «no entendí» a la persona.
 // La pantalla ni lo muestra: por el 502 dice su propio texto.
@@ -126,50 +123,6 @@ function excedeLimite(usuario: string, ahoraMs: number, mapa: Map<string, number
 export function tokenDeCabecera(cabecera: string | null): string | null {
   const m = cabecera?.match(/^Bearer\s+(.+)$/i)
   return m ? m[1].trim() : null
-}
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/**
- * El `sub` del JWT, SIN comprobar la firma: eso ya lo hizo el gateway de Supabase (`verify_jwt`)
- * antes de entrar aquí. Solo sirve para ADELANTAR las lecturas del rol y del plan en paralelo
- * con la validación del token. No decide nada: la respuesta sigue dependiendo de que
- * `/auth/v1/user` diga que sí y devuelva este mismo id. `null` si el token no se puede leer o
- * el `sub` no es un uuid (entra en la URL de una consulta); entonces se espera a Auth.
- */
-export function subDelJwt(token: string): string | null {
-  const partes = token.split('.')
-  if (partes.length !== 3) return null
-  try {
-    const b64 = partes[1].replace(/-/g, '+').replace(/_/g, '/')
-    const texto = new TextDecoder().decode(Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) => c.charCodeAt(0)))
-    const sub = (JSON.parse(texto) as { sub?: unknown } | null)?.sub
-    return typeof sub === 'string' && UUID.test(sub) ? sub : null
-  } catch {
-    return null
-  }
-}
-
-/** `2026-09-28T18:40:00-05:00` en hora de Bogotá, si el teléfono no mandó la suya. */
-export function horaBogota(ahora: Date): string {
-  return new Date(ahora.getTime() - 5 * 3_600_000).toISOString().slice(0, 19) + '-05:00'
-}
-
-/** La forma ENTERA de la hora: fecha, hora, segundos opcionales y zona. Nada detrás. */
-const HORA_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)$/
-
-/**
- * La hora del teléfono, si se puede creer; si no, la del servidor en Bogotá. Se cree solo si
- * tiene la forma exacta, no pasa de 25 caracteres y cae a menos de un día de la del
- * servidor. Antes valía cualquier texto que EMPEZARA como una fecha: lo de detrás viajaba
- * al modelo como `hora_local` y se grababa como `hechoEn` (revisión del PR #331, M3).
- */
-export function horaConfiable(h: unknown, ahora: Date): string {
-  const servidor = horaBogota(ahora)
-  if (typeof h !== 'string' || h.length > 25 || !HORA_ISO.test(h)) return servidor
-  const t = Date.parse(h)
-  if (!Number.isFinite(t) || Math.abs(t - ahora.getTime()) > 86_400_000) return servidor
-  return h
 }
 
 interface FilaMicrociclo {
@@ -442,11 +395,14 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
       meta: {
-        modelo: leida.consultado ? MODELO_HAIKU : null, derivada: true, aviso_bryan: true, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES,
+        modelo: leida.consultado ? MODELO_HAIKU : null, derivada: true, aviso_bryan: true, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES, decision: decisionEnSombra(s, frase, false),
         ...(leida.origen === 'modelo' ? { lector_riesgo: leida.lector, version_prompt_riesgo: SHA16_PROMPT_RIESGO } : {}),
       },
     })
   }
+
+  const orden = await deshacerPorFrase(d, s, frase) // «deshaz lo último»: gramática cerrada, sin modelo, después del filtro de riesgo
+  if (orden) return orden
 
   if (excedeLimite(s.usuarioId, t0)) return json({ error: 'Demasiados mensajes en la última hora' }, 429)
 
@@ -486,10 +442,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   //    explícitos, ninguna palabra de más) se extraen con una gramática cerrada y NO esperan al registrador;
   //    pasan por el mismo validador y los mismos resolutores. El lector de riesgo con modelo corre igual,
   //    y su fallo sigue siendo un 502. Ante la mínima duda, `caminoRapido` devuelve null y se llama al modelo.
-  let rapido: { bruto: unknown } | null = null
-  if (d.entorno.PRAXIS_CAMINO_RAPIDO !== '0') {
-    try { rapido = caminoRapido(frase, ctx) } catch { rapido = null }
-  }
+  const rapido = intentarCaminoRapido(d.entorno.PRAXIS_CAMINO_RAPIDO, frase, ctx)
   const registrador: Promise<{ entrada: unknown; tokensEntrada: number; tokensSalida: number } | null> = rapido
     ? Promise.resolve({ entrada: rapido.bruto, tokensEntrada: 0, tokensSalida: 0 })
     : llamarHaiku(d, ctx, frase, armarContextoCharla(contextoCharla, ahora)).catch((e: unknown) => {
@@ -499,7 +452,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   const [salida, riesgo] = await Promise.all([medir(reloj, 'registro', registrador), riesgoEnCurso])
   reloj.anotar('total')
   console.log('praxis-registro: tiempos', JSON.stringify(reloj.tiempos)) // sin la frase: solo milisegundos
-  if (!riesgo) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null)
+  if (!riesgo) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null, decisionEnSombra(s, frase, rapido !== null))
   const marcaModelo = marcaDesdeModelo(riesgo.nivel)
   if (marcaModelo) {
     const propuesta = derivarPorRiesgo(marcaModelo)
@@ -509,11 +462,11 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       tarjeta: construirTarjeta(propuesta, mensajeId),
       meta: {
         modelo: MODELO_HAIKU, derivada: true, aviso_bryan: true, lector_riesgo: riesgo.nivel,
-        version_prompt_riesgo: SHA16_PROMPT_RIESGO, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES,
+        version_prompt_riesgo: SHA16_PROMPT_RIESGO, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES, decision: decisionEnSombra(s, frase, rapido !== null),
       },
     })
   }
-  if (!salida) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null)
+  if (!salida) return respaldoSinModelo(d, s, frase, mensajeId, rapido !== null, decisionEnSombra(s, frase, rapido !== null))
 
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
   const { extraccion, citasInvalidas } = validarExtraccion(frase, salida.entrada)
@@ -545,7 +498,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       tokens_entrada: salida.tokensEntrada,
       tokens_salida: salida.tokensSalida,
       latencia_ms: d.ahora().getTime() - t0,
-      tiempos_ms: reloj.tiempos,
+      tiempos_ms: reloj.tiempos, decision: decisionEnSombra(s, frase, rapido !== null),
     },
   })
 }
@@ -559,7 +512,7 @@ const consultarPortero = (d: Dependencias, s: Sesion, frase: string) =>
  * es un registro, la frase que ya pasó el diccionario puede contestarse con una ficha sin bandera de salud. Todo lo
  * demás sigue siendo el 502 de siempre: aquí no se redacta nada ni se interpreta la frase.
  */
-async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mensajeId: string, esRegistro: boolean): Promise<Response> {
+async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mensajeId: string, esRegistro: boolean, decision?: DecisionEnSombra): Promise<Response> {
   const fallo = json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
   if (esRegistro || (s.rol !== 'coach' && s.rol !== 'nutricionista' && s.puesto !== true)) return fallo
   const consulta = await consultarPortero(d, s, frase)
@@ -567,7 +520,7 @@ async function respaldoSinModelo(d: Dependencias, s: Sesion, frase: string, mens
   console.log('praxis-registro: respaldo sin modelo', consulta.contestada ? 'contesto' : 'no_contesto')
   if (!consulta.contestada) return fallo
   const propuesta = propuestaDeRespaldo(consulta.contestada)
-  return json({ propuesta, tarjeta: construirTarjeta(propuesta, mensajeId), meta: { modelo: null, respaldo: 'sin_modelo', portero_resultado: consulta.resultado, portero: consulta.contestada.fichas } })
+  return json({ propuesta, tarjeta: construirTarjeta(propuesta, mensajeId), meta: { modelo: null, respaldo: 'sin_modelo', portero_resultado: consulta.resultado, portero: consulta.contestada.fichas, decision } })
 }
 
 const TIMEOUT_JUEZ_MS = 4000
@@ -777,19 +730,6 @@ async function ingresar(d: Dependencias, s: Sesion, cuerpo: CuerpoIngreso): Prom
   })
 }
 
-/* ——— Cronómetro por paso: dónde se van los segundos de cada mensaje ——— */
-interface Reloj { inicio: number; tiempos: Record<string, number>; anotar: (paso: string) => void }
-function cronometro(): Reloj {
-  const ahora = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
-  const inicio = ahora()
-  const r: Reloj = { inicio, tiempos: {}, anotar: (paso) => { r.tiempos[paso] = Math.round(ahora() - inicio) } }
-  return r
-}
-/** Anota cuándo terminó la promesa, contando desde el inicio del reloj. */
-function medir<T>(reloj: Reloj, paso: string, p: Promise<T>): Promise<T> {
-  return p.finally(() => reloj.anotar(paso))
-}
-
 interface CuerpoGuardar {
   mensaje_id?: unknown
   registros?: unknown
@@ -833,11 +773,11 @@ async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar, plan: 
         resultados.push({ indice, campo, estado: 'rechazado', motivo: w.ok ? 'no hay microciclo activo' : w.motivo })
         continue
       }
-      const ok = await rpc(d, s, 'fijar_series_ejercicio', {
+      const ok = await seriesGuardar(d, cuerpo.mensaje_id, indice, { s, microcicloId: activo.id, ejercicioId: w.valor.ejercicioId, series: w.valor.series }, () => rpc(d, s, 'fijar_series_ejercicio', {
         p_microciclo_id: activo.id,
         p_ejercicio_id: w.valor.ejercicioId,
         p_series: w.valor.series,
-      })
+      }))
       resultados.push({ indice, campo, estado: ok ? 'guardado' : 'rechazado', motivo: ok ? undefined : 'la base no aceptó la escritura' })
       continue
     }
@@ -861,14 +801,14 @@ async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar, plan: 
       }
       // Una fila por (usuario, fecha): reaplicar da lo mismo. Solo viajan las columnas que cambian,
       // así el comentario que ya tuviera la fila no se borra.
-      const r = await d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/adherencias?on_conflict=usuario_id,fecha`, {
+      const r = await adherenciaGuardar(d, cuerpo.mensaje_id, indice, { s, fecha: w.valor.fecha, estado: w.valor.estado }, () => d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/adherencias?on_conflict=usuario_id,fecha`, {
         method: 'POST',
         headers: {
           apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${s.token}`, 'content-type': 'application/json',
           prefer: 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify(w.valor),
-      })
+      }))
       resultados.push({ indice, campo, estado: r.ok ? 'guardado' : 'rechazado', motivo: r.ok ? undefined : 'la base no aceptó la escritura' })
       continue
     }
@@ -971,14 +911,14 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   // `puesto_de_coach`. El rol NO se reescribe: sigue siendo el que es para todo lo demás. Sin saber el puesto, se cierra.
   const rol = await rolEnCurso
   const ocupaElPuesto = await puestoEnCurso.catch(() => false)
-  const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
-  if (!conocido || !puedeVerPraxis(rol as Rol, undefined, ocupaElPuesto)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
+  if (!puedeEntrar(rol, ocupaElPuesto)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
   console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
   const sesion: Sesion = { usuarioId: auth.id, token, rol, puesto: ocupaElPuesto }
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
   if (esIngreso) return ingresar(d, sesion, cuerpo)
   if (esRelectura) return releerRiesgo(d, sesion, cuerpo)
+  if (ruta.endsWith('/deshacer')) return deshacer(d, sesion, cuerpo)
   if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo, planEnCurso)
   return proponer(d, sesion, cuerpo, planEnCurso)
 }
@@ -1021,6 +961,8 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
         PRAXIS_CAMINO_RAPIDO: entorno('PRAXIS_CAMINO_RAPIDO'),
         PRAXIS_RIESGO_MAS_GRAVE: entorno('PRAXIS_RIESGO_MAS_GRAVE'),
+        PRAXIS_LIBRO: entorno('PRAXIS_LIBRO'),
+        PRAXIS_SECRETO_DESHACER: entorno('PRAXIS_SECRETO_DESHACER'),
         PORTERO_URL: entorno('PORTERO_URL'),
         PORTERO_CLAVE: entorno('PORTERO_CLAVE'),
       },
