@@ -90,8 +90,8 @@ export function normalizar(frase: string): string {
 // decide si la frase PARECE una pregunta, que es lo que antes inferían las reglas de ocho tipos. Un tipo de la voz distinto
 // de `mi_caso` es una regla que acertó (la voz devuelve `mi_caso` cuando ninguna toca). «Permiso» y «comparación» ya no son
 // tipos, pero siguen avisando de que hay una pregunta (si no, «puedo entrenar en ayunas» sin signos caería al registrador).
-const SENAL_DE_PREGUNTA = /^(puedo|puede|debo|debe|deberia|se puede|esta bien si|es malo|es mala|conviene)|(es mejor|que es mejor|cual es mejor|o es mejor|versus|vs|diferencia entre|que diferencia)/
-const EMPIEZA_INTERROGANDO = /^(que|cual|cuales|quien|donde|dime|explica|explicame|cuentame)/
+const SENAL_DE_PREGUNTA = /^(puedo|puede|debo|debe|deberia|se puede|esta bien si|es malo|es mala|conviene)\b|\b(es mejor|que es mejor|cual es mejor|o es mejor|versus|vs|diferencia entre|que diferencia)\b/
+const EMPIEZA_INTERROGANDO = /^(que|cual|cuales|quien|donde|dime|explica|explicame|cuentame)\b/
 
 /** El tipo de la voz si la frase ya normalizada parece pregunta; `undefined` si no (p. ej. «hice mi rutina»). */
 export function tipoSiPregunta(frase: string, normalizada: string, conSigno = false): TipoPregunta | undefined {
