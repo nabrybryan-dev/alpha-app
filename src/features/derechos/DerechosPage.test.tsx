@@ -74,7 +74,7 @@ beforeEach(() => {
 describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', () => {
   it.each(DERECHOS)('guarda %s para el coach vigente y muestra la fecha confirmada', async (tipo, etiqueta) => {
     const boton = await formulario()
-    fireEvent.change(screen.getByLabelText('Derecho que desea solicitar'), { target: { value: tipo } })
+    fireEvent.change(screen.getByLabelText('Derecho que deseas solicitar'), { target: { value: tipo } })
     fireEvent.change(screen.getByLabelText('Texto opcional'), { target: { value: 'Detalle sintético' } })
     fireEvent.click(boton)
     const constancia = await screen.findByRole('status')
@@ -156,10 +156,20 @@ describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('respeta usted y conserva la advertencia literal exigida', async () => {
-    montar('/yo/derechos?trato=usted')
-    expect(await screen.findByRole('heading')).toHaveTextContent('Sus datos y derechos')
-    expect(screen.getByText(/No escriba datos de salud ni nombres/)).toBeInTheDocument()
+  // 6-nov (Bryan): todo en tú. La app no guarda el trato por persona; un dato de la dirección no lo cambia.
+  it('habla siempre de tú, aunque la dirección pida usted, y conserva la advertencia literal', async () => {
+    const { container } = montar('/yo/derechos?trato=usted')
+    expect(await screen.findByRole('heading')).toHaveTextContent('Tus datos y derechos')
+    expect(screen.getByLabelText('Derecho que deseas solicitar')).toBeInTheDocument()
+    expect(screen.getByText(/No escribas datos de salud ni nombres/)).toBeInTheDocument()
     expect(screen.getByText('Nadie de Alpha te pedira tu clave por chat, correo o WhatsApp; si alguien lo hace, no se la des.')).toBeInTheDocument()
+    expect(container.textContent).not.toMatch(/\b(Sus|sus|su|Puede|desea|escriba)\b/)
+  })
+
+  it('si falla leer la sesión, lo dice en vez de quedar en blanco', async () => {
+    nube.sesion.mockImplementation(async () => ({ data: { session: null }, error: { message: 'fallo sintético de sesión' } }))
+    montar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('fallo sintético de sesión')
+    expect(nube.desde).not.toHaveBeenCalled()
   })
 })

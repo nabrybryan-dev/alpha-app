@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { modoNube, supabase } from '../../data/supabase'
 
 const DERECHOS = [
@@ -16,8 +16,7 @@ function mensajeDe(error: unknown): string {
 }
 
 export default function DerechosPage() {
-  const [parametros] = useSearchParams()
-  const usted = parametros.get('trato') === 'usted'
+  // 6-nov (Bryan): todo en tú; la app no guarda el trato por persona.
   const [personaId, setPersonaId] = useState<string | null>(null)
   const [derecho, setDerecho] = useState<string>(DERECHOS[0][0])
   const [texto, setTexto] = useState('')
@@ -98,13 +97,13 @@ export default function DerechosPage() {
     }
   }
 
-  if (!personaId) return null
+  if (!personaId) return error ? <p role="alert">{error}</p> : null
   return (
     <section className="flex flex-col gap-4 text-texto" aria-labelledby="derechos-titulo">
       <Link to="/yo" className="text-sm text-accion">← Yo</Link>
-      <h2 id="derechos-titulo" className="font-display text-3xl">{usted ? 'Sus' : 'Tus'} datos y derechos</h2>
-      <p>{usted ? 'Puede' : 'Puedes'} conocer, actualizar o rectificar {usted ? 'sus' : 'tus'} datos, pedir prueba de {usted ? 'su' : 'tu'} autorización, consultar el uso y acceder gratuitamente; también reclamar ante la SIC conforme al procedimiento aplicable.</p>
-      <p>Se pueden solicitar revocación o supresión. Se explicarán las limitaciones legales o contractuales que correspondan; no se promete eliminación inmediata de todo registro. El retiro detiene los usos que procedan; no es renuncia a derechos.</p>
+      <h2 id="derechos-titulo" className="font-display text-3xl">Tus datos y derechos</h2>
+      <p>Puedes conocer, actualizar o rectificar tus datos, pedir prueba de tu autorización, consultar el uso y acceder gratuitamente; también reclamar ante la SIC conforme al procedimiento aplicable.</p>
+      <p>Puedes solicitar la revocación o la supresión. Se explicarán las limitaciones legales o contractuales que correspondan; no se promete eliminación inmediata de todo registro. El retiro detiene los usos que procedan; no es renuncia a derechos.</p>
       <p>Nadie de Alpha te pedira tu clave por chat, correo o WhatsApp; si alguien lo hace, no se la des.</p>
       <p>La solicitud se envía al coach asignado. La respuesta se dará por un canal acordado, sin volver a copiar datos sensibles.</p>
       {constancia ? (
@@ -115,12 +114,12 @@ export default function DerechosPage() {
         </div>
       ) : (
         <form onSubmit={enviar} className="glass flex flex-col gap-3 rounded-2xl p-4">
-          <label htmlFor="derecho">Derecho que desea solicitar</label>
+          <label htmlFor="derecho">Derecho que deseas solicitar</label>
           <select id="derecho" value={derecho} onChange={(e) => setDerecho(e.target.value)} disabled={enviando} className="rounded-lg bg-surface-3 p-3 text-texto">
             {DERECHOS.map(([tipo, etiqueta]) => <option key={tipo} value={tipo}>{etiqueta}</option>)}
           </select>
           <label htmlFor="detalle-derecho">Texto opcional</label>
-          <p id="detalle-ayuda">{usted ? 'No escriba' : 'No escribas'} datos de salud ni nombres. Máximo 500 caracteres.</p>
+          <p id="detalle-ayuda">No escribas datos de salud ni nombres. Máximo 500 caracteres.</p>
           <textarea id="detalle-derecho" aria-describedby="detalle-ayuda" maxLength={500} value={texto} disabled={enviando} onChange={(e) => setTexto(e.target.value)} className="rounded-lg bg-surface-3 p-3 text-texto" />
           <p className="text-sm text-tenue">{texto.length}/500</p>
           <button type="submit" disabled={enviando} className="rounded-xl bg-accion p-3 font-bold text-bg">{enviando ? 'Enviando…' : 'Enviar solicitud'}</button>
