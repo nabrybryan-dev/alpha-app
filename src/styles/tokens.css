@@ -4425,3 +4425,10 @@ body.praxis-sala-abierta { overflow:hidden; }
   background-color: rgb(var(--ink-600-rgb));
   color: var(--silver-400);
 }
+
+/* C1 — Hoy con anillo: tarjetas a 22 px (maqueta v17, build-v8/1-css.css:120). Solo con la
+   bandera HOY_CON_ANILLO encendida: la clase la pone HoyPage y sin ella esto no aplica. */
+.hoy-con-anillo .rounded-tarjeta,
+.hoy-con-anillo .rounded-bloque {
+  border-radius: 22px;
+}
