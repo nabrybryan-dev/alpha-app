@@ -163,7 +163,7 @@ describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', 
     expect(screen.getByLabelText('Derecho que deseas solicitar')).toBeInTheDocument()
     expect(screen.getByText(/No escribas datos de salud ni nombres/)).toBeInTheDocument()
     expect(screen.getByText('Nadie de Alpha te pedira tu clave por chat, correo o WhatsApp; si alguien lo hace, no se la des.')).toBeInTheDocument()
-    expect(container.textContent).not.toMatch(/\b(Sus|sus|su|Puede|desea|escriba)\b/)
+    expect(container.textContent).not.toMatch(/\b(Sus|sus|su|Su|Puede|desea|escriba|usted|Usted)\b/)
   })
 
   it('si falla leer la sesión, lo dice en vez de quedar en blanco', async () => {
