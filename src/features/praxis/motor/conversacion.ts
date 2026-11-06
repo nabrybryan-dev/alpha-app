@@ -11,7 +11,7 @@ import { mostrarDeshacer } from './deshacer'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
-import { guardar, leer, reducido, trato, tu } from './entorno'
+import { guardar, leer, trato, tu } from './entorno'
 import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
 import { Penta } from './penta'
@@ -48,7 +48,7 @@ function idMensaje(): string {
 
 function pensando(si: boolean): void {
   const dicho = $('#dicho')
-  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; if (reducido()) $('#ayuda').textContent = 'Pensando…' }
+  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; $('#ayuda').textContent = 'Pensando…' } // se lee siempre, no solo con movimiento reducido (Bryan, 6-nov)
   else { if (Onda.estadoActual === 'piensa') Onda.estado('reposo'); dicho.removeAttribute('aria-busy'); $('#srPiensa').textContent = ''; if ($('#ayuda').textContent === 'Pensando…') $('#ayuda').textContent = '' }
 }
 

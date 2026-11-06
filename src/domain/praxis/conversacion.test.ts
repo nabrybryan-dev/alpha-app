@@ -95,7 +95,7 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
     ['sin_sesion', /sesión/],
     ['red', /conexión/],
     ['limite', /muchos mensajes/],
-    ['no_entendi', /Se me enredó algo de mi lado/],
+    ['no_entendi', /^Algo falló de mi lado, no en lo que dijiste/],
   ] as const)('si el registrador falla (%s) lo dice y no inventa un registro', (motivo, patron) => {
     const p = pasoTrasProponer({ ok: false, motivo }, 'tu')
     expect(p.paso).toBe('fallo')
