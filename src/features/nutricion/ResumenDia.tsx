@@ -50,7 +50,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
   const restan = meta.kcal - kcal
 
   return (
-    <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
+    <section className="relieve nutri-resumen">
       <h2 className="font-display text-sm text-texto">Lo que llevas hoy</h2>
 
       {visibilidad.verContadorKcal && (
@@ -73,7 +73,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             </div>
           </div>
           <div
-            className="mt-2 h-2 overflow-hidden rounded-full bg-surface-3"
+            className="nutri-pista-kcal mt-2 overflow-hidden"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
@@ -81,7 +81,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             aria-label="Progreso de calorías del día"
           >
             <div
-              className="h-full origin-left rounded-full bg-logrado"
+              className="nutri-pista-relleno h-full origin-left bg-logrado"
               style={{
                 transform: `scaleX(${(pct(kcal, meta.kcal) / 100).toFixed(3)})`,
                 transition: 'transform var(--dur-informativo) var(--muelle-informativo)',
@@ -99,7 +99,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             return (
               <div
                 key={macro.clave}
-                className="rounded-2xl border border-linea bg-surface-2 px-2 py-2 text-center"
+                className="nutri-tile-macro px-2 py-2 text-center"
               >
                 <span className={macro.color}>
                   <Cifra3D
@@ -131,7 +131,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
           visibilidad.verContadorKcal || visibilidad.verObjetivoCalorico ? 'mt-3' : ''
         }`}
       >
-        <span className="rounded-full border border-linea bg-surface-2 px-2.5 py-1 text-xs font-semibold text-texto">
+        <span className="nutri-chip-margen border border-linea bg-surface-2 px-2.5 py-1 text-xs font-semibold text-texto">
           ±{total.margenPct} %
         </span>
         <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
