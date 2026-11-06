@@ -153,7 +153,9 @@ describe('BottomNav: barra de la maqueta (B2, detrás de bandera)', () => {
   it('respeta la zona segura de abajo y el movimiento reducido', () => {
     const { container } = pintar('staff', true)
     const barra = container.querySelector<HTMLElement>('[data-barra="maqueta"]')!
-    expect(barra.getAttribute('style')).toContain('env(safe-area-inset-bottom')
+    // jsdom descarta en silencio los valores env(...) del estilo en línea: se comprueba en el código de la barra.
+    const fuente = readFileSync(join(__dirname, 'BottomNav.tsx'), 'utf8')
+    expect(fuente).toMatch(/paddingBottom:\s*'env\(safe-area-inset-bottom/)
     expect(barra.style.zIndex).toBe('var(--z-nav)')
     expect(container.querySelector('[data-indicador]')!.className).toContain('motion-reduce:transition-none')
   })
