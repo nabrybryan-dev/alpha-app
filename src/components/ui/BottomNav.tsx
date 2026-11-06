@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { IconoAgujeroNegro } from './Icono'
 
 function Icono({ children }: { children: ReactNode }) {
   return (
@@ -130,12 +131,7 @@ const pestanasStaff = [
   {
     ruta: '/praxis',
     etiqueta: 'Praxis',
-    icono: (
-      <Icono>
-        <path d="M4 5h16v11H9l-5 4z" />
-        <path d="M9 10h6M12 7.5v5" />
-      </Icono>
-    ),
+    icono: <IconoAgujeroNegro className="h-[24px] w-[24px]" />,
   },
   {
     ruta: '/mi-entreno',
