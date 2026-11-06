@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { decisionParaMeta, enrutarPraxis, normalizar, tipoDePregunta, type EntradaPraxis } from './enrutarPraxis'
+import { tipoDePregunta as tipoDeLaVoz } from '../../../supabase/functions/praxis-registro/voz/tipoPregunta'
+import { decisionParaMeta, enrutarPraxis, normalizar, tipoSiPregunta, type EntradaPraxis } from './enrutarPraxis'
 
 /**
  * Contrato del enrutador de la Praxis única por reglas (F1, en sombra). Frases ficticias, sin datos de nadie.
@@ -59,7 +60,7 @@ describe('paso 4 · órdenes del salón', () => {
   })
   it('«cómo se hace» abre el movimiento y anota el hueco de método (decisión de Bryan, 4-nov)', () => {
     expect(enrutarPraxis(coach('como se hace la sentadilla', { orden: { tipo: 'movimiento' } }))).toMatchObject({
-      ruta: 'navegar', destino: { clase: 'movimiento' }, tipo: 'metodo', hueco: 'metodo',
+      ruta: 'navegar', destino: { clase: 'movimiento' }, tipo: 'como', hueco: 'metodo',
     })
   })
   it('«muéstrame el movimiento» navega sin anotar hueco: no es una pregunta', () => {
@@ -92,37 +93,45 @@ describe('paso 5 · camino rápido', () => {
 
 describe('paso 6 · las reglas no cierran: dicen a quién le toca', () => {
   it('una pregunta pasa al portero con su tipo', () => {
-    expect(enrutarPraxis(coach('¿cuánto descanso entre series?'))).toMatchObject({ ruta: null, paso: 6, pasaA: 'portero', tipo: 'cantidad' })
+    expect(enrutarPraxis(coach('¿cuánto descanso entre series?'))).toMatchObject({ ruta: null, paso: 6, pasaA: 'portero', tipo: 'cantidad_o_momento' })
   })
   it('una frase que no pregunta pasa al registrador, sin tipo', () => {
     const d = enrutarPraxis(coach('hice mi sentadilla con 80'))
     expect(d).toMatchObject({ ruta: null, pasaA: 'registrador' })
     expect(d).not.toHaveProperty('tipo')
   })
-  it('una pregunta sin tipo reconocible va al portero sin tipo', () => {
+  it('una pregunta que ninguna regla de la voz toca va al portero como «mi caso» (el tipo por omisión de la voz)', () => {
     const d = enrutarPraxis(coach('¿y lo de la otra vez?'))
     expect(d.pasaA).toBe('portero')
-    expect(d).not.toHaveProperty('tipo')
+    expect(d.tipo).toBe('mi_caso')
+  })
+  it('«permiso» y «comparación» ya no son tipos pero siguen marcando pregunta (van al portero, no al registrador)', () => {
+    expect(enrutarPraxis(coach('puedo entrenar en ayunas'))).toMatchObject({ pasaA: 'portero', tipo: 'mi_caso' })
+    expect(enrutarPraxis(coach('barra versus mancuerna'))).toMatchObject({ pasaA: 'portero', tipo: 'mi_caso' })
   })
 })
 
-describe('tipo de pregunta', () => {
+describe('tipo de pregunta (el único: el de la voz, 5 tipos)', () => {
   it.each([
     ['por que se baja la carga', 'razon'],
     ['por que es mejor la barra', 'razon'],
-    ['que es mejor, barra o mancuerna', 'comparacion'],
-    ['como se hace el peso muerto', 'metodo'],
-    ['cuando tomo la proteina', 'momento'],
-    ['cada cuanto me peso', 'momento'],
-    ['cuantas series hago', 'cantidad'],
+    ['como se hace el peso muerto', 'como'],
+    ['cuando tomo la proteina', 'cantidad_o_momento'],
+    ['cada cuanto me peso', 'cantidad_o_momento'],
+    ['cuantas series hago', 'cantidad_o_momento'],
     ['que es el rir', 'definicion'],
-    ['puedo entrenar en ayunas', 'permiso'],
+    ['puedo entrenar en ayunas', 'mi_caso'],
   ] as const)('«%s» → %s', (frase, tipo) => {
-    expect(tipoDePregunta(normalizar(frase))).toBe(tipo)
+    expect(tipoSiPregunta(frase, normalizar(frase))).toBe(tipo)
   })
-  it('«mi caso» solo dentro de algo que ya pregunta', () => {
-    expect(tipoDePregunta(normalizar('hice mi rutina'))).toBeUndefined()
-    expect(tipoDePregunta(normalizar('y en mi caso'), true)).toBe('mi_caso')
+  it('sin signos ni marca de pregunta no hay tipo; con signo, «mi caso» por omisión', () => {
+    expect(tipoSiPregunta('hice mi rutina', normalizar('hice mi rutina'))).toBeUndefined()
+    expect(tipoSiPregunta('y en mi caso', normalizar('y en mi caso'), true)).toBe('mi_caso')
+  })
+  it('es exactamente el tipo de la voz (paridad con voz/tipoPregunta.ts)', () => {
+    for (const f of ['¿Cómo hago una serie descendente?', '¿Por qué se recomienda la pausa corta?', '¿Es cómodo el press en máquina?']) {
+      expect(tipoSiPregunta(f, normalizar(f), true)).toBe(tipoDeLaVoz(f))
+    }
   })
 })
 
@@ -149,7 +158,7 @@ describe('decisionParaMeta · sin frase, sin persona, sin nombres', () => {
   it('deja solo la ruta, el paso y las etiquetas', () => {
     const d = enrutarPraxis(coach('como se hace el press', { orden: { tipo: 'ejercicio', nombre: 'Press banca' } }))
     const m = decisionParaMeta(d)
-    expect(m).toEqual({ ruta: 'navegar', paso: 4, origen: 'reglas', tipo: 'metodo', hueco: 'metodo' })
+    expect(m).toEqual({ ruta: 'navegar', paso: 4, origen: 'reglas', tipo: 'como', hueco: 'metodo' })
     expect(JSON.stringify(m)).not.toMatch(/press|p1/i)
   })
 })

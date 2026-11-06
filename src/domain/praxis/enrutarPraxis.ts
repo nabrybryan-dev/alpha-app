@@ -2,6 +2,11 @@
 // la decisión en SOMBRA en `meta.decision`. Por eso no importa nada que no lleve extensión.
 import { PRAXIS_ABIERTA_A_ASESORADOS, puedeVerPraxis, type Rol } from './acceso.ts'
 import { filtroDeRiesgo, sinTildes } from './riesgo.ts'
+// UN solo tipo de pregunta en toda la Praxis: el de la voz (decisión del 5-nov). Se importa por ruta relativa, como hace
+// la función con `src/domain`; `tipoPregunta.ts` no importa nada, así que no arrastra dependencias a este módulo.
+import { tipoDePregunta as tipoDeLaVoz, type TipoPregunta } from '../../../supabase/functions/praxis-registro/voz/tipoPregunta.ts'
+
+export type { TipoPregunta }
 
 /**
  * EL ENRUTADOR DE LA PRAXIS ÚNICA, POR REGLAS («F1», 4-nov-2026). Diseño: biblioteca-praxis
@@ -22,9 +27,6 @@ import { filtroDeRiesgo, sinTildes } from './riesgo.ts'
  */
 
 export type RutaPraxis = 'bloqueada' | 'seguridad' | 'navegar' | 'registrar' | 'responder' | 'aclarar' | 'abstener'
-
-/** Los ocho tipos del criterio firmado por Bryan el 3-nov (CRITERIO-RESPUESTA-ENTIENDE-LA-PREGUNTA-20261103). */
-export type TipoPregunta = 'definicion' | 'cantidad' | 'momento' | 'metodo' | 'razon' | 'permiso' | 'comparacion' | 'mi_caso'
 
 /** Lo que `interpretarOrden` del salón entendió. Forma mínima: la `Orden` real encaja sin conversión. */
 export interface OrdenLocal {
@@ -84,27 +86,17 @@ export function normalizar(frase: string): string {
     .replace(/^((hey|oye|hola|ok|okay)\s+)?praxis\b\s*/, '')
 }
 
-// Paso 6. Reglas portadas de `tipo_de` (busqueda-mejora/respuesta-entiende/medir_redactor.py, la capa 1 medida
-// el 3-nov), separadas en los ocho tipos firmados. «Comparación» y «permiso» aparte de «mi caso» son reglas
-// nuevas, SIN medir. El orden importa: «por qué es mejor» es razón, no comparación.
-const TIPOS: readonly (readonly [TipoPregunta, RegExp])[] = [
-  ['razon', /\b(por que|porque|en que se basa|para que sirve|a que se debe|que sustenta|por cual razon|como es que)\b/],
-  ['comparacion', /\b(es mejor|que es mejor|cual es mejor|o es mejor|versus|vs|diferencia entre|que diferencia)\b/],
-  ['metodo', /\bcomo\b/],
-  ['momento', /\b(cuando|cada cuanto|a que hora|antes o despues)\b/],
-  ['cantidad', /\b(cuanto|cuantos|cuantas|cuanta)\b/],
-  ['definicion', /\b(que es|que son|en que consiste|que significa|a que se refiere|que quiere decir)\b/],
-  ['permiso', /^(puedo|puede|debo|debe|deberia|se puede|esta bien si|es malo|es mala|conviene)\b/],
-]
-/** Solo dentro de algo que YA es pregunta: «hice mi sentadilla» no pregunta nada. */
-const MI_CASO = /\b(mi|mis|me|yo|en mi caso|y si|me sirve|le sirve|sirve si)\b/
+// Paso 6. El TIPO lo da la voz (`tipoDePregunta` de `voz/tipoPregunta.ts`, 5 tipos, medido con el tono aprobado); aquí solo se
+// decide si la frase PARECE una pregunta, que es lo que antes inferían las reglas de ocho tipos. Un tipo de la voz distinto
+// de `mi_caso` es una regla que acertó (la voz devuelve `mi_caso` cuando ninguna toca). «Permiso» y «comparación» ya no son
+// tipos, pero siguen avisando de que hay una pregunta (si no, «puedo entrenar en ayunas» sin signos caería al registrador).
+const SENAL_DE_PREGUNTA = /^(puedo|puede|debo|debe|deberia|se puede|esta bien si|es malo|es mala|conviene)\b|\b(es mejor|que es mejor|cual es mejor|o es mejor|versus|vs|diferencia entre|que diferencia)\b/
 const EMPIEZA_INTERROGANDO = /^(que|cual|cuales|quien|donde|dime|explica|explicame|cuentame)\b/
 
-/** El tipo de pregunta de una frase ya normalizada, o `undefined` si ninguna regla la toca. */
-export function tipoDePregunta(normalizada: string, conSigno = false): TipoPregunta | undefined {
-  const hit = TIPOS.find(([, re]) => re.test(normalizada))
-  if (hit) return hit[0]
-  if ((conSigno || EMPIEZA_INTERROGANDO.test(normalizada)) && MI_CASO.test(normalizada)) return 'mi_caso'
+/** El tipo de la voz si la frase ya normalizada parece pregunta; `undefined` si no (p. ej. «hice mi rutina»). */
+export function tipoSiPregunta(frase: string, normalizada: string, conSigno = false): TipoPregunta | undefined {
+  const tipo = tipoDeLaVoz(frase)
+  if (tipo !== 'mi_caso' || conSigno || EMPIEZA_INTERROGANDO.test(normalizada) || SENAL_DE_PREGUNTA.test(normalizada)) return tipo
   return undefined
 }
 
@@ -132,7 +124,7 @@ export function enrutarPraxis(e: EntradaPraxis): DecisionPraxis {
   }
 
   const n = normalizar(e.frase)
-  const tipo = tipoDePregunta(n, /[?¿]/.test(e.frase))
+  const tipo = tipoSiPregunta(e.frase, n, /[?¿]/.test(e.frase))
 
   // Paso 3. Estado pendiente: la respuesta a lo que Praxis acaba de preguntar no se reclasifica.
   if (e.aclaracionSalud) return { ...base, ruta: 'seguridad', paso: 3, subnivel: 'salud' }
@@ -145,8 +137,7 @@ export function enrutarPraxis(e: EntradaPraxis): DecisionPraxis {
   if (e.registroRapido) return { ...base, ruta: 'registrar', paso: 5, requiereConfirmacion: true }
 
   // Paso 6. Tipo de pregunta. Las reglas no eligen la ficha: eso es del portero (paso 7).
-  const parecePregunta = /[?¿]/.test(e.frase) || tipo !== undefined || EMPIEZA_INTERROGANDO.test(n)
-  if (parecePregunta) return { ...base, ruta: null, paso: 6, pasaA: 'portero', ...(tipo ? { tipo } : {}) }
+  if (tipo !== undefined) return { ...base, ruta: null, paso: 6, pasaA: 'portero', tipo }
   return { ...base, ruta: null, paso: 6, pasaA: 'registrador' }
 }
 
@@ -157,7 +148,7 @@ function decidirPorOrden(o: OrdenLocal, tipo: TipoPregunta | undefined, base: Ba
   if (o.tipo === 'salud') return { ...base, ruta: 'seguridad', paso: 4, subnivel: 'salud' }
   if (o.tipo === 'cual') return { ...base, ruta: 'aclarar', paso: 4, opciones: [...(o.opciones ?? [])] }
   if (!ORDENES_DE_NAVEGAR.has(o.tipo)) return null
-  return { ...base, ruta: 'navegar', paso: 4, destino: destinoDeOrden(o), ...(tipo === 'metodo' ? { tipo, hueco: 'metodo' as const } : {}) }
+  return { ...base, ruta: 'navegar', paso: 4, destino: destinoDeOrden(o), ...(tipo === 'como' ? { tipo, hueco: 'metodo' as const } : {}) }
 }
 
 /** Lo que entra en `meta.decision` y en el registro: sin la frase, sin la persona y sin nombres de ejercicio. */
