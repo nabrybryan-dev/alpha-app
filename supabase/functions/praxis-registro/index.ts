@@ -49,7 +49,7 @@ import { hayQueConsultarAlModelo, masGrave } from '../../../src/domain/praxis/ma
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 import type { FichaParaPraxis, LecturaPortero } from '../../../src/domain/praxis/consultas/portero.ts'
-import { consultarAlPortero, propuestaDeRespaldo, observarBiblioteca, buscarEnBiblioteca, guardarMensajeEquipo, vozEnLaConsulta, conVoz, metaDeVoz, entornoVoz, type EntornoVoz } from './portero.ts'
+import { consultarAlPortero, propuestaDeRespaldo, buscarEnBiblioteca, guardarMensajeEquipo, vozEnLaConsulta, conVoz, metaDeVoz, entornoVoz, type EntornoVoz } from './portero.ts'
 import { decisionEnSombra, type DecisionEnSombra } from './sombra.ts' // F1: el enrutador de la Praxis única, en sombra
 import { cronometro, medir } from './reloj.ts'
 import { CORS, json } from './http.ts'
