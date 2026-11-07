@@ -2827,4 +2827,15 @@ select '0166 - memoria de la charla de Praxis', 'praxis_borrar_mi_charla, praxis
               or has_function_privilege('authenticated', 'public.praxis_marcar_charla_atendida(uuid,uuid)', 'execute') then 'NO'
             else 'SI' end
 
+union all
+select '0163 - deshacer el agua de Praxis', 'praxis_deshacer conserva security definer, search_path fijo y permisos, y su definición ya trae la rama agua (ya no dice que el agua no se puede deshacer)',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) not like '%tipo = ''agua''%' then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
