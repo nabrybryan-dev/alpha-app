@@ -20,8 +20,7 @@
 -- NO HACE. No cambia la pantalla (sigue escribiendo en mensajes hasta que se
 -- conecte aquí) ni programa la purga en pg_cron: las dos cosas, con orden de Bryan.
 --
--- NO APLICADA. Escrita el 6-nov-2026 por orden de Bryan. La aplica Bryan con
--- orden escrita.
+-- APLICADA el 7-nov-2026 en la base real (D-17-168H). Escrita el 6-nov por orden de Bryan.
 
 create table if not exists public.solicitudes_derechos (
   id             uuid primary key default gen_random_uuid(),

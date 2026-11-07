@@ -14,8 +14,8 @@
 -- nutricionista, o la capacidad puesto_de_coach. Hace falta una versión que mire
 -- a OTRA persona (el destinatario), porque `es_staff()` solo mira a quien llama.
 --
--- NO APLICADA. Escrita el 6-nov-2026 por orden de Bryan («escribo las dos
--- migraciones, sin aplicarlas»). La aplica Bryan con orden escrita.
+-- APLICADA el 7-nov-2026 en la base real (D-17-168H). Escrita el 6-nov por orden de Bryan («escribo las dos
+-- migraciones, sin aplicarlas»).
 
 create or replace function public.es_staff_id(p_usuario uuid)
 returns boolean
