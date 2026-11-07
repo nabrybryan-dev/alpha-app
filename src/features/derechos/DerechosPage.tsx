@@ -97,6 +97,14 @@ export default function DerechosPage() {
     }
   }
 
+  // Modo demo (sin nube): no hay cuenta real a nombre de quien pedir; se dice en vez de quedar en blanco.
+  if (!modoNube) return (
+    <section className="flex flex-col gap-4 text-texto" aria-labelledby="derechos-titulo">
+      <Link to="/yo" className="text-sm text-accion">← Yo</Link>
+      <h2 id="derechos-titulo" className="font-display text-3xl">Tus datos y derechos</h2>
+      <p>Las solicitudes se envían desde tu cuenta real. En este modo de prueba no se envía nada.</p>
+    </section>
+  )
   if (!personaId) return error ? <p role="alert">{error}</p> : null
   return (
     <section className="flex flex-col gap-4 text-texto" aria-labelledby="derechos-titulo">
