@@ -8,8 +8,9 @@
  *  - «vaso y medio» y «un vasito» no anotaban NADA y tampoco preguntaban: el agua se perdía en silencio;
  *  - «dos litros y medio» daba 2.000 y «2 botellas de 1.5 litros», 2.000;
  *  - «250 cc» no se entendía.
+ * ARREGLADO el 7-nov (segmentosDeAgua en vida.ts); estas pruebas quedan como regresión.
  * Regla que se mantiene: una botella sin tamaño se pregunta, no se inventa. Regla nueva: si se nombró agua y no se
- * entiende cuánta, se pregunta en vez de callar.
+ * entiende cuánta, se pregunta en vez de callar, salvo que haya dicho cero o nada.
  */
 import { describe, expect, it } from 'vitest'
 import { resolverVida } from './vida.ts'
@@ -47,7 +48,7 @@ describe('agua: lo que ya funcionaba sigue igual', () => {
   })
 })
 
-describe('agua: los 7 errores de la medición del 7-nov', () => {
+describe('agua: los 7 errores de la medición del 7-nov (arreglados)', () => {
   it('«1,5 litros» con coma decimal son 1.500 mL, no 5.000 descartados', () => {
     expect(mlDe('1,5', 'litros')).toBe(1500)
     expect(mlDe('2,5 litros')).toBe(2500)
@@ -71,5 +72,12 @@ describe('agua: los 7 errores de la medición del 7-nov', () => {
     const r = resolverVida(vida('harta', null), ctx())
     expect(r.registros.some((x) => x.campo === 'hidratacion')).toBe(false)
     expect(r.seguimiento?.campo_bloqueante).toBe('agua_cantidad')
+  })
+  it('si dijo cero o nada, no se anota ni se le pregunta cuánta (sonaría a no haberla oído)', () => {
+    for (const [c, m] of [['0', 'vasos'], ['cero', 'vasos'], ['nada', null], ['ninguno', null], ['no tome', null]] as const) {
+      const r = resolverVida(vida(c, m), ctx())
+      expect(r.seguimiento, `${c} ${m ?? ''}`).toBeUndefined()
+      expect(r.registros.some((x) => x.campo === 'hidratacion'), `${c} ${m ?? ''}`).toBe(false)
+    }
   })
 })
