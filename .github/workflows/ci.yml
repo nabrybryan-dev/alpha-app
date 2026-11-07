@@ -233,3 +233,6 @@ jobs:
 
       - name: Deshacer el agua de Praxis solo lo propio, del mismo día de Bogotá, con confirmación, y avisa si el total cambió después
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/263-praxis-deshacer-agua.sql
+
+      - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql
