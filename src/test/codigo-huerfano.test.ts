@@ -39,11 +39,8 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
-  // mensajeLargo.ts salió de esta lista el 7-nov-2026: ahora lo importa conectores.ts (y, fuera de src/, sombra.ts).
-  'src/domain/praxis/registro/conectores.ts':
-    'Conectores de lo vago al check-in (7-nov-2026, paso 1 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md): ' +
-    'propuesta pura sobre mensajeLargo.ts. Sin enchufar a propósito: falta que Bryan apruebe por muestra el lexicón de lo vago ' +
-    'y la tarjeta de confirmación (paso 2).',
+  // mensajeLargo.ts y conectores.ts salieron de esta lista el 7-nov-2026: los importan conectores.ts y la tarjeta
+  // del check-in (motor/tarjetaCheckin.ts); fuera de src/, sombra.ts importa mensajeLargo.ts.
   'src/domain/praxis/enrutarPraxis.ts':
     'Enrutador de la Praxis única por reglas (F1, 4-nov-2026), en sombra: lo consume la Edge Function praxis-registro ' +
     '(sombra.ts → meta.decision), no la app. La app lo enchufa en el paso F3, cuando Praxis navegue.',
@@ -132,6 +129,11 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
   'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
     'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
+  // Tarjeta del check-in de los conectores (paso 2, 7-nov-2026), detrás de una bandera apagada.
+  'src/domain/praxis/registro/tarjetaCheckin.ts#CONECTORES_EN_TARJETA':
+    'Bandera apagada de la tarjeta del check-in: la leerá la pantalla de Praxis cuando exista el guardado por el libro (paso 4).',
+  'src/domain/praxis/registro/tarjetaCheckin.ts#siguientePregunta':
+    'Pregunta de a uno lo que falta del check-in; la usará el turno de Praxis al encender CONECTORES_EN_TARJETA (paso 4).',
   // Deshacer por frase (paso D1, 5-nov-2026): selector y mensajes puros sobre un libro SIMULADO.
   'src/domain/praxis/deshacer/proponer.ts#proponerDeshacer':
     'Espera la migración del libro praxis_registros_aplicados (paso D2) y la ruta /deshacer (D3); mientras tanto ' +

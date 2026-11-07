@@ -144,3 +144,8 @@ Las piezas 1-2 no dependen del saldo de Anthropic: la extracción es por tablas.
 
 - El conteo de check-ins del servidor que llega a `hidratar.ts:595` (qué RPC lo calcula y si mira campos).
 - Si `readiness.ts` o `bucleDelDia.ts` tratan una fila con campos ausentes igual que una completa (leen campo a campo; no lo comprobé con una fila parcial).
+
+## 8c. Lexicón aprobado y paso 2 construido (7-nov, noche)
+
+- Bryan aprobó en el chat las 8 tarjetas de la hoja (L1-L6, R1, R2): biblioteca-praxis/APROBACION-LEXICO-VAGO-20261107.md. La hoja quedó vacía; la firma es el mensaje.
+- Paso 2: `src/domain/praxis/registro/tarjetaCheckin.ts` (armarTarjeta, confirmarTarjeta, siguientePregunta; bandera `CONECTORES_EN_TARJETA` apagada) y `src/features/praxis/motor/tarjetaCheckin.ts` (la tarjeta en el cosmos, estilo de deshacer). Nada se anota sin toque; dolor solo «sin dolor»; un valor fuera de escala no entra; `parcial` si falta alguno de los 8. 16 pruebas; 9 mutaciones caen. Nadie la monta todavía y no guarda: eso es el paso 4 (migración nueva, sí de Bryan).
