@@ -30,7 +30,7 @@ export interface ConexionPraxis {
    * ejercicio que la persona eligió con un toque cuando Praxis preguntó cuál fue: el
    * registrador lo usa para no volver a preguntar.
    */
-  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla }) => Promise<RespuestaDelRegistrador>
+  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla; memoria?: { charlaId: string; turno: number } }) => Promise<RespuestaDelRegistrador>
   /**
    * «Gana la lectura más grave»: relee con el modelo una frase que el filtro marcó como cuidado o salud y devuelve la marca
    * más grave (o `null`). AUSENTE = el interruptor de consentimiento está apagado y la frase marcada NO sale del teléfono.

@@ -9,8 +9,13 @@ import { describe, expect, it } from 'vitest'
  *
  * `responder-chat` sí la usa (es anterior), y sirve de control: si esta guarda no la viera
  * ahí, no estaría mirando nada.
+ *
+ * UNA excepción (Bryan, 7-nov-2026, al conectar la 0166): `praxis-registro/memoria.ts` guarda la charla con la clave
+ * de servicio, porque la 0166 no deja insertar a nadie con sesión (así nadie escribe turnos falsos de Praxis). Queda
+ * vigilada abajo: solo ese archivo, solo insert y solo en `praxis_charla_turnos`.
  */
 const RAIZ = process.cwd()
+const EXCEPCIONES = [join(RAIZ, 'supabase', 'functions', 'praxis-registro', 'memoria.ts')]
 // Cualquier forma de nombrar una clave de servicio: la variable vieja, la nueva de Supabase
 // (`SUPABASE_SECRET_KEY`, `sb_secret_…`) y el rol, en mayúsculas o minúsculas (revisión del
 // PR #331, B2). Se busca en el CÓDIGO: los comentarios se quitan antes, porque varios dicen
@@ -41,8 +46,17 @@ describe('Praxis no usa la clave de servicio', () => {
   ])('%s no la nombra', (_, dir) => {
     const lista = archivos(dir)
     expect(lista.length).toBeGreaterThan(0)
-    const culpables = lista.filter((f) => CLAVE.test(sinComentarios(readFileSync(f, 'utf8'))))
+    const culpables = lista.filter((f) => !EXCEPCIONES.includes(f) && CLAVE.test(sinComentarios(readFileSync(f, 'utf8'))))
     expect(culpables).toEqual([])
+  })
+
+  it('la única excepción (memoria.ts) la usa de verdad, solo para insertar en praxis_charla_turnos', () => {
+    const codigo = sinComentarios(readFileSync(EXCEPCIONES[0], 'utf8'))
+    expect(CLAVE.test(codigo)).toBe(true) // si deja de usarla, la excepción sobra y se quita
+    const rutas = [...codigo.matchAll(/rest\/v1\/([a-z_/]+)/g)].map((m) => m[1])
+    expect(rutas).toEqual(['praxis_charla_turnos'])
+    expect([...codigo.matchAll(/method:\s*'([A-Z]+)'/g)].map((m) => m[1])).toEqual(['POST'])
+    expect(codigo).not.toMatch(/rpc\/|auth\/v1|storage\/v1/)
   })
 })
 
