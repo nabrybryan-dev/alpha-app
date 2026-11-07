@@ -2789,5 +2789,33 @@ select '0162 - series, adherencia y deshacer de Praxis', 'praxis_series_actuales
               or has_function_privilege('authenticated', 'public.praxis_series_actuales(text,text)', 'execute') then 'NO'
             when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.fijar_series_ejercicio(text,text,jsonb)')) then 'NO'
             else 'SI' end
+union all
+select '0166 - memoria de la charla de Praxis', 'praxis_charla_turnos: RLS, la persona lee e inserta lo suyo, el equipo lee, nadie actualiza ni borra directo, sin anon, usuario_id y borrar_en no se mandan',
+       case when to_regclass('public.praxis_charla_turnos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_charla_turnos')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd = 'r') <> 2 then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd = 'a') <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd in ('w', 'd')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_charla_turnos', 'select')
+              or has_table_privilege('anon', 'public.praxis_charla_turnos', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'delete') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_charla_turnos', 'usuario_id', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_charla_turnos', 'borrar_en', 'insert') then 'NO'
+            when not has_column_privilege('authenticated', 'public.praxis_charla_turnos', 'texto', 'insert') then 'NO'
+            else 'SI' end
+union all
+select '0166 - memoria de la charla de Praxis', 'praxis_borrar_mi_charla y praxis_purgar_charlas existen, security definer, search_path fijo; borrar-mi-charla la ejecutan los usuarios y no anon; la purga solo service_role',
+       case when to_regprocedure('public.praxis_borrar_mi_charla(uuid)') is null
+              or to_regprocedure('public.praxis_purgar_charlas()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_borrar_mi_charla(uuid)'))
+              or not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_purgar_charlas()')) then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_borrar_mi_charla(uuid)')), false)
+              or not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_purgar_charlas()')), false) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_borrar_mi_charla(uuid)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_purgar_charlas()', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_purgar_charlas()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_borrar_mi_charla(uuid)', 'execute') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
