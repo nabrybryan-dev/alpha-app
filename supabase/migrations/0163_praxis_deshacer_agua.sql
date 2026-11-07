@@ -145,7 +145,12 @@ begin
      set deshecho_en = now(), deshecho_mensaje_id = v_mensaje
    where id = v_reg.id;
 
-  return jsonb_build_object('deshecho', true, 'ya_deshecho', false, 'registro_id', v_reg.id, 'tipo', v_reg.tipo);
+  -- Agua: también la fecha y el total que quedaron. La app fija con eso su total local; si no, al sumar agua
+  -- después subiría (upsert) el total viejo del teléfono y el agua deshecha «reviviría».
+  return jsonb_build_object('deshecho', true, 'ya_deshecho', false, 'registro_id', v_reg.id, 'tipo', v_reg.tipo)
+         || case when v_reg.tipo = 'agua'
+                 then jsonb_build_object('fecha', v_reg.ref ->> 'fecha', 'total_ml', v_antes_ml)
+                 else '{}'::jsonb end;
 end
 $$;
 
@@ -166,7 +171,10 @@ commit;
 --      encima, se rechaza; hay que deshacer primero la más reciente.
 --   3. Mismo día de Bogotá contado desde `creado_en` (decisión de Bryan, 5-nov). Techo de 10000 mL: no aplica al
 --      deshacer (solo baja).
---   4. La Edge Function `praxis-registro` y la pantalla NO se tocaron: hoy filtran series y adherencia
---      (ver el informe del paso D4). Hasta cambiarlos, esta rama no se alcanza desde el chat.
+--   4b. Con el agua deshecha la función devuelve también `fecha` y `total_ml` (lo que quedó), y la app fija con
+--      eso el total del teléfono (`fijarTotalDelDia`), para que el siguiente vaso no vuelva a subir el total viejo.
+--   4. La Edge Function `praxis-registro` ya lee el agua del libro (7-nov). Sin esta migración, la base rechaza
+--      deshacer el agua y la pantalla dice «No pude quitarlo ahora y no toqué nada». Además el agua solo entra al
+--      libro con `PRAXIS_AGUA_POR_RPC` encendido en la app (hoy apagado).
 --   5. Aplicar: pegar este archivo en el SQL Editor; luego `comprobar-migraciones.sql`: la señal '0163' debe dar SI.
 -- ============================================================================

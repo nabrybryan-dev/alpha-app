@@ -87,9 +87,19 @@ function iguales(a: string, b: string): boolean {
 const NOMBRE_ESTADO: Record<string, string> = { si: 'sí', parcial: 'parcial', no: 'no' }
 const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 
+/** El tipo del libro (base) al del dominio: la base llama `agua` a lo que el dominio llama `hidratacion`. */
+const TIPO_DOMINIO: Record<string, TipoRegistroLibro> = { series: 'series', adherencia: 'adherencia', agua: 'hidratacion' }
+
+const mlDe = (x: unknown): number | null => (esObjeto(x) && typeof x.ml === 'number' && Number.isFinite(x.ml) ? x.ml : null)
+
 /** Descripción corta, solo con cifras del libro: nada de texto libre de la persona. */
-function describir(tipo: TipoRegistroLibro, despues: unknown): string {
+function describir(tipo: TipoRegistroLibro, despues: unknown, antes: unknown): string {
   const d = esObjeto(despues) ? despues : {}
+  if (tipo === 'hidratacion') {
+    // Lo que sumó ESA tarjeta (0161: antes nulo = la fila del día no existía, cuenta desde 0).
+    const total = mlDe(despues)
+    return total === null ? 'agua de hoy' : `+${total - (mlDe(antes) ?? 0)} ml`
+  }
   if (tipo === 'adherencia') return `marcada «${NOMBRE_ESTADO[String(d.estado)] ?? 'sin dato'}»`
   const series = Array.isArray(d.series) ? d.series : []
   const ultima = series[series.length - 1]
@@ -101,8 +111,8 @@ function describir(tipo: TipoRegistroLibro, despues: unknown): string {
 async function leerLibro(d: Deps, s: SesionLibro): Promise<RegistroLibro[] | null> {
   try {
     const r = await d.fetch(
-      `${d.entorno.SUPABASE_URL}/rest/v1/praxis_registros_aplicados?usuario_id=eq.${s.usuarioId}&deshecho_en=is.null&tipo=in.(series,adherencia)` +
-        '&select=id,usuario_id,tipo,despues,creado_en,deshecho_en&order=creado_en.desc&limit=30',
+      `${d.entorno.SUPABASE_URL}/rest/v1/praxis_registros_aplicados?usuario_id=eq.${s.usuarioId}&deshecho_en=is.null&tipo=in.(series,adherencia,agua)` +
+        '&select=id,usuario_id,tipo,antes,despues,creado_en,deshecho_en&order=creado_en.desc&limit=30',
       { headers: cabeceras(d, s) },
     )
     if (!r.ok) return null
@@ -110,8 +120,9 @@ async function leerLibro(d: Deps, s: SesionLibro): Promise<RegistroLibro[] | nul
     if (!Array.isArray(filas)) return null
     return filas.flatMap((f): RegistroLibro[] => {
       if (!esObjeto(f) || typeof f.id !== 'string' || typeof f.usuario_id !== 'string' || typeof f.creado_en !== 'string') return []
-      if (f.tipo !== 'series' && f.tipo !== 'adherencia') return []
-      return [{ id: f.id, usuarioId: f.usuario_id, tipo: f.tipo, descripcion: describir(f.tipo, f.despues), creadoEn: f.creado_en, deshechoEn: null }]
+      const tipo = typeof f.tipo === 'string' ? TIPO_DOMINIO[f.tipo] : undefined
+      if (!tipo) return []
+      return [{ id: f.id, usuarioId: f.usuario_id, tipo, descripcion: describir(tipo, f.despues, f.antes), creadoEn: f.creado_en, deshechoEn: null }]
     })
   } catch {
     return null
@@ -156,7 +167,7 @@ export async function deshacerPorFrase(d: Deps, s: SesionLibro, frase: string): 
 // ——— POST /deshacer ———
 
 const TEXTOS = {
-  deshecho: { series: 'Listo, dejé las series como estaban antes.', adherencia: 'Listo, quité la adherencia que anotaste.' } as Record<string, string>,
+  deshecho: { series: 'Listo, dejé las series como estaban antes.', adherencia: 'Listo, quité la adherencia que anotaste.', agua: 'Listo, dejé el agua de hoy como estaba antes.' } as Record<string, string>,
   ya_deshecho: 'Eso ya estaba deshecho. No toqué nada más.',
   cambio_despues: 'Eso ya cambió después, así que no lo toqué.',
   vencida: 'La tarjeta venció y no quité nada. Pídemelo otra vez.',
@@ -190,10 +201,16 @@ async function tarjetaValida(d: Deps, s: SesionLibro, c: Record<string, unknown>
   return t.registro_id
 }
 
-/** Lo que contesta `praxis_deshacer` (0162), dicho en palabras. */
-function contarResultado(o: { deshecho?: unknown; ya_deshecho?: unknown; motivo?: unknown; tipo?: unknown } | null): Response {
+/** Lo que contesta `praxis_deshacer` (0162; el agua, 0163), dicho en palabras. */
+function contarResultado(o: { deshecho?: unknown; ya_deshecho?: unknown; motivo?: unknown; tipo?: unknown; fecha?: unknown; total_ml?: unknown } | null): Response {
   if (o?.ya_deshecho === true) return json({ tipo: 'deshacer', resultado: 'ya_deshecho', texto: TEXTOS.ya_deshecho })
-  if (o?.deshecho === true) return json({ tipo: 'deshacer', resultado: 'deshecho', texto: TEXTOS.deshecho[String(o.tipo)] ?? 'Listo, lo quité.' })
+  if (o?.deshecho === true) {
+    // Agua (0163): el total que quedó, para que el teléfono fije el suyo. Solo si la base lo dio bien formado.
+    const agua = o.tipo === 'agua' && typeof o.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.fecha)
+      && Number.isInteger(o.total_ml) && (o.total_ml as number) >= 0 && (o.total_ml as number) <= 10000
+      ? { agua: { fecha: o.fecha, total_ml: o.total_ml } } : {}
+    return json({ tipo: 'deshacer', resultado: 'deshecho', texto: TEXTOS.deshecho[String(o.tipo)] ?? 'Listo, lo quité.', ...agua })
+  }
   if (o?.motivo === 'cambio_despues') return json({ tipo: 'deshacer', resultado: 'cambio_despues', texto: TEXTOS.cambio_despues })
   return rechazo('error', TEXTOS.base, 502)
 }

@@ -73,6 +73,8 @@ begin
   r := public.praxis_deshacer(reg, 'dw2', true);
   perform pruebas.afirmar((r->>'deshecho')::boolean = true and r->>'tipo' = 'agua', 'deshacer agua no dijo deshecho');
   perform pruebas.afirmar((select ml from public.hidratacion where fecha = hoy and usuario_id = auth.uid()) = 250, 'el agua no volvio a 250');
+  -- La app fija su total local con esto: si no, al sumar agua después subiría el total viejo y el agua deshecha «reviviría».
+  perform pruebas.afirmar((r->>'total_ml')::int = 250 and r->>'fecha' = hoy::text, 'deshacer agua no devolvio el total y la fecha que quedaron');
   perform pruebas.afirmar((select deshecho_en is not null and deshecho_mensaje_id = 'dw2' from public.praxis_registros_aplicados where id = reg),
     'no marco deshecho_en / deshecho_mensaje_id');
 
@@ -85,7 +87,7 @@ begin
 
   -- 2 · ahora w1 (antes nulo) es la ultima: el dia queda en 0 y la fila sigue
   r := public.praxis_deshacer((select id from public.praxis_registros_aplicados where mensaje_id = 'w1'), 'dw4', true);
-  perform pruebas.afirmar((r->>'deshecho')::boolean = true, 'deshacer el agua sin antes no dijo deshecho');
+  perform pruebas.afirmar((r->>'deshecho')::boolean = true and (r->>'total_ml')::int = 0, 'deshacer el agua sin antes no dijo deshecho con total 0');
   perform pruebas.afirmar((select ml from public.hidratacion where fecha = hoy and usuario_id = auth.uid()) = 0,
     'el dia no quedo en 0 o la fila desaparecio');
 
