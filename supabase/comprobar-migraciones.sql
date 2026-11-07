@@ -2802,7 +2802,7 @@ select '0163 - deshacer el agua de Praxis', 'praxis_deshacer conserva security d
             else 'SI' end
 
 union all
-select '0151 - guiones de llamada: los lee la consola, no los escribe nadie desde el navegador', 'guiones_llamada con RLS, una sola política de lectura (es_coach o leer_entrenamiento), unique (person_id, revision), usuario_id opcional, authenticated solo lee, anon nada',
+select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desde el navegador', 'guiones_llamada con RLS, una sola política de lectura (es_coach o leer_entrenamiento), unique (person_id, revision), usuario_id opcional, authenticated solo lee, anon nada',
        case when to_regclass('public.guiones_llamada') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.guiones_llamada')) then 'NO'
             when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada') <> 1 then 'NO'

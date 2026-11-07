@@ -1,6 +1,6 @@
--- Comprobación de la 0151 (guiones de llamada). Se corre APARTE, en el SQL Editor del proyecto de la APP.
+-- Comprobación de la 0167 (guiones de llamada). Se corre APARTE, en el SQL Editor del proyecto de la APP.
 -- ANTES de aplicarla, todas dicen NO; DESPUÉS, todas dicen SI. Para y avisa si alguna da SI antes o NO después.
--- La prueba con la cuenta de Manuela (que ella VE filas) está en la cabecera de la 0151.
+-- La prueba con la cuenta de Manuela (que ella VE filas) está en la cabecera de la 0167.
 
 select 'la tabla existe con sus columnas' as comprueba,
        case when (select count(*) from information_schema.columns

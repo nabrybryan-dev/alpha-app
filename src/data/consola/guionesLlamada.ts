@@ -3,7 +3,7 @@ import { modoNube, supabase } from '../supabase'
 
 /**
  * El guion de llamada (`guion-llamada-v1`) que deja la landing para cada persona nueva (migración
- * 0151). Llega al reservar la llamada, ANTES de que la persona tenga cuenta: cada fila es de un
+ * 0167). Llega al reservar la llamada, ANTES de que la persona tenga cuenta: cada fila es de un
  * `person_id` (la persona en la landing) y `usuario_id` se llena cuando se crea la cuenta. Por eso
  * hay dos lecturas: `guionDe` (Ficha, por cuenta) y `llamadasPorHacer` (sin cuenta o con la llamada
  * por delante). Lleva el correo y el WhatsApp de la persona: solo lo leen quienes entran a la consola. Solo lectura:
@@ -15,7 +15,7 @@ import { modoNube, supabase } from '../supabase'
  * pantalla eso se ve igual que «todavía no hay guion», y es lo correcto (quien no entra a la
  * consola tampoco llega aquí).
  *
- * `COLUMNAS_GUIONES_LLAMADA` es la misma lista que el `create table` de la 0151; la prueba de
+ * `COLUMNAS_GUIONES_LLAMADA` es la misma lista que el `create table` de la 0167; la prueba de
  * contrato la compara contra el SQL.
  */
 export const TABLA_GUIONES_LLAMADA = 'guiones_llamada'
@@ -44,7 +44,7 @@ export interface FilaGuionLlamada {
   guion: unknown
   dia_preferido: string | null
   franja_preferida: string | null
-  /** Milisegundos de `guion.generado_en` (0151): mayor = más reciente. */
+  /** Milisegundos de `guion.generado_en` (0167): mayor = más reciente. */
   revision: number
   creado_en: string
 }

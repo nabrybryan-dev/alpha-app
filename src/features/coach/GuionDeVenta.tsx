@@ -5,7 +5,7 @@ import { fechaDeLlamada, horaDeLlamada } from '../../data/consola/notasLlamada'
 import { guionTieneContenido, marcasDeSalud, type GuionDeVenta as Guion } from '../../domain/consolaCoach/guionDeVenta'
 
 /**
- * El guion de la llamada de venta (`guion-llamada-v1`, 0151): lo que el agente de la landing preparó
+ * El guion de la llamada de venta (`guion-llamada-v1`, 0167): lo que el agente de la landing preparó
  * para que Manuela llame a una persona nueva. Va arriba en la ficha de la consola, junto a las notas
  * de llamada: primero se lee el guion, después se anota la llamada. Antes de que la persona tenga
  * cuenta, la misma tarjeta (`VistaGuionDeVenta`) se abre desde «Llamadas por hacer».

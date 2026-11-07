@@ -27,7 +27,7 @@ vi.mock('../../../data/consola/primerosPlanes', () => ({
   planPropuesto: (...a: unknown[]) => datos.planPropuesto(...a),
 }))
 
-/** Quiénes tienen guion de llamada (0151); `null` = la lectura falló. */
+/** Quiénes tienen guion de llamada (0167); `null` = la lectura falló. */
 const guiones = { conGuion: new Set<string>() as Set<string> | null, pedidos: [] as unknown[] }
 
 vi.mock('../../../data/consola/guionesLlamada', () => ({

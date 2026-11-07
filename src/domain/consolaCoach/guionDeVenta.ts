@@ -1,5 +1,5 @@
 /**
- * El guion de la llamada de venta que arma el agente de la landing (tabla `guiones_llamada`, 0151),
+ * El guion de la llamada de venta que arma el agente de la landing (tabla `guiones_llamada`, 0167),
  * leído de forma TOLERANTE.
  *
  * El contrato es `guion-llamada-v1` (alpha-praxis-chat: landing/src/lib/praxis/guion-llamada.ts).

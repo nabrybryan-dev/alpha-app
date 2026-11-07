@@ -1,5 +1,5 @@
 // Recepción del guion de llamada que arma el agente de la landing (proyecto de la APP, tabla
-// `guiones_llamada`, migración 0151). Hermana de alta-cliente: misma puerta, mismo secreto.
+// `guiones_llamada`, migración 0167). Hermana de alta-cliente: misma puerta, mismo secreto.
 //
 // POST { "person_id": uuid, "usuario_id"?: uuid | null, "guion": <guion-llamada-v1 de la landing> }
 // Cabecera obligatoria: x-alpha-clave = ALPHA_LINKS_SECRET (secreto de ESTE proyecto, el de la app).

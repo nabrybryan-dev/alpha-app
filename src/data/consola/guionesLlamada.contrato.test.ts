@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { COLUMNAS_GUIONES_LLAMADA, TABLA_GUIONES_LLAMADA } from './guionesLlamada'
 
 /**
- * Lo que este archivo pide a la base, contra lo que crea la 0151 — y la puerta de la 0151 contra
+ * Lo que este archivo pide a la base, contra lo que crea la 0167 — y la puerta de la 0167 contra
  * la de la 0113. `guionesLlamada.test.ts` dobla a Supabase y aceptaría cualquier nombre de
  * columna; esta prueba lee el SQL de verdad.
  */
-const SQL = readFileSync(join(process.cwd(), 'supabase', 'migrations', '0151_guiones_llamada.sql'), 'utf8')
+const SQL = readFileSync(join(process.cwd(), 'supabase', 'migrations', '0167_guiones_llamada.sql'), 'utf8')
   // `\r?`: con CRLF en la copia de trabajo, `.` no cruza el `\r` y el comentario no se quitaría.
   .split(/\r?\n/)
   .map((linea) => linea.replace(/--.*$/, ''))
@@ -16,7 +16,7 @@ const SQL = readFileSync(join(process.cwd(), 'supabase', 'migrations', '0151_gui
 
 function columnasDelCreateTable(): string[] {
   const inicio = SQL.indexOf(`create table if not exists public.${TABLA_GUIONES_LLAMADA} (`)
-  expect(inicio, 'la 0151 no crea la tabla').toBeGreaterThanOrEqual(0)
+  expect(inicio, 'la 0167 no crea la tabla').toBeGreaterThanOrEqual(0)
   return SQL.slice(inicio, SQL.indexOf('\n);', inicio))
     .split('\n')
     .slice(1)
@@ -25,7 +25,7 @@ function columnasDelCreateTable(): string[] {
     .map((l) => l.split(/\s+/)[0])
 }
 
-describe('guiones de llamada · el código y la 0151 dicen lo mismo', () => {
+describe('guiones de llamada · el código y la 0167 dicen lo mismo', () => {
   it('las columnas que se piden son las que crea la migración, en el mismo orden', () => {
     expect([...COLUMNAS_GUIONES_LLAMADA]).toEqual(columnasDelCreateTable())
   })

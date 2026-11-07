@@ -54,7 +54,7 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
   const [fallo, setFallo] = useState<string | null>(null)
   const [intento, setIntento] = useState(0)
   const [ahora, setAhora] = useState(() => Date.now())
-  /** Quiénes ya tienen guion de llamada (0151). Es solo una marca: si su lectura falla, la marca
+  /** Quiénes ya tienen guion de llamada (0167). Es solo una marca: si su lectura falla, la marca
    *  no sale y nada más — el guion se lee en la ficha, que sí avisa de su propio fallo. */
   const [conGuion, setConGuion] = useState<ReadonlySet<string>>(() => new Set())
 

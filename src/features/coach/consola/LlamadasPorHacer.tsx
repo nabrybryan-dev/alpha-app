@@ -7,7 +7,7 @@ import { VistaGuionDeVenta } from '../GuionDeVenta'
 import { Esqueleto, FalloBandeja, Tarjeta } from './piezas'
 
 /**
- * «Llamadas por hacer» (0151, decisión de Bryan del 30-oct-2026): los guiones de la landing de
+ * «Llamadas por hacer» (0167, decisión de Bryan del 30-oct-2026): los guiones de la landing de
  * quien reservó la llamada de venta y todavía no tiene cuenta en la app, o la tiene pero su llamada
  * es hoy o después. Sin cuenta no hay Ficha, así que el guion se abre aquí, con la MISMA tarjeta
  * (`VistaGuionDeVenta`). Cuando llega la cuenta, el guion sale también en su Ficha.

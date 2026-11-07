@@ -1,4 +1,4 @@
--- Los guiones de llamada (0151).
+-- Los guiones de llamada (0167).
 --
 -- Se comprueba, con sesiones de verdad contra RLS:
 --   1. Quien entra a la consola por `leer_entrenamiento` (Manuela: nutricionista sin

@@ -206,7 +206,7 @@ export function RevisionSemanaTab({ seleccionadoId, onVerPersona }: RevisionSema
   return (
     <div className="flex flex-col gap-3">
       {/* Los guiones de la landing de quien reservó la llamada de venta, antes de que tenga cuenta
-          (0151). Sin llamadas, o sin la puerta de la tabla, no pinta nada. */}
+          (0167). Sin llamadas, o sin la puerta de la tabla, no pinta nada. */}
       <LlamadasPorHacer />
       {/* Solo con `aprobar_primer_plan`: sin ella, la bandeja no pinta nada. */}
       <BandejaPrimerosPlanes onVerPersona={onVerPersona} />

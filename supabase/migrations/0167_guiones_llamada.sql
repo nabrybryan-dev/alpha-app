@@ -1,4 +1,6 @@
--- 0151: el guion de llamada que deja la landing, para que Manuela lo lea antes de llamar.
+-- 0167: el guion de llamada que deja la landing, para que Manuela lo lea antes de llamar.
+-- NÚMERO: nació como 0151; renumerada a 0167 el 7-nov-2026 porque la 0151 de main (cola de dudas, «No era esto») ya
+-- estaba aplicada en la base y esta no (la tabla guiones_llamada no existe). Regla: se renumera la que no corrió.
 --
 -- QUÉ ES. Al terminar la evaluación en la landing, el agente de PRAXIS arma un «guion de llamada»:
 -- quién es la persona (tramo de edad, objetivo), si hay alerta de salud, cómo abrir, qué le pesa,
@@ -41,7 +43,7 @@
 -- la llama): por eso la lectura es solo para quien entra a la consola, y nunca para `anon`.
 --
 -- NO SE APLICA SOLA. Se corre aparte (SQL Editor o `supabase db push` contra el proyecto de la
--- APP, no el de la landing). Comprobación: supabase/migrations/comprobar-0151.sql.
+-- APP, no el de la landing). Comprobación: supabase/migrations/comprobar-0167.sql.
 --
 -- CÓMO VERIFICAR CON LA CUENTA DE MANUELA. Tras aplicar y desplegar la función, mandar un guion de
 -- prueba sin usuario_id y entrar a la consola con la cuenta de Manuela: en Revisión, «Llamadas por
@@ -71,7 +73,7 @@ create table if not exists public.guiones_llamada (
 );
 
 comment on table public.guiones_llamada is
-  'Guion de la llamada de venta que arma el agente de la landing (0151). Una fila por versión y persona de la landing (person_id); la app lee la más alta. Solo lectura para la consola.';
+  'Guion de la llamada de venta que arma el agente de la landing (0167). Una fila por versión y persona de la landing (person_id); la app lee la más alta. Solo lectura para la consola.';
 comment on column public.guiones_llamada.guion is
   'Guion guion-llamada-v1 tal cual lo manda la landing (persona con contacto, alerta_salud sí/no, apertura, dolores, que_mostrar, objeciones_probables, cierre, avisos, recomendaciones_praxis, reserva). La app lo lee de forma tolerante.';
 comment on column public.guiones_llamada.revision is
