@@ -234,5 +234,5 @@ jobs:
       - name: Deshacer el agua de Praxis solo lo propio, del mismo día de Bogotá, con confirmación, y avisa si el total cambió después
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/263-praxis-deshacer-agua.sql
 
-      - name: La memoria de la charla de Praxis es de cada persona, el equipo la lee, nadie la edita directo y la purga borra solo lo que pasó de 90 días
+      - name: La memoria de la charla de Praxis la leen solo quien tiene la capacidad y los agentes, la escriben solo los agentes y se borra a 30 días de atendida (tope 90)
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/264-praxis-memoria-de-charla.sql
