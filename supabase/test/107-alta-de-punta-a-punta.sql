@@ -47,6 +47,9 @@ insert into public.capacidades_staff (usuario_id, capacidad) values
   ('e7000000-0000-0000-0000-000000000002', 'leer_entrenamiento'),
   ('e7000000-0000-0000-0000-000000000002', 'aprobar_primer_plan'),
   ('e7000000-0000-0000-0000-000000000002', 'liberar_prescripcion');
+-- Desde M2 (0133, decision del 16-oct): el coach crea la ficha solo de sus ASIGNADOS.
+insert into public.asignaciones_coach (persona_id, coach_id)
+values ('d7000000-0000-0000-0000-000000000001', 'e7000000-0000-0000-0000-000000000001');
 
 -- anon no ejecuta la RPC; nadie con sesión ejecuta la función del trigger.
 select pruebas.afirmar(

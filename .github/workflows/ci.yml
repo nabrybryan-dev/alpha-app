@@ -103,6 +103,7 @@ jobs:
         run: bash scripts/aplicar-migraciones.sh
 
       - name: Las escrituras del asesorado llegan de verdad
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/10-escrituras-del-asesorado.sql
 
       # Es la consulta con la que se mira qué está aplicado en producción, y dos
@@ -113,120 +114,160 @@ jobs:
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -o /dev/null -f supabase/comprobar-migraciones.sql
 
       - name: El aislamiento entre asesorados aguanta
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/20-aislamiento.sql
 
       - name: El molde de carga sabe cambiar el `cues`
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/30-molde-de-carga.sql
 
       - name: El cribado de salud se guarda de verdad
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/40-el-cribado-se-guarda.sql
 
       - name: Los errores del navegador se guardan y solo los lee el coach
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/60-los-errores-del-navegador.sql
 
       - name: La consola del coach respeta permisos por capacidad, no por rol
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/70-consola-permisos.sql
 
       - name: Reanudar y la firma de casos respetan su capacidad y su estado
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/80-consola-firma-y-reanudar.sql
 
       - name: La consola lee ficha y cribado por capacidad, y solo lee
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/90-consola-lee-ficha-y-cribado.sql
 
       - name: El primer plan lo aprueba quien puede, y al vencer solo pasa el riesgo bajo
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/95-consola-primer-plan.sql
 
       - name: El plan estratégico renovado lo aprueba quien puede, y el asesorado no ve su borrador
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/97-consola-plan-estrategico.sql
 
       - name: Los parámetros de un plan renovado los aprueba quien puede, vencen si cambian y no se editan a mano
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/258-parametros-aprobados.sql
 
       - name: La tarjeta semanal y los mensajes de estilo de vida respetan quién es el dueño
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/100-tarjeta-vida-y-mensajes.sql
 
       - name: El tablero de creadores solo lo leen el coach y quien tiene revisar_creadores
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-creadores-tablero.sql
 
       - name: Las decisiones compartidas las anota quien tiene acceso, las firma solo el otro y no admiten salud
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/120-decisiones-compartidas.sql
 
       - name: Cada quien ve solo sus comentarios de la app y solo el coach los cierra
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/130-comentarios-app.sql
 
       - name: El buzón de mercadeo es de Manuela, y la regla vigente pide 3 referencias y la firma del coach
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/140-buzon-mercadeo.sql
 
       - name: La historia del embudo de creadores no acepta un carril inventado
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/150-creadores-eventos-carril.sql
 
       - name: El organizador de Bryan y Manuela guarda cada plan con su dueño, tope de 3 tareas por día y una sola principal
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/160-plan-items.sql
 
       - name: El registro de avisos push del organizador admite un aviso por tarea y día y solo lo escribe el servicio
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/170-avisos-plan-enviados.sql
 
       - name: Las vistas de comentarios y decisiones corren con los permisos de quien las lee, y cada rol ve lo mismo que antes
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/180-vistas-invoker.sql
 
       - name: Los avisos de seguridad (checkins_nutricion invoker, firmas sin anon) no cambian lo que ve cada rol
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/190-avisos-seguridad.sql
 
       - name: El tablero del área administrativa lo lee quien tiene la capacidad, no lo escribe nadie con sesión y anon no ve nada
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/200-admin-tablero.sql
 
       - name: Los hallazgos de mercadeo los leen Manuela y Bryan, comentan por la función, solo el servidor escribe y anon no ve nada
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/210-mercadeo-hallazgos.sql
 
       - name: Quien comenta un hallazgo de mercadeo queda con su nombre real, no con el papel de Manuela
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/211-mercadeo-hallazgos-autor-real.sql
       - name: La pregunta en espera de Praxis es de quien la hace, y solo responde quien la recibe
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/105-praxis-preguntas-en-espera.sql
 
       - name: La cuenta personal de Bryan se asigna por correo solo con service_role, la cuenta Alpha queda solo tablero y no se pide la firma a sí mismo
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/212-dos-cuentas-de-bryan.sql
 
       - name: El alta de un asesorado de punta a punta (ficha por el coach, aprobación creada al proponer el primer plan, aprueba solo quien puede)
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/107-alta-de-punta-a-punta.sql
 
       - name: El aviso de Praxis al coach lo deja la persona sin poder leerlo, lo atiende solo el coach y no guarda ninguna frase
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/108-praxis-avisos-coach.sql
 
       - name: La respuesta del coach a una pregunta de la cadena la dan solo el coach y la nutricionista, a su nombre, y solo por la función
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/112-respuestas-coach-cadena.sql
 
       - name: Ninguna función de public queda sin search_path fijo
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/213-search-path-fijo.sql
 
       - name: Las notas de llamada las lee y las anota quien entra a la consola (coach o leer_entrenamiento), a su nombre; el asesorado no ve nada
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/214-notas-de-llamada.sql
 
       - name: El recálculo de lo estandarizado no suma con el microciclo activo, rompe con cue nuevo o RIR fuera de banda, respeta el veto del coach y solo lo ejecuta el servidor
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/220-estandarizado-recalculo.sql
 
       - name: Las observaciones del agente las lee quien entra a la consola; seguridad y prescripciones solo entran para firma, sin fuente no entran, y se firman por la función, a nombre de quien firma
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/215-observaciones-agente.sql
 
       - name: El candado de microciclos - la app y la cadena no se pisan en silencio, y confirmar es del coach
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216-candado-de-microciclos.sql
 
       - name: Las alertas nutricionales no se encienden sin firma completa y su detalle solo lo lee la nutricionista
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/221-alertas-nutricion.sql
 
       - name: El trigger de la revision semanal guarda quien pidio la correccion (gana el ultimo), distingue republicacion tecnica y no cambia el solicitante en una edicion suelta
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/252-trigger-revision-quien-pidio.sql
 
       - name: La biblioteca de Praxis solo la lee el equipo y solo se encuentra lo aprobado
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/255-praxis-conceptos.sql
 
       - name: El puente con el laboratorio - lab_lector solo lee tres vistas de quien dio permiso, no ve tablas base y no escribe
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/222-laboratorio-puente.sql
 
       - name: Los mensajes del equipo a Praxis solo los guarda y lee el equipo, a su nombre, sin etiquetas desde fuera
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/259-praxis-mensajes-equipo.sql
 
       - name: El libro de lo que Praxis guardó es de cada persona, nadie lo escribe directo y el agua de una tarjeta se suma una sola vez, en el día de Bogotá
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/261-praxis-registros-aplicados.sql
 
       - name: Series y adherencia de Praxis llenan el libro una sola vez por tarjeta, y deshacer solo lo propio, del mismo día de Bogotá, con confirmación
+        if: ${{ !cancelled() }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/262-praxis-libro-series-adherencia.sql
