@@ -2856,9 +2856,10 @@ select '0116 - bloqueo visible y anulable', 'registro_entreno: RLS, la persona i
                               where conrelid = 'public.registro_entreno'::regclass and contype = 'c'
                                 and pg_get_constraintdef(oid) like '%porcentaje%'
                                 and pg_get_constraintdef(oid) like '%100%') then 'NO'
+            -- 7-nov: la 0116 deja el unico en (usuario_id, fecha) a proposito; sesion_ref NO entra (corregida la senal).
             when not exists (select 1 from pg_indexes
                               where schemaname = 'public' and tablename = 'registro_entreno'
-                                and indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%sesion_ref%') then 'NO'
+                                and indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%(usuario_id, fecha)%') then 'NO'
             else 'SI' end
 union all
 -- Que la 0116 NO haya tocado la adherencia a la dieta: sin columna porcentaje y con su unico (usuario, fecha).
