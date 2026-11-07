@@ -67,7 +67,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/domain/praxis/registro/resolver.ts:resolverEjercicioDelMensaje': 40,
   'src/domain/praxis/registro/resolver.ts:resolverPropuesta': 101,
   'src/domain/praxis/registro/tarjeta.ts:construirTarjeta': 21,
-  'src/domain/praxis/registro/vida.ts:resolverVida': 98,
+  'src/domain/praxis/registro/vida.ts:resolverVida': 88,
   'src/domain/sujeto/contrato.ts:verificarCifra': 31,
   'src/features/coach/NotasDeLlamada.tsx:NotasDeLlamada': 27,
   'src/features/coach/PanelMicrociclos.tsx:PanelMicrociclos': 23,
