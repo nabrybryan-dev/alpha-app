@@ -157,3 +157,9 @@ Las piezas 1-2 no dependen del saldo de Anthropic: la extracción es por tablas.
 - Bryan eligió construir el lexicón por persona. Dominio: `src/domain/praxis/registro/lexicoPersona.ts` (solo la expresión vaga normalizada, nunca la frase; 6 campos de tres niveles; 3 iguales seguidas = llega marcado «como lo dices tú»; distinta = vuelve a 1; la tabla manda; solo entre lo que la fila admite). 8 pruebas, 7 mutaciones caen.
 - Base: `0171_praxis_lexico_persona.sql` SIN aplicar (lee solo la persona, el equipo no; escribe solo `praxis_aprender_forma`; `praxis_olvidar_mis_formas` borra todo lo propio; tope 200 formas). Prueba SQL 266 en el CI. No entra al entrenamiento.
 - Falta enchufarlo: la tarjeta llama a `aprendizajeDeEleccion` al tocar y a `aplicarLexico` al armarse, con la bandera encendida.
+
+## 8e. Conectado, apagado (7-nov, noche)
+
+- La tarjeta se arma en el TELÉFONO, por reglas (no pasa por la Edge Function ni por el modelo: funciona aunque el saldo de Anthropic esté en cero). Guardar va directo a la RPC `praxis_aplicar_checkin` (0170) y aprender a `praxis_aprender_forma` (0171), con el JWT de la persona; la app FIJA la fila que devuelve la base. No se tocó `praxis-registro/index.ts`.
+- `src/data/praxis/checkin.ts` (guardar, aprender, leer lo aprendido), `ConexionPraxis.checkin` (solo con `CONECTORES_EN_TARJETA`), `motor/checkinConectado.ts` (riesgo y series/kilos/agua siguen el camino de siempre; tras anotar pregunta UNA cosa y lee la respuesta con esa pregunta) y el gancho `registrarOCheckin` en `conversacion.ts`.
+- Para encender: aplicar 0170 y 0171 (sí de Bryan), poner `CONECTORES_EN_TARJETA = true` (cambio de código con su PR) y publicar la app (fusionar a main).

@@ -66,6 +66,11 @@ export function armarTarjeta(r: ResultadoConectores, yaHoy: readonly CampoChecki
       campo: d.campo, rotulo: PREGUNTA[d.campo].rotulo, opciones: PREGUNTA[d.campo].opciones,
       marcado: null, candidatos: [...new Set(d.candidatos.map((c) => c.valor))], cita: d.candidatos[0]?.cita ?? '', origen: 'dudosa',
     })),
+    // El hambre vaga no da número: llega como fila con los 10 números del formulario, sin nada marcado.
+    ...r.preguntas.slice(0, 1).map((p): FilaTarjeta => ({
+      campo: p.campo, rotulo: PREGUNTA.hambreEscala.rotulo, opciones: PREGUNTA.hambreEscala.opciones,
+      marcado: null, candidatos: [], cita: p.cita, origen: 'dudosa',
+    })),
   ]
   const cubiertos = new Set<CampoCheckin>([...filas.map((f) => f.campo), ...yaHoy])
   return { filas, tramos: r.preguntas, faltantes: OBLIGATORIOS.filter((c) => !cubiertos.has(c)) }

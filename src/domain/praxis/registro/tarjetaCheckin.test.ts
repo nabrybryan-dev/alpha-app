@@ -34,11 +34,12 @@ describe('armar la tarjeta', () => {
     expect(armarTarjeta(conectarMensaje('estoy ahí, me duele mucho el pecho'))).toBeNull()
   })
 
-  it('T04 el hambre vaga llega como pregunta de tramo, no como fila con número', () => {
+  it('T04 el hambre vaga llega como fila de 1 a 10 SIN nada marcado (nunca un número sacado de palabras)', () => {
     const t = tarjeta('ahí, como medio', 'hambreEscala')
-    expect(t.filas).toEqual([])
+    expect(t.filas).toEqual([expect.objectContaining({ campo: 'hambreEscala', rotulo: 'Hambre de hoy', marcado: null, candidatos: [] })])
+    expect(t.filas[0].opciones).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     expect(t.tramos).toHaveLength(1)
-    expect(t.faltantes).toContain('hambreEscala')
+    expect(t.faltantes).not.toContain('hambreEscala')
   })
 })
 

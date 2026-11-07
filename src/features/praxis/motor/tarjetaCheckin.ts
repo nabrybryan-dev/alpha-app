@@ -52,9 +52,15 @@ export function nodoTarjetaCheckin(t: TarjetaCheckin, estado: EstadoTarjeta, alC
 }
 
 /** Monta la tarjeta en los controles de Praxis. `alConfirmar` recibe lo que la persona tocó; aquí no se guarda nada. */
-export function mostrarTarjetaCheckin(t: TarjetaCheckin, yaHoy: readonly CampoCheckin[], alConfirmar: (c: Confirmado) => void): void {
+export function mostrarTarjetaCheckin(
+  t: TarjetaCheckin, yaHoy: readonly CampoCheckin[], alConfirmar: (c: Confirmado, elecciones: Eleccion[]) => void,
+): void {
   const estado: EstadoTarjeta = { elecciones: new Map() }
-  const alAnotar = () => { if (estado.elecciones.size > 0) alConfirmar(confirmarTarjeta(t, [...estado.elecciones.values()], yaHoy)) }
+  const alAnotar = () => {
+    if (estado.elecciones.size === 0) return
+    const elecciones = [...estado.elecciones.values()]
+    alConfirmar(confirmarTarjeta(t, elecciones, yaHoy), elecciones)
+  }
   montar(() => [nodoTarjetaCheckin(t, estado, refrescar, alAnotar)])
   enfocarControles()
 }
