@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0172 · Praxis: búsqueda mixta (palabras + sentido) con fusión por rango recíproco
+-- 0174 · Praxis: búsqueda mixta (palabras + sentido) con fusión por rango recíproco
 -- ============================================================================
 --
 -- PROPUESTA, NO APLICADA (7-nov-2026). Agrega una función NUEVA y no toca `buscar_conceptos` (0155) ni
@@ -71,7 +71,7 @@ as $$
 $$;
 
 comment on function public.buscar_conceptos_mixta(text, extensions.vector, integer, integer) is
-  'Busca en lo aprobado de praxis_conceptos fundiendo palabras (ts_rank_cd) y sentido (coseno) por rango recíproco, k=60. Propuesta 0172, sin cablear. Solo el equipo: SECURITY INVOKER con RLS.';
+  'Busca en lo aprobado de praxis_conceptos fundiendo palabras (ts_rank_cd) y sentido (coseno) por rango recíproco, k=60. Propuesta 0174, sin cablear. Solo el equipo: SECURITY INVOKER con RLS.';
 
 revoke all on function public.buscar_conceptos_mixta(text, extensions.vector, integer, integer) from public, anon;
 grant execute on function public.buscar_conceptos_mixta(text, extensions.vector, integer, integer) to authenticated, service_role;

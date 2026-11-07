@@ -1,4 +1,4 @@
--- Praxis: búsqueda mixta, palabras + sentido con fusión por rango recíproco (0172).
+-- Praxis: búsqueda mixta, palabras + sentido con fusión por rango recíproco (0174).
 --
 -- POR QUÉ ESTA PRUEBA EXISTE. La función nueva junta dos listas. Riesgos: que un borrador salga, que un asesorado
 -- encuentre piezas, que una sola de las dos listas tape a la otra, y que un vector nulo o una frase vacía rompan
