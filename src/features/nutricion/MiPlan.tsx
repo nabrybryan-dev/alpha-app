@@ -14,6 +14,8 @@ import { respuestasDe, visibilidadDelAsesorado } from '../../data/visibilidadDel
 import type { MenuDia, TipoDia } from '../../domain/types'
 import { comidaDe } from './comidaDe'
 import { MiPlanSimple } from './MiPlanSimple'
+import { MiMercado } from './MiMercado'
+import { MI_MERCADO_MAQUETA } from './banderas'
 
 /**
  * El plan nutricional completo, por secciones.
@@ -43,7 +45,8 @@ const kcalDelTipo = (plan: Parameters<typeof macrosDelDia>[0], tipo: TipoDia) =>
   return m ? `${m.kcal.toLocaleString('es-CO')} kcal` : 'sin macros'
 }
 
-export default function MiPlan() {
+/** `mercadoMaqueta` solo existe para probar la vista nueva; en la app manda la bandera. */
+export default function MiPlan({ mercadoMaqueta = MI_MERCADO_MAQUETA }: { mercadoMaqueta?: boolean } = {}) {
   const { usuario } = useSesion()
   useDbVersion()
   const navegar = useNavigate()
@@ -347,7 +350,9 @@ export default function MiPlan() {
         </section>
       )}
 
-      {seccion === 'Mercado' && (
+      {seccion === 'Mercado' && mercadoMaqueta && (<MiMercado asesoradoId={usuario.id} lineas={plan.listaCompras} />)}
+
+      {seccion === 'Mercado' && !mercadoMaqueta && (
         <section className="rounded-2xl border border-linea bg-surface-1 p-4">
           <h2 className="font-display text-base text-texto">Mercado de 15 días</h2>
           <p className="mt-1 text-xs text-tenue">Compra una vez, cumple dos semanas.</p>
