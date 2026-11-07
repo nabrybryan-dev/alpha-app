@@ -11,7 +11,6 @@ import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
-import { InterruptorReglaVentana } from '../coach/consola/InterruptorReglaVentana'
 import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { AlertasNutricionales } from './AlertasNutricionales'
 import { SheetVetados } from './SheetVetados'
@@ -229,7 +228,6 @@ export default function EquipoNutricionPage() {
       {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
           mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}
       {persona === null && <div className="entrada entrada-2 flex flex-col gap-3">
-        {!cargando && tiene('encender_regla_ventana') && <InterruptorReglaVentana />}
         <BandejaPrimerosPlanes />
         <BandejaPlanesRenovados />
       </div>}

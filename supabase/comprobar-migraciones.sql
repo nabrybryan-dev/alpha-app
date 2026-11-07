@@ -3591,6 +3591,23 @@ select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desd
             when not has_table_privilege('authenticated', 'public.guiones_llamada', 'select') then 'NO'
             else 'SI' end
 union all
+select '0168 - la cadena de n8n sin la CLI', 'las cuatro RPCs de cadena-agentes existen, security definer, search_path fijo y authenticated no las ejecuta (solo service_role)',
+       case when to_regprocedure('public.cadena_salud()') is null or to_regprocedure('public.cadena_altas_pendientes()') is null or to_regprocedure('public.cadena_respuestas_preg()') is null or to_regprocedure('public.cadena_insertar_cuestionario(text,jsonb,uuid[])') is null then 'NO'
+            when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.cadena_salud()'), to_regprocedure('public.cadena_altas_pendientes()'), to_regprocedure('public.cadena_respuestas_preg()'), to_regprocedure('public.cadena_insertar_cuestionario(text,jsonb,uuid[])'))
+                          and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('authenticated', 'public.cadena_salud()', 'execute') or has_function_privilege('authenticated', 'public.cadena_altas_pendientes()', 'execute') or has_function_privilege('authenticated', 'public.cadena_respuestas_preg()', 'execute') or has_function_privilege('authenticated', 'public.cadena_insertar_cuestionario(text,jsonb,uuid[])', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0169 - el canario aislado', 'las cinco RPCs del canario existen, security definer, search_path fijo, solo service_role; proponer aleja 100 años el plazo de su aprobación',
+       case when to_regprocedure('public.cadena_es_canario(uuid)') is null or to_regprocedure('public.cadena_canario_restos()') is null or to_regprocedure('public.cadena_canario_estado(uuid)') is null or to_regprocedure('public.cadena_canario_proponer(uuid)') is null or to_regprocedure('public.cadena_canario_borrar(uuid)') is null then 'NO'
+            when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.cadena_es_canario(uuid)'), to_regprocedure('public.cadena_canario_restos()'), to_regprocedure('public.cadena_canario_estado(uuid)'), to_regprocedure('public.cadena_canario_proponer(uuid)'), to_regprocedure('public.cadena_canario_borrar(uuid)'))
+                          and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('authenticated', 'public.cadena_es_canario(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_restos()', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_estado(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_proponer(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_borrar(uuid)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.cadena_canario_proponer(uuid)')) not like '%100 years%' then 'NO'
+            else 'SI' end
+
+union all
 select '0170 - interruptor de la regla de ventana', 'estado_regla_ventana y apagar_regla_ventana existen, security definer, search_path fijo, authenticated ejecuta y anon no; apagar exige la capacidad encender_regla_ventana',
        case when to_regprocedure('public.estado_regla_ventana()') is null or to_regprocedure('public.apagar_regla_ventana(text)') is null then 'NO'
             when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.estado_regla_ventana()'), to_regprocedure('public.apagar_regla_ventana(text)'))
