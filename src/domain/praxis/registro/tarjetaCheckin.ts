@@ -125,7 +125,8 @@ const FORMAS: Partial<Record<CampoCheckin, readonly [string, string]>> = {
   rendimiento: ['¿Cómo te fue hoy en el entreno?', '¿Y el entreno, cómo lo sentiste?'],
   motivacion: ['¿Cómo andas de ganas de entrenar?', '¿Y las ganas de entrenar hoy?'],
   hambreEscala: ['¿Cómo ha estado el hambre hoy?', '¿Y el hambre, cómo la has llevado?'],
-  cansancio: ['¿Cómo está la energía?', '¿Y de cansancio, cómo vas?'],
+  // Las dos nombran el CANSANCIO: con «¿cómo está la energía?», un «poca» querría decir MUCHO cansancio (7-nov).
+  cansancio: ['¿Cómo vas de cansancio hoy?', '¿Y el cansancio, cómo está?'],
   estres: ['¿Cómo vas de estrés hoy?', '¿Y el estrés, cómo está?'],
   dolor: ['¿Te duele algo hoy?', '¿Y el cuerpo, alguna molestia?'],
   calidadSueno: ['¿Cómo dormiste?', '¿Y el sueño de anoche?'],

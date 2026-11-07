@@ -72,6 +72,18 @@ describe('lo que queda suelto tras una «y» hereda el área de antes', () => {
   })
 })
 
+describe('el área nombrada y una respuesta corta en el mismo trozo', () => {
+  it('«el entreno bien» = BUENA; «el entreno estuvo bien» también; «la rutina mal» = MALA', () => {
+    expect(salida('el entreno bien')).toEqual({ rendimiento: 'BUENA' })
+    expect(salida('el entreno estuvo bien')).toEqual({ rendimiento: 'BUENA' })
+    expect(salida('la rutina mal')).toEqual({ rendimiento: 'MALA' })
+  })
+
+  it('lo que sobra tras quitar el área tiene que ser corto y de la escala: «el entreno bien largo y con amigos» no', () => {
+    expect(salida('el entreno bien largo y con amigos')).toEqual({})
+  })
+})
+
 describe('«<área> ahí»', () => {
   it('«el sueño ahí, el estrés ahí, la comida ahí» = las tres en REGULAR', () => {
     expect(salida('el sueño ahí, el estrés ahí, la comida ahí')).toEqual({ calidadSueno: 'REGULAR', estres: 'REGULAR', alimentacion: 'REGULAR' })
