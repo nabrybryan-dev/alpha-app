@@ -8,7 +8,9 @@
 -- Aplicarla es decisión de Bryan. La prueba `supabase/test/266-praxis-lexico-persona.sql` corre en el CI. Nada la llama
 -- todavía (la tarjeta del check-in está detrás de `CONECTORES_EN_TARJETA`, apagada).
 --
--- NÚMERO. 0171 = el siguiente libre. Revisadas el 7-nov, justo antes de escribirla, las migraciones de todas las ramas
+-- NÚMERO. 0171b. Otra sesión aplicó su 0171 (servidor solo lee purga y regla) 41 minutos antes, sin haberla subido aún a
+-- ninguna rama: por eso no apareció al revisar. Las dos aplicadas; en el comprobador son 0171a y 0171b (REPETIDOS_DE_ANTES).
+-- Lo que decía al escribirla: 0171 = el siguiente libre. Revisadas el 7-nov, justo antes de escribirla, las migraciones de todas las ramas
 -- remotas: `app/cadena-agentes` tiene 0168 y 0169; `praxis/conectores-checkin` (esta rama) tiene 0170; ninguna 0171.
 --
 -- QUÉ GUARDA Y QUÉ NO (lo mínimo).

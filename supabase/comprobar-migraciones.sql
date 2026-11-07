@@ -3591,7 +3591,7 @@ select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desd
             when not has_table_privilege('authenticated', 'public.guiones_llamada', 'select') then 'NO'
             else 'SI' end
 union all
-select '0171 - el servidor solo lee purga y regla de ventana', 'service_role: solo SELECT en purgas_texto_libre, regla_ventana_primer_plan, activaciones_regla_ventana y avisos_regla_ventana',
+select '0171a - el servidor solo lee purga y regla de ventana', 'service_role: solo SELECT en purgas_texto_libre, regla_ventana_primer_plan, activaciones_regla_ventana y avisos_regla_ventana',
        case when exists (select 1 from unnest(array['public.purgas_texto_libre','public.regla_ventana_primer_plan',
                                                     'public.activaciones_regla_ventana','public.avisos_regla_ventana']) t
                           where to_regclass(t) is null
@@ -3619,7 +3619,7 @@ select '0170 - Praxis guarda el check-in confirmado', 'ranking_disciplina_vivo y
             else 'SI' end
 
 union all
-select '0171 - lexicón por persona de Praxis', 'praxis_lexico_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
+select '0171b - lexicón por persona de Praxis', 'praxis_lexico_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
        case when to_regclass('public.praxis_lexico_persona') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_lexico_persona')) then 'NO'
             when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'praxis_lexico_persona') <> 1 then 'NO'
@@ -3630,7 +3630,7 @@ select '0171 - lexicón por persona de Praxis', 'praxis_lexico_persona con RLS, 
             else 'SI' end
 
 union all
-select '0171 - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis_olvidar_mis_formas existen, security definer, las ejecuta authenticated y no anon',
+select '0171b - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis_olvidar_mis_formas existen, security definer, las ejecuta authenticated y no anon',
        case when to_regprocedure('public.praxis_aprender_forma(text,text,text)') is null
               or to_regprocedure('public.praxis_olvidar_mis_formas()') is null then 'NO'
             when not (select bool_and(p.prosecdef) from pg_proc p
