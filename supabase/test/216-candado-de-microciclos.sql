@@ -399,6 +399,108 @@ select pruebas.afirmar(
   'vencer_primer_plan con choque no dejó el aviso'
 );
 
+-- H7: cerrado sin aviso no se convierte en una aprobacion de choque.
+savepoint h7_cerrado;
+update public.microciclos set estado = 'cerrado' where id = 'cd-e-5app';
+delete from public.microciclos_choques where propuesta_id = 'cd-e-5app';
+update public.aprobaciones_primer_plan set estado = 'propuesto', motivo_espera = null
+ where id = 'c2000000-0000-0000-0000-000000000005';
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar', 'Revisado por el aprobador H7');
+reset role;
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'espera_bryan'
+      and motivo_espera not like 'Choque de microciclo%'
+      and motivo_espera like 'No se activo: estado cerrado.%Revisado por el aprobador H7'
+      and decidido_por is null and decidido_en is null),
+  'H7: cerrado sin choque debe esperar y conservar al final el motivo humano'
+);
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+do $$
+declare v_msg text;
+begin
+  begin
+    perform public.confirmar_pisar_microciclo('cd-e-5app');
+    raise exception 'FALLO H7: confirmar acepto un cerrado';
+  exception when others then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'confirmar_pisar_microciclo: la propuesta cd-e-5app no quedó activa%' then
+      raise exception 'FALLO H7: error inesperado: %', v_msg;
+    end if;
+  end;
+end $$;
+reset role;
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'espera_bryan'
+      and motivo_espera like '%Revisado por el aprobador H7')
+  and (select estado = 'cerrado' from public.microciclos where id = 'cd-e-5app')
+  and not exists (select 1 from public.microciclos_choques where propuesta_id = 'cd-e-5app'),
+  'H7: confirmar no debe aprobar ni crear un choque para el cerrado'
+);
+rollback to savepoint h7_cerrado;
+
+-- H7: tambien conserva el motivo humano cuando SI hay un aviso pendiente.
+savepoint h7_motivo_choque;
+update public.aprobaciones_primer_plan set estado = 'propuesto'
+ where id = 'c2000000-0000-0000-0000-000000000005';
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar', 'Motivo humano con choque H7');
+reset role;
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'espera_bryan'
+      and motivo_espera like 'Choque de microciclo%Motivo humano con choque H7'),
+  'H7: el choque debe conservar el motivo humano al final'
+);
+rollback to savepoint h7_motivo_choque;
+
+-- H8: simular un choque que aparece DESPUES de la comprobacion previa.
+-- Un trigger de prueba cambia el numero antes del candado real; no sustituye el candado.
+savepoint h8_trigger;
+update public.aprobaciones_primer_plan set estado = 'propuesto', motivo_espera = null
+ where id = 'c2000000-0000-0000-0000-000000000006';
+update public.microciclos set numero = 6 where id = 'cd-f-5app';
+delete from public.microciclos_choques where propuesta_id = 'cd-f-5app';
+create function pruebas.h8_numero_antes_del_candado()
+returns trigger language plpgsql as $$
+begin
+  if new.id = 'cd-f-5app' and new.estado = 'activo' then
+    new.numero := 5;
+  end if;
+  return new;
+end $$;
+create trigger trg_microciclos_aa_h8
+  before update of estado on public.microciclos
+  for each row execute function pruebas.h8_numero_antes_del_candado();
+select set_config('request.jwt.claim.sub', '', false);
+select pruebas.afirmar(
+  not exists (select 1 from public.microciclos m,
+    lateral public.microciclo_choque(m.usuario_id, m.id, m.numero, m.origen) ch
+    where m.id = 'cd-f-5app'),
+  'H8: la preparacion debe superar la comprobacion previa de choque'
+);
+select pruebas.afirmar(
+  (select aprobados = 0 and a_bryan = 1 from public.vencer_primer_plan()),
+  'H8: el bloqueo silencioso del trigger no cuenta como aprobado'
+);
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000006' and estado = 'espera_bryan'
+      and motivo_espera like '%candado no dejo activar%' and decidido_en is null)
+  and (select estado = 'propuesto' from public.microciclos where id = 'cd-f-5app')
+  -- Lo que importa: la semana activa anterior NO quedo cerrada (el error deshizo el cierre).
+  and (select estado = 'activo' from public.microciclos where id = 'cd-f-5')
+  and (select count(*) = 1 from public.microciclos where usuario_id = 'd2000000-0000-0000-0000-000000000006' and estado = 'activo')
+  and not exists (select 1 from public.activaciones_regla_ventana where microciclo_id = 'cd-f-5app'),
+  'H8: el bloqueo silencioso no aprueba, no audita y NO deja a la persona sin semana activa'
+);
+rollback to savepoint h8_trigger;
+
 -- H4: coach con liberación vigente, pero sin aprobar_primer_plan: activa sin aprobar.
 -- Los savepoints conservan los casos originales de E/F para el resto de la prueba.
 savepoint h4_sin_aprobar;
