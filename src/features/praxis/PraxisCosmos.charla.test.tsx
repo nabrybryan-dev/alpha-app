@@ -24,7 +24,7 @@ const HOY = '2026-10-01'
 const USUARIO = 'u-charla'
 const HORA = 9
 
-const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_de_comida'], checkins: [] }
+const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_de_comida'], checkins: [] }
 const tarjetaDeSentadilla: RespuestaDelRegistrador = {
   ok: true, mensajeId: 'm-1',
   propuesta: { accion: 'tarjeta', registros: [{ campo: 'adherencia', fecha: HOY, estado: 'si', confianza: 'alta' }], descartado: [], notas_coach: [], citas_invalidas: [] },
