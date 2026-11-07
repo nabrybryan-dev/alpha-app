@@ -297,7 +297,10 @@ select pruebas.afirmar(
 
 select pruebas.afirmar(
   (select estado from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000004') = 'espera_bryan'
-  and (select estado from public.microciclos where id = 'm-pp-4') = 'propuesto',
+  and (select estado from public.microciclos where id = 'm-pp-4') = 'propuesto'
+  -- Revisor 7-nov: espera por SU motivo (sin clasificacion), que se mira antes que la regla:
+  -- con la regla encendida seguiria esperando.
+  and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000004') like 'Sin clasificacion%',
   'el riesgo medio pasó solo al vencer'
 );
 
