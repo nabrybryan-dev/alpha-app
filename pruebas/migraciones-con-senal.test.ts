@@ -45,6 +45,7 @@ const COMPROBADOR = join(process.cwd(), 'supabase', 'comprobar-migraciones.sql')
 const REPETIDOS_DE_ANTES: Record<string, string> = {
   '0062': 'el cribado guarda su historia · el saludo es una via — las dos aplicadas el 10-sep',
   '0065': 'el video es de cada quien · los dias que puede entrenar — las dos del 10-sep',
+  '0117': 'area de dudas agenticas (M2, 23-oct) · cola de dudas de Praxis (29-oct) — las dos aplicadas',
 }
 
 /**
