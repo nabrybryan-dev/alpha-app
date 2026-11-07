@@ -228,7 +228,7 @@ describe('agua dictada', () => {
     ['un litro 200 ml', null, 1200], ['1 litro y 200 ml', null, 1200], ['5 vasos de 250 ml', null, 1250], ['dos vasos de 250', null, 500],
     // «y media» y «y cuarto» con la unidad
     ['una taza y media', null, 300], ['dos litros y cuarto', null, 2250], ['un litros y cuarto', null, 1250], ['litro y cuarto', null, 1250],
-    ['tres litros y cuarto', null, 3250 > 3000 ? undefined : 3250],
+    ['tres litros y cuarto', null, undefined], // 3.250 pasa el tope de 3.000 por vez: se descarta (limites.ts, no es de este arreglo)
   ] as [string, string | null, number | undefined][])('«%s %s» = %s mL', (c, m, ml) => {
     expect(aguaMl(c, m)).toBe(ml)
   })
