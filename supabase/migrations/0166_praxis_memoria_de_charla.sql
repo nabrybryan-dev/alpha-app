@@ -2,7 +2,7 @@
 -- 0166 · Praxis: la memoria de la charla entre días (praxis_charla_turnos)
 -- ============================================================================
 --
--- SIN APLICAR (6-nov-2026). Escrita con pruebas, en rama y PR borrador, por decisión de Bryan: aplicar es otro
+-- SIN APLICAR (6-nov-2026; reescrita el 7-nov con las decisiones de Bryan sobre quién lee y el plazo). Escrita con pruebas, en rama y PR borrador, por decisión de Bryan: aplicar es otro
 -- «sí» suyo. Se aplica a mano en el SQL Editor y se comprueba con su fila en `comprobar-migraciones.sql`.
 -- Hoy nada de la app la usa (esta pieza es solo la base): si falta, no se rompe nada.
 --
@@ -14,36 +14,41 @@
 -- Una fila por turno (lo que dijo la persona y lo que contestó Praxis), agrupada por `charla_id` (una sesión de
 -- charla). Diseño de origen: PIEZA-RANURAS.md, sección «memoria de la charla completa entre días».
 --
--- QUIÉN PUEDE QUÉ (mismo patrón que 0159 y 0161: `usuario_id = auth.uid()` y `es_staff()`; no hay rol nuevo).
---   · LEER: la persona dueña (`usuario_id = auth.uid()`) y el equipo (`es_staff()`: coach y nutricionista).
---   · INSERTAR: la persona, solo a su nombre. `usuario_id` NO tiene privilegio de insert: lo pone el valor por
---     omisión `auth.uid()`, así el cliente ni siquiera puede intentar mandar el de otra persona; además el
---     `with check` lo vuelve a comprobar. `borrar_en`, `id` y `creado_en` tampoco se mandan.
---   · ACTUALIZAR / BORRAR con sesión: nadie, directo. Dos funciones `security definer`:
+-- QUIÉN PUEDE QUÉ (decisión de Bryan, 7-nov-2026, tras el informe del custodio de datos: «solo los agentes y yo»).
+--   · LEER: solo quien tenga la capacidad `leer_charlas_praxis` (se asigna a mano a las cuentas de Bryan, ver
+--     abajo) y los agentes del servidor (service_role). Ni el resto del equipo ni la propia persona la leen por la
+--     API: el acceso de la persona a sus datos va por la pantalla de derechos (0165, solicitudes_de_derechos).
+--     Antes (6-nov) leía todo `es_staff()`: más ancho que la ficha clínica, que en la base real solo lee el coach
+--     asignado (custodio, INFORME-PRAXIS-20261107, hallazgo 1).
+--   · ESCRIBIR: solo los agentes del servidor (service_role). El navegador no inserta: así nadie puede escribir
+--     turnos con rol 'praxis' ni apagar `marcado_clinico`/`aviso_coach` (custodio, hallazgo 4).
+--   · ACTUALIZAR / BORRAR con sesión: nadie, directo. Tres funciones `security definer`:
 --       - `praxis_borrar_mi_charla(charla_id)`: la persona borra una charla SUYA al instante (usa auth.uid()).
+--       - `praxis_marcar_charla_atendida(usuario_id, charla_id)`: acorta el plazo a 30 días. Solo service_role.
 --       - `praxis_purgar_charlas()`: borra lo que ya cumplió su plazo. Solo service_role (y pg_cron).
---   · anon: nada. Las dos funciones llevan `revoke … from public, anon`.
---   · Al borrarse la cuenta (`usuarios_app`), cascada.
+--   · anon: nada. Al borrarse la cuenta (`usuarios_app`), cascada.
 --
--- PLAZO DE BORRADO. 90 días desde el turno (`borrar_en` por omisión = now() + 90 días). La cifra es propuesta del
--- diseño; la firma Bryan. Mecanismo: el mismo que la 0149 y la 0048 — función de purga + `pg_cron` si existe
--- (diario, 08:30 UTC = 03:30 en Bogotá); sin pg_cron (como en el Postgres limpio del CI) no se programa nada y la
--- función se llama a mano con service_role.
+-- PLAZO DE BORRADO (decisión de Bryan, 7-nov-2026; igual que C-1 del texto libre): 90 días como tope desde el
+-- turno (`borrar_en` por omisión) y 30 días desde que la charla se marca atendida (`atendida_en`), lo que llegue
+-- antes. Mecanismo: función de purga + `pg_cron` si existe (diario, 08:30 UTC = 03:30 en Bogotá); sin pg_cron
+-- (como en el CI) la función se llama a mano con service_role.
+--
+-- AL APLICAR (a mano, Bryan): asignar la capacidad a sus cuentas, sin escribir ids en el repo:
+--   insert into public.capacidades_staff (usuario_id, capacidad)
+--   select id, 'leer_charlas_praxis' from public.usuarios_app where <las cuentas de Bryan> on conflict do nothing;
 --
 -- DIFERENCIAS CON EL DISEÑO (ver PIEZA-MEMORIA-MIGRACION.md):
---   · Una tabla de turnos, no dos (`praxis_charlas` + turnos): la charla es solo un `charla_id`; no hay nada que
---     guardar de la charla aparte de sus turnos.
---   · El equipo (`es_staff()`) lee el TEXTO completo, no solo el resumen: así están hechas las demás tablas praxis_*
---     (0159, 0161, 0108). El diseño decía «el coach ve el resumen, texto completo solo si la persona lo autoriza»;
---     eso exigiría una relación coach-asesorado que el repo no usa en las tablas parecidas. Lo decide Bryan.
---   · Los turnos marcados como clínicos se guardan con el TEXTO completo (el diseño proponía solo marca + palabra,
---     «salvo que Bryan decida lo contrario»; su decisión fue guardar la charla completa). `marcado_clinico` y
---     `aviso_coach` quedan como columnas para poder filtrar o decidir después.
+--   · Una tabla de turnos, no dos: la charla es solo un `charla_id`.
+--   · Los turnos clínicos se guardan con el TEXTO completo (decisión de Bryan: charla completa). Como solo los leen
+--     Bryan y los agentes, la promesa de ranuras «al coach, solo la palabra clínica» sigue en pie para el resto del
+--     equipo (custodio, hallazgo 6).
 --
 -- CÓMO REVERTIRLA (solo si no importa lo guardado):
 --   begin;
 --   select cron.unschedule('purgar-charlas-praxis') where exists (select 1 from cron.job where jobname = 'purgar-charlas-praxis');
 --   drop function if exists public.praxis_purgar_charlas();
+--   drop function if exists public.praxis_marcar_charla_atendida(uuid, uuid);
+--   delete from public.capacidades_staff where capacidad = 'leer_charlas_praxis';  -- y quitarla del check
 --   drop function if exists public.praxis_borrar_mi_charla(uuid);
 --   drop table if exists public.praxis_charla_turnos;
 --   commit;
@@ -51,10 +56,41 @@
 
 begin;
 
+-- ── Capacidad nueva: leer_charlas_praxis (conserva todas las actuales; mismo patrón que la 0106) ──────────
+do $$
+declare
+  v_nombre text;
+  v_def    text;
+  v_lista  text[];
+begin
+  select conname, pg_get_constraintdef(oid) into v_nombre, v_def
+    from pg_constraint
+   where conrelid = 'public.capacidades_staff'::regclass
+     and contype = 'c'
+     and pg_get_constraintdef(oid) ilike '%capacidad%'
+   limit 1;
+  if v_nombre is null then
+    raise exception 'no se encontró el check de capacidades_staff: no se reescribe a ciegas';
+  end if;
+  select array_agg(distinct x order by x) into v_lista
+    from (
+      select m[1] as x from regexp_matches(v_def, '''([a-z_]+)''', 'g') as t(m)
+      union
+      select regexp_split_to_table(substring(v_def from '''\{([a-z_,]+)\}'''), ',')
+    ) s
+   where x is not null;
+  v_lista := array(select distinct x from unnest(v_lista || array['leer_charlas_praxis']) as x order by x);
+  execute format('alter table public.capacidades_staff drop constraint %I', v_nombre);
+  execute format(
+    'alter table public.capacidades_staff add constraint capacidades_staff_capacidad_check check (capacidad in (%s))',
+    (select string_agg(quote_literal(x), ', ' order by x) from unnest(v_lista) as x)
+  );
+end $$;
+
 create table if not exists public.praxis_charla_turnos (
   id              uuid primary key default gen_random_uuid(),
-  -- De quién es la charla. Lo pone el valor por omisión (auth.uid()); el cliente no lo manda.
-  usuario_id      uuid not null default auth.uid() references public.usuarios_app (id) on delete cascade,
+  -- De quién es la charla. Lo escribe el agente del servidor (service_role); el navegador no inserta.
+  usuario_id      uuid not null references public.usuarios_app (id) on delete cascade,
   -- La sesión de charla a la que pertenece el turno y su orden dentro de ella.
   charla_id       uuid not null,
   n               int  not null check (n between 0 and 9999),
@@ -64,16 +100,18 @@ create table if not exists public.praxis_charla_turnos (
   marcado_clinico boolean not null default false,
   aviso_coach     boolean not null default false,
   creado_en       timestamptz not null default now(),
-  -- Cuándo se borra solo (90 días).
+  -- Cuándo se marcó atendida la charla (acorta el plazo a 30 días). Nulo = sin atender.
+  atendida_en     timestamptz,
+  -- Cuándo se borra sola: tope 90 días; 30 desde atendida (lo que llegue antes).
   borrar_en       timestamptz not null default (now() + interval '90 days'),
   constraint praxis_charla_turnos_orden_unico unique (usuario_id, charla_id, n),
   constraint praxis_charla_turnos_plazo_coherente check (borrar_en > creado_en)
 );
 
 comment on table public.praxis_charla_turnos is
-  'Memoria de la charla de Praxis entre dias (0166, 2026-11-06): un turno por fila, charla completa, borrado a los 90 dias (borrar_en). '
-  'Lee la persona lo suyo y el equipo (es_staff); inserta la persona a su nombre (usuario_id = auth.uid() por omision); '
-  'nadie actualiza ni borra directo: praxis_borrar_mi_charla (la persona) y praxis_purgar_charlas (service_role/pg_cron).';
+  'Memoria de la charla de Praxis entre dias (0166): un turno por fila, charla completa. Plazo: 90 dias tope, 30 desde atendida_en. '
+  'Lee solo quien tiene la capacidad leer_charlas_praxis (Bryan) y service_role; escribe solo service_role (los agentes). '
+  'Funciones: praxis_borrar_mi_charla (la persona), praxis_marcar_charla_atendida y praxis_purgar_charlas (service_role).';
 
 -- La clave única de arriba ya sirve para leer una charla en orden. Este índice es para la purga diaria.
 create index if not exists praxis_charla_turnos_por_borrar
@@ -85,25 +123,19 @@ create index if not exists praxis_charla_turnos_recientes
 
 alter table public.praxis_charla_turnos enable row level security;
 
+-- Una sola política de lectura. Sin política de insert/update/delete: el navegador no escribe; service_role
+-- salta RLS y es el único que inserta.
 drop policy if exists praxis_charla_turnos_leer_propio on public.praxis_charla_turnos;
-create policy praxis_charla_turnos_leer_propio on public.praxis_charla_turnos
-  for select to authenticated
-  using (usuario_id = (select auth.uid()));
-
 drop policy if exists praxis_charla_turnos_lee_staff on public.praxis_charla_turnos;
-create policy praxis_charla_turnos_lee_staff on public.praxis_charla_turnos
-  for select to authenticated
-  using ((select public.es_staff()));
-
 drop policy if exists praxis_charla_turnos_insertar_propio on public.praxis_charla_turnos;
-create policy praxis_charla_turnos_insertar_propio on public.praxis_charla_turnos
-  for insert to authenticated
-  with check (usuario_id = (select auth.uid()));
+drop policy if exists praxis_charla_turnos_lee_con_capacidad on public.praxis_charla_turnos;
+create policy praxis_charla_turnos_lee_con_capacidad on public.praxis_charla_turnos
+  for select to authenticated
+  using ((select public.tiene_capacidad('leer_charlas_praxis')));
 
 revoke all on public.praxis_charla_turnos from anon, public;
 revoke all on public.praxis_charla_turnos from authenticated;
 grant select on public.praxis_charla_turnos to authenticated;
-grant insert (charla_id, n, rol, texto, marcado_clinico, aviso_coach) on public.praxis_charla_turnos to authenticated;
 grant all on public.praxis_charla_turnos to service_role;
 
 -- ---------------------------------------------------------------------------
@@ -139,6 +171,36 @@ revoke all on function public.praxis_borrar_mi_charla(uuid) from public, anon;
 grant execute on function public.praxis_borrar_mi_charla(uuid) to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
+-- Marcar una charla atendida: el plazo pasa a 30 días desde ahora (nunca alarga el tope de 90)
+-- ---------------------------------------------------------------------------
+create or replace function public.praxis_marcar_charla_atendida(p_usuario_id uuid, p_charla_id uuid)
+returns int
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_filas int;
+begin
+  if p_usuario_id is null or p_charla_id is null then
+    raise exception 'praxis_marcar_charla_atendida: faltan usuario_id o charla_id' using errcode = '22023';
+  end if;
+  update public.praxis_charla_turnos t
+     set atendida_en = coalesce(t.atendida_en, now()),
+         borrar_en   = least(t.borrar_en, coalesce(t.atendida_en, now()) + interval '30 days')
+   where t.usuario_id = p_usuario_id and t.charla_id = p_charla_id;
+  get diagnostics v_filas = row_count;
+  return v_filas;
+end
+$$;
+
+comment on function public.praxis_marcar_charla_atendida(uuid, uuid) is
+  'Marca atendida una charla: borrar_en = el menor entre el tope de 90 dias y 30 dias desde atendida. Idempotente (no reinicia el plazo). Solo service_role. 0166.';
+
+revoke all on function public.praxis_marcar_charla_atendida(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.praxis_marcar_charla_atendida(uuid, uuid) to service_role;
+
+-- ---------------------------------------------------------------------------
 -- Purga de lo que ya cumplió su plazo
 -- ---------------------------------------------------------------------------
 create or replace function public.praxis_purgar_charlas()
@@ -157,7 +219,7 @@ end
 $$;
 
 comment on function public.praxis_purgar_charlas() is
-  'Borra los turnos de charla de Praxis cuyo borrar_en ya paso (90 dias). Idempotente. Solo service_role y pg_cron; devuelve las filas borradas. 0166.';
+  'Borra los turnos de charla de Praxis cuyo borrar_en ya paso (90 dias tope, 30 desde atendida). Idempotente. Solo service_role y pg_cron; devuelve las filas borradas. 0166.';
 
 revoke all on function public.praxis_purgar_charlas() from public, anon, authenticated;
 grant execute on function public.praxis_purgar_charlas() to service_role;
