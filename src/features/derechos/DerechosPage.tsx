@@ -22,7 +22,7 @@ export default function DerechosPage() {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
-  const [constancia, setConstancia] = useState<{ fecha: string; derecho: string } | null>(null)
+  const [constancia, setConstancia] = useState<{ fecha: string; derecho: string; avisoFallido?: boolean } | null>(null)
   const ocupado = useRef(false)
   const identidad = useRef<string | null>(null)
 
@@ -77,18 +77,31 @@ export default function DerechosPage() {
       if (!asignacion?.coach_id) throw new Error('No hay un coach asignado. No se envió la solicitud.')
       const etiqueta = DERECHOS.find(([tipo]) => tipo === derecho)?.[1]
       if (!etiqueta) return
-      const { data: guardado, error: falloGuardar } = await sb.from('mensajes').insert({
-        id: crypto.randomUUID(),
-        de_id: personaId,
-        para_id: asignacion.coach_id,
-        origen: 'humano',
-        texto: `[Solicitud de derechos: ${derecho}] ${etiqueta}${texto.trim() ? `\n${texto.trim()}` : ''}`,
-      }).select('fecha_iso').single()
+      const { data: guardado, error: falloGuardar } = await sb.from('solicitudes_derechos').insert({
+        persona_id: personaId,
+        coach_id: asignacion.coach_id,
+        derecho,
+        detalle: texto.trim() || null,
+      }).select('id, creada_en').single()
       if (identidad.current !== personaId) return
       if (falloGuardar) throw falloGuardar
-      if (!guardado?.fecha_iso) throw new Error('La base no devolvió la fecha de la solicitud.')
-      setConstancia({ fecha: guardado.fecha_iso, derecho: etiqueta })
+      if (!guardado?.creada_en) throw new Error('La base no devolvió la fecha de la solicitud.')
+      setConstancia({ fecha: guardado.creada_en, derecho: etiqueta })
       setTexto('')
+      try {
+        const { error: falloAviso } = await sb.from('mensajes').insert({
+          id: crypto.randomUUID(),
+          de_id: personaId,
+          para_id: asignacion.coach_id,
+          origen: 'humano',
+          texto: `[Solicitud de derechos: ${derecho}] Nueva solicitud: ${etiqueta}`,
+        })
+        if (falloAviso) throw falloAviso
+      } catch {
+        if (identidad.current === personaId) {
+          setConstancia({ fecha: guardado.creada_en, derecho: etiqueta, avisoFallido: true })
+        }
+      }
     } catch (fallo: unknown) {
       if (identidad.current === personaId) setError(mensajeDe(fallo))
     } finally {
@@ -116,9 +129,10 @@ export default function DerechosPage() {
       <p>La solicitud se envía al coach asignado. La respuesta se dará por un canal acordado, sin volver a copiar datos sensibles.</p>
       {constancia ? (
         <div role="status" className="glass rounded-2xl p-4">
-          <p>Solicitud guardada y enviada al coach asignado: {constancia.derecho}.</p>
+          <p>Solicitud guardada para tu coach asignado: {constancia.derecho}.</p>
+          {constancia.avisoFallido && <p>Tu solicitud quedó guardada; avísale a tu coach por el chat.</p>}
           <p>Fecha y hora: <time dateTime={constancia.fecha}>{new Date(constancia.fecha).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'long' })}</time></p>
-          <button type="button" className="mt-3 text-accion" onClick={() => setConstancia(null)}>Nueva solicitud</button>
+          <button type="button" disabled={enviando} className="mt-3 text-accion" onClick={() => setConstancia(null)}>Nueva solicitud</button>
         </div>
       ) : (
         <form onSubmit={enviar} className="glass flex flex-col gap-3 rounded-2xl p-4">

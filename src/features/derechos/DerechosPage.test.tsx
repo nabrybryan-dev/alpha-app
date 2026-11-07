@@ -19,10 +19,10 @@ const nube = vi.hoisted(() => {
     consulta: { persona: '', vigente: '' as unknown },
     alCambiar: null as ((evento: string, sesion: { user: { id: string } } | null) => void) | null,
   }
-  return { estado, insertar: vi.fn(), desde: vi.fn(), sesion: vi.fn() }
+  return { estado, insertar: vi.fn(), avisar: vi.fn(), seleccionar: vi.fn(), desde: vi.fn(), sesion: vi.fn(), modoNube: true }
 })
 vi.mock('../../data/supabase', () => ({
-  modoNube: true,
+  get modoNube() { return nube.modoNube },
   supabase: () => ({
     auth: {
       getSession: nube.sesion,
@@ -45,16 +45,20 @@ async function formulario() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  nube.modoNube = true
   nube.estado.sesion = { user: { id: 'persona-sintetica' } }
   nube.estado.coach = 'coach-sintetico'
   nube.estado.fallo = null
   nube.estado.consulta = { persona: '', vigente: 'sin-filtrar' }
   nube.sesion.mockImplementation(async () => ({ data: { session: nube.estado.sesion }, error: null }))
-  nube.insertar.mockImplementation(() => ({ select: () => ({ single: async () => ({
-    data: nube.estado.fallo ? null : { fecha_iso: '2026-11-06T14:30:00Z' }, error: nube.estado.fallo,
-  }) }) }))
+  nube.avisar.mockResolvedValue({ error: null })
+  nube.seleccionar.mockImplementation(() => ({ single: async () => ({
+    data: nube.estado.fallo ? null : { id: 'solicitud-sintetica', creada_en: '2026-11-06T14:30:00Z' }, error: nube.estado.fallo,
+  }) }))
+  nube.insertar.mockImplementation(() => ({ select: nube.seleccionar }))
   nube.desde.mockImplementation((tabla: string) => {
-    if (tabla === 'mensajes') return { insert: nube.insertar }
+    if (tabla === 'solicitudes_derechos') return { insert: nube.insertar }
+    if (tabla === 'mensajes') return { insert: nube.avisar }
     if (tabla !== 'asignaciones_coach') throw new Error(`Tabla inesperada: ${tabla}`)
     return { select: (columnas: string) => {
       expect(columnas).toBe('coach_id')
@@ -72,6 +76,68 @@ beforeEach(() => {
 })
 
 describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', () => {
+  it.each(['error devuelto', 'promesa rechazada'])('si el aviso falla (%s), conserva constancia y nota sin repetir el insert', async (modo) => {
+    if (modo === 'error devuelto') nube.avisar.mockResolvedValue({ error: { message: 'fallo del aviso' } })
+    else nube.avisar.mockRejectedValue(new Error('fallo del aviso'))
+    const boton = await formulario()
+    fireEvent.change(screen.getByLabelText('Texto opcional'), { target: { value: 'Detalle privado sintético' } })
+    fireEvent.click(boton)
+    expect(await screen.findByText('Tu solicitud quedó guardada; avísale a tu coach por el chat.')).toBeInTheDocument()
+    const constancia = screen.getByRole('status')
+    expect(constancia.querySelector('time')).toHaveAttribute('datetime', '2026-11-06T14:30:00Z')
+    expect(constancia).toHaveTextContent('Conocer mis datos')
+    expect(nube.insertar).toHaveBeenCalledTimes(1)
+    expect(nube.avisar).toHaveBeenCalledTimes(1)
+    expect(nube.avisar.mock.calls[0][0].texto).not.toContain('Detalle privado sintético')
+    expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('bloquea el doble envío y una nueva solicitud mientras termina el aviso', async () => {
+    let terminar!: (valor: { error: null }) => void
+    nube.avisar.mockImplementation(() => new Promise((resolve) => { terminar = resolve }))
+    const boton = await formulario()
+    fireEvent.submit(boton.closest('form')!)
+    fireEvent.submit(boton.closest('form')!)
+    await screen.findByRole('status')
+    expect(nube.insertar).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Nueva solicitud' })).toBeDisabled()
+    await act(async () => terminar({ error: null }))
+    expect(screen.getByRole('button', { name: 'Nueva solicitud' })).toBeEnabled()
+    expect(nube.avisar).toHaveBeenCalledTimes(1)
+  })
+
+  it('convierte el detalle de espacios en null', async () => {
+    const boton = await formulario()
+    fireEvent.change(screen.getByLabelText('Texto opcional'), { target: { value: '   ' } })
+    fireEvent.click(boton)
+    await screen.findByRole('status')
+    expect(nube.insertar.mock.calls[0][0].detalle).toBeNull()
+  })
+
+  it('al cambiar de sesión limpia detalle y constancia, incluso si el aviso anterior falla después', async () => {
+    let terminar!: (valor: { error: { message: string } }) => void
+    nube.avisar.mockImplementation(() => new Promise((resolve) => { terminar = resolve }))
+    const boton = await formulario()
+    fireEvent.change(screen.getByLabelText('Texto opcional'), { target: { value: 'Detalle anterior' } })
+    fireEvent.click(boton)
+    await screen.findByRole('status')
+    act(() => nube.estado.alCambiar?.('SIGNED_IN', { user: { id: 'otra-persona' } }))
+    await act(async () => terminar({ error: { message: 'fallo tardío' } }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Texto opcional')).toHaveValue('')
+    expect(screen.queryByText(/Tu solicitud quedó guardada/)).not.toBeInTheDocument()
+  })
+
+  it('en modo demo avisa y no consulta ni guarda', () => {
+    nube.modoNube = false
+    montar()
+    expect(screen.getByText(/En este modo de prueba no se envía nada/)).toBeInTheDocument()
+    expect(nube.sesion).not.toHaveBeenCalled()
+    expect(nube.desde).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeInTheDocument()
+  })
+
   it.each(DERECHOS)('guarda %s para el coach vigente y muestra la fecha confirmada', async (tipo, etiqueta) => {
     const boton = await formulario()
     fireEvent.change(screen.getByLabelText('Derecho que deseas solicitar'), { target: { value: tipo } })
@@ -80,13 +146,20 @@ describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', 
     const constancia = await screen.findByRole('status')
     expect(nube.estado.consulta).toEqual({ persona: 'persona-sintetica', vigente: null })
     expect(nube.insertar).toHaveBeenCalledTimes(1)
-    expect(nube.insertar).toHaveBeenCalledWith(expect.objectContaining({
-      de_id: 'persona-sintetica', para_id: 'coach-sintetico', origen: 'humano',
-      texto: `[Solicitud de derechos: ${tipo}] ${etiqueta}\nDetalle sintético`,
-    }))
+    expect(nube.insertar).toHaveBeenCalledWith({
+      persona_id: 'persona-sintetica', coach_id: 'coach-sintetico',
+      derecho: tipo, detalle: 'Detalle sintético',
+    })
+    expect(nube.seleccionar).toHaveBeenCalledWith('id, creada_en')
+    await waitFor(() => expect(nube.avisar).toHaveBeenCalledTimes(1))
+    expect(nube.avisar).toHaveBeenCalledWith({
+      id: expect.any(String), de_id: 'persona-sintetica', para_id: 'coach-sintetico', origen: 'humano',
+      texto: `[Solicitud de derechos: ${tipo}] Nueva solicitud: ${etiqueta}`,
+    })
+    expect(nube.avisar.mock.calls[0][0].texto).not.toContain('Detalle sintético')
     expect(constancia).toHaveTextContent(etiqueta)
     expect(constancia.querySelector('time')).toHaveAttribute('datetime', '2026-11-06T14:30:00Z')
-    expect(constancia).toHaveTextContent('2026')
+    expect(constancia.querySelector('time')).toHaveTextContent('6 de noviembre de 2026')
     expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeInTheDocument()
   })
 
@@ -114,11 +187,12 @@ describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', 
     fireEvent.change(screen.getByLabelText('Texto opcional'), { target: { value: 'x'.repeat(500) } })
     fireEvent.click(boton)
     await screen.findByRole('status')
-    expect(nube.insertar.mock.calls[0][0].texto).toContain('x'.repeat(500))
+    expect(nube.insertar.mock.calls[0][0].detalle).toBe('x'.repeat(500))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Nueva solicitud' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Nueva solicitud' }))
     fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }))
     await screen.findByRole('status')
-    expect(nube.insertar.mock.calls[1][0].texto).toBe('[Solicitud de derechos: conocer] Conocer mis datos')
+    expect(nube.insertar.mock.calls[1][0].detalle).toBeNull()
   })
 
   it('si caducó la sesión con el formulario abierto no envía y lo oculta', async () => {
@@ -146,10 +220,11 @@ describe('Solicitud de derechos, Supabase simulado; sin red ni cuentas reales', 
   })
 
   it('muestra el error de base literal y permite reintentar', async () => {
-    nube.estado.fallo = { message: 'new row violates row-level security policy for table "mensajes"' }
+    nube.estado.fallo = { message: 'new row violates row-level security policy for table "solicitudes_derechos"' }
     fireEvent.click(await formulario())
     expect(await screen.findByRole('alert')).toHaveTextContent(nube.estado.fallo.message)
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(nube.avisar).not.toHaveBeenCalled()
     nube.estado.fallo = null
     fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }))
     await screen.findByRole('status')

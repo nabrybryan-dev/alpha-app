@@ -13,7 +13,7 @@
 --   6. Confirmar (solo el coach) activa de verdad y cierra el aviso; un asesorado no confirma ni
 --      descarta (se comprueba el MENSAJE de la guarda, no cualquier 42501, y que nada cambió);
 --      confirmar sobre una propuesta que no se puede activar falla y deja el aviso pendiente.
---   7. La cadena confirma con set_config('alpha.pisar_microciclo','si',true).
+--   7. Solo la RPC confirma: set_config no permite falsificar la autorización.
 --   8. Un primer plan que choca queda en espera_bryan (decidir y vencer), nunca 'aprobado' sin activar.
 --   9. El asesorado no lee los avisos; anon no ejecuta NINGUNA función de la 0147.
 --  10. El trigger que fija el origen se dispara antes que el candado (por nombre y por comportamiento).
@@ -75,6 +75,18 @@ select pruebas.afirmar(
   'lo cargado sin sesión de usuario no quedó con origen cadena'
 );
 
+-- H5: ni acceso a la tabla ni permisos heredados de PUBLIC para falsificar filas.
+select pruebas.afirmar(
+  not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'DELETE')
+  and not has_table_privilege('anon', 'public.pisadas_microciclo_autorizadas', 'INSERT')
+  and not has_table_privilege('anon', 'public.pisadas_microciclo_autorizadas', 'SELECT')
+  and not has_function_privilege('anon', 'public.pisada_microciclo_autorizada(text)', 'EXECUTE'),
+  'H5: un rol público puede acceder a las autorizaciones de pisar'
+);
+
 -- ─ 0 · El ORDEN de los triggers (hallazgo H4) ───────────────────────────
 -- Postgres dispara por orden alfabético: el que fija el origen tiene que ir ANTES que el candado.
 -- Se comprueba por nombre (la causa) y, más abajo, por comportamiento (el efecto).
@@ -120,7 +132,12 @@ values ('cd-b-9app', 'd2000000-0000-0000-0000-000000000002', 9, 'propuesto', '{}
 select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-b-9app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-b-9app')));
 select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+select set_config('alpha.pisar_microciclo', 'si', true); -- H5: falsificación por authenticated
 select public.activar_microciclo('cd-b-9app');   -- no debe levantar excepción
+-- También el trigger ignora la variable: satisfacer M2 no permite eludir el candado.
+select public.autorizar_activacion('cd-b-9app');
+update public.microciclos set estado = 'activo' where id = 'cd-b-9app';
+select set_config('alpha.pisar_microciclo', '', true);
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-b-9app') = 'propuesto'
   and (select estado from public.microciclos where id = 'cd-b-9') = 'activo',
@@ -207,9 +224,14 @@ select pruebas.afirmar(
 );
 
 -- ─ 7 · La cadena confirma de forma explícita ────────────────────────────
-select set_config('alpha.pisar_microciclo', 'si', true);
-update public.microciclos set estado = 'activo' where id = 'cd-a-9cad';
-select set_config('alpha.pisar_microciclo', '', true);
+-- La propuesta de la cadena también se confirma mediante la RPC y liberación humana.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.liberar_microciclo('cd-a-9cad', public.huella_microciclo((select datos from public.microciclos where id = 'cd-a-9cad')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+select public.confirmar_pisar_microciclo('cd-a-9cad');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-a-9cad') = 'activo',
   'la cadena no pudo activar con la confirmación explícita'
@@ -320,7 +342,7 @@ set role authenticated;
 
 -- La confirmación no queda abierta para la siguiente operación de la sesión.
 select pruebas.afirmar(
-  coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si',
+  not public.pisada_microciclo_autorizada('cd-b-9app'),
   'la confirmación quedó puesta en la sesión'
 );
 
@@ -376,6 +398,74 @@ select pruebas.afirmar(
   (select count(*) from public.microciclos_choques where propuesta_id = 'cd-f-5app' and estado = 'pendiente') = 1,
   'vencer_primer_plan con choque no dejó el aviso'
 );
+
+-- H4: coach con liberación vigente, pero sin aprobar_primer_plan: activa sin aprobar.
+-- Los savepoints conservan los casos originales de E/F para el resto de la prueba.
+savepoint h4_sin_aprobar;
+delete from public.capacidades_staff
+ where usuario_id = 'e2000000-0000-0000-0000-000000000001'
+   and capacidad = 'aprobar_primer_plan';
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+select public.confirmar_pisar_microciclo('cd-e-5app');
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-e-5app') = 'activo'
+  and (select estado = 'espera_bryan' and decidido_por is null and decidido_en is null
+         and motivo is null and motivo_espera like 'Choque de microciclo%'
+         from public.aprobaciones_primer_plan where microciclo_id = 'cd-e-5app'),
+  'H4: sin aprobar_primer_plan se cambió la aprobación o no se activó la propuesta liberada'
+);
+rollback to savepoint h4_sin_aprobar;
+release savepoint h4_sin_aprobar;
+
+-- H4: riesgo alto, puede aprobar/liberar pero no autorizar excepciones.
+savepoint h4_sin_excepcion;
+update public.aprobaciones_primer_plan set riesgo = 'alto' where microciclo_id = 'cd-f-5app';
+delete from public.capacidades_staff
+ where usuario_id = 'e2000000-0000-0000-0000-000000000001'
+   and capacidad = 'autorizar_excepcion';
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.liberar_microciclo('cd-f-5app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-f-5app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+select public.confirmar_pisar_microciclo('cd-f-5app');
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-f-5app') = 'activo'
+  and (select estado = 'espera_bryan' and riesgo = 'alto' and decidido_por is null
+         and decidido_en is null and motivo is null and motivo_espera like 'Choque de microciclo%'
+         from public.aprobaciones_primer_plan where microciclo_id = 'cd-f-5app'),
+  'H4: sin autorizar_excepcion se aprobó un plan de riesgo alto'
+);
+rollback to savepoint h4_sin_excepcion;
+release savepoint h4_sin_excepcion;
+
+-- H4/0135: confirmar sigue exigiendo liberar_prescripcion aunque exista liberación vigente.
+savepoint h4_sin_liberar;
+delete from public.capacidades_staff
+ where usuario_id = 'e2000000-0000-0000-0000-000000000001'
+   and capacidad = 'liberar_prescripcion';
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+do $$
+begin
+  begin
+    perform public.confirmar_pisar_microciclo('cd-e-5app');
+    raise exception 'FALLO: H4 confirmó sin liberar_prescripcion';
+  exception when insufficient_privilege then
+    if sqlerrm <> 'activar_microciclo: falta la capacidad de liberar' then raise; end if;
+  end;
+end $$;
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-e-5app') = 'propuesto'
+  and (select estado from public.aprobaciones_primer_plan where microciclo_id = 'cd-e-5app') = 'espera_bryan'
+  and not exists (select 1 from public.pisadas_microciclo_autorizadas where xid = txid_current()),
+  'H4: fallar sin liberar cambió el plan o dejó autorización residual'
+);
+rollback to savepoint h4_sin_liberar;
+release savepoint h4_sin_liberar;
 
 -- ─ 8b · «Activar igualmente» aprueba el plan en espera por choque (decidido por Bryan, 29-oct) ─
 -- Activar igualmente aprueba el plan: F está en espera_bryan (vencido, bloque 8; su aviso sigue pendiente) por choque (bloque 8). G tiene otro
