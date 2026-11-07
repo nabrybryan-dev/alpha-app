@@ -66,7 +66,8 @@ insert into public.capacidades_staff (usuario_id, capacidad) values
   ('e2000000-0000-0000-0000-000000000001', 'autorizar_excepcion'),
   -- Desde M2 (0142, D-17-57) quien edita una propuesta no la libera: libera otra persona del equipo.
   ('e2000000-0000-0000-0000-000000000002', 'leer_entrenamiento'),
-  ('e2000000-0000-0000-0000-000000000002', 'liberar_prescripcion')
+  ('e2000000-0000-0000-0000-000000000002', 'liberar_prescripcion'),
+  ('e2000000-0000-0000-0000-000000000002', 'aprobar_primer_plan')
 on conflict do nothing;
 
 select pruebas.afirmar(
@@ -335,8 +336,9 @@ insert into public.aprobaciones_primer_plan (id, usuario_id, microciclo_id, ries
   ('c2000000-0000-0000-0000-000000000005', 'd2000000-0000-0000-0000-000000000005', 'cd-e-5app', 'bajo', '{}', now() + interval '1 day'),
   ('c2000000-0000-0000-0000-000000000006', 'd2000000-0000-0000-0000-000000000006', 'cd-f-5app', 'bajo', '{}', now() - interval '1 minute');
 
--- decidir_primer_plan: el coach aprueba y la base no activa por el choque.
-select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+-- decidir_primer_plan: aprueba alguien del equipo que NO editó la propuesta (0142: aprobar libera,
+-- y quien edita no libera), y la base no activa por el choque.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
 set role authenticated;
 select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar');
 reset role;
