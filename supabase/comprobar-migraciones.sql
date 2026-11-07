@@ -3523,5 +3523,71 @@ select '0165 - solicitudes de derechos', 'purgar_solicitudes_derechos definer co
             when has_function_privilege('authenticated', 'public.purgar_solicitudes_derechos(timestamptz)', 'execute') then 'NO'
             when not has_function_privilege('service_role', 'public.purgar_solicitudes_derechos(timestamptz)', 'execute') then 'NO'
             else 'SI' end
+union all
+select '0166 - memoria de la charla de Praxis', 'praxis_charla_turnos: RLS, una sola lectura (capacidad leer_charlas_praxis), el navegador no inserta ni actualiza ni borra, sin anon; capacidad en el check; columna atendida_en',
+       case when to_regclass('public.praxis_charla_turnos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_charla_turnos')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd = 'r') <> 1 then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd = 'r'
+                               and pg_get_expr(p.polqual, p.polrelid) like '%leer_charlas_praxis%') then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd in ('a', 'w', 'd', '*')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_charla_turnos', 'select')
+              or has_table_privilege('anon', 'public.praxis_charla_turnos', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'delete') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_charla_turnos', 'texto', 'insert') then 'NO'
+            when not exists (select 1 from information_schema.columns where table_schema = 'public'
+                               and table_name = 'praxis_charla_turnos' and column_name = 'atendida_en') then 'NO'
+            when not exists (select 1 from pg_constraint where conrelid = to_regclass('public.capacidades_staff')
+                               and contype = 'c' and pg_get_constraintdef(oid) like '%leer_charlas_praxis%') then 'NO'
+            else 'SI' end
+union all
+select '0166 - memoria de la charla de Praxis', 'praxis_borrar_mi_charla, praxis_marcar_charla_atendida y praxis_purgar_charlas existen, security definer, search_path fijo; borrar-mi-charla la ejecutan los usuarios y no anon; marcar atendida y la purga solo service_role',
+       case when to_regprocedure('public.praxis_borrar_mi_charla(uuid)') is null
+              or to_regprocedure('public.praxis_purgar_charlas()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_borrar_mi_charla(uuid)'))
+              or not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_purgar_charlas()')) then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_borrar_mi_charla(uuid)')), false)
+              or not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_purgar_charlas()')), false) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_borrar_mi_charla(uuid)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_purgar_charlas()', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_purgar_charlas()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_borrar_mi_charla(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.praxis_marcar_charla_atendida(uuid,uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_marcar_charla_atendida(uuid,uuid)')) then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_marcar_charla_atendida(uuid,uuid)')), false) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_marcar_charla_atendida(uuid,uuid)', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_marcar_charla_atendida(uuid,uuid)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0163 - deshacer el agua de Praxis', 'praxis_deshacer conserva security definer, search_path fijo y permisos, y su definición ya trae la rama agua (ya no dice que el agua no se puede deshacer)',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) not like '%tipo = ''agua''%' then 'NO'
+            else 'SI' end
+
+union all
+select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desde el navegador', 'guiones_llamada con RLS, una sola política de lectura (es_coach o leer_entrenamiento), unique (person_id, revision), usuario_id opcional, authenticated solo lee, anon nada',
+       case when to_regclass('public.guiones_llamada') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.guiones_llamada')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada') <> 1 then 'NO'
+            when not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada'
+                               and cmd = 'SELECT' and qual like '%es_coach()%' and qual like '%leer_entrenamiento%') then 'NO'
+            when not exists (select 1 from pg_constraint where conrelid = to_regclass('public.guiones_llamada')
+                               and contype = 'u' and pg_get_constraintdef(oid) = 'UNIQUE (person_id, revision)') then 'NO'
+            when (select is_nullable from information_schema.columns where table_schema = 'public'
+                    and table_name = 'guiones_llamada' and column_name = 'usuario_id') <> 'YES' then 'NO'
+            when has_table_privilege('anon', 'public.guiones_llamada', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.guiones_llamada', 'insert')
+              or has_table_privilege('authenticated', 'public.guiones_llamada', 'update')
+              or has_table_privilege('authenticated', 'public.guiones_llamada', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.guiones_llamada', 'select') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;

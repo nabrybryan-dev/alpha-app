@@ -26,7 +26,7 @@ const SALUD = 'me duele la rodilla izquierda'
 const CUIDADO = 'me quiero morir con esta rutina de pierna'
 const QUIETA = 'ya no quiero vivir'
 
-const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_de_comida'], checkins: [] }
+const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_de_comida'], checkins: [] }
 const charlaDelModelo = (texto: string): RespuestaDelRegistrador => ({
   ok: true, mensajeId: 'm-c', charla: texto,
   propuesta: { accion: 'nada', motivo: 'charla', registros: [], descartado: [], notas_coach: [], citas_invalidas: [] },

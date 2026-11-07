@@ -138,4 +138,24 @@ describe('senalesDeLaEncuesta', () => {
   it('a quien no se le preguntó, ninguna señal', () => {
     expect(senalesDeLaEncuesta({ genero: 'H' }).cicloAlterado).toBe(false)
   })
+
+  it('«prefiero no decirlo» tampoco', () => {
+    expect(senalesDeLaEncuesta({ cicloMenstrual: 'prefiere_no_decir' }).cicloAlterado).toBe(false)
+  })
+
+  // Falla hacia el lado seguro (31-oct-2026): lo que la app no reconoce como «sin alarma» pide
+  // revisión. Antes era al revés —solo 'irregular' y 'ausente' la pedían— y un valor nuevo pasaba
+  // en silencio. Retener unas cifras de más se arregla con un clic; enseñarlas de más, no.
+  it('un valor de ciclo que la app no conoce pide revisión', () => {
+    expect(senalesDeLaEncuesta({ cicloMenstrual: 'menopausia' }).cicloAlterado).toBe(true)
+    expect(senalesDeLaEncuesta({ cicloMenstrual: ['irregular'] }).cicloAlterado).toBe(true)
+  })
+
+  it('una respuesta de la encuesta de captación que no se pudo traducir pide revisión, conteste lo que conteste después', () => {
+    expect(senalesDeLaEncuesta({ cicloEnLaCaptacion: 'Perimenopausia' }).cicloAlterado).toBe(true)
+    expect(
+      senalesDeLaEncuesta({ cicloMenstrual: 'regular', cicloEnLaCaptacion: 'Perimenopausia' }).cicloAlterado,
+    ).toBe(true)
+    expect(senalesDeLaEncuesta({ cicloEnLaCaptacion: '   ' }).cicloAlterado).toBe(false)
+  })
 })

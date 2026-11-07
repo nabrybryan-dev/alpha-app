@@ -36,7 +36,25 @@ export async function elegirParaDeshacer(sesion: SesionDeFunciones | null, regis
   return p?.accion === 'confirmar_deshacer' ? { ok: true, propuesta: p } : { ok: false }
 }
 
-export async function deshacerRegistro(sesion: SesionDeFunciones | null, p: { tarjeta: TarjetaFirmada; mensajeId: string }): Promise<ResultadoDeshacer> {
+/** El agua que quedó tras deshacerla (0163), si el servidor la dio bien formada. */
+function aguaQueQuedo(datos: unknown): { fecha: string; ml: number } | null {
+  const a = (datos as { agua?: { fecha?: unknown; total_ml?: unknown } } | null)?.agua
+  if (!a || typeof a.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(a.fecha)) return null
+  const ml = a.total_ml
+  return typeof ml === 'number' && Number.isInteger(ml) && ml >= 0 && ml <= 10000 ? { fecha: a.fecha, ml } : null
+}
+
+/**
+ * `fijarAgua`: con el agua deshecha, fija el total del teléfono al que quedó en la base. Sin esto, el siguiente vaso
+ * subiría (upsert) el total viejo del teléfono y el agua deshecha volvería.
+ */
+export async function deshacerRegistro(
+  sesion: SesionDeFunciones | null, p: { tarjeta: TarjetaFirmada; mensajeId: string }, fijarAgua?: (fecha: string, ml: number) => void,
+): Promise<ResultadoDeshacer> {
   const r = await enviar(sesion, { tarjeta: p.tarjeta, confirmado: true, mensaje_id: p.mensajeId })
-  return r ? leerResultadoDeshacer(r.status, r.datos) : 'no_se_pudo'
+  if (!r) return 'no_se_pudo'
+  const resultado = leerResultadoDeshacer(r.status, r.datos)
+  const agua = resultado === 'deshecho' ? aguaQueQuedo(r.datos) : null
+  if (agua && fijarAgua) fijarAgua(agua.fecha, agua.ml)
+  return resultado
 }

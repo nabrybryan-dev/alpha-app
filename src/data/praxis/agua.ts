@@ -14,8 +14,8 @@ import type { RegistroPropuesto } from '../../domain/praxis/registro/tipos'
  * La RPC lleva el libro `(usuario, mensaje_id, indice)`: la misma tarjeta dos veces suma UNA vez y devuelve el
  * total del día. La app no suma nada: pone ese total.
  *
- * APAGADO. `PRAXIS_AGUA_POR_RPC` nace en `false`, como `PRAXIS_ABIERTA_A_ASESORADOS`. Cambiarlo es un cambio
- * de código con su PR, a propósito. Apagado, esta función devuelve los resultados tal cual y no toca nada.
+ * ENCENDIDO el 7-nov-2026 con el sí de Bryan, junto con la 0163 (deshacer el agua). Nació en `false`; cambiarlo
+ * es un cambio de código con su PR, a propósito. Apagado, esta función devuelve los resultados tal cual y no toca nada.
  *
  * COMPORTAMIENTO ANTE FALLOS: si la RPC falla (red, sesión, 4xx, respuesta rara), el resultado queda como hoy
  * (`pendiente_prerrequisito`: «anótalo en el formulario») y el fallo se anota con un texto fijo: ni la persona,
@@ -29,7 +29,7 @@ import type { RegistroPropuesto } from '../../domain/praxis/registro/tipos'
  *  - solo se toca lo que el servidor dejó «pendiente_prerrequisito»: si algún día el servidor ya lo guarda, no
  *    se suma otra vez.
  */
-export const PRAXIS_AGUA_POR_RPC = false
+export const PRAXIS_AGUA_POR_RPC = true
 
 export const RPC_APLICAR_AGUA = 'praxis_aplicar_agua'
 const TOPE_TARJETA_ML = 3000
