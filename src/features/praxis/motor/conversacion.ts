@@ -8,6 +8,7 @@ import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data
 import { Cab, compactar, enfocarControles, limpiarControles, montar, refrescar } from './cabecera'
 import { charlaSuelta, decidirTurnoConCharla, pareceCharla, type CharlaConModelo } from './charla'
 import { mostrarDeshacer } from './deshacer'
+import { intentarCheckin } from './checkinConectado'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
@@ -226,6 +227,12 @@ async function decirCharlaDelModelo(c: ConexionPraxis, dicho: string, tok: numbe
   await dijo(texto, tok)
 }
 
+/** Primero el check-in por conectores (bandera apagada = no hace nada); si no lo toma, el registrador de siempre. */
+async function registrarOCheckin(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
+  if (!ejercicioId && (await intentarCheckin(c, frase, tok, idMensaje))) return
+  return registrar(c, frase, tok, ejercicioId, ch)
+}
+
 async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
   let r: RespuestaDelRegistrador | null
   pensando(true)
@@ -340,10 +347,10 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
     return
   }
   if (turno.paso === 'charlaModelo') {
-    await registrar(c, frase, tok, undefined, { previos, apertura: turno.apertura, alFallar: turno.alFallar, plan: turno.plan, abreAnimo: turno.abreAnimo, esCharla: true })
+    await registrarOCheckin(c, frase, tok, undefined, { previos, apertura: turno.apertura, alFallar: turno.alFallar, plan: turno.plan, abreAnimo: turno.abreAnimo, esCharla: true })
     return
   }
-  await registrar(c, frase, tok, eleccion?.ejercicioId, { previos, apertura: null, alFallar: null, plan: null, abreAnimo: false, esCharla: !eleccion && pareceCharla(frase) })
+  await registrarOCheckin(c, frase, tok, eleccion?.ejercicioId, { previos, apertura: null, alFallar: null, plan: null, abreAnimo: false, esCharla: !eleccion && pareceCharla(frase) })
 }
 
 /* ——— Las preguntas en espera: «te aviso cuando responda» se cumple al abrir la sala ——— */
