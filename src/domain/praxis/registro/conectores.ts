@@ -28,7 +28,12 @@ export type Grado = 'medio' | 'medio_bajo' | 'medio_alto'
 const LEXICO_VAGO: [RegExp, Grado][] = [
   [/\bno (tan|muy|tanto|del todo) (bien|buen[oa])\b/, 'medio_bajo'],
   [/\b(bien no mas|bien nada mas|mas o menos bien)\b/, 'medio_alto'],
-  [/\b(no (tan|muy) mal|no me fue mal)\b/, 'medio'],
+  [/\b(no (tan|muy) mal|no me fue mal|ni bien ni mal|ni fu ni fa)\b/, 'medio'],
+  // «Medio» delante de un adjetivo lo rebaja: «medio mal» queda entre regular y malo, «medio cansada» es regular.
+  [/\bmedio (mal|regular|flojo|floja|pesimo|feo)\b/, 'medio_bajo'],
+  [/\bmedio bien\b/, 'medio_alto'],
+  [/\bmedi[oa] (cansad[oa]|estresad[oa]|agotad[oa]|agobiad[oa]|desanimad[oa]|con hambre|con ganas)\b/, 'medio'],
+  [/\b(regularcito|regularcita|maso|masomenos)\b/, 'medio'],
   [/\b(estoy|ando|vamos|voy|va) ahi\b|\bahi (vamos|voy|va|ando|estoy)\b|^ahi$/, 'medio'],
   [/\b(como medio|medio medio|mas o menos|maso menos|normal|regular)\b|^(como )?medi[oa]$/, 'medio'],
 ]
@@ -141,8 +146,14 @@ export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): Re
 
   // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
   for (const p of base.propuestas) {
-    if (tiempoDe(p.cita) === 'habitual') s.habituales.push({ campo: p.campo, valor: p.valor, cita: p.cita })
-    else s.propuestas.push({ ...p, origen: 'tabla' })
+    if (tiempoDe(p.cita) === 'habitual') { s.habituales.push({ campo: p.campo, valor: p.valor, cita: p.cita }); continue }
+    // «Medio mal» trae «mal» y la tabla lee MALA a secas: si la misma cita es vaga, la persona elige.
+    const grado = gradoVago(p.cita)
+    const niveles = grado ? nivelesDeGrado(p.campo, grado) : []
+    const juntos = [...new Set([...niveles, String(p.valor)])]
+    if (niveles.length > 0 && juntos.length > 1) {
+      s.dudosas.push({ campo: p.campo, candidatos: juntos.map((valor) => ({ valor, cita: p.cita })), motivo: 'la frase es vaga: que la persona elija' })
+    } else s.propuestas.push({ ...p, origen: 'tabla' })
   }
 
   // 2. Lo que la tabla descartó en un área conocida: se intenta como vago.

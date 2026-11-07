@@ -25,6 +25,27 @@ describe('lexicón de lo vago', () => {
     expect(gradoVago('lo dejé ahí en la mesa')).toBeNull()
   })
 
+  it('C01b formas nuevas: «medio» delante de una palabra, «ni bien ni mal», «regularcito»', () => {
+    expect(gradoVago('ni bien ni mal')).toBe('medio')
+    expect(gradoVago('regularcito')).toBe('medio')
+    expect(gradoVago('medio mal')).toBe('medio_bajo')
+    expect(gradoVago('medio bien')).toBe('medio_alto')
+    expect(gradoVago('estoy medio cansada')).toBe('medio')
+    // «medio día» o «medio litro» no son un grado.
+    expect(gradoVago('trabajé medio día')).toBeNull()
+    expect(gradoVago('me tomé medio litro')).toBeNull()
+  })
+
+  it('C01c «medio cansada» con área dicha: cansancio REGULAR, no MUCHO ni un número', () => {
+    const r = propuesta('Hoy estoy medio cansada')
+    expect(r.propuestas.find((p) => p.campo === 'cansancio')).toMatchObject({ valor: 'REGULAR', confianza: 'baja' })
+  })
+
+  it('C01d «el entreno medio mal»: elige entre REGULAR y MALA', () => {
+    const r = propuesta('El entreno medio mal')
+    expect(r.dudosas.find((d) => d.campo === 'rendimiento')?.candidatos.map((c) => c.valor)).toEqual(['REGULAR', 'MALA'])
+  })
+
   it('C02 respeta la polaridad de cada campo', () => {
     expect(nivelesDeGrado('estres', 'medio_bajo')).toEqual(['REGULAR', 'MUCHO'])
     expect(nivelesDeGrado('cansancio', 'medio_bajo')).toEqual(['REGULAR', 'MUCHO'])
