@@ -107,10 +107,23 @@ describe('batería de estrés de los conectores', () => {
 })
 
 /** Huecos conocidos, tal como están hoy: si esta prueba falla, alguien cambió su comportamiento (para bien o para mal). */
-describe('huecos conocidos (no son la meta: avisan si cambian)', () => {
-  it('«voy regular al gimnasio, tres veces» hoy sale rendimiento REGULAR (tabla de vida.ts; decide Bryan)', () => {
-    expect(salidaDe({ frase: 'voy regular al gimnasio, tres veces', p: 'motivacion' })).toEqual({ rendimiento: 'REGULAR' })
+describe('«regular» como FRECUENCIA no es un nivel (Bryan, 7-nov: ajustar la tabla de vida.ts)', () => {
+  it.each([
+    'voy regular al gimnasio, tres veces',
+    'entreno regular, cuatro días',
+    'voy regularmente al gym',
+    'asisto regular a la rutina',
+  ])('«%s» no anota rendimiento', (frase) => {
+    expect(salidaDe({ frase, p: 'motivacion' })).toEqual({})
   })
+
+  it('«regular» como nivel sigue valiendo', () => {
+    expect(salidaDe({ frase: 'el entreno estuvo regular' })).toEqual({ rendimiento: 'REGULAR' })
+    expect(salidaDe({ frase: 'me fue regular en la rutina' })).toEqual({ rendimiento: 'REGULAR' })
+  })
+})
+
+describe('huecos conocidos (no son la meta: avisan si cambian)', () => {
   it('«el entreno re bien» hoy no sale (palabra nueva: propuesta)', () => {
     expect(salidaDe({ frase: 'el entreno re bien' })).toEqual({})
   })
