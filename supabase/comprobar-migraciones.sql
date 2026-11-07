@@ -3640,4 +3640,12 @@ select '0171 - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis_
             when not has_function_privilege('authenticated', 'public.praxis_aprender_forma(text,text,text)', 'execute') then 'NO'
             else 'SI' end
 
+union all
+select '0172 - búsqueda mixta de la biblioteca de Praxis', 'buscar_conceptos_mixta existe, es security invoker y no queda abierta a anon',
+       case when to_regprocedure('public.buscar_conceptos_mixta(text,extensions.vector,integer,integer)') is null then 'NO'
+            when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.buscar_conceptos_mixta(text,extensions.vector,integer,integer)')) then 'NO'
+            when has_function_privilege('anon', 'public.buscar_conceptos_mixta(text,extensions.vector,integer,integer)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.buscar_conceptos_mixta(text,extensions.vector,integer,integer)', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
