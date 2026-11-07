@@ -74,9 +74,12 @@ describe('Praxis · la espera del registrador no es silencio', () => {
     // Sigue «piensa» mientras no hay respuesta, sin ninguna frase de relleno hablada.
     expect(raiz.querySelector('#dicho')?.getAttribute('aria-busy')).toBe('true')
     expect(raiz.querySelector('#srPiensa')?.textContent).toBe('Praxis está pensando')
+    // Y se VE, no solo lo oye el lector de pantalla (Bryan, 6-nov: «no sé si me escucha… se demora»).
+    expect(raiz.querySelector('#ayuda')?.textContent).toBe('Pensando…')
 
     liberar({ ok: false, motivo: 'red' } as unknown as RespuestaDelRegistrador)
     await waitFor(() => expect(raiz.querySelector('#dicho')?.getAttribute('aria-busy')).toBeNull())
     expect(raiz.querySelector('#srPiensa')?.textContent).toBe('')
+    expect(raiz.querySelector('#ayuda')?.textContent).not.toBe('Pensando…')
   })
 })

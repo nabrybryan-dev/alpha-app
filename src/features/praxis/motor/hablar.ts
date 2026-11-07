@@ -43,6 +43,16 @@ const T = {
   tUmbral: 0, tMax: 0, tFin: 0, puntero: -1, presiones: new Set<number>(),
 }
 
+// Bryan, 6-nov: «cuando hablo no sé si me escucha». El aviso solo iba al lector de pantalla
+// (#srPiensa); ahora también se VE abajo (#ayuda) desde que el micrófono abre, antes de la
+// primera palabra, y al soltar se ve «Pensando…» mientras llega lo final del reconocedor.
+const TE_ESCUCHO = () => tu('Te escucho. Suelta para enviar.', 'Le escucho. Suelte para enviar.')
+const PENSANDO = 'Pensando…'
+function quitarAvisoDeVoz(): void {
+  const a = $('#ayuda')
+  if (a.textContent === TE_ESCUCHO() || a.textContent === PENSANDO) a.textContent = ''
+}
+
 const sinMicrofono = () => tu('Este navegador no deja usar el micrófono aquí; usa el micrófono del teclado.', 'Este navegador no deja usar el micrófono aquí; use el micrófono del teclado.')
 const conPermiso = () => !!(Dia.permisos && Dia.permisos.cVoz)
 const bloqueada = () => $('#sala').hidden || !!S.quieta || S.listo || S.respirando
@@ -100,8 +110,8 @@ function empezar(): void {
   } catch { Onda.hundir(0); decirAbajo(sinMicrofono()); return }
   Object.assign(T, { rec, final: '', interino: '', enviar: true, porTiempo: false, error: '', fase: 'oyendo' as Fase })
   mostrarEscucha(true); Onda.estado('escucha'); vibrar()
-  $('#enVivo').textContent = ''; $('#ayuda').textContent = ''
-  $('#srPiensa').textContent = tu('Te escucho. Suelta para enviar.', 'Le escucho. Suelte para enviar.')
+  $('#enVivo').textContent = ''; $('#ayuda').textContent = TE_ESCUCHO()
+  $('#srPiensa').textContent = TE_ESCUCHO()
   T.tMax = window.setTimeout(() => { if (T.fase === 'oyendo') { T.porTiempo = true; cerrar() } }, TOMA_MAX_MS)
 }
 
@@ -126,7 +136,7 @@ function cerrar(): void {
   if (T.fase !== 'oyendo') return
   T.fase = 'cerrando'; clearTimeout(T.tMax)
   mostrarEscucha(false)
-  if (!T.error) Onda.estado('piensa') // al soltar, piensa
+  if (!T.error) { Onda.estado('piensa'); $('#ayuda').textContent = PENSANDO } // al soltar, piensa, y se lee
   T.tFin = window.setTimeout(terminar, ESPERA_FINAL_MS)
   try { if (T.rec) T.rec.stop() } catch { terminar() }
 }
@@ -147,7 +157,8 @@ function terminar(): void {
   T.rec = null; T.fase = 'libre'
   if (rec) { rec.onresult = null; rec.onerror = null; rec.onend = null }
   $('#enVivo').textContent = ''
-  if ($('#srPiensa').textContent === tu('Te escucho. Suelta para enviar.', 'Le escucho. Suelte para enviar.')) $('#srPiensa').textContent = ''
+  quitarAvisoDeVoz() // lo que siga (un error, o el «Pensando…» de la conversación) lo pone quien corresponda
+  if ($('#srPiensa').textContent === TE_ESCUCHO()) $('#srPiensa').textContent = ''
   if (S.quieta) return // la seguridad ya tomó la pantalla: no se toca nada
   const estado = Onda.estadoActual
   if (estado === 'piensa' || estado === 'escucha') Onda.estado('reposo')
