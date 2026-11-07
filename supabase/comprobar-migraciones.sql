@@ -3590,5 +3590,16 @@ select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desd
               or has_table_privilege('authenticated', 'public.guiones_llamada', 'delete') then 'NO'
             when not has_table_privilege('authenticated', 'public.guiones_llamada', 'select') then 'NO'
             else 'SI' end
+union all
+select '0171 - el servidor solo lee purga y regla de ventana', 'service_role: solo SELECT en purgas_texto_libre, regla_ventana_primer_plan, activaciones_regla_ventana y avisos_regla_ventana',
+       case when exists (select 1 from unnest(array['public.purgas_texto_libre','public.regla_ventana_primer_plan',
+                                                    'public.activaciones_regla_ventana','public.avisos_regla_ventana']) t
+                          where to_regclass(t) is null
+                             or not has_table_privilege('service_role', t, 'select')
+                             or has_table_privilege('service_role', t, 'insert')
+                             or has_table_privilege('service_role', t, 'update')
+                             or has_table_privilege('service_role', t, 'delete')
+                             or has_table_privilege('service_role', t, 'truncate')) then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
