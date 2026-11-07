@@ -124,7 +124,7 @@ describe('«regular» como FRECUENCIA no es un nivel (Bryan, 7-nov: ajustar la t
 })
 
 describe('huecos conocidos (no son la meta: avisan si cambian)', () => {
-  it('«el entreno re bien» hoy no sale (palabra nueva: propuesta)', () => {
-    expect(salidaDe({ frase: 'el entreno re bien' })).toEqual({})
+  it('«el entreno re bien» sale BUENA desde las palabras nuevas del 7-nov (palabrasNuevas.ts)', () => {
+    expect(salidaDe({ frase: 'el entreno re bien' })).toEqual({ rendimiento: 'BUENA' })
   })
 })
