@@ -77,7 +77,7 @@ Después de la tarjeta, Praxis mira cuáles de los 8 obligatorios siguen vacíos
 - Cada vez que la persona confirma o corrige un valor, se guarda el par (forma normalizada, campo, valor final). Ejemplo: alguien dice «estoy ahí» y elige REGULAR en estrés tres veces seguidas.
 - Regla propuesta: con 3 confirmaciones iguales y 0 correcciones para la misma forma y campo, la tarjeta llega con ese valor preseleccionado y la etiqueta «como lo dices tú». Una corrección la vuelve a cero. Nunca se guarda sin tarjeta.
 - Es por persona y aislado: el lexicón de una persona no se usa con otra, ni entra al entrenamiento del modelo propio (las frases son de asesorados; «nada del laboratorio a asesorados» y P8).
-- Necesita tabla nueva (`praxis_lexico_persona`, migración 0168 si sigue libre) con RLS solo dueño. Se escribe en rama, sin aplicar. Sin la tabla, todo lo demás funciona; solo no aprende.
+- Necesita tabla nueva (`praxis_lexico_persona`, migración 0171 o la siguiente libre) con RLS solo dueño. Se escribe en rama, sin aplicar. Sin la tabla, todo lo demás funciona; solo no aprende.
 
 ## 6. Guardar y el check-in a medias
 
@@ -149,3 +149,5 @@ Las piezas 1-2 no dependen del saldo de Anthropic: la extracción es por tablas.
 
 - Bryan aprobó en el chat las 8 tarjetas de la hoja (L1-L6, R1, R2): biblioteca-praxis/APROBACION-LEXICO-VAGO-20261107.md. La hoja quedó vacía; la firma es el mensaje.
 - Paso 2: `src/domain/praxis/registro/tarjetaCheckin.ts` (armarTarjeta, confirmarTarjeta, siguientePregunta; bandera `CONECTORES_EN_TARJETA` apagada) y `src/features/praxis/motor/tarjetaCheckin.ts` (la tarjeta en el cosmos, estilo de deshacer). Nada se anota sin toque; dolor solo «sin dolor»; un valor fuera de escala no entra; `parcial` si falta alguno de los 8. 16 pruebas; 9 mutaciones caen. Nadie la monta todavía y no guarda: eso es el paso 4 (migración nueva, sí de Bryan).
+
+- 7-nov: la migración del paso 4 se escribió como 0168 y se renumeró a 0170 antes de subirla (`app/cadena-agentes` ya tiene 0168 y 0169). El lexicón por persona tomaría la siguiente libre.

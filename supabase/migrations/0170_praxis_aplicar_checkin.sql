@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0168 · Praxis: guardar el check-in que la persona confirmó (por el libro) y el ranking sin check-ins a medias
+-- 0170 · Praxis: guardar el check-in que la persona confirmó (por el libro) y el ranking sin check-ins a medias
 -- ============================================================================
 --
 -- SIN APLICAR. Escrita el 7-nov-2026 (paso 4 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md).
@@ -7,9 +7,9 @@
 -- vacía. Necesita la 0161 (el libro) aplicada. Nada la llama todavía: la tarjeta del check-in está detrás de
 -- `CONECTORES_EN_TARJETA` (apagada) y la Edge Function no tiene aún la rama del check-in.
 --
--- NÚMERO. 0168 = el siguiente libre (TRASPASO 7-nov: 0166 y 0167 escritas sin aplicar). Revisadas el 7-nov las
--- migraciones de todas las ramas remotas (`git ls-tree` sobre cada `origin/*`): ninguna tiene 0168. Si otra rama
--- toma el 0168 antes de aplicar esta, renumerar esta.
+-- NÚMERO. 0170. Se escribió como 0168 y se renumeró antes de subirla (7-nov): la rama `app/cadena-agentes` ya tiene
+-- 0168 y 0169 (sin aplicar; no se comprobó si están en la base). Main llega a 0167. Revisadas las migraciones de todas las ramas remotas (`git ls-tree`
+-- sobre cada `origin/*`): ninguna tiene 0170. Si otra rama toma el 0170 antes de aplicar esta, renumerar esta.
 --
 -- QUÉ CREA O CAMBIA.
 --   1. `praxis_aplicar_checkin(mensaje_id, indice, parche)`: escribe en el check-in de HOY (Bogotá) solo los campos
@@ -176,7 +176,7 @@ $$;
 
 comment on function public.praxis_aplicar_checkin(text, int, jsonb) is
   'Escribe en el check-in de HOY (Bogota) de quien llama solo los campos confirmados en la tarjeta de Praxis, una vez por tarjeta, '
-  'con el antes por campo en el libro. Marca datos.parcial si falta alguno de los 8 obligatorios. Dolor solo 0. Devuelve datos para que la app los fije. 0168.';
+  'con el antes por campo en el libro. Marca datos.parcial si falta alguno de los 8 obligatorios. Dolor solo 0. Devuelve datos para que la app los fije. 0170.';
 
 revoke execute on function public.praxis_aplicar_checkin(text, int, jsonb) from public, anon;
 grant execute on function public.praxis_aplicar_checkin(text, int, jsonb) to authenticated, service_role;
@@ -285,7 +285,7 @@ as $vivo$
     select usuario_id, count(*) as n
     from public.checkins
     where fecha >= current_date - 30
-      and coalesce(datos ->> 'parcial', 'false') <> 'true'   -- 0168: a medias no cuenta
+      and coalesce(datos ->> 'parcial', 'false') <> 'true'   -- 0170: a medias no cuenta
     group by usuario_id
   ),
   consultas as (

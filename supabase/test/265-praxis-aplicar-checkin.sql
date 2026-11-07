@@ -1,4 +1,4 @@
--- Praxis: guardar el check-in confirmado (0168). Migración SIN APLICAR en producción; esta prueba corre en el CI
+-- Praxis: guardar el check-in confirmado (0170). Migración SIN APLICAR en producción; esta prueba corre en el CI
 -- sobre una base vacía con todas las migraciones.
 --
 -- QUÉ SE COMPRUEBA (contra RLS y privilegios de verdad):
@@ -154,6 +154,6 @@ select pruebas.afirmar((select checkins from public.ranking_disciplina_vivo() wh
 select pruebas.afirmar((select checkins from public.ranking_disciplina_vivo() where usuario_id = 'f9000000-0000-0000-0000-000000000003') = 0,
   'el ranking conto un check-in a medias');
 
-\echo 'OK · guardar el check-in de Praxis: solo hoy, solo lo propio, escala del formulario, parcial y ranking sin medias (0168)'
+\echo 'OK · guardar el check-in de Praxis: solo hoy, solo lo propio, escala del formulario, parcial y ranking sin medias (0170)'
 
 rollback;

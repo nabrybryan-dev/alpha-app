@@ -2857,7 +2857,7 @@ select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desd
             else 'SI' end
 
 union all
-select '0168 - Praxis guarda el check-in confirmado', 'praxis_aplicar_checkin existe, security definer, search_path fijo; la ejecuta authenticated y no anon',
+select '0170 - Praxis guarda el check-in confirmado', 'praxis_aplicar_checkin existe, security definer, search_path fijo; la ejecuta authenticated y no anon',
        case when to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)') is null then 'NO'
             when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)')) then 'NO'
             when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
@@ -2867,7 +2867,7 @@ select '0168 - Praxis guarda el check-in confirmado', 'praxis_aplicar_checkin ex
             else 'SI' end
 
 union all
-select '0168 - Praxis guarda el check-in confirmado', 'ranking_disciplina_vivo ya no cuenta los check-ins a medias (filtra datos.parcial)',
+select '0170 - Praxis guarda el check-in confirmado', 'ranking_disciplina_vivo ya no cuenta los check-ins a medias (filtra datos.parcial)',
        case when to_regprocedure('public.ranking_disciplina_vivo()') is null then 'NO'
             when pg_get_functiondef(to_regprocedure('public.ranking_disciplina_vivo()')) not like '%parcial%' then 'NO'
             else 'SI' end
