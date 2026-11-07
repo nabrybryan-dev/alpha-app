@@ -1,0 +1,169 @@
+/**
+ * Conectores: lo que la persona dice de forma vaga → la escala real de cada pregunta del check-in.
+ * Diseño: docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md (paso 1). PROPUESTA, nunca escritura.
+ *
+ * Va ENCIMA de `mensajeLargo.ts` (no lo copia ni lo cambia) y añade tres cosas:
+ *  1. Lo vago («estoy ahí», «como medio», «no tan bien») se traduce a un nivel con confianza BAJA. Si cae entre
+ *     dos niveles, no se elige: queda dudoso con los dos y la persona escoge.
+ *  2. Un trozo vago que no nombra el área toma la de la pregunta anterior de Praxis, SOLO si esa pregunta era de
+ *     un único campo. Sin pregunta, no se usa.
+ *  3. Lo habitual («siempre duermo seis», «normalmente ando estresado») no es el check-in de hoy: sale aparte.
+ *
+ * Reglas firmes que se conservan: riesgo primero (lo hace `mensajeLargo`); la oración clínica no llena nada;
+ * el hambre nunca sale de palabras (se pregunta el tramo); el dolor nunca se escribe por aquí; cita literal.
+ * El lexicón de lo vago es PROPUESTA DE IA sin firma: Bryan lo aprueba por muestra.
+ */
+import { TRAMOS } from '../../senales/hambre.ts'
+import { marcarSaludPorDiccionario } from '../ingreso/extraer.ts'
+import { normalizarTexto } from './numeros.ts'
+import {
+  proponerDesdeMensajeLargo, trozosDeMensaje,
+  type AreaDudosa, type CampoCheckin, type TrozoDescartado, type ValorPropuesto,
+} from './mensajeLargo.ts'
+import type { MarcaDeRiesgo } from '../riesgo.ts'
+
+export type Grado = 'medio' | 'medio_bajo' | 'medio_alto'
+
+/** Lexicón de lo vago (texto normalizado, sin tildes). El orden importa: lo más específico primero. */
+const LEXICO_VAGO: [RegExp, Grado][] = [
+  [/\bno (tan|muy|tanto|del todo) (bien|buen[oa])\b/, 'medio_bajo'],
+  [/\b(bien no mas|bien nada mas|mas o menos bien)\b/, 'medio_alto'],
+  [/\b(no (tan|muy) mal|no me fue mal)\b/, 'medio'],
+  [/\b(estoy|ando|vamos|voy|va) ahi\b|\bahi (vamos|voy|va|ando|estoy)\b|^ahi$/, 'medio'],
+  [/\b(como medio|medio medio|mas o menos|maso menos|normal|regular)\b|^(como )?medi[oa]$/, 'medio'],
+]
+
+export function gradoVago(cita: string): Grado | null {
+  const n = normalizarTexto(cita).trim()
+  for (const [re, g] of LEXICO_VAGO) if (re.test(n)) return g
+  return null
+}
+
+/** Campos con escala de tres niveles, ordenados [bueno, medio, malo] según su polaridad. */
+const ESCALA: Partial<Record<CampoCheckin, readonly [string, string, string]>> = {
+  rendimiento: ['BUENA', 'REGULAR', 'MALA'],
+  calidadSueno: ['BUENA', 'REGULAR', 'MALA'],
+  alimentacion: ['BUENA', 'REGULAR', 'MALA'],
+  motivacion: ['MUCHO', 'REGULAR', 'POCO'],
+  cansancio: ['POCO', 'REGULAR', 'MUCHO'],
+  estres: ['POCO', 'REGULAR', 'MUCHO'],
+}
+
+/** Niveles que admite un grado vago en un campo: uno (se propone) o dos (la persona elige). */
+export function nivelesDeGrado(campo: CampoCheckin, grado: Grado): string[] {
+  const e = ESCALA[campo]
+  if (!e) return []
+  if (grado === 'medio') return [e[1]]
+  return grado === 'medio_bajo' ? [e[1], e[2]] : [e[0], e[1]]
+}
+
+export type Tiempo = 'hoy' | 'habitual'
+const HABITUAL = /\b(siempre|normalmente|por lo general|generalmente|usualmente|habitualmente|todos los dias|todas las noches|suelo|acostumbro|duermo|me acuesto|me levanto)\b/
+const HOY = /\b(hoy|anoche|esta manana|esta tarde|esta noche|ahora|ahorita|ayer|en este momento)\b/
+
+/** Lo habitual va al perfil; todo lo demás se lee como de hoy (la tarjeta muestra la fecha y la persona confirma). */
+export function tiempoDe(cita: string): Tiempo {
+  const n = normalizarTexto(cita)
+  return HABITUAL.test(n) && !HOY.test(n) ? 'habitual' : 'hoy'
+}
+
+/** Áreas que `mensajeLargo` pone en sus descartes → campo del check-in. Dolor, ánimo y horas no entran. */
+const CAMPO_DE_AREA: Record<string, CampoCheckin> = {
+  'estrés': 'estres', 'energía': 'cansancio', 'hambre': 'hambreEscala', 'motivación': 'motivacion',
+  'rendimiento': 'rendimiento', 'alimentación': 'alimentacion', 'sueño': 'calidadSueno',
+}
+
+export interface PropuestaConectada extends ValorPropuesto { origen: 'tabla' | 'vago' }
+export interface PreguntaDeTramo { campo: 'hambreEscala'; cita: string; texto: string; opciones: { etiqueta: string; desde: number; hasta: number }[] }
+export interface Habitual { campo: CampoCheckin; valor: string | number; cita: string }
+export interface ContextoConectores {
+  /** Campo por el que Praxis preguntó en el turno anterior, si la pregunta era de UN solo campo. */
+  preguntaAnterior?: CampoCheckin | null
+}
+
+export type ResultadoConectores =
+  | { tipo: 'riesgo'; marca: MarcaDeRiesgo }
+  | {
+    tipo: 'propuesta'; propuestas: PropuestaConectada[]; dudosas: AreaDudosa[]
+    preguntas: PreguntaDeTramo[]; habituales: Habitual[]; descartado: TrozoDescartado[]
+  }
+
+/** Texto de cada tramo del hambre, el mismo que enseña el formulario (CheckinForm, DESCRIPCION_TRAMO). */
+const TEXTO_TRAMO: Record<string, string> = {
+  leve: 'Molesta, pero se lleva', moderada: 'Cuesta, distrae',
+  intensa: 'Interfiere con el trabajo o el entreno', insostenible: 'No la puedes sostener',
+}
+
+function preguntaDeHambre(cita: string): PreguntaDeTramo {
+  return {
+    campo: 'hambreEscala', cita, texto: '¿Cuál se parece más a tu hambre de hoy?',
+    opciones: TRAMOS.map((t) => ({ etiqueta: TEXTO_TRAMO[t.etiqueta] ?? t.etiqueta, desde: t.bajo, hasta: t.alto })),
+  }
+}
+
+type Salida = Extract<ResultadoConectores, { tipo: 'propuesta' }>
+
+/** Coloca un trozo vago ya con campo: propuesta (un nivel), dudosa (dos), pregunta (hambre) o descarte. */
+function colocarVago(campo: CampoCheckin, cita: string, grado: Grado, s: Salida): void {
+  if (campo === 'hambreEscala') { s.preguntas.push(preguntaDeHambre(cita)); return }
+  const niveles = nivelesDeGrado(campo, grado)
+  if (niveles.length === 0) {
+    s.descartado.push({ area: campo, cita, motivo: 'este campo no se llena con una expresión vaga' })
+  } else if (niveles.length === 1) {
+    s.propuestas.push({ campo, valor: niveles[0], cita, confianza: 'baja', origen: 'vago' })
+  } else {
+    s.dudosas.push({ campo, candidatos: niveles.map((valor) => ({ valor, cita })), motivo: 'expresión vaga entre dos niveles: que la persona elija' })
+  }
+}
+
+/** Un mismo campo con dos valores distintos (tabla y vago) no se elige: queda dudoso. */
+function resolverChoques(s: Salida): void {
+  const porCampo = new Map<CampoCheckin, PropuestaConectada[]>()
+  for (const p of s.propuestas) porCampo.set(p.campo, [...(porCampo.get(p.campo) ?? []), p])
+  const finales: PropuestaConectada[] = []
+  for (const [campo, lista] of porCampo) {
+    const yaDudosa = s.dudosas.find((d) => d.campo === campo)
+    if (yaDudosa) { yaDudosa.candidatos.push(...lista.map((p) => ({ valor: p.valor, cita: p.cita }))); continue }
+    if (new Set(lista.map((p) => String(p.valor))).size > 1) {
+      s.dudosas.push({ campo, candidatos: lista.map((p) => ({ valor: p.valor, cita: p.cita })), motivo: 'el mensaje dice cosas distintas sobre lo mismo: que la persona elija' })
+    } else finales.push(lista.find((p) => p.origen === 'tabla') ?? lista[0])
+  }
+  s.propuestas = finales
+}
+
+const esClinico = (cita: string) => marcarSaludPorDiccionario(cita).marcas.length > 0
+
+export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): ResultadoConectores {
+  const base = proponerDesdeMensajeLargo(texto)
+  if (base.tipo === 'riesgo') return base
+  const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [] }
+
+  // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
+  for (const p of base.propuestas) {
+    if (tiempoDe(p.cita) === 'habitual') s.habituales.push({ campo: p.campo, valor: p.valor, cita: p.cita })
+    else s.propuestas.push({ ...p, origen: 'tabla' })
+  }
+
+  // 2. Lo que la tabla descartó en un área conocida: se intenta como vago.
+  const vistas = new Set<string>([...base.propuestas, ...base.dudosas.flatMap((d) => d.candidatos)].map((c) => c.cita))
+  for (const d of base.descartado) {
+    vistas.add(d.cita)
+    const campo = CAMPO_DE_AREA[d.area]
+    const grado = campo ? gradoVago(d.cita) : null
+    if (!campo || !grado || esClinico(d.cita) || tiempoDe(d.cita) === 'habitual') { s.descartado.push(d); continue }
+    colocarVago(campo, d.cita, grado, s)
+  }
+
+  // 3. Trozos vagos sin área: solo con una pregunta anterior de un único campo.
+  for (const cita of trozosDeMensaje(texto)) {
+    if (vistas.has(cita)) continue
+    const grado = gradoVago(cita)
+    if (!grado) continue
+    if (!ctx.preguntaAnterior) { s.descartado.push({ area: 'sin área', cita, motivo: 'expresión vaga sin decir de qué habla, y no hubo una pregunta antes' }); continue }
+    if (esClinico(cita) || tiempoDe(cita) === 'habitual') continue
+    colocarVago(ctx.preguntaAnterior, cita, grado, s)
+  }
+
+  resolverChoques(s)
+  return s
+}

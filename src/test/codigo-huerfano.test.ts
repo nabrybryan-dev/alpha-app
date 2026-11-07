@@ -39,10 +39,11 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
-  'src/domain/praxis/registro/mensajeLargo.ts':
-    'Mensaje largo a las áreas del check-in (5-nov-2026): propuesta pura que la persona confirma en la tarjeta. ' +
-    'Hoy lo importa la Edge Function praxis-registro (sombra.ts → meta.decision.largo, solo nombres de campo y conteos, ' +
-    'en frases de 20 palabras o más), fuera de src/; la app aún no lo usa. Espera la aprobación de Bryan de la tabla ampliada.',
+  // mensajeLargo.ts salió de esta lista el 7-nov-2026: ahora lo importa conectores.ts (y, fuera de src/, sombra.ts).
+  'src/domain/praxis/registro/conectores.ts':
+    'Conectores de lo vago al check-in (7-nov-2026, paso 1 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md): ' +
+    'propuesta pura sobre mensajeLargo.ts. Sin enchufar a propósito: falta que Bryan apruebe por muestra el lexicón de lo vago ' +
+    'y la tarjeta de confirmación (paso 2).',
   'src/domain/praxis/enrutarPraxis.ts':
     'Enrutador de la Praxis única por reglas (F1, 4-nov-2026), en sombra: lo consume la Edge Function praxis-registro ' +
     '(sombra.ts → meta.decision), no la app. La app lo enchufa en el paso F3, cuando Praxis navegue.',

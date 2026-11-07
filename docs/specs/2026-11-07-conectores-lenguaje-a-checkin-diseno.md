@@ -48,7 +48,7 @@ Un conector por pregunta del check-in. Todos pasan por el mismo orden:
 
 1. **Riesgo primero.** `filtroDeRiesgo` sobre el texto entero (como hoy en `mensajeLargo.ts:87`). Si marca, nada se extrae.
 2. **Clínico por oración.** La oración con dolor, lesión, medicación o diagnóstico no llena ningún campo y va «al coach» (regla de `ranuras.ts`, `clinicoDe`) [R]. El dolor > 0 nunca se escribe por Praxis (`vida.ts:12-13`) [V].
-3. **Tiempo: hoy o habitual.** «Anoche dormí seis», «hoy estoy cansada» → check-in. «Duermo como seis», «siempre ando estresado» → ranura de perfil (#442), no check-in. Sin marca de tiempo → se pregunta en la tarjeta («¿esto es de hoy?»). [P]
+3. **Tiempo: hoy o habitual.** «Anoche dormí seis», «hoy estoy cansada» → check-in. «Duermo como seis», «siempre ando estresado» → ranura de perfil (#442), no check-in. Sin marca de tiempo se lee como de hoy: la tarjeta muestra la fecha y la persona confirma. Preguntar «¿esto es de hoy?» en cada trozo volvería la charla un cuestionario (criterio del 6-nov). Construido así en el paso 1.
 4. **Área.** Primero por palabras (lo que ya hace `mensajeLargo.ts`). Si el trozo es vago y no nombra el área, se toma del turno anterior de Praxis solo cuando ese turno fue una pregunta de un único campo («¿Y el estrés, cómo vas?» → «ahí, como medio» = estrés). Si la pregunta anterior tocaba dos campos, o no hubo pregunta, el trozo queda sin área y no se usa. [P]
 5. **Grado.** Tres niveles de origen, en este orden:
    - **Tabla cerrada** (la de `vida.ts`, más lo que Bryan apruebe de la propuesta del 5-nov). Confianza media, como hoy.
@@ -92,7 +92,7 @@ Diseño [P]:
 - Guardado por el libro (0161) con una función nueva tipo `praxis_aplicar_checkin`: fusión `datos || parche`, `antes` por campo, `auth.uid()`, clave única por mensaje, y añade a `anotadoHoy` lo que Praxis anotó. Migración nueva, sin aplicar.
 - Decisión del 7-nov que cambia código existente: no se crean días futuros. Hoy `vida.ts:239-240` y `:339` mandan los pasos dichos después de las 20:00 a la fila de mañana (`diferido`). Debe quedar en espera hasta que se abra ese día.
 
-**Abierto, de Bryan: ¿un check-in a medias da puntos?** Opciones para el selector:
+**DECIDIDO por Bryan (7-nov, selector): opción a.** Un check-in a medias no da puntos; al completar los 8 obligatorios da los 10 de siempre. Opciones que se presentaron:
 - a) No da puntos hasta completar los 8; luego da los 10 de siempre. (Recomendada: así los puntos siguen premiando el check-in completo que lee el coach, y un «estoy ahí» no vale lo mismo que el formulario lleno.)
 - b) Da 5 puntos al guardar lo parcial y 5 más al completar (como la adherencia parcial, `gamification.ts:63`).
 - c) Da los 10 con cualquier dato, como hoy.
@@ -127,9 +127,15 @@ Las frases de prueba son inventadas por IA y no sirven para entrenar el modelo p
 
 Las piezas 1-2 no dependen del saldo de Anthropic: la extracción es por tablas. Lo que sí depende es la frase libre que hoy procesa Haiku en `proponer`.
 
+## 8b. Paso 1 construido (7-nov)
+
+`src/domain/praxis/registro/conectores.ts` (`conectarMensaje`) y `conectores.test.ts` (14 casos; 6 mutaciones, las 6 caen). Puro, sin enchufar: ni la función ni la app lo llaman todavía. Dos cosas que se vieron al probar:
+- `filtroDeRiesgo` ya manda a la ruta de salud cualquier mensaje con «dolor» o «me duele» (devuelve `{ tipo: 'salud', filtro: 'dolor' }`). El conector no ve esos mensajes: más estricto que lo que suponía la sección 3.
+- `mensajeLargo.ts` no reconoce «duermo» como sueño (su patrón es `dorm\w*`). «Siempre duermo fatal» no da nada, ni de hoy ni habitual. Queda como hueco conocido; no se tocó `mensajeLargo.ts`.
+
 ## 9. Decisiones que son de Bryan
 
-1. ¿Un check-in a medias da puntos? (sección 6).
+1. ~~¿Un check-in a medias da puntos?~~ Decidido: no hasta completar (sección 6).
 2. Aprobar por muestra el lexicón de lo vago (sección 3, paso 5).
 3. Regla de «como lo dices tú»: 3 confirmaciones iguales y ninguna corrección (sección 5).
 4. Que el lexicón por persona exista (tabla nueva con datos de asesorados, solo dueño).
