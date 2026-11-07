@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0164 · La cadena de n8n sin la CLI: RPCs acotadas para la función `cadena-agentes`
+-- 0168 · La cadena de n8n sin la CLI: RPCs acotadas para la función `cadena-agentes`
 -- ============================================================================
 --
 -- POR QUÉ (7-nov-2026). Los flujos del ASUS leían y escribían la base de la app con
@@ -16,17 +16,10 @@
 --   alpha-pregunta   · «Insertar cuestionario»          -> cadena_insertar_cuestionario(...)
 -- Las tres consultas se copian TAL CUAL (mismos filtros, mismo orden, mismo `on conflict`).
 --
--- (El canario diario va en una migración aparte, cuando quede aislado de la consola de
--- Manuela, de la regla de ventana y de la auditoría de borrados.)
--- Y el canario diario (tuberia/canario_cadena.py), que solo puede tocar cuentas que lleven
--- a la vez el nombre `PRUEBA-AGENTES-CANARIO …` y el correo `prueba-agentes-canario-…@invalid.test`
--- (dominio reservado: no entrega correo nunca):
---   cadena_canario_restos() · cadena_canario_estado(uuid) · cadena_canario_proponer(uuid)
---   cadena_canario_borrar(uuid)
+-- El canario diario va en la 0169 (cadena_canario).
 --
 -- PERMISOS. Todas SECURITY DEFINER con search_path fijo, sin `public`, `anon` ni
--- `authenticated`: solo service_role (la función). Con la clave de la función no se puede leer
--- a una persona real por estas RPCs: las de canario rechazan a quien no es canario.
+-- `authenticated`: solo service_role (la función). 
 --
 -- NUMERO. Sin número a propósito (regla 1.1 del CLAUDE.md: el número de alpha-app se pregunta).
 -- El 7-nov-2026 el último de alpha-app/origin/main era 0162; Bryan elige el número al copiarla.
