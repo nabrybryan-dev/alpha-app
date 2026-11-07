@@ -107,6 +107,6 @@ describe('preguntar lo que falta, de a uno', () => {
   })
 })
 
-it('T13 la bandera sigue apagada', () => {
-  expect(CONECTORES_EN_TARJETA).toBe(false)
+it('T13 la bandera está encendida (sí de Bryan, 7-nov, con la 0170 y la 0171 aplicadas): cambiarla es a propósito', () => {
+  expect(CONECTORES_EN_TARJETA).toBe(true)
 })

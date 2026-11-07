@@ -11,13 +11,17 @@
  *    `preguntaAnterior` del conector: así «ahí, como medio» sabe de qué habla.
  *  - Un check-in con alguno de los 8 vacío queda `parcial` (decisión de Bryan, 7-nov: no da puntos hasta completarlo).
  *
- * Detrás de `CONECTORES_EN_TARJETA` (apagada): nada de la app lo llama todavía.
+ * Detrás de `CONECTORES_EN_TARJETA`: con ella, la conexión real de Praxis (`conexionReal.ts`) ofrece el check-in por
+ * conectores; apagada, no existe y la frase sigue el camino de siempre.
  */
 import type { PreguntaDeTramo, ResultadoConectores } from './conectores.ts'
 import type { CampoCheckin } from './mensajeLargo.ts'
 
-/** Apagada hasta que exista el guardado por el libro (paso 4) y Bryan diga que sí. */
-export const CONECTORES_EN_TARJETA = false
+/**
+ * ENCENDIDA el 7-nov-2026 con el sí de Bryan, después de aplicar la 0170 y la 0171. Nació en `false`; apagarla es
+ * volver a `false` con su PR. Solo la ve quien entra a Praxis (hoy el equipo: Praxis sigue cerrada a los asesorados).
+ */
+export const CONECTORES_EN_TARJETA = true
 
 /** Los 8 que el formulario exige, en su orden (`CheckinForm.tsx:136`, orden de pantalla 222-262). */
 export const OBLIGATORIOS: readonly CampoCheckin[] = [
