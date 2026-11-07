@@ -13,6 +13,8 @@
  * madrugada; #8 ningún conector es una fórmula de redirección («volviendo a…»).
  */
 
+import type { Tono } from './eco'
+
 export type Voz = 'equipo' | 'asesorado'
 
 export type Situacion =
@@ -103,7 +105,7 @@ export const REPERTORIO: Record<Voz, Record<Situacion, Repertorio>> = {
       colas: [
         '¿Cómo estuvieron estos días?',
         '¿Cómo has estado desde la última vez?',
-        '¿Qué tal te fue en la pausa?',
+        '¿Cómo te ha ido estos días?',
         'Cuéntame cómo vienes, sin presión.',
         '¿Retomamos donde quedamos o empezamos de nuevo?',
       ],
@@ -123,7 +125,7 @@ export const REPERTORIO: Record<Voz, Record<Situacion, Repertorio>> = {
       ],
       colas: [
         '¿Cómo te sentiste en la sesión?',
-        '¿Qué tal quedó el cuerpo después de entrenar?',
+        '¿Cómo quedaste de cansancio, estuvo intenso?',
         '¿Cómo te fue con las cargas de hoy?',
         '¿Algo que quieras contar de la sesión?',
         'Cuéntame cómo la sentiste.',
@@ -139,12 +141,12 @@ export const REPERTORIO: Record<Voz, Record<Situacion, Repertorio>> = {
         'Parece que hoy costó{n}.',
         'Uno de esos días{n}, ¿no?',
         'No hace falta explicar nada{n}.',
-        'Un día cuesta arriba{n}.',
+        'Hay días en que todo pesa más{n}, y se vale.',
         'Respira un momento{n}.',
       ],
       colas: [
         'Cuéntame lo que quieras, sin tarea.',
-        'No hay nada que completar ahora.',
+        'Hoy no te pido nada; cuéntame si quieres.',
         'Aquí te escucho, a tu ritmo.',
         'Lo que quieras decir, dímelo; lo que no, lo dejamos.',
         'Si prefieres, hablamos de otra cosa o no hablamos de nada.',
@@ -187,7 +189,7 @@ export const REPERTORIO: Record<Voz, Record<Situacion, Repertorio>> = {
       colas: [
         '¿En qué íbamos?',
         '¿Qué se te quedó pendiente?',
-        'Dime, ¿qué más hay?',
+        '¿Qué más me quieres contar?',
         '¿Seguimos con lo de hace un rato?',
         'Cuéntame qué pasó desde entonces.',
       ],
@@ -251,7 +253,7 @@ export const REPERTORIO: Record<Voz, Record<Situacion, Repertorio>> = {
       ],
       colas: [
         'Se pregunta por la sensación en la sesión.',
-        'Se consulta cómo quedó el cuerpo después de entrenar.',
+        'Se consulta el nivel de cansancio y qué tan intensa se sintió la sesión.',
         'Se pregunta por las cargas de hoy, sin repetir lo ya registrado.',
         'Queda abierto el espacio para comentar la sesión.',
         'Se pide que la describa con sus palabras.',
@@ -265,14 +267,14 @@ export const REPERTORIO: Record<Voz, Record<Situacion, Repertorio>> = {
         'Hoy no es día de exigir; se recoge lo que la persona quiera contar.',
         'Ánimo bajo declarado; se conserva el tono suave.',
         'Se reconoce el cansancio expresado y no se agrega carga.',
-        'Jornada complicada según lo dicho; no hay nada que completar ahora.',
+        'Jornada complicada según lo dicho; se acompaña sin pedir datos.',
         'Se percibe un día cuesta arriba en lo dicho.',
         'Prima la escucha sobre cualquier tarea.',
         'Sin exigencias hoy; la persona marca el ritmo.',
       ],
       colas: [
         'Se deja que cuente lo que quiera, sin tarea.',
-        'No hay nada que completar en este momento.',
+        'No se piden registros en este momento.',
         'Se acompaña a su ritmo.',
         'Lo que decida decir se recoge; lo demás se deja.',
         'Se ofrece hablar de otra cosa o no hablar.',
@@ -365,7 +367,7 @@ export const REPERTORIO_USTED: Record<Situacion, Repertorio> = {
     colas: [
       '¿Cómo estuvieron estos días?',
       '¿Cómo ha estado desde la última vez?',
-      '¿Qué tal le fue en la pausa?',
+      '¿Cómo le ha ido estos días?',
       'Cuénteme cómo viene, sin presión.',
       '¿Retomamos donde quedamos o empezamos de nuevo?',
     ],
@@ -385,7 +387,7 @@ export const REPERTORIO_USTED: Record<Situacion, Repertorio> = {
     ],
     colas: [
       '¿Cómo se sintió en la sesión?',
-      '¿Qué tal quedó el cuerpo después de entrenar?',
+      '¿Cómo quedó de cansancio, estuvo intenso?',
       '¿Cómo le fue con las cargas de hoy?',
       '¿Algo que quiera contar de la sesión?',
       'Cuénteme cómo la sintió.',
@@ -401,12 +403,12 @@ export const REPERTORIO_USTED: Record<Situacion, Repertorio> = {
       'Parece que hoy costó{n}.',
       'Uno de esos días{n}, ¿no?',
       'No hace falta explicar nada{n}.',
-      'Un día cuesta arriba{n}.',
+      'Hay días en que todo pesa más{n}, y se vale.',
       'Respire un momento{n}.',
     ],
     colas: [
       'Cuénteme lo que quiera, sin tarea.',
-      'No hay nada que completar ahora.',
+      'Hoy no le pido nada; cuénteme si quiere.',
       'Aquí lo escucho, a su ritmo.',
       'Lo que quiera decir, dígamelo; lo que no, lo dejamos.',
       'Si prefiere, hablamos de otra cosa o no hablamos de nada.',
@@ -449,7 +451,7 @@ export const REPERTORIO_USTED: Record<Situacion, Repertorio> = {
     colas: [
       '¿En qué íbamos?',
       '¿Qué se le quedó pendiente?',
-      'Dígame, ¿qué más hay?',
+      '¿Qué más me quiere contar?',
       '¿Seguimos con lo de hace un rato?',
       'Cuénteme qué pasó desde entonces.',
     ],
@@ -573,6 +575,8 @@ export interface HuellaDeRespuesta {
   conector?: string
   /** ¿Esa respuesta usó el nombre? (R4) */
   nombre?: boolean
+  /** Si la apertura fue un eco del tono de la persona (eco.ts). */
+  tono?: Tono
 }
 export type HistorialPersona = readonly HuellaDeRespuesta[]
 
@@ -596,7 +600,7 @@ type Azar = () => number
  * Elige una opción cuya huella no esté en `recientes`. Si todas están (no pasa con los repertorios de aquí,
  * que superan la ventana), usa la que se dijo hace más tiempo. `azar` devuelve [0, 1).
  */
-function elegirSinRepetir(opciones: readonly string[], recientes: readonly string[], azar: Azar): string {
+export function elegirSinRepetir(opciones: readonly string[], recientes: readonly string[], azar: Azar): string {
   const libres = opciones.filter((o) => !recientes.includes(huellaDe(o)))
   if (libres.length > 0) return libres[Math.min(libres.length - 1, Math.floor(azar() * libres.length))]
   const ultimaVez = (o: string): number => recientes.lastIndexOf(huellaDe(o))
