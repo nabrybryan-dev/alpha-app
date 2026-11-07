@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   APERTURAS_LIGERAS, APERTURAS_LIGERAS_USTED, CONECTORES, CONECTORES_USTED, FAMILIAS, REPERTORIO, REPERTORIO_USTED,
-  SITUACIONES, VENTANA_APERTURA, VENTANA_CONECTOR,
+  VENTANA_APERTURA, VENTANA_CONECTOR,
   debeDecirAviso, elegirConector, elegirSaludo, huellaDe, ordenarRespuesta, registrarUso, situacionDelDia,
   type DatosDeSituacion, type HistorialPersona, type Situacion, type Tratamiento, type Voz,
 } from './saludos'
+
+const SITUACIONES = Object.keys(REPERTORIO.equipo) as Situacion[]
 
 /** Las tres «hablas»: equipo (tercera persona), asesorado de tú y asesorado de usted. */
 const HABLAS: { nombre: string; voz: Voz; trato: Tratamiento }[] = [

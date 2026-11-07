@@ -2,7 +2,7 @@ import { decidirTurno, type Turno } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { Trato } from '../../../domain/praxis/plan/responder'
 import { limpiarDictado } from './dictado'
-import { elegirSaludo, type HistorialPersona, type HuellaDeRespuesta, type SaludoElegido, type Situacion, type Voz } from '../../../domain/praxis/charla/saludos'
+import { elegirSaludo, situacionDelDia, type DatosDeSituacion, type HistorialPersona, type HuellaDeRespuesta, type SaludoElegido, type Situacion, type Voz } from '../../../domain/praxis/charla/saludos'
 
 /**
  * Bandera de los saludos por situación y por persona (diseño 6-nov, secciones 3.1 a 3.3). APAGADA: con ella apagada
@@ -51,7 +51,7 @@ export interface ContextoDeCharla {
   /** El nombre de pila, si existe. Se usa en algunas aperturas, no en todas. */
   nombre?: string | null
   /** Solo se mira con la bandera encendida: la situación del día, la voz y el historial de ESTA persona. */
-  saludos?: { voz: Voz; situacion: Situacion | null; historial: HistorialPersona; humor?: boolean }
+  saludos?: { voz: Voz; /** Ya decidida; si falta se calcula con `datos`. `null`: rutina. */ situacion?: Situacion | null; datos?: DatosDeSituacion; historial: HistorialPersona; humor?: boolean }
 }
 
 export interface RespuestaDeCharla {
@@ -201,8 +201,10 @@ function elegirVariante<T>(clave: string, lista: readonly T[]): T {
 /** El saludo por situación, si la bandera está encendida y hay situación; `null`: sigue el libreto de siempre. La voz asesorado es solo de tú. */
 function saludoPorSituacion(ctx: ContextoDeCharla): SaludoElegido | null {
   const s = ctx.saludos
-  if (!banderaSaludos || !s || !s.situacion) return null
-  return elegirSaludo({ voz: s.voz, situacion: s.situacion, nombre: ctx.nombre, historial: s.historial, azar: () => azar(), humor: s.humor, trato: ctx.trato })
+  if (!banderaSaludos || !s) return null
+  const situacion = s.situacion !== undefined ? s.situacion : s.datos ? situacionDelDia(s.datos) : null
+  if (!situacion) return null
+  return elegirSaludo({ voz: s.voz, situacion, nombre: ctx.nombre, historial: s.historial, azar: () => azar(), humor: s.humor, trato: ctx.trato })
 }
 
 function aperturaDe(momento: Momento, nombre: string | null | undefined): string {

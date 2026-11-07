@@ -43,8 +43,17 @@ describe('SALUDOS_POR_SITUACION', () => {
     expect(r.intencion).toBe('saludo')
     expect(r.huella?.situacion).toBe('vuelve_tras_dias')
     expect(REPERTORIO.asesorado.vuelve_tras_dias.colas).toContain(r.cola)
-    expect(REPERTORIO.asesorado.vuelve_tras_dias.aperturas.map(huellaDe)).toContain(r.huella!.apertura)
+    expect(REPERTORIO.asesorado.vuelve_tras_dias.aperturas.map((a) => huellaDe(a))).toContain(r.huella!.apertura)
     expect(r.texto).toBe(`${r.apertura} ${r.cola}`)
+  })
+
+  it('encendida, la situación se calcula con los datos del día cuando no viene decidida', () => {
+    fijarSaludosPorSituacion(true)
+    const datos = { hora: 3, primerDia: false, diasDesdeLaUltima: 1, minutosDesdeSesion: null, diaMalo: false, yaHabloHoy: false }
+    const r = responderCharla('hola', { ...base, saludos: { voz: 'asesorado', datos, historial: [] } })!
+    expect(r.huella?.situacion).toBe('madrugada_o_noche')
+    const rutina = responderCharla('hola', { ...base, saludos: { voz: 'asesorado', datos: { ...datos, hora: 10 }, historial: [] } })!
+    expect(rutina.huella).toBeUndefined()
   })
 
   it('encendida sin situación (rutina) sigue el libreto de siempre', () => {
@@ -70,7 +79,7 @@ describe('SALUDOS_POR_SITUACION', () => {
     const r = responderCharla('hola', { ...conSaludos(), trato: 'usted' })!
     expect(r.huella?.situacion).toBe('vuelve_tras_dias')
     expect(REPERTORIO_USTED.vuelve_tras_dias.colas).toContain(r.cola)
-    expect(REPERTORIO_USTED.vuelve_tras_dias.aperturas.map(huellaDe)).toContain(r.huella!.apertura)
+    expect(REPERTORIO_USTED.vuelve_tras_dias.aperturas.map((a) => huellaDe(a))).toContain(r.huella!.apertura)
     expect(r.texto).not.toMatch(/\b(t[uú]|te|tu|tus|contigo|quieres|puedes)\b/i)
   })
 

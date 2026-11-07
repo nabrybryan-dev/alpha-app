@@ -18,10 +18,6 @@ export type Voz = 'equipo' | 'asesorado'
 export type Situacion =
   | 'primera_vez' | 'vuelve_tras_dias' | 'despues_de_entrenar' | 'dia_malo' | 'madrugada_o_noche' | 'retoma_mismo_dia'
 
-export const SITUACIONES: readonly Situacion[] = [
-  'primera_vez', 'vuelve_tras_dias', 'despues_de_entrenar', 'dia_malo', 'madrugada_o_noche', 'retoma_mismo_dia',
-]
-
 export type FamiliaDeConector = 'retomar' | 'cambiar' | 'causa' | 'cerrar'
 export const FAMILIAS: readonly FamiliaDeConector[] = ['retomar', 'cambiar', 'causa', 'cerrar']
 
