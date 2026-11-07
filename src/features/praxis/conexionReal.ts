@@ -3,7 +3,7 @@ import { leerLoQuePraxisVe } from '../../data/praxis/fuente'
 import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/preguntasEnEspera'
 import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
 import { deshacerRegistro, elegirParaDeshacer } from '../../data/praxis/deshacer'
-import { aplicarAguaDePraxis } from '../../data/praxis/agua'
+import { aplicarAguaDePraxis, fijarTotalDelDia } from '../../data/praxis/agua'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
@@ -62,7 +62,8 @@ export function crearConexionPraxis(
     },
     deshacer: {
       elegir: async (registroId) => elegirParaDeshacer(await sesionDeFunciones(), registroId),
-      confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p),
+      // Agua deshecha: el teléfono fija el total que quedó en la base (ver `data/praxis/deshacer.ts`).
+      confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p, (fecha, ml) => fijarTotalDelDia(db.nutricion, usuarioId, fecha, ml)),
     },
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),

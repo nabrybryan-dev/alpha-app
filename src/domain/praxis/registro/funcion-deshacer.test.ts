@@ -16,7 +16,7 @@ const micro: MicrocicloJson = {
   id: 'm-1', numero: 12, cadenciaDias: 7, fechaInicio: '2026-11-02',
   sesiones: [{ id: 'S1', nombre: 'PIERNA', dia: 'JUEVES', ejercicios: [{ id: 'pa1', nombre: 'SENTADILLA TRASERA', sets: 4, rango: '8-12', unidadCarga: 'kg', series: [] }] }],
 }
-interface Fila { id: string; usuario_id: string; tipo: string; despues: unknown; creado_en: string; deshecho_en: string | null }
+interface Fila { id: string; usuario_id: string; tipo: string; antes?: unknown; despues: unknown; creado_en: string; deshecho_en: string | null }
 const fila = (id: string, tipo: string, creado_en: string, usuario_id = YO): Fila => ({
   id, usuario_id, tipo, creado_en, deshecho_en: null,
   despues: tipo === 'series' ? { series: [{ orden: 1, cargaKg: 60, reps: 10 }] } : { estado: 'si', comentario: null },
@@ -310,5 +310,62 @@ describe('guardar y el libro, detrás de PRAXIS_LIBRO', () => {
     responder(e, /rpc\/praxis_aplicar_series/, () => new Response(JSON.stringify({ code: '22023' }), { status: 400 }))
     expect((await estados(await guardar(e)))[0]).toBe('rechazado')
     expect(e.aRpc('fijar_series_ejercicio')).toHaveLength(0)
+  })
+})
+
+describe('deshacer el agua (0163)', () => {
+  const C = '44444444-4444-4444-8444-444444444444'
+  const AGUA: Fila = { id: C, usuario_id: YO, tipo: 'agua', antes: { ml: 1000 }, despues: { ml: 1250 }, creado_en: '2026-11-05T14:50:00Z', deshecho_en: null }
+
+  it('el libro se lee también con el agua', async () => {
+    const e = entorno({ libro: [AGUA] })
+    await proponer(e, 'deshaz lo último')
+    const lectura = e.llamadas.find((l) => l.url.includes('praxis_registros_aplicados'))!
+    expect(decodeURIComponent(lectura.url)).toContain('tipo=in.(series,adherencia,agua)')
+    expect(lectura.url).toMatch(/select=[^&]*antes/)
+  })
+
+  it('«deshaz lo del agua»: pide confirmar el agua con lo que sumó la tarjeta, sin modelo y sin escribir', async () => {
+    const e = entorno({ libro: [SERIES, AGUA] })
+    const { j } = await proponer(e, 'deshaz lo del agua')
+    expect(j.propuesta.accion).toBe('confirmar_deshacer')
+    expect(j.propuesta.tarjeta).toMatchObject({ registro_id: C, tipo: 'hidratacion', descripcion: '+250 ml' })
+    expect(e.aModelo()).toHaveLength(0)
+    expect(e.aRpc('praxis_deshacer')).toHaveLength(0)
+  })
+
+  it('el agua de una tarjeta que creó el día (antes nulo) cuenta desde 0', async () => {
+    const e = entorno({ libro: [{ ...AGUA, antes: null, despues: { ml: 500 } }] })
+    const { j } = await proponer(e, 'deshaz lo del agua')
+    expect(j.propuesta.tarjeta.descripcion).toBe('+500 ml')
+  })
+
+  it('confirmado: la base deshace el agua y se dice en palabras', async () => {
+    const e = entorno({ libro: [AGUA], rpcDeshacer: { deshecho: true, ya_deshecho: false, registro_id: C, tipo: 'agua' } })
+    const j = await (await confirmar(e, await tarjetaDe(e))).json()
+    expect(j).toMatchObject({ resultado: 'deshecho', texto: 'Listo, dejé el agua de hoy como estaba antes.' })
+    expect(e.aRpc('praxis_deshacer')).toHaveLength(1)
+  })
+
+  it('confirmado: devuelve el total y la fecha que quedaron, para que el teléfono fije su agua', async () => {
+    const e = entorno({ libro: [AGUA], rpcDeshacer: { deshecho: true, ya_deshecho: false, registro_id: C, tipo: 'agua', fecha: '2026-11-05', total_ml: 1000 } })
+    const j = await (await confirmar(e, await tarjetaDe(e))).json()
+    expect(j.agua).toEqual({ fecha: '2026-11-05', total_ml: 1000 })
+  })
+
+  it('las series no traen agua, y un total raro de la base no se pasa', async () => {
+    const e = entorno({ libro: [SERIES] })
+    expect((await (await confirmar(e, await tarjetaDe(e))).json()).agua).toBeUndefined()
+    const e2 = entorno({ libro: [AGUA], rpcDeshacer: { deshecho: true, tipo: 'agua', fecha: 'ayer', total_ml: -5 } })
+    expect((await (await confirmar(e2, await tarjetaDe(e2))).json()).agua).toBeUndefined()
+  })
+
+  it('con la 0163 sin aplicar la base rechaza el agua: no hay éxito y no se toca nada', async () => {
+    const e = entorno({ libro: [AGUA] })
+    const t = await tarjetaDe(e)
+    responder(e, /rpc\/praxis_deshacer/, () => new Response(JSON.stringify({ code: '22023', message: 'praxis_deshacer: el tipo agua todavia no se puede deshacer' }), { status: 400 }))
+    const r = await confirmar(e, t)
+    expect(r.status).toBe(502)
+    expect((await r.json()).resultado).toBe('error')
   })
 })
