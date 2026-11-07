@@ -2872,4 +2872,26 @@ select '0170 - Praxis guarda el check-in confirmado', 'ranking_disciplina_vivo y
             when pg_get_functiondef(to_regprocedure('public.ranking_disciplina_vivo()')) not like '%parcial%' then 'NO'
             else 'SI' end
 
+union all
+select '0171 - lexicón por persona de Praxis', 'praxis_lexico_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
+       case when to_regclass('public.praxis_lexico_persona') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_lexico_persona')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'praxis_lexico_persona') <> 1 then 'NO'
+            when has_table_privilege('anon', 'public.praxis_lexico_persona', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'delete') then 'NO'
+            else 'SI' end
+
+union all
+select '0171 - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis_olvidar_mis_formas existen, security definer, las ejecuta authenticated y no anon',
+       case when to_regprocedure('public.praxis_aprender_forma(text,text,text)') is null
+              or to_regprocedure('public.praxis_olvidar_mis_formas()') is null then 'NO'
+            when not (select bool_and(p.prosecdef) from pg_proc p
+                       where p.oid in (to_regprocedure('public.praxis_aprender_forma(text,text,text)'), to_regprocedure('public.praxis_olvidar_mis_formas()'))) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aprender_forma(text,text,text)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_olvidar_mis_formas()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aprender_forma(text,text,text)', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

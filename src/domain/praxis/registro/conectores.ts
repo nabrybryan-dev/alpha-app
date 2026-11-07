@@ -39,8 +39,19 @@ const LEXICO_VAGO: [RegExp, Grado][] = [
 ]
 
 export function gradoVago(cita: string): Grado | null {
-  const n = normalizarTexto(cita).trim()
-  for (const [re, g] of LEXICO_VAGO) if (re.test(n)) return g
+  return formaVaga(cita)?.grado ?? null
+}
+
+/**
+ * La expresión vaga que trae la cita, normalizada y SOLA («como medio», «no tan bien»), con su grado. Es lo único
+ * que se guarda para aprender cómo habla cada persona: nunca la frase entera.
+ */
+export function formaVaga(cita: string): { forma: string; grado: Grado } | null {
+  const n = normalizarTexto(cita).replace(/\s+/g, ' ').trim()
+  for (const [re, grado] of LEXICO_VAGO) {
+    const m = re.exec(n)
+    if (m) return { forma: m[0].trim(), grado }
+  }
   return null
 }
 

@@ -240,5 +240,8 @@ jobs:
       - name: Praxis guarda en el check-in de hoy solo lo propio y lo confirmado, en la escala del formulario, una vez por tarjeta, marca a medias y el ranking no lo cuenta
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/265-praxis-aplicar-checkin.sql
 
+      - name: El lexicón de cada persona lo lee solo ella, solo se escribe por la función (campos y escalas válidos, forma corta), y ella lo borra entero
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/266-praxis-lexico-persona.sql
+
       - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql

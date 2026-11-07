@@ -151,3 +151,9 @@ Las piezas 1-2 no dependen del saldo de Anthropic: la extracción es por tablas.
 - Paso 2: `src/domain/praxis/registro/tarjetaCheckin.ts` (armarTarjeta, confirmarTarjeta, siguientePregunta; bandera `CONECTORES_EN_TARJETA` apagada) y `src/features/praxis/motor/tarjetaCheckin.ts` (la tarjeta en el cosmos, estilo de deshacer). Nada se anota sin toque; dolor solo «sin dolor»; un valor fuera de escala no entra; `parcial` si falta alguno de los 8. 16 pruebas; 9 mutaciones caen. Nadie la monta todavía y no guarda: eso es el paso 4 (migración nueva, sí de Bryan).
 
 - 7-nov: la migración del paso 4 se escribió como 0168 y se renumeró a 0170 antes de subirla (`app/cadena-agentes` ya tiene 0168 y 0169). El lexicón por persona tomaría la siguiente libre.
+
+## 8d. Paso 5 construido (7-nov, noche)
+
+- Bryan eligió construir el lexicón por persona. Dominio: `src/domain/praxis/registro/lexicoPersona.ts` (solo la expresión vaga normalizada, nunca la frase; 6 campos de tres niveles; 3 iguales seguidas = llega marcado «como lo dices tú»; distinta = vuelve a 1; la tabla manda; solo entre lo que la fila admite). 8 pruebas, 7 mutaciones caen.
+- Base: `0171_praxis_lexico_persona.sql` SIN aplicar (lee solo la persona, el equipo no; escribe solo `praxis_aprender_forma`; `praxis_olvidar_mis_formas` borra todo lo propio; tope 200 formas). Prueba SQL 266 en el CI. No entra al entrenamiento.
+- Falta enchufarlo: la tarjeta llama a `aprendizajeDeEleccion` al tocar y a `aplicarLexico` al armarse, con la bandera encendida.

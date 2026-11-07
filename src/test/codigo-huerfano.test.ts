@@ -39,6 +39,9 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+  'src/domain/praxis/registro/lexicoPersona.ts':
+    'Cómo dice las cosas cada persona (paso 5 de los conectores, 7-nov-2026): reglas puras; el guardado es la 0171, SIN aplicar. ' +
+    'Lo enchufa la tarjeta del check-in cuando se encienda CONECTORES_EN_TARJETA.',
   // mensajeLargo.ts y conectores.ts salieron de esta lista el 7-nov-2026: los importan conectores.ts y la tarjeta
   // del check-in (motor/tarjetaCheckin.ts); fuera de src/, sombra.ts importa mensajeLargo.ts.
   'src/domain/praxis/enrutarPraxis.ts':
