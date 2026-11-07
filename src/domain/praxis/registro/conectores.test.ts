@@ -87,6 +87,10 @@ describe('vago con área dicha', () => {
     expect(r.propuestas.find((p) => p.campo === 'alimentacion')).toMatchObject({ valor: 'BUENA', origen: 'tabla' })
   })
 
+  it('C09b «ahí, como medio» tras preguntar el hambre: UNA sola pregunta, no dos', () => {
+    expect(propuesta('ahí, como medio', 'hambreEscala').preguntas).toHaveLength(1)
+  })
+
   it('C10 el dolor vago no se escribe: va a la ruta de salud', () => {
     expect(conectarMensaje('El dolor como medio', { preguntaAnterior: 'dolor' }).tipo).toBe('riesgo')
     // Sin palabra de dolor y con la pregunta del dolor, tampoco: el dolor no se llena con lo vago.

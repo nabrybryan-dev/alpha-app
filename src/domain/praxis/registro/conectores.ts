@@ -105,7 +105,8 @@ type Salida = Extract<ResultadoConectores, { tipo: 'propuesta' }>
 
 /** Coloca un trozo vago ya con campo: propuesta (un nivel), dudosa (dos), pregunta (hambre) o descarte. */
 function colocarVago(campo: CampoCheckin, cita: string, grado: Grado, s: Salida): void {
-  if (campo === 'hambreEscala') { s.preguntas.push(preguntaDeHambre(cita)); return }
+  // Una sola pregunta por campo: «ahí, como medio» son dos trozos y no deben dar dos preguntas.
+  if (campo === 'hambreEscala') { if (!s.preguntas.some((p) => p.campo === campo)) s.preguntas.push(preguntaDeHambre(cita)); return }
   const niveles = nivelesDeGrado(campo, grado)
   if (niveles.length === 0) {
     s.descartado.push({ area: campo, cita, motivo: 'este campo no se llena con una expresión vaga' })
