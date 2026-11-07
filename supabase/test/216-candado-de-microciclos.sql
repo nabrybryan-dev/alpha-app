@@ -32,7 +32,8 @@ insert into auth.users (id, email) values
   ('d2000000-0000-0000-0000-000000000006', 'cd-f@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000007', 'cd-g@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000008', 'cd-h@ejemplo.test'),
-  ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test')
+  ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test'),
+  ('e2000000-0000-0000-0000-000000000002', 'cd-libera@ejemplo.test')
 on conflict (id) do nothing;
 
 insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
@@ -44,7 +45,8 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('d2000000-0000-0000-0000-000000000006', 'Candado F', 'asesorado', 'CF'),
   ('d2000000-0000-0000-0000-000000000007', 'Candado G', 'asesorado', 'CG'),
   ('d2000000-0000-0000-0000-000000000008', 'Candado H', 'asesorado', 'CH'),
-  ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO')
+  ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO'),
+  ('e2000000-0000-0000-0000-000000000002', 'Libera candado', 'coach', 'LC')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
 -- Como la cadena: sin sesión de usuario.
@@ -61,7 +63,10 @@ insert into public.capacidades_staff (usuario_id, capacidad) values
   ('e2000000-0000-0000-0000-000000000001', 'leer_entrenamiento'),
   ('e2000000-0000-0000-0000-000000000001', 'aprobar_primer_plan'),
   ('e2000000-0000-0000-0000-000000000001', 'liberar_prescripcion'),
-  ('e2000000-0000-0000-0000-000000000001', 'autorizar_excepcion')
+  ('e2000000-0000-0000-0000-000000000001', 'autorizar_excepcion'),
+  -- Desde M2 (0142, D-17-57) quien edita una propuesta no la libera: libera otra persona del equipo.
+  ('e2000000-0000-0000-0000-000000000002', 'leer_entrenamiento'),
+  ('e2000000-0000-0000-0000-000000000002', 'liberar_prescripcion')
 on conflict do nothing;
 
 select pruebas.afirmar(
@@ -96,7 +101,9 @@ select pruebas.afirmar(
   'lo cargado con sesión de usuario no quedó con origen app, autor y hora'
 );
 
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-a-9', public.huella_microciclo((select datos from public.microciclos where id = 'cd-a-9')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-a-9');
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-a-9') = 'activo'
@@ -109,7 +116,9 @@ select pruebas.afirmar(
 insert into public.microciclos (id, usuario_id, numero, estado, datos)
 values ('cd-b-9app', 'd2000000-0000-0000-0000-000000000002', 9, 'propuesto', '{}'::jsonb);
 
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-b-9app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-b-9app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-b-9app');   -- no debe levantar excepción
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-b-9app') = 'propuesto'
@@ -143,7 +152,9 @@ select pruebas.afirmar(
 
 set role authenticated;
 -- Un reintento de la cola no duplica el aviso.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-b-9app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-b-9app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-b-9app');
 select pruebas.afirmar(
   (select count(*) from public.microciclos_choques where propuesta_id = 'cd-b-9app') = 1,
@@ -208,7 +219,9 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos)
 values ('cd-c-9', 'd2000000-0000-0000-0000-000000000003', 9, 'propuesto', '{}'::jsonb);
 select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 set role authenticated;
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-c-9', public.huella_microciclo((select datos from public.microciclos where id = 'cd-c-9')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-c-9');
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -380,7 +393,9 @@ select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 set role authenticated;
 
 -- Con motivo de choque: queda aprobado por quien confirma, con fecha, y la propuesta activa.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-f-5app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-f-5app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.confirmar_pisar_microciclo('cd-f-5app');
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-f-5app') = 'activo'
@@ -391,7 +406,9 @@ select pruebas.afirmar(
 );
 
 -- Sin motivo de choque (espera por otra causa): se activa la propuesta pero el plan NO se toca.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
 select public.liberar_microciclo('cd-g-5app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-g-5app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.confirmar_pisar_microciclo('cd-g-5app');
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-g-5app') = 'activo'
