@@ -78,3 +78,42 @@ describe('los días que puede entrenar', () => {
     expect(orden).toEqual(['dias', 'cribado'])
   })
 })
+
+describe('quien llega con el cribado de la encuesta de inscripción', () => {
+  const previo = {
+    usuarioId: 'p',
+    fecha: '2026-11-04',
+    fuente: 'encuesta' as const,
+    sintomasConEsfuerzo: 'ausente' as const,
+    parqEnfermedadCardiaca: false,
+    parqMedicamentoPresion: false,
+    parqHuesosArticulaciones: true,
+    detalle: { parq_huesos_articulaciones: 'Encuesta de inscripción (lesiones): rodilla' },
+  }
+
+  it('ve lo suyo ya marcado, completa lo que falta y se guarda como respuesta de la app', () => {
+    const contestar = vi.fn(() => 'guardado' as const)
+    render(
+      <CribadoForm
+        usuarioId={`p-${Math.random().toString(36).slice(2)}`}
+        guardarDias={vi.fn()}
+        contestar={contestar}
+        hoyIso="2026-11-04"
+        previo={previo}
+      />,
+    )
+    expect(screen.getByText(/encuesta de inscripción/i)).toBeInTheDocument()
+    expect(screen.getByText(/4 de 12 contestadas/)).toBeInTheDocument()
+
+    // Contesta «No» solo a lo que sigue sin marcar: los ocho que la landing no preguntó.
+    const sinMarcar = screen.getAllByRole('button', { name: 'No' }).filter((b) => b.getAttribute('aria-pressed') !== 'true')
+    for (const boton of sinMarcar.slice(0, 8)) fireEvent.click(boton)
+    fireEvent.click(screen.getByRole('button', { name: 'Lunes' }))
+    fireEvent.click(screen.getByRole('button', { name: /^enviar$/i }))
+
+    expect(contestar).toHaveBeenCalledTimes(1)
+    const enviado = (contestar.mock.calls[0] as unknown[])[0] as Record<string, unknown>
+    expect(enviado).toMatchObject({ fuente: 'app', parqHuesosArticulaciones: true, sintomasConEsfuerzo: 'ausente' })
+    expect(enviado.detalle).toMatchObject({ parqHuesosArticulaciones: expect.stringContaining('rodilla') })
+  })
+})

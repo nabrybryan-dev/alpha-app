@@ -25,6 +25,7 @@ import { NotasDeLaSemana } from '../entrenar/NotasDeLaSemana'
 import { esDeLaCadena } from '../preguntas/preguntasDeLaCadena'
 import { PreguntaDelCoach } from '../hoy/PreguntaDelCoach'
 import { TarjetaDeLaSemana } from '../hoy/TarjetaDeLaSemana'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 /**
  * SEMANA, la bandeja de la semana (paso 6 del rediseño).
@@ -201,12 +202,12 @@ export default function SemanaPage() {
         <p className="text-sm text-tenue">
           {ultimoDelEquipo ? `«${ultimoDelEquipo.texto}»` : equipo}
         </p>
-        <Link
+        <Boton3D
           to="/chat"
-          className="press inline-flex min-h-[44px] items-center self-start rounded-full bg-accion px-4 font-display text-sm text-white"
+          className="self-start"
         >
           Abrir el chat
-        </Link>
+        </Boton3D>
       </section>
 
       {microciclo && dias && (

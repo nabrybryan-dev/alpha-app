@@ -97,3 +97,13 @@ describe('Boton3D — su CSS en tokens.css', () => {
     expect(bloque).toMatch(/transition:\s*none/)
   })
 })
+
+describe('Boton3D dentro de una tarjeta 3D', () => {
+  it('su inclinación no lo mete detrás del plano del padre: el toque tiene que llegarle', () => {
+    // En una tarjeta con `preserve-3d` (`.relieve`), rotateX(8deg) sobre el borde de abajo echa
+    // el botón hacia atrás y el navegador le da el toque al padre: «Sí, avísame» recibía 0 de 15
+    // puntos medidos con elementFromPoint. jsdom no lo ve; aquí se fija el adelanto.
+    const regla = css.match(/^\.btn-3d \{[^}]*\}/m)?.[0] ?? ''
+    expect(regla).toMatch(/perspective\(var\(--perspectiva\)\) translateZ\(10px\) rotateX\(8deg\)/)
+  })
+})

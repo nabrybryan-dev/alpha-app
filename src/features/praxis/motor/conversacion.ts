@@ -1,4 +1,4 @@
-import { decidirTurno, pasoTrasProponer, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
+import { decidirTurno, pasoTrasProponer, tienePropuesta, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
 import { gravedad, permisoCubreLaRelectura } from '../../../domain/praxis/masGrave'
 import { cabeCharla, limpiarTurnos, sinSaludoRepetido, type TurnoPrevio } from '../../../domain/praxis/charla/modelo'
 import { destinatarioDe, estadoDeLaEspera, ofertaDePregunta, type Destinatario } from '../../../domain/praxis/enEspera'
@@ -7,10 +7,11 @@ import type { RespuestaDelRegistrador } from '../../../domain/praxis/conversacio
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
 import { Cab, compactar, enfocarControles, limpiarControles, montar, refrescar } from './cabecera'
 import { charlaSuelta, decidirTurnoConCharla, pareceCharla, type CharlaConModelo } from './charla'
+import { mostrarDeshacer } from './deshacer'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
-import { guardar, leer, reducido, trato, tu } from './entorno'
+import { guardar, leer, trato, tu } from './entorno'
 import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
 import { Penta } from './penta'
@@ -47,7 +48,7 @@ function idMensaje(): string {
 
 function pensando(si: boolean): void {
   const dicho = $('#dicho')
-  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; if (reducido()) $('#ayuda').textContent = 'Pensando…' }
+  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; $('#ayuda').textContent = 'Pensando…' } // se lee siempre, no solo con movimiento reducido (Bryan, 6-nov)
   else { if (Onda.estadoActual === 'piensa') Onda.estado('reposo'); dicho.removeAttribute('aria-busy'); $('#srPiensa').textContent = ''; if ($('#ayuda').textContent === 'Pensando…') $('#ayuda').textContent = '' }
 }
 
@@ -206,6 +207,25 @@ async function alFallarLaCharla(c: ConexionPraxis, frase: string, tok: number, c
   return false
 }
 
+/** Las opciones de «¿cuál fue?»: un toque y la frase vuelve al filtro de riesgo, como cualquier frase. */
+function mostrarAclarar(c: ConexionPraxis, frase: string, opciones: string[]): void {
+  montar(() => [h('div', { class: 'grupo', 'data-k': 'aclarar' }, chips<string>([...opciones.map((o): [string, string] => [o, o]), ['Descartar', DESCARTAR]], (v) => {
+    limpiarControles()
+    if (v === DESCARTAR) { decirCorto('Listo, no anoté nada.'); return }
+    const id = ejercicioDeLaOpcion(c, v)
+    if (id) emitir({ tipo: 'texto', txt: frase, fuente: 'toque', ejercicioId: id, eco: v }) // la frase de antes, con el ejercicio elegido
+    else emitir({ tipo: 'texto', txt: `${frase}. ${v}`, fuente: 'toque' })
+  }, null, 'aclarar'))])
+  enfocarControles()
+}
+
+async function decirCharlaDelModelo(c: ConexionPraxis, dicho: string, tok: number, ch: TurnoDeCharla): Promise<void> {
+  // Si Praxis ya saludó en voz alta, un saludo repetido por el modelo se quita (defensa en profundidad: el servidor ya lo quita).
+  const texto = ch.apertura ? (sinSaludoRepetido(dicho, c.nombre ?? null) || dicho) : dicho
+  animoPendiente = ch.abreAnimo && /\?\s*$/.test(texto)
+  await dijo(texto, tok)
+}
+
 async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
   let r: RespuestaDelRegistrador | null
   pensando(true)
@@ -224,32 +244,22 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
   vigilar(tok)
   if ((r === null || !r.ok) && (await alFallarLaCharla(c, frase, tok, ch))) return
   // Sin nada que guardar y sin respuesta del modelo: el libreto, no el mensaje genérico.
-  if (r && r.ok && !r.charla && ch.alFallar !== null && cabeCharla(r.propuesta)) { await alFallarLaCharla(c, frase, tok, ch); return }
+  if (r && tienePropuesta(r) && !r.charla && ch.alFallar !== null && cabeCharla(r.propuesta)) { await alFallarLaCharla(c, frase, tok, ch); return }
   const p: PasoTrasProponer = pasoTrasProponer(r ?? { ok: false, motivo: 'red' }, trato())
   switch (p.paso) {
-    case 'charla': {
-      // Si Praxis ya saludó en voz alta, un saludo repetido por el modelo se quita (defensa en profundidad: el servidor ya lo quita).
-      const texto = ch.apertura ? (sinSaludoRepetido(p.texto, c.nombre ?? null) || p.texto) : p.texto
-      animoPendiente = ch.abreAnimo && /\?\s*$/.test(texto)
-      await dijo(texto, tok)
+    case 'charla':
+      await decirCharlaDelModelo(c, p.texto, tok, ch)
       return
-    }
+    case 'deshacer':
+      await mostrarDeshacer({ c, mensajeId: p.mensajeId, tok, pensando }, p.propuesta)
+      return
     case 'confirmar':
       await decir('Esto entendí. ¿Lo guardo?', tok)
       mostrarTarjeta(c, p)
       return
     case 'aclarar': {
       await decir(p.texto, tok)
-      const opciones = p.opciones
-      montar(() => [h('div', { class: 'grupo', 'data-k': 'aclarar' }, chips<string>([...opciones.map((o): [string, string] => [o, o]), ['Descartar', DESCARTAR]], (v) => {
-        limpiarControles()
-        if (v === DESCARTAR) { decirCorto('Listo, no anoté nada.'); return }
-        // Las dos vuelven a pasar por el filtro de riesgo, como cualquier frase.
-        const id = ejercicioDeLaOpcion(c, v)
-        if (id) emitir({ tipo: 'texto', txt: frase, fuente: 'toque', ejercicioId: id, eco: v }) // la frase de antes, con el ejercicio elegido
-        else emitir({ tipo: 'texto', txt: `${frase}. ${v}`, fuente: 'toque' })
-      }, null, 'aclarar'))])
-      enfocarControles()
+      mostrarAclarar(c, frase, p.opciones)
       return
     }
     case 'quieta':

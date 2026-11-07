@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Cuestionario, Respuesta } from '../types'
-import { cuestionariosDeLaSemana, lunesDe, rangoDeLaSemana, resumirLaSemana } from './resumen'
+import { cuestionariosDeLaSemana, etiquetaVerSemana, lunesDe, rangoDeLaSemana, resumirLaSemana } from './resumen'
 
 /**
  * La semana natural (lunes a domingo) y la cuenta de lo hecho.
@@ -135,5 +135,16 @@ describe('la cuenta de la semana', () => {
     expect(r.total).toBe(0)
     expect(r.pct).toBe(0)
     expect(r.texto).toBe('Sin nada pautado esta semana')
+  })
+})
+
+describe('la etiqueta de «Ver toda tu semana»', () => {
+  it('con pendientes dice cuántos', () => {
+    expect(etiquetaVerSemana(3)).toBe('Ver toda tu semana (3 por hacer)')
+  })
+  it('sin pendientes, o con un número roto, queda sin cifra', () => {
+    expect(etiquetaVerSemana(0)).toBe('Ver toda tu semana')
+    expect(etiquetaVerSemana(-2)).toBe('Ver toda tu semana')
+    expect(etiquetaVerSemana(Number.NaN)).toBe('Ver toda tu semana')
   })
 })

@@ -39,6 +39,13 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+  'src/domain/praxis/registro/mensajeLargo.ts':
+    'Mensaje largo a las áreas del check-in (5-nov-2026): propuesta pura que la persona confirma en la tarjeta. ' +
+    'Hoy lo importa la Edge Function praxis-registro (sombra.ts → meta.decision.largo, solo nombres de campo y conteos, ' +
+    'en frases de 20 palabras o más), fuera de src/; la app aún no lo usa. Espera la aprobación de Bryan de la tabla ampliada.',
+  'src/domain/praxis/enrutarPraxis.ts':
+    'Enrutador de la Praxis única por reglas (F1, 4-nov-2026), en sombra: lo consume la Edge Function praxis-registro ' +
+    '(sombra.ts → meta.decision), no la app. La app lo enchufa en el paso F3, cuando Praxis navegue.',
   'src/domain/praxis/consultas/portero.ts':
     'Consultas del equipo contestadas con una ficha (Bryan, 25-oct-2026); lo consume la Edge Function praxis-registro, no la app.',
 
@@ -118,6 +125,16 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
+  // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
+  'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
+    'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
+  'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
+    'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
+  // Deshacer por frase (paso D1, 5-nov-2026): selector y mensajes puros sobre un libro SIMULADO.
+  'src/domain/praxis/deshacer/proponer.ts#proponerDeshacer':
+    'Espera la migración del libro praxis_registros_aplicados (paso D2) y la ruta /deshacer (D3); mientras tanto ' +
+    'solo lo ejercita proponer.test.ts con un libro en memoria. Lo consumirá la Edge Function praxis-registro.',
   // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
   'src/domain/sujeto/reparto.ts#bandasDeReparto':
     'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',
@@ -135,13 +152,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/mercadeoManuela.ts#normalizarUrl':
     'Contrato del buzón de mercadeo (0096): lo consumirá el formulario de referencias cuando ' +
     'avise de un enlace repetido antes de enviarlo; la base ya lo normaliza al insertar.',
-  // La traducción de una marca de riesgo a la propuesta que devuelve el servidor. La usa
-  // SOLO la Edge Function `praxis-registro`, que vive fuera de src/ y por eso este análisis
-  // no la ve. Va en el dominio, junto al filtro, para que pantalla y función compartan una
-  // sola regla (revisión del PR #331, A3).
-  'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
-    'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
-    'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
   // El aviso al coach (3-oct, migración 0108): de la marca de riesgo al TIPO de señal que se guarda.
   // Lo llama SOLO la Edge Function praxis-registro (el resto del módulo lo usa la consola).
   'src/domain/praxis/aviso.ts#nivelDeMarca':

@@ -28,6 +28,7 @@ export const TABLA_CAPACIDADES_STAFF = 'capacidades_staff'
  *    construye entonces; no se asume que ya exista.
  */
 export const CAPACIDADES = [
+  'liberar_prescripcion',
   'leer_entrenamiento',
   'responder_por_asesorado',
   'detener_publicacion',

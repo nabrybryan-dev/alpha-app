@@ -148,8 +148,103 @@ export interface DiferenciaPlanes {
   /** Reglas vivas del vigente que el borrador ni mantiene ni deroga: se pierden sin decirlo. */
   reglasPerdidas: string[]
   campos: CambioCampo[]
+  /** Sección «10. Parámetros para decidir» (`contenido.parametros_para_decidir`), solo lectura. */
+  parametros: DiferenciaParametros
   /** true si no hay vigente con el que comparar (todo el borrador es «nuevo»). */
   sinVigente: boolean
+}
+
+export interface CampoParametro {
+  campo: string
+  /** Valor del borrador en texto; undefined si el borrador ya no lo trae. */
+  valor: string | undefined
+  /** Valor del vigente en texto; undefined si el vigente no lo traía. */
+  antes: string | undefined
+  estado: 'nuevo' | 'cambia' | 'igual' | 'quitado'
+}
+
+export interface AprobacionParametros {
+  /** `pendiente`, `aprobada` o `sin-dato` si la sección no trae un estado legible. */
+  estado: string
+  por: string | undefined
+  fecha: string | undefined
+  /** Estado de aprobación del vigente (undefined si no tenía sección). */
+  estadoAntes: string | undefined
+}
+
+export interface DiferenciaParametros {
+  /** El borrador o el vigente traen la sección: la bandeja debe pintarla. */
+  hay: boolean
+  /** El borrador trae la sección. */
+  enBorrador: boolean
+  campos: CampoParametro[]
+  aprobacion: AprobacionParametros | undefined
+  /** Algo cambia: un campo nuevo, cambiado o quitado, o el estado de aprobación. */
+  cambia: boolean
+}
+
+const CLAVE_PARAMETROS = 'parametros_para_decidir'
+
+function aTexto(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  if (Array.isArray(v)) return v.map(aTexto).filter(Boolean).join('; ')
+  if (typeof v === 'object') {
+    return Object.entries(v as Record<string, unknown>)
+      .map(([k, x]) => `${k} = ${aTexto(x)}`)
+      .join('; ')
+  }
+  return normal(String(v))
+}
+
+function seccionParametros(contenido: unknown): Record<string, unknown> | undefined {
+  if (typeof contenido !== 'object' || contenido === null) return undefined
+  const p = (contenido as Record<string, unknown>)[CLAVE_PARAMETROS]
+  return typeof p === 'object' && p !== null && !Array.isArray(p) ? (p as Record<string, unknown>) : undefined
+}
+
+function leerAprobacion(sec: Record<string, unknown> | undefined): { estado: string; por?: string; fecha?: string } | undefined {
+  if (!sec) return undefined
+  const a = sec.aprobacion
+  if (typeof a !== 'object' || a === null) return { estado: 'sin-dato' }
+  const r = a as Record<string, unknown>
+  return {
+    estado: texto(r.estado) ?? 'sin-dato',
+    por: texto(r.por),
+    fecha: texto(r.fecha),
+  }
+}
+
+type SeccionLeida = Record<string, unknown> | undefined
+
+function camposDeParametros(sb: SeccionLeida, sv: SeccionLeida): CampoParametro[] {
+  const claves = new Set<string>()
+  for (const sec of [sb, sv]) for (const k of Object.keys(sec ?? {})) if (k !== 'aprobacion') claves.add(k)
+  return [...claves].map((campo) => {
+    const valor = sb && campo in sb ? normal(aTexto(sb[campo])) : undefined
+    const antes = sv && campo in sv ? normal(aTexto(sv[campo])) : undefined
+    const estado: CampoParametro['estado'] =
+      valor === undefined ? 'quitado' : antes === undefined ? 'nuevo' : valor === antes ? 'igual' : 'cambia'
+    return { campo, valor, antes, estado }
+  })
+}
+
+function aprobacionDeParametros(sb: SeccionLeida, sv: SeccionLeida) {
+  const ab = leerAprobacion(sb)
+  const av = leerAprobacion(sv)
+  const aprobacion = ab ? { estado: ab.estado, por: ab.por, fecha: ab.fecha, estadoAntes: av?.estado } : undefined
+  return { aprobacion, cambia: (ab?.estado ?? undefined) !== (av?.estado ?? undefined) }
+}
+
+/** Qué cambia en la sección «Parámetros para decidir» del vigente al borrador. Solo lectura. */
+export function diferenciaParametros(vigente: unknown | null, borrador: unknown): DiferenciaParametros {
+  const sb = seccionParametros(borrador)
+  const sv = vigente === null || vigente === undefined ? undefined : seccionParametros(vigente)
+  if (!sb && !sv) return { hay: false, enBorrador: false, campos: [], aprobacion: undefined, cambia: false }
+
+  const campos = camposDeParametros(sb, sv)
+  const { aprobacion, cambia: aprobacionCambia } = aprobacionDeParametros(sb, sv)
+  const cambia = campos.some((c) => c.estado !== 'igual') || aprobacionCambia
+  return { hay: true, enBorrador: !!sb, campos, aprobacion, cambia }
 }
 
 function derogadasConSustitucion(contenido: unknown): ReglaDerogada[] {
@@ -169,6 +264,37 @@ function normal(s: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
+function diferenciaFilas(
+  filasVigente: { numero: number; celdas: string[] }[],
+  filasBorrador: { numero: number; celdas: string[] }[],
+) {
+  const filasV = new Map(filasVigente.map((f) => [f.numero, f.celdas]))
+  const filasB = new Map(filasBorrador.map((f) => [f.numero, f.celdas]))
+  const filasAnadidas: FilaDiferencia[] = []
+  const filasCambiadas: (FilaDiferencia & { antes: string[] })[] = []
+  for (const [numero, celdas] of filasB) {
+    const antes = filasV.get(numero)
+    if (!antes) filasAnadidas.push({ numero, celdas })
+    else if (antes.map(normal).join('|') !== celdas.map(normal).join('|')) filasCambiadas.push({ numero, celdas, antes })
+  }
+  const filasQuitadas: FilaDiferencia[] = []
+  for (const [numero, celdas] of filasV) if (!filasB.has(numero)) filasQuitadas.push({ numero, celdas })
+  return { filasAnadidas, filasCambiadas, filasQuitadas }
+}
+
+type CabeceraLeida = { objetivo?: string; metricaPrincipal?: string; horizonte?: string }
+
+function camposDeCabecera(lv: CabeceraLeida, lb: CabeceraLeida): CambioCampo[] {
+  const pares: [string, string | undefined, string | undefined][] = [
+    ['Objetivo', lv.objetivo, lb.objetivo],
+    ['Métrica principal', lv.metricaPrincipal, lb.metricaPrincipal],
+    ['Horizonte', lv.horizonte, lb.horizonte],
+  ]
+  return pares
+    .filter(([, antes, despues]) => normal(antes ?? '') !== normal(despues ?? ''))
+    .map(([campo, antes, despues]) => ({ campo, antes, despues }))
+}
+
 /**
  * Qué cambia del vigente al borrador: filas de la tabla (añadidas, cambiadas, quitadas),
  * reglas (añadidas, derogadas con su sustitución, y las que se pierden sin derogar) y los
@@ -181,17 +307,7 @@ export function diferenciaPlanes(vigente: unknown | null, borrador: unknown): Di
   const lv = leerPlanLegible(sinVigente ? null : vigente)
   const tv = sinVigente ? undefined : tablaDelPlan(vigente, undefined)
 
-  const filasV = new Map((tv?.filas ?? []).map((f) => [f.numero, f.celdas]))
-  const filasB = new Map((tb?.filas ?? []).map((f) => [f.numero, f.celdas]))
-  const filasAnadidas: FilaDiferencia[] = []
-  const filasCambiadas: (FilaDiferencia & { antes: string[] })[] = []
-  for (const [numero, celdas] of filasB) {
-    const antes = filasV.get(numero)
-    if (!antes) filasAnadidas.push({ numero, celdas })
-    else if (antes.map(normal).join('|') !== celdas.map(normal).join('|')) filasCambiadas.push({ numero, celdas, antes })
-  }
-  const filasQuitadas: FilaDiferencia[] = []
-  for (const [numero, celdas] of filasV) if (!filasB.has(numero)) filasQuitadas.push({ numero, celdas })
+  const { filasAnadidas, filasCambiadas, filasQuitadas } = diferenciaFilas(tv?.filas ?? [], tb?.filas ?? [])
 
   const vivasV = new Set(lv.reglas.map(normal))
   const vivasB = new Set(lb.reglas.map(normal))
@@ -204,15 +320,7 @@ export function diferenciaPlanes(vigente: unknown | null, borrador: unknown): Di
   const reglasMantenidas = lb.reglas.length - reglasAnadidas.length
   const reglasPerdidas = lv.reglas.filter((r) => !vivasB.has(normal(r)) && !derogadasBSet.has(normal(r)))
 
-  const campos: CambioCampo[] = []
-  const pares: [string, string | undefined, string | undefined][] = [
-    ['Objetivo', lv.objetivo, lb.objetivo],
-    ['Métrica principal', lv.metricaPrincipal, lb.metricaPrincipal],
-    ['Horizonte', lv.horizonte, lb.horizonte],
-  ]
-  for (const [campo, antes, despues] of pares) {
-    if (normal(antes ?? '') !== normal(despues ?? '')) campos.push({ campo, antes, despues })
-  }
+  const campos = camposDeCabecera(lv, lb)
 
   return {
     cabecera: tb?.cabecera ?? tv?.cabecera ?? [],
@@ -224,6 +332,7 @@ export function diferenciaPlanes(vigente: unknown | null, borrador: unknown): Di
     reglasDerogadas,
     reglasPerdidas,
     campos,
+    parametros: diferenciaParametros(sinVigente ? null : vigente, borrador),
     sinVigente,
   }
 }

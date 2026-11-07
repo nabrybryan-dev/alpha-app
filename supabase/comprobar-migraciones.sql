@@ -2577,6 +2577,34 @@ select '0117 - cola de dudas de Praxis: solo el equipo inserta y lee', 'praxis_c
             else 'SI' end
 
 union all
+select '0156 - vectores de la biblioteca de Praxis', 'praxis_conceptos tiene vector y modelo_vector',
+       case when (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'praxis_conceptos'
+                   and column_name in ('vector', 'modelo_vector')) = 2 then 'SI' else 'NO' end
+union all
+select '0156 - vectores de la biblioteca de Praxis', 'buscar_conceptos_vector existe y no queda abierta a anon',
+       case when not exists (select 1 from pg_proc where proname = 'buscar_conceptos_vector') then 'NO'
+            when exists (select 1 from pg_proc where proname = 'buscar_conceptos_vector'
+                          and has_function_privilege('anon', oid, 'execute')) then 'NO'
+            else 'SI' end
+union all
+select '0155 - biblioteca de Praxis', 'praxis_conceptos existe con RLS y anon no la alcanza',
+       case when to_regclass('public.praxis_conceptos') is null then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('public.praxis_conceptos')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_conceptos', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_conceptos', 'update') then 'NO'
+            else 'SI' end
+union all
+select '0155 - biblioteca de Praxis', 'buscar_conceptos existe y no queda abierta a anon',
+       case when to_regprocedure('public.buscar_conceptos(text, integer)') is null then 'NO'
+            when has_function_privilege('anon', to_regprocedure('public.buscar_conceptos(text, integer)'), 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0151 - cola de dudas de Praxis: «No era esto»', 'praxis_cola_dudas.origen admite no_era_esto',
+       case when exists (select 1 from pg_constraint
+                          where conrelid = 'public.praxis_cola_dudas'::regclass
+                            and conname = 'praxis_cola_dudas_origen_check'
+                            and pg_get_constraintdef(oid) like '%no_era_esto%') then 'SI' else 'NO' end
+union all
 select '0150 - revisión: quién pidió la corrección y por qué cambió la versión', 'videos_semanales tiene correccion_pedida_por y motivo_version',
        case when (select count(*) from information_schema.columns
                    where table_schema = 'public' and table_name = 'videos_semanales'
@@ -2600,6 +2628,16 @@ select '0150 - revisión: quién pidió la corrección y por qué cambió la ver
             when pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%republicacion_tecnica%'
              and pg_get_functiondef('public.versionar_revision_semanal()'::regprocedure) like '%''correccion''%' then 'SI'
             else 'NO' end
+union all
+select '0152 - salud de Hermes en la consola', 'salud_hermes con RLS, solo la lee el puesto de coach y anon sin acceso',
+       case when to_regclass('public.salud_hermes') is null then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('public.salud_hermes')) then 'NO'
+            when has_table_privilege('anon', 'public.salud_hermes', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.salud_hermes', 'insert') then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'salud_hermes') <> 1 then 'NO'
+            when exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'salud_hermes'
+                          and policyname = 'salud_hermes_leer_coach' and qual like '%es_coach%') then 'SI'
+            else 'NO' end
 
 union all
 select '0148 - alertas nutricionales: apagadas hasta que Manuela firme', 'alertas_nutricion_ajustes (2 filas, constraint de firma, las dos apagadas, con RLS, sin anon, sin escritura de authenticated) y alertas_nutricion con RLS y solo lectura para authenticated',
@@ -2618,6 +2656,149 @@ select '0148 - alertas nutricionales: apagadas hasta que Manuela firme', 'alerta
               or has_table_privilege('authenticated', 'public.alertas_nutricion', 'update')
               or has_table_privilege('authenticated', 'public.alertas_nutricion', 'delete') then 'NO'
             when not has_table_privilege('authenticated', 'public.alertas_nutricion', 'select') then 'NO'
+            else 'SI' end
+union all
+select '0158 - parametros aprobados aparte del plan', 'parametros_aprobados: RLS, sin escritura directa; aprobar_parametros_plan: security definer, search_path fijo, sin anon',
+       case when to_regclass('public.parametros_aprobados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.parametros_aprobados')) then 'NO'
+            when has_table_privilege('anon', 'public.parametros_aprobados', 'select')
+              or has_table_privilege('anon', 'public.parametros_aprobados', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.parametros_aprobados', 'insert')
+              or has_table_privilege('authenticated', 'public.parametros_aprobados', 'update')
+              or has_table_privilege('authenticated', 'public.parametros_aprobados', 'delete')
+              or has_table_privilege('authenticated', 'public.parametros_aprobados', 'truncate') then 'NO'
+            when not has_table_privilege('authenticated', 'public.parametros_aprobados', 'select') then 'NO'
+            when to_regprocedure('public.aprobar_parametros_plan(uuid,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.aprobar_parametros_plan(uuid,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.aprobar_parametros_plan(uuid,jsonb)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.aprobar_parametros_plan(uuid,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.aprobar_parametros_plan(uuid,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+
+-- La 0160, puente con el laboratorio. Cuatro señales porque son cuatro efectos y cada uno puede faltar por separado.
+-- Solo cuentan objetos y permisos: no leen filas de nadie. Detalle y la parte informativa (login): `comprobar-0160.sql`.
+union all
+select '0160 - puente con el laboratorio', 'las tres vistas y consentimientos existen en el esquema lab, y consentimientos tiene RLS',
+       case when to_regclass('lab.consentimientos') is null or to_regclass('lab.lab_series') is null
+              or to_regclass('lab.lab_sujetos') is null or to_regclass('lab.lab_revocaciones') is null then 'NO'
+            when not (select relrowsecurity from pg_class where oid = to_regclass('lab.consentimientos')) then 'NO'
+            else 'SI' end
+union all
+select '0160 - puente con el laboratorio', 'el esquema lab no esta abierto a anon ni a authenticated',
+       case when not exists (select 1 from pg_namespace where nspname = 'lab') then 'NO'
+            when has_schema_privilege('anon', 'lab', 'usage') or has_schema_privilege('authenticated', 'lab', 'usage') then 'NO'
+            else 'SI' end
+union all
+select '0160 - puente con el laboratorio', 'lab_lector existe sin bypassrls ni superusuario y lee solo las tres vistas (SELECT), sin consentimientos ni tablas de la app',
+       case when not exists (select 1 from pg_roles where rolname = 'lab_lector') then 'NO'
+            when (select rolbypassrls or rolsuper from pg_roles where rolname = 'lab_lector') then 'NO'
+            when has_table_privilege('lab_lector', 'lab.consentimientos', 'select')
+              or has_table_privilege('lab_lector', 'public.microciclos', 'select')
+              or has_table_privilege('lab_lector', 'public.perfiles', 'select')
+              or has_table_privilege('lab_lector', 'public.usuarios_app', 'select')
+              or has_table_privilege('lab_lector', 'public.checkins', 'select')
+              or has_table_privilege('lab_lector', 'public.mensajes', 'select') then 'NO'
+            when (select count(*) from information_schema.role_table_grants
+                   where grantee = 'lab_lector' and privilege_type = 'SELECT' and table_schema = 'lab') <> 3 then 'NO'
+            when exists (select 1 from information_schema.role_table_grants
+                          where grantee = 'lab_lector' and (table_schema <> 'lab' or privilege_type <> 'SELECT')) then 'NO'
+            else 'SI' end
+union all
+select '0160 - puente con el laboratorio', 'una persona borrada de la app queda revocada sola (trigger en consentimientos)',
+       case when to_regclass('lab.consentimientos') is null then 'NO'
+            when exists (select 1 from pg_trigger
+                          where tgrelid = to_regclass('lab.consentimientos')
+                            and tgname = 'consentimientos_revocar_si_se_borro' and not tgisinternal) then 'SI'
+            else 'NO' end
+union all
+select '0159 - mensajes del equipo a Praxis', 'praxis_mensajes_equipo: RLS, equipo inserta y lee, sin etiquetas desde fuera, sin anon',
+       case when to_regclass('public.praxis_mensajes_equipo') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_mensajes_equipo')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_mensajes_equipo') and p.polcmd = 'r') <> 1 then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_mensajes_equipo') and p.polcmd = 'a') <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_mensajes_equipo') and p.polcmd in ('w', 'd')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_mensajes_equipo', 'select')
+              or has_table_privilege('anon', 'public.praxis_mensajes_equipo', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_mensajes_equipo', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_mensajes_equipo', 'delete') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'clase_propuesta', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'clase_confirmada', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'confirmada_en', 'insert') then 'NO'
+            when not has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'frase', 'insert') then 'NO'
+            else 'SI' end
+
+union all
+select '0161 - libro de registros de Praxis y agua', 'praxis_registros_aplicados: RLS, lectura propia y del equipo, clave unica de tarjeta, nadie escribe directo, sin anon',
+       case when to_regclass('public.praxis_registros_aplicados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_registros_aplicados')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados')) <> 2 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polcmd <> 'r') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polname = 'praxis_registros_aplicados_lee_staff') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.praxis_registros_aplicados')
+                               and k.conname = 'praxis_registros_aplicados_tarjeta_unica' and k.contype = 'u') then 'NO'
+            when has_table_privilege('anon', 'public.praxis_registros_aplicados', 'select')
+              or has_table_privilege('anon', 'public.praxis_registros_aplicados', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'select') then 'NO'
+            else 'SI' end
+union all
+select '0161 - libro de registros de Praxis y agua', 'praxis_aplicar_agua existe, es security definer con search_path fijo y la ejecutan los usuarios, no anon',
+       case when to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_aplicar_series existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_series(text,integer,text,text,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_series(text,integer,text,text,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_aplicar_adherencia existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_adherencia(text,integer,date,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_adherencia(text,integer,date,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_deshacer existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_series_actuales (ayudante interno) existe y no la ejecuta ni anon ni authenticated; fijar_series_ejercicio sigue invoker (no se tocó)',
+       case when to_regprocedure('public.praxis_series_actuales(text,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.praxis_series_actuales(text,text)', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_series_actuales(text,text)', 'execute') then 'NO'
+            when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.fijar_series_ejercicio(text,text,jsonb)')) then 'NO'
+            else 'SI' end
+
+union all
+select '0163 - deshacer el agua de Praxis', 'praxis_deshacer conserva security definer, search_path fijo y permisos, y su definición ya trae la rama agua (ya no dice que el agua no se puede deshacer)',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) not like '%tipo = ''agua''%' then 'NO'
             else 'SI' end
 
 union all

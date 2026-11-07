@@ -192,6 +192,16 @@ describe('SeccionTresSemanas', () => {
     expect(screen.getByText('FULL A')).toBeInTheDocument()
   })
 
+  it('quien aún no empieza abre en «La que viene», con su primera semana y sin la columna de lo hecho', () => {
+    pintar([micro(1, '2026-10-12', 'activo', [sesion('PRIMERA SESION', [ejercicio('Prensa', 0)])])])
+    expect(boton('La que viene')).toHaveAttribute('aria-pressed', 'true')
+    expect(boton('Esta')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('heading', { name: 'Semana 1' })).toBeInTheDocument()
+    expect(screen.getByText('PRIMERA SESION')).toBeInTheDocument()
+    expect(screen.queryByText('Todavía no hay una semana en curso cargada.')).toBeNull()
+    expect(screen.queryByText('Hiciste')).toBeNull()
+  })
+
   it('sin semana siguiente cargada, el botón sigue y la sección lo dice sin inventar datos', async () => {
     const user = userEvent.setup()
     pintar(historial().slice(0, 2))

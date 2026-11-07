@@ -333,7 +333,7 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('trae las seis secciones en su orden, y el bloque reservado de velocidad y técnica no lleva cifras', async () => {
+  it('trae las siete secciones en su orden, con el plan primero, y el bloque reservado de velocidad y técnica no lleva cifras', async () => {
     const user = userEvent.setup()
     render(<FichaAsesoradoTab usuarioId={persona().id} />)
     await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
@@ -343,6 +343,7 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent)
     expect(titulos).toEqual([
+      'Tu plan',
       'Esta semana',
       'Tu semana pasada, esta y la que viene',
       'El mapa de tu plan',
@@ -362,7 +363,9 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
     const user = userEvent.setup()
     render(<FichaAsesoradoTab usuarioId={persona().id} />)
     await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
-    expect(await screen.findByText(/no hay un plan de largo plazo/)).toBeInTheDocument()
+    const mapa = await screen.findByRole('region', { name: 'El mapa de tu plan' })
+    expect(await within(mapa).findByText(/no hay un plan de largo plazo/)).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Tu plan' })).getByText(/no hay un plan de largo plazo/)).toBeInTheDocument()
     expect(screen.getByText('Todavía no hay conclusiones escritas para mostrar.')).toBeInTheDocument()
   })
 
@@ -393,8 +396,8 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
     const actual = await screen.findByRole('button', { name: `Semana ${n}, es esta, la de ahora` })
     expect(actual).toHaveAttribute('aria-current', 'step')
     await user.click(screen.getByRole('button', { name: `Semana ${n + 1}, viene` }))
-    // La ficha de detrás también trae la tabla del plan: se mira solo dentro de la presentación.
-    expect(within(screen.getByRole('dialog')).getByText('~64')).toBeInTheDocument()
+    // La ficha de detrás y «Tu plan» también traen la tabla: se mira solo dentro del mapa.
+    expect(within(screen.getByRole('region', { name: 'El mapa de tu plan' })).getByText('~64')).toBeInTheDocument()
   })
 })
 

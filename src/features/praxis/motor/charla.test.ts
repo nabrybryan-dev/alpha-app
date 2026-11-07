@@ -3,7 +3,7 @@ import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import { filtroDeRiesgo } from '../../../domain/praxis/riesgo'
 import { aperturaInmediata, aperturasPosibles, colasPosibles, decidirTurnoConCharla, fijarAzarDeCharla, momentoDelDia, normalizarCharla, pareceCharla, reiniciarVariantes, responderCharla, textosPosibles, type ContextoDeCharla, type IntencionDeCharla } from './charla'
 
-const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo'] }
+const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo'] }
 const HOY = '2026-10-01'
 const base: ContextoDeCharla = { trato: 'tu', hora: 9, esperaAnimo: false, yaHablo: false }
 const ctx = (extra: Partial<ContextoDeCharla> = {}): ContextoDeCharla => ({ ...base, ...extra })

@@ -8,6 +8,7 @@ import { Sombreros } from '../equipo/Sombreros'
 import { useCapacidadesVigentes } from '../equipo/useCapacidadesVigentes'
 import { BandejaPlanesRenovados } from './consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from './consola/BandejaPrimerosPlanes'
+import { TarjetaSaludHermes } from './consola/TarjetaSaludHermes'
 import { ocupaPuestoCoach } from './consola/usePuestoCoach'
 
 /**
@@ -59,6 +60,8 @@ export default function MiDiaCoachPage() {
       <Sombreros />
 
       <AvisosDeSeguridad conNombres={conNombres} />
+
+      {esCoach && <TarjetaSaludHermes />}
 
       {verNutricion && (
         <>

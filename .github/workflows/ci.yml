@@ -139,6 +139,9 @@ jobs:
       - name: El plan estratégico renovado lo aprueba quien puede, y el asesorado no ve su borrador
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/97-consola-plan-estrategico.sql
 
+      - name: Los parámetros de un plan renovado los aprueba quien puede, vencen si cambian y no se editan a mano
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/258-parametros-aprobados.sql
+
       - name: La tarjeta semanal y los mensajes de estilo de vida respetan quién es el dueño
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/100-tarjeta-vida-y-mensajes.sql
 
@@ -212,6 +215,24 @@ jobs:
 
       - name: El trigger de la revision semanal guarda quien pidio la correccion (gana el ultimo), distingue republicacion tecnica y no cambia el solicitante en una edicion suelta
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/252-trigger-revision-quien-pidio.sql
+
+      - name: La biblioteca de Praxis solo la lee el equipo y solo se encuentra lo aprobado
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/255-praxis-conceptos.sql
+
+      - name: El puente con el laboratorio - lab_lector solo lee tres vistas de quien dio permiso, no ve tablas base y no escribe
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/222-laboratorio-puente.sql
+
+      - name: Los mensajes del equipo a Praxis solo los guarda y lee el equipo, a su nombre, sin etiquetas desde fuera
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/259-praxis-mensajes-equipo.sql
+
+      - name: El libro de lo que Praxis guardó es de cada persona, nadie lo escribe directo y el agua de una tarjeta se suma una sola vez, en el día de Bogotá
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/261-praxis-registros-aplicados.sql
+
+      - name: Series y adherencia de Praxis llenan el libro una sola vez por tarjeta, y deshacer solo lo propio, del mismo día de Bogotá, con confirmación
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/262-praxis-libro-series-adherencia.sql
+
+      - name: Deshacer el agua de Praxis solo lo propio, del mismo día de Bogotá, con confirmación, y avisa si el total cambió después
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/263-praxis-deshacer-agua.sql
 
       - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql

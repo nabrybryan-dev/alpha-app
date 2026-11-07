@@ -115,3 +115,59 @@ describe('diferenciaPlanes', () => {
     expect(d.reglasPerdidas).toEqual([])
   })
 })
+
+describe('diferenciaPlanes: parámetros para decidir', () => {
+  const base = { objetivo_largo_plazo: 'X', cabecera: ['Microciclo'], filas: {}, reglas: [] }
+  const con = (p: unknown) => ({ ...base, parametros_para_decidir: p })
+  const pend = { estado: 'pendiente' }
+
+  it('un borrador que SOLO cambia parámetros no es «sin diferencias»', () => {
+    const v = con({ aprobacion: pend, sesiones_minimas_del_microciclo: 3, orden_de_descarte: ['Bíceps', 'Glúteos'] })
+    const b = con({ aprobacion: pend, sesiones_minimas_del_microciclo: 4, orden_de_descarte: ['Bíceps', 'Glúteos'] })
+    const d = diferenciaPlanes(v, b)
+    expect(d.filasAnadidas.length + d.filasCambiadas.length + d.filasQuitadas.length).toBe(0)
+    expect(d.parametros.cambia).toBe(true)
+    expect(d.parametros.campos.map((c) => [c.campo, c.estado, c.antes, c.valor])).toEqual([
+      ['sesiones_minimas_del_microciclo', 'cambia', '3', '4'],
+      ['orden_de_descarte', 'igual', 'Bíceps; Glúteos', 'Bíceps; Glúteos'],
+    ])
+  })
+
+  it('campos nuevos y quitados, con mapas y listas en texto', () => {
+    const v = con({ aprobacion: pend, axiales: ['Peso muerto'] })
+    const b = con({ aprobacion: pend, prioridad_por_grupo: { Espalda: 'avanzar', Bíceps: 'minimo' } })
+    const d = diferenciaPlanes(v, b).parametros
+    expect(d.campos.find((c) => c.campo === 'prioridad_por_grupo')).toMatchObject({
+      estado: 'nuevo',
+      valor: 'Espalda = avanzar; Bíceps = minimo',
+    })
+    expect(d.campos.find((c) => c.campo === 'axiales')).toMatchObject({ estado: 'quitado', antes: 'Peso muerto' })
+  })
+
+  it('el cambio de aprobación cuenta como diferencia aunque los valores sean iguales', () => {
+    const v = con({ aprobacion: pend, sesiones_ancla: ['A'] })
+    const b = con({ aprobacion: { estado: 'aprobada', por: 'bryan', fecha: '2026-11-02' }, sesiones_ancla: ['A'] })
+    const d = diferenciaPlanes(v, b).parametros
+    expect(d.cambia).toBe(true)
+    expect(d.aprobacion).toEqual({ estado: 'aprobada', por: 'bryan', fecha: '2026-11-02', estadoAntes: 'pendiente' })
+  })
+
+  it('sin vigente, todo el borrador es nuevo; sin sección en ninguno, no hay nada que pintar', () => {
+    const b = con({ aprobacion: pend, sesiones_ancla: ['A'] })
+    const d = diferenciaPlanes(null, b).parametros
+    expect(d.campos.map((c) => c.estado)).toEqual(['nuevo'])
+    expect(d.cambia).toBe(true)
+    expect(diferenciaPlanes(base, base).parametros.hay).toBe(false)
+  })
+
+  it('el vigente traía la sección y el borrador la quita', () => {
+    const d = diferenciaPlanes(con({ aprobacion: pend, sesiones_ancla: ['A'] }), base).parametros
+    expect(d).toMatchObject({ hay: true, enBorrador: false, cambia: true })
+    expect(d.campos[0].estado).toBe('quitado')
+  })
+
+  it('no se rompe con una sección mal formada', () => {
+    expect(() => diferenciaPlanes(con('texto'), con([1, 2]))).not.toThrow()
+    expect(diferenciaPlanes(base, con({ sesiones_ancla: ['A'] })).parametros.aprobacion?.estado).toBe('sin-dato')
+  })
+})

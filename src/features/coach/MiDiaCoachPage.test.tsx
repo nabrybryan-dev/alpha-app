@@ -28,6 +28,7 @@ vi.mock('../../app/SessionProvider', () => ({
 vi.mock('../equipo/useCapacidadesVigentes', () => ({
   useCapacidadesVigentes: () => ({ cargando: false, tiene: (c: string) => estado.capacidades.has(c) }),
 }))
+vi.mock('../../data/nube/saludHermes', () => ({ traerSaludHermes: () => Promise.resolve(null) }))
 vi.mock('../plan/MiPlanPage', () => ({ default: () => <p>Tareas del plan</p> }))
 vi.mock('../coach/consola/BandejaPrimerosPlanes', () => ({
   BandejaPrimerosPlanes: () => <p>Primeros planes</p>,

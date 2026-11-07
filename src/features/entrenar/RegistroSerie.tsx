@@ -19,6 +19,7 @@ import { IconoCamara } from '../../components/ui/Icono'
 import { HojaMedicion } from './encoder/HojaMedicion'
 import { marcarCamaraAbierta } from './camaraAbierta'
 import { HechoTalCual, MotivoSinConfirmar } from './HechoTalCual'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 interface RegistroSerieProps {
   ejercicio: EjercicioPrescrito
@@ -213,16 +214,15 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
       {mostrarBoton && (
         <>
-          <button
+          <Boton3D bloque
             type="button"
             onClick={guardar}
             disabled={!puedeGuardar}
             aria-describedby={puedeGuardar ? undefined : idMotivo}
-            className="press mt-3 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
-            style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
+            className="mt-3"
           >
             Guardar serie {orden}
-          </button>
+          </Boton3D>
           {motivo && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" motivo={motivo} />}
         </>
       )}

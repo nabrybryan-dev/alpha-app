@@ -32,6 +32,7 @@ import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
 import { EstudioDelPatron } from './visor/EstudioDelPatron'
 import type { Patron } from '../../domain/patrones/catalogo'
+import { Boton3D } from '../../components/ui/Boton3D'
 
 interface Descanso {
   hasta: number
@@ -450,22 +451,16 @@ function SesionEnCurso() {
             )}
             {mostrarCTA && (
               <>
-                <button
-                  type="button"
+                {/* Apagado NO es rojo translúcido (H-06 de la auditoría): `.btn-3d:disabled`
+                    pasa a la superficie neutra con el rótulo en `--tenue`, que sí se lee. */}
+                <Boton3D
+                  bloque
                   onClick={() => registroRef.current?.guardar()}
                   disabled={!puedeGuardar}
                   aria-describedby={puedeGuardar ? undefined : 'motivo-sin-confirmar'}
-                  className={`press w-full rounded-boton py-4 font-display text-base uppercase tracking-wide ${
-                    puedeGuardar
-                      ? 'bg-accion text-white'
-                      : // Apagado NO es rojo translúcido: ese estado dejaba el rótulo
-                        // gris sobre rojo oscuro y no se leía (H-06 de la auditoría).
-                        'border border-linea bg-surface-2 text-tenue'
-                  }`}
-                  style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
                 >
                   Guardar serie {ordenActual}
-                </button>
+                </Boton3D>
                 {!puedeGuardar && (
                   <MotivoSinConfirmar
                     id="motivo-sin-confirmar"

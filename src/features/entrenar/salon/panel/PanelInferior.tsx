@@ -1,5 +1,7 @@
 import { hoyIso } from '../../../../data/dbInstance'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { Boton3D } from '../../../../components/ui/Boton3D'
+import { resumenDeLaHoja } from './resumenDeLaHoja'
 import {
   resumenSemana,
   sesionesFueraDeLaSemana,
@@ -144,6 +146,8 @@ export interface PanelInferiorProps {
    * sabe cuánto ha subido; la sala sabe alejarse. Ninguno puede hacer las dos cosas solo.
    */
   onAvance?: (avance: number) => void
+  /** El día elegido en la semana (`null` si se ve el de siempre): con uno elegido no se ofrece empezar. */
+  diaElegido?: number | null
 }
 
 /** Cuánto hay que arrastrar hacia arriba para que el panel suba. */
@@ -174,6 +178,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     patron,
     contenido,
     material,
+    diaElegido = null,
   } = props
 
   /** Las sesiones hechas de las programadas. Sube al rótulo del tramo de «La semana». */
@@ -247,16 +252,12 @@ export function PanelInferior(props: PanelInferiorProps) {
   }, [avance, onAvance])
 
   /**
-   * SIN HOJA CUANDO ESTÁ BAJADO.
-   *
-   * Hasta el 2026-09-07 el panel bajado era una banda oscura de 29 px con las esquinas
-   * redondas cruzando la sala de lado a lado, justo encima de la barra de navegación.
-   * Bryan, desde su iPhone: «una barra negra completa que no está acorde al diseño». Y no
-   * lo está: en el kit, con el panel bajado solo se ve la manija sobre la sala, sin fondo.
-   * La hoja aparece con el gesto —en cuanto `avance` pasa de cero— y se queda mientras
-   * está abierta, que es cuando hay algo que leer encima de ella.
+   * LA HOJA SIEMPRE LLEVA FONDO (maqueta 7). Hasta el 2026-09-07 el panel bajado era una
+   * barra oscura VACÍA (Bryan: «una barra negra completa»); ahora plegada lleva el resumen
+   * de la sesión, así que ya no es una barra muda. El fondo es un token y se lee en claro
+   * y oscuro. El cuerpo largo solo se monta abierto: plegado no existe, ni se enfoca.
    */
-  const conHoja = abierto || avance > 0
+  const resumen = resumenDeLaHoja({ sesion, semana, diaElegido, sesionCta })
 
   return (
     <div data-no-orbita
@@ -277,14 +278,12 @@ export function PanelInferior(props: PanelInferiorProps) {
         // del lienzo en cada fotograma mientras el dedo arrastra. Con el fondo al 95 % el
         // desenfoque no aportaba nada que se viera; lo que se ve es la sala, quieta y
         // nítida, por debajo del borde de la hoja.
-        className={`pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t ${
-          conHoja ? 'border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900/95' : 'border-transparent bg-transparent'
-        }`}
+        className="pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t border-[rgb(var(--salon-3d-filete-rgb)/0.1)] bg-ink-900/95"
         style={{
           maxHeight: abierto ? '84dvh' : undefined,
           transform: `translateY(${seguimiento}px)`,
           transition: arrastrando ? 'none' : 'transform var(--dur-base) var(--ease-salida)',
-          boxShadow: conHoja ? '0 -18px 40px -24px var(--salon-3d-sombra-caja)' : 'none',
+          boxShadow: '0 -18px 40px -24px var(--salon-3d-sombra-caja)',
         }}
       >
         {/* EL TIRADOR. Sin una letra: el nombre va en `aria-label`, que no es un nodo de
@@ -304,11 +303,26 @@ export function PanelInferior(props: PanelInferiorProps) {
               lleva un halo oscuro alrededor para leerse en los dos. */}
           <span
             aria-hidden="true"
-            className={`h-1 w-11 rounded-full transition-colors duration-base ${
-              conHoja ? 'bg-silver-500/60' : 'bg-silver-200 shadow-[0_0_0_3px_rgb(var(--salon-3d-negro-rgb)/0.35)]'
-            }`}
+            className="h-1 w-11 rounded-full bg-silver-500/60 transition-colors duration-base"
           />
         </button>
+
+        {/* EL RESUMEN DE LA HOJA (maqueta 7): visible plegada y abierta. «Torso B · hoy», cuántos
+            ejercicios y el botón para empezar. Mirando otro día no hay botón: se ve, no se anota. */}
+        <div
+          data-testid="resumen-de-la-hoja"
+          className="flex shrink-0 items-center gap-3 px-5 pb-3"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 font-display text-[15px] font-black leading-tight text-texto">{resumen.titulo}</p>
+            <p className="truncate text-[13px] text-tenue">{resumen.detalle}</p>
+          </div>
+          {resumen.boton && (
+            <Boton3D to={resumen.boton.a} className="shrink-0 whitespace-nowrap">
+              {resumen.boton.texto}
+            </Boton3D>
+          )}
+        </div>
 
         {abierto && (
           <div

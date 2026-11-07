@@ -7,7 +7,7 @@ import { SALUD_SIN_REGISTRO, decidirTurno, pasoTrasProponer, resumenDeGuardado, 
  * seguridad: primero el filtro de riesgo por reglas, después lo que se contesta sin
  * modelo, y solo al final el registrador (que es el único camino que llega a un modelo).
  */
-const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo'] }
+const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo'] }
 const HOY = '2026-10-01'
 
 describe('decidirTurno · seguridad primero', () => {
@@ -79,6 +79,12 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
     expect(p.paso === 'no_se' && p.texto).not.toMatch(/Bryan/)
   })
 
+  // Hasta el 30-oct-2026 el portero contestaba, la función lo devolvía y la pantalla lo cambiaba por «no lo sé».
+  it('una consulta que el portero contestó con una ficha muestra esa respuesta', () => {
+    const r = { ...respuesta({ tipo: 'informativa', mensaje: 'Una vez no obliga a bajar peso.' }, { accion: 'nada', motivo: 'consulta' }), fichas: ['cargas-no-llegue-al-rango'] }
+    expect(pasoTrasProponer(r, 'tu')).toEqual({ paso: 'dicho', texto: 'Una vez no obliga a bajar peso.' })
+  })
+
   it('la pregunta de aclaración se muestra con sus opciones, sin nombres propios', () => {
     const p = pasoTrasProponer(respuesta({ tipo: 'pregunta', pregunta: { texto: '¿Se lo dejo a Bryan como nota?', opciones: ['Sí, nota para Bryan', 'No, olvídalo'] } }, { accion: 'preguntar' }), 'tu')
     expect(p).toEqual({ paso: 'aclarar', texto: '¿Se lo dejo a tu coach como nota?', opciones: ['Sí, nota para tu coach', 'No, olvídalo'] })
@@ -89,7 +95,7 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
     ['sin_sesion', /sesión/],
     ['red', /conexión/],
     ['limite', /muchos mensajes/],
-    ['no_entendi', /Se me enredó algo de mi lado/],
+    ['no_entendi', /^Algo falló de mi lado, no en lo que dijiste/],
   ] as const)('si el registrador falla (%s) lo dice y no inventa un registro', (motivo, patron) => {
     const p = pasoTrasProponer({ ok: false, motivo }, 'tu')
     expect(p.paso).toBe('fallo')

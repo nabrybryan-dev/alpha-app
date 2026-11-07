@@ -2,9 +2,11 @@ import { db } from '../../data/dbInstance'
 import { leerLoQuePraxisVe } from '../../data/praxis/fuente'
 import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/preguntasEnEspera'
 import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
+import { deshacerRegistro, elegirParaDeshacer } from '../../data/praxis/deshacer'
+import { aplicarAguaDePraxis, fijarTotalDelDia } from '../../data/praxis/agua'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
-import { hoyIso } from '../../lib/fecha'
+import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
 
 /**
@@ -13,6 +15,7 @@ import type { ConexionPraxis } from './motor/conexion'
  *   leer       → el almacén local de la persona con sesión, por la lista blanca. Solo lectura.
  *   proponer   → la Edge Function `praxis-registro`, con el JWT de la persona. No guarda.
  *   guardar    → la misma función, ruta /guardar: solo lo que la persona confirmó.
+ *   deshacer   → la misma función, ruta /deshacer: propone y quita SOLO con el toque en «Sí, quitar».
  *   preguntar  → la bandeja de «pregunta en espera» (migración 0105).
  *
  * AL REGISTRADOR VIAJA LO MÍNIMO: la frase, la hora, el agua de hoy y si la persona ve sus
@@ -22,12 +25,7 @@ import type { ConexionPraxis } from './motor/conexion'
  * Nada de aquí cambia cargas ni el plan: no hay una sola llamada a `db.microciclos` que escriba.
  */
 
-/** `2026-10-01T18:40:05-05:00`: la hora del teléfono con su zona. */
-export function horaLocalIso(d: Date = new Date()): string {
-  const p = (n: number) => String(Math.abs(n)).padStart(2, '0')
-  const desfase = -d.getTimezoneOffset()
-  return `${hoyIso(d)}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${desfase >= 0 ? '+' : '-'}${p(Math.trunc(desfase / 60))}:${p(desfase % 60)}`
-}
+export { horaLocalIso }
 
 export function crearConexionPraxis(
   usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null,
@@ -56,7 +54,17 @@ export function crearConexionPraxis(
     },
     // Apagado, NO existe y la frase marcada no sale del teléfono. Encendido, la pantalla solo la usa si el permiso guardado es de la versión que la cubre.
     ...(lecturaDelModeloSobreMarcadas ? { releerRiesgo: async (frase: string) => releerRiesgo(await sesionDeFunciones(), frase) } : {}),
-    guardar: async (p) => guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() }),
+    guardar: async (p) => {
+      const r = await guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() })
+      if (!r.ok) return r
+      // Agua por la RPC (apagada por defecto): fija el total que devuelve la base. Ver `data/praxis/agua.ts`.
+      return { ok: true, resultados: await aplicarAguaDePraxis({ usuarioId, mensajeId: p.mensajeId, registros: p.registros, resultados: r.resultados }) }
+    },
+    deshacer: {
+      elegir: async (registroId) => elegirParaDeshacer(await sesionDeFunciones(), registroId),
+      // Agua deshecha: el teléfono fija el total que quedó en la base (ver `data/praxis/deshacer.ts`).
+      confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p, (fecha, ml) => fijarTotalDelDia(db.nutricion, usuarioId, fecha, ml)),
+    },
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),
     irAlFormulario,
