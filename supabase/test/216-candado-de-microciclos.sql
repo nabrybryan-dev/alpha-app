@@ -399,7 +399,8 @@ select pruebas.afirmar(
   'vencer_primer_plan con choque no dejó el aviso'
 );
 
--- H7: cerrado sin aviso no se convierte en una aprobacion de choque.
+-- H7: un microciclo CERRADO no se aprueba (guarda de 0137, como en la base real): error 22023,
+-- la aprobacion no cambia y no se escribe ningun motivo de choque.
 savepoint h7_cerrado;
 update public.microciclos set estado = 'cerrado' where id = 'cd-e-5app';
 delete from public.microciclos_choques where propuesta_id = 'cd-e-5app';
@@ -407,15 +408,20 @@ update public.aprobaciones_primer_plan set estado = 'propuesto', motivo_espera =
  where id = 'c2000000-0000-0000-0000-000000000005';
 select pruebas.soy('e2000000-0000-0000-0000-000000000002');
 set role authenticated;
-select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar', 'Revisado por el aprobador H7');
+do $$
+begin
+  begin
+    perform public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar', 'Revisado por el aprobador H7');
+    raise exception 'FALLO H7: se aprobo un microciclo cerrado';
+  exception when sqlstate '22023' then null;
+  end;
+end $$;
 reset role;
 select pruebas.afirmar(
   exists (select 1 from public.aprobaciones_primer_plan
-    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'espera_bryan'
-      and motivo_espera not like 'Choque de microciclo%'
-      and motivo_espera like 'No se activo: estado cerrado.%Revisado por el aprobador H7'
-      and decidido_por is null and decidido_en is null),
-  'H7: cerrado sin choque debe esperar y conservar al final el motivo humano'
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'propuesto'
+      and motivo_espera is null and decidido_por is null and decidido_en is null),
+  'H7: aprobar un cerrado debe fallar sin tocar la aprobacion ni escribir motivo de choque'
 );
 select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 set role authenticated;
@@ -435,8 +441,7 @@ end $$;
 reset role;
 select pruebas.afirmar(
   exists (select 1 from public.aprobaciones_primer_plan
-    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'espera_bryan'
-      and motivo_espera like '%Revisado por el aprobador H7')
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'propuesto' and decidido_por is null)
   and (select estado = 'cerrado' from public.microciclos where id = 'cd-e-5app')
   and not exists (select 1 from public.microciclos_choques where propuesta_id = 'cd-e-5app'),
   'H7: confirmar no debe aprobar ni crear un choque para el cerrado'

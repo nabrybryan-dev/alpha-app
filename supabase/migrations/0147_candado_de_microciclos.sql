@@ -539,8 +539,8 @@ begin
   end if;
 
   select m.estado into v_estado_mc from public.microciclos m where m.id = fila.microciclo_id;
-  -- Mantener la guarda del plan ya activo: no firmar una activacion anterior.
-  if v_estado_mc = 'activo' then
+  -- Guarda de 0137 (base real): solo se aprueba un microciclo que sigue PROPUESTO.
+  if v_estado_mc is distinct from 'propuesto' then
     raise exception 'El plan propuesto ya no está pendiente (estado del microciclo: %)', v_estado_mc
       using errcode = '22023';
   end if;
@@ -549,11 +549,9 @@ begin
   if not public.tiene_capacidad('liberar_prescripcion') then
     raise exception 'Aprobar un primer plan exige tambien la capacidad de liberar prescripciones' using errcode = '42501';
   end if;
-  if v_estado_mc = 'propuesto' then
-    insert into public.liberaciones_microciclo (propuesta_id, persona_id, huella, liberado_por)
-      select m.id, m.usuario_id, public.huella_microciclo(m.datos), quien from public.microciclos m where m.id = fila.microciclo_id for share of m
-    on conflict (propuesta_id, huella) do nothing;
-  end if;
+  insert into public.liberaciones_microciclo (propuesta_id, persona_id, huella, liberado_por)
+    select m.id, m.usuario_id, public.huella_microciclo(m.datos), quien from public.microciclos m where m.id = fila.microciclo_id for share of m
+  on conflict (propuesta_id, huella) do nothing;
   -- Publicar: el mismo camino que usa el resto de la app (cierra y abre en una operación).
   perform public.activar_microciclo(fila.microciclo_id);
 
