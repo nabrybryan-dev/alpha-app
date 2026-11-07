@@ -44,8 +44,8 @@ function montar(extra: Partial<DependenciasAgua> = {}, ahora = AHORA) {
 const entrada = (registros: RegistroPropuesto[], resultados: ResultadoDeRegistro[], usuarioId = USUARIO) =>
   ({ usuarioId, mensajeId: 'mensaje-1', registros, resultados })
 
-describe('el interruptor nace apagado', () => {
-  it('PRAXIS_AGUA_POR_RPC es false', () => expect(PRAXIS_AGUA_POR_RPC).toBe(false))
+describe('el interruptor (encendido el 7-nov-2026, con el sí de Bryan)', () => {
+  it('PRAXIS_AGUA_POR_RPC es true', () => expect(PRAXIS_AGUA_POR_RPC).toBe(true))
 
   it('apagado no llama, no fija y devuelve los resultados tal cual', async () => {
     const m = montar({ encendido: false })
@@ -57,9 +57,9 @@ describe('el interruptor nace apagado', () => {
     expect(m.db.nutricion.hidratacionDe(USUARIO, HOY)).toBe(0)
   })
 
-  it('sin deps, el valor por defecto (apagado) tampoco toca nada', async () => {
+  it('sin deps, en modo demo (sin sesión de nube) no fija nada aunque esté encendido', async () => {
     const resultados = [pendiente(0)]
-    expect(await aplicarAguaDePraxis(entrada([reg(250)], resultados))).toBe(resultados)
+    expect(await aplicarAguaDePraxis(entrada([reg(250)], resultados))).toEqual(resultados)
   })
 })
 
