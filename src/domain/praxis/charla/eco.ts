@@ -39,7 +39,7 @@ const FUTBOL = /\b(partido|gol|golazo|futbol|clasico|la seleccion|el equipo gano
 const SERIE = /\b(serie|pelicula|novela|temporada|capitulo)\b/
 
 /** Palabras de alegría tal como se le devuelven (con su tilde). */
-const PALABRA: Record<string, string> = { increible: 'increíble', buenisimo: 'buenísimo', buenisima: 'buenísimo' }
+const PALABRA: Record<string, string> = { increible: 'increíble', buenisimo: 'buenísimo', buenisima: 'buenísimo', 'super bien': 'súper bien' }
 
 /**
  * Lee el tono del mensaje. Orden: el cansancio va primero (si dice «me fue increíble pero estoy muerta», se cuida el
@@ -73,6 +73,14 @@ export const ECO_TU: Textos = {
     conPalabra: [
       'Qué alegría que te haya ido {p}{n}.',
       'Me alegra mucho saber que estuvo {p}{n}.',
+      'Qué bien suena ese «{p}»{n}.',
+      'Ese «{p}» lo dice todo{n}.',
+      'Qué buena noticia que te haya salido {p}{n}.',
+      'Da gusto leer que hoy estuvo {p}{n}.',
+      'Con ese «{p}» se nota lo bien que te fue{n}.',
+      'Cuando algo sale {p}, vale la pena contarlo{n}.',
+      'Qué rico leer que te fue {p}{n}.',
+      'Eso de que estuvo {p} da gusto leerlo{n}.',
     ],
     aperturas: [
       'Qué alegría leerte así{n}.',
@@ -149,6 +157,14 @@ export const ECO_USTED: Textos = {
     conPalabra: [
       'Qué alegría que le haya ido {p}{n}.',
       'Me alegra mucho saber que estuvo {p}{n}.',
+      'Qué bien suena ese «{p}»{n}.',
+      'Ese «{p}» lo dice todo{n}.',
+      'Qué buena noticia que le haya salido {p}{n}.',
+      'Da gusto leer que hoy estuvo {p}{n}.',
+      'Con ese «{p}» se nota lo bien que le fue{n}.',
+      'Cuando algo sale {p}, vale la pena contarlo{n}.',
+      'Qué rico leer que le fue {p}{n}.',
+      'Eso de que estuvo {p} da gusto leerlo{n}.',
     ],
     aperturas: [
       'Qué alegría leerle así{n}.',

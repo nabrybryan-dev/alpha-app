@@ -71,6 +71,30 @@ describe('elegirEco', () => {
     expect(a.apertura).toContain('Laura')
     expect(b.apertura).not.toContain('Laura')
   })
+  it('alegría con su palabra: diez aperturas y ninguna se repite en cinco saludos seguidos (antes, a la tercera)', () => {
+    for (const trato of ['tu', 'usted'] as const) {
+      expect((trato === 'tu' ? ECO_TU : ECO_USTED).contento.conPalabra.length).toBeGreaterThanOrEqual(10)
+      let h: HistorialPersona = []
+      const vistas: string[] = []
+      for (let i = 0; i < 6; i++) {
+        const e = elegirEco({ lectura: { tono: 'contento', palabra: 'genial' }, historial: h, azar: fijo(0), trato })
+        expect(e.apertura).toContain('genial')
+        vistas.push(e.huella.apertura)
+        h = [...h, e.huella]
+      }
+      expect(new Set(vistas).size).toBe(6)
+    }
+  })
+  it('cada apertura con palabra la usa y queda bien escrita con cualquier palabra de alegría', () => {
+    const palabras = ['increíble', 'genial', 'muy bien', 'súper bien', 'brutal', 'bacano', 'espectacular', 'buenísimo', 'excelente', 'de maravilla']
+    for (const x of [ECO_TU, ECO_USTED]) {
+      for (const a of x.contento.conPalabra) {
+        expect(a).toContain('{p}')
+        for (const p of palabras) expect(a.replace('{p}', p).replace('{n}', ', Laura')).not.toMatch(/[{}]|,\s*,|\s[.,]/)
+      }
+    }
+    expect(leerTono('hoy me fue super bien')).toEqual({ tono: 'contento', palabra: 'súper bien' })
+  })
   it('de usted no se cuela el tú', () => {
     const e = elegirEco({ lectura: { tono: 'cansado' }, historial: sin, azar: fijo(0.5), trato: 'usted' })
     expect(ECO_USTED.cansado.aperturas.map((x) => x.replace('{n}', ''))).toContain(e.apertura)
