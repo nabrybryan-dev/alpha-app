@@ -463,7 +463,8 @@ begin
   -- en `microciclos_choques` para el coach, y esta función devuelve 'CHOQUE · ...' (léelo: no es
   -- un error, es una carga que NO se activó). Para pisar a propósito, con permiso del coach, y en
   -- la MISMA transacción, antes de esta función:
-  --   select set_config('alpha.pisar_microciclo', 'si', true);
+  --   insert into public.pisadas_microciclo_autorizadas (propuesta_id, autorizada_por) values ('<id del nuevo>', null);
+  -- (0147, H5 del 7-nov: ya no vale una variable de sesion; la fila solo la puede escribir el dueno de la base).
   -- La comprobación va ANTES del cierre de abajo: si fuera después, la persona se quedaría sin
   -- activo y la red de seguridad del final deshace la transacción entera, aviso incluido.
   -- `- 'estado'` se queda como segunda red aunque desde la `0066` ni el blob de origen lleve la
@@ -472,7 +473,7 @@ begin
   v_nuevo := (public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes) - 'estado')
                || jsonb_build_object('id', v_id);
 
-  if coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si' then
+  if not public.pisada_microciclo_autorizada(v_id) then
     select * into v_ch from public.microciclo_choque(v_uid, v_id, v_num + 1, 'cadena');
     if found then
       insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)

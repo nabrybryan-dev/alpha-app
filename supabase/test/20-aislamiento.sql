@@ -85,6 +85,22 @@ end $$;
 
 reset role;
 
+-- ─────────────────── Desde M2 (0119, 0134): el coach ve a SUS asesorados ───────────────────
+-- Antes bastaba con ser coach. Desde el 23-oct (M2 en la base real) los check-ins se leen
+-- por asignación (es_coach_de): sin asignación vigente, el coach no ve. Primero se prueba
+-- eso, y después se le asigna la asesorada A para la otra mitad.
+select pruebas.soy('33333333-3333-3333-3333-333333333333');
+set role authenticated;
+select pruebas.exigir_rls();
+select pruebas.afirmar(
+  (select count(*) from public.checkins where id = 'checkin-1') = 0,
+  'un coach SIN asignación ve los check-ins de una asesorada'
+);
+reset role;
+
+insert into public.asignaciones_coach (persona_id, coach_id)
+values ('11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333');
+
 -- ─────────────────── El staff sí ve ───────────────────
 -- La otra mitad: si el coach NO viera, el panel de salud de datos y el de
 -- adherencia estarían vacíos y nadie sabría por qué.

@@ -52,16 +52,16 @@
 --       la cola del teléfono, ver 0060—; no activa y deja el aviso en (5).
 --   8 · `decidir_primer_plan` / `vencer_primer_plan` redefinidas: un choque deja el plan en `espera_bryan`.
 --   7 · `confirmar_pisar_microciclo` / `descartar_choque_microciclo`: la decisión explícita del
---       coach. La cadena confirma con `select set_config('alpha.pisar_microciclo','si',true);` en
---       su misma transacción (ver la plantilla).
+--       coach mediante confirmar_pisar_microciclo; una variable de sesión no autoriza a pisar.
 --      Además (decidido por Bryan, 29-oct): «Activar igualmente» sobre un primer plan que quedó en
 --      `espera_bryan` por choque lo pasa a `aprobado` en el mismo paso (aprobado por quien confirma),
---      solo si la propuesta quedó activa; un plan en espera por otro motivo no se toca.
+--      solo con capacidades de aprobar, liberar y autorizar excepción, y si quedó activa;
+--      un plan en espera por otro motivo no se toca.
 -- PLANTILLA DE LA CADENA ante un choque (decidido por Bryan, 29-oct): avisa y devuelve «CHOQUE · ...»,
 -- sin fallar.
 --
 -- NO TOCA nada que ya exista salvo `activar_microciclo` (mismo cuerpo + el candado) y, en el punto 8,
--- `decidir_primer_plan` / `vencer_primer_plan` (0086), que ahora no dan por activado lo que el candado frenó.
+-- `decidir_primer_plan` / `vencer_primer_plan` (M2: 0137/0141), que ahora no dan por activado lo que el candado frenó.
 -- Aplicación: a mano en el SQL Editor, con la casilla de Bryan. NO está aplicada.
 -- Comprobación: `comprobar-migraciones.sql` fila «0147» y `supabase/test/216-candado-de-microciclos.sql`.
 -- ============================================================================
@@ -143,6 +143,33 @@ $$;
 revoke all on function public.microciclo_choque(uuid, text, int, text) from public, anon;
 grant execute on function public.microciclo_choque(uuid, text, int, text) to authenticated, service_role;
 
+-- H5: señal no forjable, ligada a propuesta, actor y transacción (patrón 0138).
+-- Solo confirmar_pisar_microciclo (definer) escribe; no se concede acceso a la tabla.
+create table if not exists public.pisadas_microciclo_autorizadas (
+  propuesta_id text not null,
+  xid bigint not null default txid_current(),
+  autorizada_por uuid,
+  creada_en timestamptz not null default clock_timestamp(),
+  primary key (propuesta_id, xid)
+);
+alter table public.pisadas_microciclo_autorizadas enable row level security;
+revoke all on public.pisadas_microciclo_autorizadas from public, anon, authenticated, service_role;
+
+create or replace function public.pisada_microciclo_autorizada(p_propuesta_id text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.pisadas_microciclo_autorizadas a
+     where a.propuesta_id = p_propuesta_id and a.xid = txid_current()
+       and a.autorizada_por is not distinct from auth.uid()
+  );
+$$;
+revoke all on function public.pisada_microciclo_autorizada(text) from public, anon;
+grant execute on function public.pisada_microciclo_autorizada(text) to authenticated, service_role;
+
 -- ── 4 · Nadie activa con choque sin confirmar (frena a la cadena Y deja el aviso) ──
 -- DECISION (hallazgo H3): el candado NO levanta excepción. Una excepción deshace la transacción
 -- entera, el aviso incluido (Postgres no tiene transacciones autónomas), y el contrato es «todo
@@ -162,7 +189,7 @@ declare
   v_ch record;
 begin
   if new.estado = 'activo' and (tg_op = 'INSERT' or old.estado is distinct from 'activo') then
-    if coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si' then
+    if not public.pisada_microciclo_autorizada(new.id) then
       select * into v_ch from public.microciclo_choque(new.usuario_id, new.id, new.numero, new.origen);
       if found then
         new.estado := case when tg_op = 'INSERT' then 'propuesto' else old.estado end;
@@ -170,7 +197,7 @@ begin
         raise notice
           'candado_microciclo: la semana M% de esta persona ya la cargó "%" (%, microciclo %, %). '
           'M% (%) NO se activó y queda un aviso para el coach. Pisar a propósito: '
-          'set_config(''alpha.pisar_microciclo'',''si'',true) en la misma transaccion.',
+          'usar confirmar_pisar_microciclo con sesión de coach y liberación vigente.',
           v_ch.numero, v_ch.origen, v_ch.cargado_en, v_ch.id, v_ch.estado, new.numero, new.id;
       end if;
     end if;
@@ -290,45 +317,64 @@ $$;
 revoke all on function public.registrar_choque_microciclo(text) from public, anon;
 grant execute on function public.registrar_choque_microciclo(text) to authenticated, service_role;
 
--- ── 6 · activar_microciclo con candado (misma firma, mismo cuerpo de la 0066) ─
+-- ── 6 · activar_microciclo con candado (misma firma, base M2 de 0138 sobre 0135) ─
 create or replace function public.activar_microciclo(p_propuesta_id text)
 returns void
 language plpgsql
 set search_path = public
 as $function$
+-- Protege: sesion/staff/capacidad, huella/persona liberada, cerrado y unico activo (0135);
+-- autorizacion no forjable por transaccion (0138); choque con aviso sin excepcion (0147).
 declare
   v_uid    uuid;
   v_estado text;
+  v_activos int;
   v_numero int;
   v_origen text;
-  v_activos int;
 begin
+  -- Guardas de liberacion (0135), en este orden: sesion, staff, capacidad. Antes de mirar si la fila existe.
+  if auth.uid() is null then
+    raise exception 'activar_microciclo: se requiere sesion' using errcode = '42501';
+  end if;
+  if not public.es_staff() then
+    raise exception 'activar_microciclo: el estado del microciclo lo decide el staff' using errcode = '42501';
+  end if;
+  if not public.tiene_capacidad('liberar_prescripcion') then
+    raise exception 'activar_microciclo: falta la capacidad de liberar' using errcode = '42501';
+  end if;
+
   select usuario_id, estado, numero, origen into v_uid, v_estado, v_numero, v_origen
     from public.microciclos
    where id = p_propuesta_id;
 
+  -- Sin fila no hay nada que activar.
   if v_uid is null then
     return;
   end if;
 
-  if auth.uid() is not null and not public.es_staff() then
-    raise exception 'activar_microciclo: el estado del microciclo lo decide el staff'
-      using errcode = '42501';
-  end if;
-
+  -- Un bloque cerrado no se reabre.
   if v_estado = 'cerrado' then
     return;
+  end if;
+
+  -- Una version se activa solo si esa huella exacta fue liberada por un humano autorizado.
+  if v_estado <> 'activo' and not public.microciclo_liberado(p_propuesta_id) then
+    raise exception 'activar_microciclo: esta version no tiene liberacion vigente' using errcode = '42501';
   end if;
 
   -- EL CANDADO. Solo al pasar de propuesto a activo: re-afirmar uno ya activo es el reintento
   -- inofensivo de la cola. Sin excepción (pararía la cola del teléfono): no se activa y queda el aviso.
   if v_estado = 'propuesto'
-     and coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si'
+     and not public.pisada_microciclo_autorizada(p_propuesta_id)
      and exists (select 1 from public.microciclo_choque(v_uid, p_propuesta_id, v_numero, v_origen)) then
     perform public.registrar_choque_microciclo(p_propuesta_id);
     return;
   end if;
 
+  -- 0138: la autorizacion NO es una senal que el actor pueda fijar: la escribe una funcion definer en una tabla sin privilegios (ver trigger).
+  perform public.autorizar_activacion(p_propuesta_id);
+
+  -- CERRAR PRIMERO Y ABRIR DESPUES, dentro de la misma transaccion.
   update public.microciclos
      set estado = 'cerrado'
    where usuario_id = v_uid
@@ -345,8 +391,7 @@ begin
      and estado = 'activo';
 
   if v_activos <> 1 then
-    raise exception 'activar_microciclo: quedaron % activos para el usuario %',
-                    v_activos, v_uid;
+    raise exception 'activar_microciclo: quedaron % activos para el usuario %', v_activos, v_uid;
   end if;
 end;
 $function$;
@@ -367,7 +412,10 @@ begin
   if auth.uid() is not null and not public.es_coach() then
     raise exception 'confirmar_pisar_microciclo: solo el coach confirma' using errcode = '42501';
   end if;
-  perform set_config('alpha.pisar_microciclo', 'si', true);
+  delete from public.pisadas_microciclo_autorizadas
+   where xid <> txid_current() and creada_en < clock_timestamp() - interval '1 day';
+  insert into public.pisadas_microciclo_autorizadas (propuesta_id, autorizada_por)
+  values (p_propuesta_id, auth.uid());
   perform public.activar_microciclo(p_propuesta_id);
   -- `activar_microciclo` vuelve en silencio si la propuesta ya se cerró o se borró. Marcar el aviso
   -- «confirmado» sin que nada se haya activado dejaría un registro falso: se corta, el aviso
@@ -381,20 +429,27 @@ begin
      set estado = 'confirmado', resuelto_por = auth.uid(), resuelto_en = now()
    where propuesta_id = p_propuesta_id and estado = 'pendiente';
   -- Decidido por Bryan, 29-oct: si ese choque dejó un primer plan en `espera_bryan` (punto 8), «Activar
-  -- igualmente» lo aprueba EN EL MISMO PASO, porque la propuesta ya quedó activa (se comprobó arriba).
+  -- igualmente» lo aprueba EN EL MISMO PASO si quien confirma tiene las capacidades de 0137.
   -- Mismos campos que la 0086 deja en un plan aprobado: estado, decidido_por (quien confirma),
   -- decidido_en y motivo (su check exige autor y fecha). Solo el motivo de choque: un plan en espera
   -- por otra causa no se toca. Con auth.uid() nulo (la cadena, vía service_role) no hay autor humano
   -- que firme y el check lo rechazaría: ahí el plan se queda como está.
-  if auth.uid() is not null then
+  -- H4: activar no equivale a aprobar. Espera_bryan exige excepción incluso con riesgo bajo.
+  -- Sin estas capacidades se conserva íntegra la aprobación.
+  if auth.uid() is not null
+     and public.tiene_capacidad('aprobar_primer_plan')
+     and public.tiene_capacidad('liberar_prescripcion') then
     update public.aprobaciones_primer_plan a
        set estado = 'aprobado', decidido_por = auth.uid(), decidido_en = now(),
            motivo = 'Activado igualmente tras el choque de microciclo', actualizado_en = now()
      where a.microciclo_id = p_propuesta_id
        and a.estado = 'espera_bryan'
-       and a.motivo_espera like 'Choque de microciclo%';
+       and a.motivo_espera like 'Choque de microciclo%'
+       and (not (a.riesgo = 'alto' or a.estado = 'espera_bryan')
+            or public.tiene_capacidad('autorizar_excepcion'));
   end if;
-  perform set_config('alpha.pisar_microciclo', '', true);
+  delete from public.pisadas_microciclo_autorizadas
+   where propuesta_id = p_propuesta_id and xid = txid_current();
 end;
 $$;
 
@@ -421,11 +476,7 @@ revoke all on function public.descartar_choque_microciclo(uuid) from public, ano
 grant execute on function public.descartar_choque_microciclo(uuid) to authenticated, service_role;
 
 -- ── 8 · Aprobar un primer plan que choca NO lo deja 'aprobado' sin activar ──
--- (hallazgo (b) de la revisión). La 0086 suponía que `activar_microciclo` activa o falla. Con el
--- candado de arriba puede NO activar y NO fallar (para no parar la cola, ver 6). Estas dos funciones
--- son las de la 0086 (mismo cuerpo, misma firma, mismos permisos) con un cambio: tras activar
--- comprueban que el microciclo quedó `activo`; si no, el plan pasa a `espera_bryan` con el motivo.
--- Lo hace aquí y no en la 0086 porque la 0086 ya está aplicada.
+-- Conserva M2 (0137/0141) y suma el candado; firma solo despues de activar (0145).
 
 create or replace function public.decidir_primer_plan(aprobacion_id uuid, decision text, motivo text default null)
 returns public.aprobaciones_primer_plan
@@ -434,6 +485,9 @@ security definer
 set search_path = public
 as $$
 #variable_conflict use_variable
+-- Protege: sesion, capacidad, decision valida, bloqueo de fila, rechazo motivado,
+-- excepcion alto/espera, propuesta y liberacion de huella/persona (0137/0135);
+-- firma unica solo tras activar (0145); choque en espera sin firma (0147).
 declare
   quien        uuid := auth.uid();
   fila         public.aprobaciones_primer_plan%rowtype;
@@ -490,6 +544,14 @@ begin
       using errcode = '22023';
   end if;
 
+  -- 0137: aprobar ES la liberacion humana de ESTA version (guarda de 0135). Quien aprueba debe poder liberar; la huella se toma del contenido
+  -- bloqueado en esta misma transaccion. Limite: la consola no manda la huella que vio la persona (propuesta C4: pasarla y compararla).
+  if not public.tiene_capacidad('liberar_prescripcion') then
+    raise exception 'Aprobar un primer plan exige tambien la capacidad de liberar prescripciones' using errcode = '42501';
+  end if;
+  insert into public.liberaciones_microciclo (propuesta_id, persona_id, huella, liberado_por)
+    select m.id, m.usuario_id, public.huella_microciclo(m.datos), quien from public.microciclos m where m.id = fila.microciclo_id for share of m
+  on conflict (propuesta_id, huella) do nothing;
   -- Publicar: el mismo camino que usa el resto de la app (cierra y abre en una operación).
   perform public.activar_microciclo(fila.microciclo_id);
 
@@ -530,17 +592,23 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+-- Protege: plazo servidor/skip locked, alto, dudas, estado, clasificacion sistema,
+-- revision y regla apagada (0141); revalidacion de huella, auditoria y aviso por
+-- activar_por_regla_ventana (0141); encendido auditado intacto (0143);
+-- firma unica (0145); choque con aviso sin contar aprobacion (0147).
 declare
   r           record;
   v_estado_mc text;
   n_aprob     int := 0;
   n_bryan     int := 0;
   v_espera    text;
+  v_activa    boolean;
 begin
+  select activa into v_activa from public.regla_ventana_primer_plan;
   for r in
     select a.*
       from public.aprobaciones_primer_plan a
-     where a.estado = 'propuesto' and a.plazo_hasta <= now()
+     where a.estado = 'propuesto' and a.plazo_hasta <= clock_timestamp()
      order by a.plazo_hasta
      for update skip locked
   loop
@@ -548,33 +616,37 @@ begin
 
     v_espera := case
       when r.riesgo = 'alto'  then 'Riesgo alto (clínico): nunca pasa sin Bryan.'
-      when r.riesgo = 'medio' then 'Riesgo medio: al vencer el plazo no pasa solo.'
       when cardinality(r.dudas_pendientes) > 0 then
         'Dudas pendientes que frenan la progresión: ' || array_to_string(r.dudas_pendientes, '; ')
       when v_estado_mc is distinct from 'propuesto' then
         'El microciclo ya no está propuesto (estado: ' || coalesce(v_estado_mc, 'no existe') || ').'
+      when r.clasificado_por is distinct from 'sistema' or r.clasificado_en is null then
+        'Sin clasificacion del sistema: no pasa; la guarda de liberacion exige que una persona libere esta version.'
+      when r.requiere_revision then 'El plan requiere aprobacion o revision: nunca pasa sin firma ni revision calificada.'
+      when not coalesce(v_activa, false) then
+        'Plazo vencido sin objeciones (riesgo bajo, sin dudas): la regla de ventana esta apagada y la guarda de liberacion exige que una persona libere esta version.'
       else null
     end;
 
+    -- 0141 activa por UPDATE propio: comprobar antes de cerrar el activo anterior.
+    -- Fuera del bloque de excepciones para conservar el aviso sin revertirlo.
+    if v_espera is null
+       and not public.pisada_microciclo_autorizada(r.microciclo_id)
+       and exists (
+         select 1 from public.microciclos m,
+           lateral public.microciclo_choque(m.usuario_id, m.id, m.numero, m.origen) ch
+          where m.id = r.microciclo_id
+       ) then
+      perform public.registrar_choque_microciclo(r.microciclo_id);
+      v_espera := 'Choque de microciclo: ya hay una semana de otro origen que no se pisa sin confirmar. No se activo.';
+    end if;
     if v_espera is null then
       begin
-        perform public.activar_microciclo(r.microciclo_id);
-        select m.estado into v_estado_mc from public.microciclos m where m.id = r.microciclo_id;
-        if v_estado_mc = 'activo' then
-          update public.aprobaciones_primer_plan
-             set estado = 'vencido_aprobado', decidido_por = null, decidido_en = now(),
-                 motivo = 'Plazo vencido sin objeciones: riesgo bajo y sin dudas pendientes.',
-                 actualizado_en = now()
-           where id = r.id;
-          n_aprob := n_aprob + 1;
-          continue;
-        end if;
-        -- 0147: choque (no se activó, no hubo excepción, el aviso quedó escrito). No cuenta como
-        -- aprobado: baja al `espera_bryan` de abajo con el motivo.
-        v_espera := 'Choque de microciclo: ya hay una semana de otro origen que no se pisa sin '
-                    'confirmar (ver el aviso del panel de Microciclos). No se activó.';
+        perform public.activar_por_regla_ventana(r.id);
+        n_aprob := n_aprob + 1;
+        continue;
       exception when others then
-        v_espera := 'No se pudo publicar al vencer: ' || sqlerrm;
+        v_espera := 'La regla de ventana no pudo activar el plan (' || sqlerrm || '); la guarda de liberacion exige que una persona libere esta version.';
       end;
     end if;
 

@@ -184,6 +184,8 @@ end $$;
 reset role;
 
 -- 6b · borrar a la persona de la app deja su fila revocada y sin vínculo
+-- Desde M2 (0144, D-17-79H) un plan activo solo se cierra, no se borra: primero se cierra.
+update public.microciclos set estado = 'cerrado' where usuario_id = 'f1160000-0000-0000-0000-000000000004' and estado = 'activo';
 delete from public.usuarios_app where id = 'f1160000-0000-0000-0000-000000000004';
 select pruebas.afirmar((select usuario_id is null and revocado_en is not null from lab.consentimientos where seudonimo = 'P-904'),
   'al borrar a la persona, su consentimiento no quedó revocado');
