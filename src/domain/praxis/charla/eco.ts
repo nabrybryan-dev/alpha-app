@@ -33,13 +33,29 @@ export interface LecturaDeTono {
 
 const sinTildes = (t: string): string => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-const CANSADO = /\bmal dia\b|\bagotad[oa]s?\b|\bcansad[oa]s?\b|\bsin ganas\b|\bno me dieron ganas\b|\bsin energia\b|\bsin pila\b|\bmuert[oa] del cansancio\b|\bdia (horrible|terrible|pesado|malo)\b|\btodo (me )?salio (al reves|mal)\b|\bfundid[oa]\b/
-const FUERTE = /\bagotad[oa]s?\b|\bmuert[oa] del cansancio\b|\bno puedo mas\b|\bdia (horrible|terrible)\b|\bfundid[oa]\b|\btodo (me )?salio (al reves|mal)\b|\bpesim[oa]\b/
+const CANSADO = /\bmal dia\b|\bagotad[oa]s?\b|\bcansad[oa]s?\b|\bsin ganas\b|\bno me dieron ganas\b|\bsin energia\b|\bsin pila\b|\bmuert[oa] del cansancio\b|\bdia (horrible|terrible|pesado|malo)\b|\btodo (me )?salio (al reves|mal)\b|\bfundid[oa]\b|\bestoy muert[oa]\b(?! de (la )?risa)/
+const FUERTE = /\bestoy muert[oa]\b(?! de (la )?risa)|\bagotad[oa]s?\b|\bmuert[oa] del cansancio\b|\bno puedo mas\b|\bdia (horrible|terrible)\b|\bfundid[oa]\b|\btodo (me )?salio (al reves|mal)\b|\bpesim[oa]\b/
 const SUENO = /\bdormi (poco|poquisimo|mal|fatal)\b|\bno dormi\b|\bcasi no duermo\b|\btrasnoch/
 const SEMANA = /\b(uy|uf|ay|ufff*|uyy*)?,? ?que semana\b|\bsemana (pesada|larga|dura|de locos|terrible|complicada)\b|\bno paro\b|\bando a mil\b/
 const CONTENTO = /\b(increible|genial|muy bien|super bien|brutal|bacan[oa]?|espectacular|buenisim[oa]|excelente|de maravilla|feliz|contentisim[oa]|content[oa])\b/
-const FUTBOL = /\b(partido|gol|golazo|futbol|clasico|la seleccion|el equipo gano)\b/
-const SERIE = /\b(serie|pelicula|novela|temporada|capitulo)\b/
+const FUTBOL = /\b(partido|gol|golazo|futbol|clasico|la seleccion|(el|mi) equipo (gano|perdio))\b/
+// «serie» sola es la del gimnasio («la serie de sentadilla»): de televisión solo con contexto (medición 7-nov).
+const SERIE = /\b(pelicula|novela|temporada|capitulo|netflix)\b|\b(viendo|vi|veo|ver|termine|empece) (una |la |esa |otra )?serie\b|\bserie (nueva|de (netflix|television|tv))\b/
+// «qué semana tan buena»: la semana se nombra, pero el tono es alegre.
+const SEMANA_BUENA = /\bsemana (tan |muy )?(buena|bacana|chevere|genial|increible|brutal|espectacular)\b/
+// Negación justo antes («no estoy cansado», «nada cansada», «no fue un mal día»). «no sé, …» no niega.
+const NIEGA = /\b(no|nada|ni|tampoco|nunca)\b/
+
+/** ¿Alguna aparición de re en t está afirmada (sin negación en las 3 palabras de antes)? */
+function afirmado(re: RegExp, t: string): RegExpExecArray | null {
+  const g = new RegExp(re.source, 'g')
+  for (let m = g.exec(t); m; m = g.exec(t)) {
+    const antes = t.slice(0, m.index).replace(/\bno se\b/g, ' ').split(/[^a-z0-9]+/).filter(Boolean).slice(-3).join(' ')
+    if (!NIEGA.test(antes)) return m
+    if (m[0].length === 0) g.lastIndex++
+  }
+  return null
+}
 
 /** Palabras de alegría tal como se le devuelven (con su tilde). */
 const PALABRA: Record<string, string> = { increible: 'increíble', buenisimo: 'buenísimo', buenisima: 'buenísimo', 'super bien': 'súper bien' }
@@ -50,13 +66,14 @@ const PALABRA: Record<string, string> = { increible: 'increíble', buenisimo: 'b
  */
 export function leerTono(frase: string): LecturaDeTono | null {
   const t = sinTildes(frase)
-  if (CANSADO.test(t)) return { tono: 'cansado', sueno: SUENO.test(t), fuerte: FUERTE.test(t) }
-  if (SEMANA.test(t)) return { tono: 'semana_dura' }
-  const alegria = t.match(CONTENTO)
+  if (afirmado(CANSADO, t)) return { tono: 'cansado', sueno: SUENO.test(t), fuerte: FUERTE.test(t) }
+  if (SEMANA.test(t) && !SEMANA_BUENA.test(t)) return { tono: 'semana_dura' }
+  const alegria = afirmado(CONTENTO, t)
   if (alegria) {
     const p = alegria[1]
     return { tono: 'contento', palabra: /^(feliz|content)/.test(p) ? undefined : (PALABRA[p] ?? p) }
   }
+  if (SEMANA_BUENA.test(t)) return { tono: 'contento' }
   if (FUTBOL.test(t)) return { tono: 'tema_ajeno', tema: 'futbol', gol: /\bgol/.test(t) }
   if (SERIE.test(t)) return { tono: 'tema_ajeno', tema: 'serie' }
   return null

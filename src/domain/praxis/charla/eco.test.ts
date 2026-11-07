@@ -34,7 +34,7 @@ describe('leerTono: los cuatro casos de la cata', () => {
   it('el cansancio manda sobre la alegría', () => {
     expect(leerTono('me fue increíble pero estoy agotada')?.tono).toBe('cansado')
   })
-  it('medición del 7-nov: la negación no se lee al revés («no me fue muy bien» no es alegría)', () => {
+  it('medición del 7-nov (arreglado): la negación no se lee al revés («no me fue muy bien» no es alegría)', () => {
     expect(leerTono('no estoy cansado, listo para entrenar')).toBeNull()
     expect(leerTono('nada cansada hoy')).toBeNull()
     expect(leerTono('no me fue muy bien')).toBeNull()
@@ -43,12 +43,12 @@ describe('leerTono: los cuatro casos de la cata', () => {
     expect(leerTono('no estoy cansado, me fue genial')?.tono).toBe('contento')
     expect(leerTono('no sé, estoy agotada')?.tono).toBe('cansado')
   })
-  it('medición del 7-nov: la serie del gimnasio no es una serie de televisión', () => {
+  it('medición del 7-nov (arreglado): la serie del gimnasio no es una serie de televisión', () => {
     expect(leerTono('la serie de sentadilla me quedó pesada')).toBeNull()
     expect(leerTono('hice las series de press')).toBeNull()
     expect(leerTono('estoy viendo una serie nueva que me tiene enganchadísimo')?.tema).toBe('serie')
   })
-  it('medición del 7-nov: «qué semana tan buena» es alegría; «estoy muerta», cansancio fuerte; «mi equipo ganó», fútbol', () => {
+  it('medición del 7-nov (arreglado): «qué semana tan buena» es alegría; «estoy muerta», cansancio fuerte; «mi equipo ganó», fútbol', () => {
     expect(leerTono('qué semana tan buena')?.tono).toBe('contento')
     expect(leerTono('uy qué semana tan bacana')?.tono).toBe('contento')
     expect(leerTono('estoy muerta')).toMatchObject({ tono: 'cansado', fuerte: true })
