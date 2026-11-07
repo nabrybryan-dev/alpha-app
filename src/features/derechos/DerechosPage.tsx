@@ -15,6 +15,33 @@ function mensajeDe(error: unknown): string {
     ? String(error.message) : String(error)
 }
 
+/** El coach VIGENTE de la persona (0119). No se modifica el esquema ni se elige un coach por rol: sin asignación, error. */
+async function coachVigente(sb: ReturnType<typeof supabase>, personaId: string): Promise<string> {
+  const { data, error } = await sb.from('asignaciones_coach')
+    .select('coach_id').eq('persona_id', personaId).is('asignado_hasta', null).maybeSingle()
+  if (error) throw error
+  if (!data?.coach_id) throw new Error('No hay un coach asignado. No se envió la solicitud.')
+  return data.coach_id
+}
+
+/** Aviso corto al coach, SIN el detalle escrito. La solicitud ya quedó guardada: si el aviso falla, devuelve false y no se reintenta nada. */
+async function avisarAlCoach(
+  sb: ReturnType<typeof supabase>, personaId: string, coachId: string, derecho: string, etiqueta: string,
+): Promise<boolean> {
+  try {
+    const { error } = await sb.from('mensajes').insert({
+      id: crypto.randomUUID(),
+      de_id: personaId,
+      para_id: coachId,
+      origen: 'humano',
+      texto: `[Solicitud de derechos: ${derecho}] Nueva solicitud: ${etiqueta}`,
+    })
+    return !error
+  } catch {
+    return false
+  }
+}
+
 export default function DerechosPage() {
   // 6-nov (Bryan): todo en tú; la app no guarda el trato por persona.
   const [personaId, setPersonaId] = useState<string | null>(null)
@@ -69,17 +96,13 @@ export default function DerechosPage() {
         setPersonaId(null)
         return
       }
-      // 0119 existe en la base real; no se modifica el esquema ni se elige un coach por rol.
-      const { data: asignacion, error: falloCoach } = await sb.from('asignaciones_coach')
-        .select('coach_id').eq('persona_id', personaId).is('asignado_hasta', null).maybeSingle()
+      const coachId = await coachVigente(sb, personaId)
       if (identidad.current !== personaId) return
-      if (falloCoach) throw falloCoach
-      if (!asignacion?.coach_id) throw new Error('No hay un coach asignado. No se envió la solicitud.')
       const etiqueta = DERECHOS.find(([tipo]) => tipo === derecho)?.[1]
       if (!etiqueta) return
       const { data: guardado, error: falloGuardar } = await sb.from('solicitudes_derechos').insert({
         persona_id: personaId,
-        coach_id: asignacion.coach_id,
+        coach_id: coachId,
         derecho,
         detalle: texto.trim() || null,
       }).select('id, creada_en').single()
@@ -88,19 +111,9 @@ export default function DerechosPage() {
       if (!guardado?.creada_en) throw new Error('La base no devolvió la fecha de la solicitud.')
       setConstancia({ fecha: guardado.creada_en, derecho: etiqueta })
       setTexto('')
-      try {
-        const { error: falloAviso } = await sb.from('mensajes').insert({
-          id: crypto.randomUUID(),
-          de_id: personaId,
-          para_id: asignacion.coach_id,
-          origen: 'humano',
-          texto: `[Solicitud de derechos: ${derecho}] Nueva solicitud: ${etiqueta}`,
-        })
-        if (falloAviso) throw falloAviso
-      } catch {
-        if (identidad.current === personaId) {
-          setConstancia({ fecha: guardado.creada_en, derecho: etiqueta, avisoFallido: true })
-        }
+      const avisado = await avisarAlCoach(sb, personaId, coachId, derecho, etiqueta)
+      if (!avisado && identidad.current === personaId) {
+        setConstancia({ fecha: guardado.creada_en, derecho: etiqueta, avisoFallido: true })
       }
     } catch (fallo: unknown) {
       if (identidad.current === personaId) setError(mensajeDe(fallo))
