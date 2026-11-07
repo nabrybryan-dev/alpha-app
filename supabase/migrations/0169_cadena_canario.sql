@@ -29,9 +29,9 @@
 --     quita en la MISMA transacción las filas que acaba de escribir (solo las de ese usuario,
 --     ya comprobado canario): no queda nada que leer como borrado real.
 --  3. Consola de Manuela. `primerosPlanesPendientes` (alpha-app src/data/consola/primerosPlanes.ts)
---     lista `propuesto` y `espera_bryan` sin filtrar: el filtro va en la app (ver ENCENDER.md).
---     Mientras tanto el plan del canario vive unos segundos y, con el plazo a 100 años, queda el
---     último de la bandeja (ordena por plazo_hasta).
+--     excluye `microciclo_id like 'PRUEBA-AGENTES-CANARIO-%'` (el filtro va en la app, no aquí).
+--     Con una app vieja el plan del canario vive unos segundos y, con el plazo a 100 años, queda
+--     el último de la bandeja (ordena por plazo_hasta).
 --
 -- PERMISOS. SECURITY DEFINER con search_path fijo, solo service_role (la función cadena-agentes).
 
