@@ -17,6 +17,7 @@ import { TRAMOS } from '../../senales/hambre.ts'
 import { marcarSaludPorDiccionario } from '../ingreso/extraer.ts'
 import { normalizarTexto } from './numeros.ts'
 import { REGULAR_ES_FRECUENCIA } from './vida.ts'
+import { respuestaCorta, type ValorCorto } from './respuestaCorta.ts'
 import {
   proponerDesdeMensajeLargo, trozosDeMensaje,
   type AreaDudosa, type CampoCheckin, type TrozoDescartado, type ValorPropuesto,
@@ -177,26 +178,65 @@ export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): Re
   // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
   for (const p of base.propuestas) colocarDeTabla(p, s)
 
-  // 2. Lo que la tabla descartó en un área conocida: se intenta como vago.
+  // 2. Lo que la tabla descartó en un área conocida: se intenta como vago («el sueño ahí» incluido).
   const vistas = new Set<string>([...base.propuestas, ...base.dudosas.flatMap((d) => d.candidatos)].map((c) => c.cita))
-  for (const d of base.descartado) {
-    vistas.add(d.cita)
-    const campo = CAMPO_DE_AREA[d.area]
-    const grado = campo ? gradoVago(d.cita) : null
-    if (!campo || !grado || esClinico(d.cita) || tiempoDe(d.cita) === 'habitual') { s.descartado.push(d); continue }
-    colocarVago(campo, d.cita, grado, s)
-  }
+  for (const d of base.descartado) { vistas.add(d.cita); colocarDescartado(d, s) }
 
-  // 3. Trozos vagos sin área: solo con una pregunta anterior de un único campo.
-  for (const cita of trozosDeMensaje(texto)) {
-    if (vistas.has(cita)) continue
-    const grado = gradoVago(cita)
-    if (!grado) continue
-    if (!ctx.preguntaAnterior) { s.descartado.push({ area: 'sin área', cita, motivo: 'expresión vaga sin decir de qué habla, y no hubo una pregunta antes' }); continue }
-    if (esClinico(cita) || tiempoDe(cita) === 'habitual') continue
-    colocarVago(ctx.preguntaAnterior, cita, grado, s)
-  }
+  // 3. Trozos sin área: heredan el área del trozo de antes («5 horas y mal») o la de la pregunta anterior.
+  colocarSueltos(texto, ctx, vistas, campoDeCadaCita(base), s)
 
   resolverChoques(s)
   return s
+}
+
+/** Las palabras que solo NOMBRAN el área («el entreno estuvo …»): lo que sobra se lee como respuesta corta. */
+const PALABRAS_DE_AREA = /\b(el|la|los|las|mi|mis|de|hoy|entreno|entrenamiento|rutina|sesion|gym|gimnasio|comida|alimentacion|dieta|sueno|estres|energia|cansancio|ganas|estuvo|esta|fue|me fue|anda|ando|estoy)\b/g
+
+/** Lo que la tabla descartó en un área conocida: vago, «<área> ahí» o «<área> + respuesta corta»; si no, queda descartado. */
+function colocarDescartado(d: TrozoDescartado, s: Salida): void {
+  const campo = CAMPO_DE_AREA[d.area]
+  if (!campo || esClinico(d.cita) || tiempoDe(d.cita) === 'habitual') { s.descartado.push(d); return }
+  const grado = gradoConArea(d.cita)
+  if (grado) { colocarVago(campo, d.cita, grado, s); return }
+  const corta = respuestaCorta(normalizarTexto(d.cita).replace(PALABRAS_DE_AREA, ' '), campo)
+  if (corta) colocarCorta(campo, d.cita, corta, s)
+  else s.descartado.push(d)
+}
+
+/** Con el área ya nombrada en el trozo, «ahí» al final también es el medio («el sueño ahí»). Sin área, no: «lo dejé ahí». */
+function gradoConArea(cita: string): Grado | null {
+  return gradoVago(cita) ?? (/\bahi$/.test(normalizarTexto(cita).trim()) ? 'medio' : null)
+}
+
+type Base = Extract<ReturnType<typeof proponerDesdeMensajeLargo>, { tipo: 'propuesta' }>
+
+/** De qué campo habla cada trozo que el paso de mensajes largos reconoció. Las horas de sueño heredan como calidad. */
+function campoDeCadaCita(base: Base): Map<string, CampoCheckin> {
+  const m = new Map<string, CampoCheckin>()
+  for (const d of base.descartado) { const c = CAMPO_DE_AREA[d.area]; if (c && !m.has(d.cita)) m.set(d.cita, c) }
+  for (const p of base.propuestas) if (!m.has(p.cita)) m.set(p.cita, p.campo === 'horasSueno' ? 'calidadSueno' : p.campo)
+  return m
+}
+
+/** Un trozo que no nombra el área: respuesta corta o expresión vaga, con el área del trozo de antes o de la pregunta. */
+function colocarSueltos(texto: string, ctx: ContextoConectores, vistas: Set<string>, campoDe: Map<string, CampoCheckin>, s: Salida): void {
+  let previo: CampoCheckin | undefined
+  for (const cita of trozosDeMensaje(texto)) {
+    const propio = campoDe.get(cita)
+    if (propio || vistas.has(cita)) { previo = propio; continue }
+    const destino = previo ?? ctx.preguntaAnterior ?? undefined
+    previo = undefined
+    if (esClinico(cita) || tiempoDe(cita) === 'habitual') continue
+    const corta = destino ? respuestaCorta(cita, destino) : null
+    if (destino && corta) { colocarCorta(destino, cita, corta, s); continue }
+    const grado = gradoVago(cita)
+    if (!grado) continue
+    if (!destino) s.descartado.push({ area: 'sin área', cita, motivo: 'expresión vaga sin decir de qué habla, y no hubo una pregunta antes' })
+    else colocarVago(destino, cita, grado, s)
+  }
+}
+
+function colocarCorta(campo: CampoCheckin, cita: string, c: ValorCorto, s: Salida): void {
+  if ('valor' in c) s.propuestas.push({ campo, valor: c.valor, cita, confianza: 'media', origen: 'vago' })
+  else s.dudosas.push({ campo, candidatos: c.entre.map((valor) => ({ valor, cita })), motivo: 'respuesta entre dos niveles: que la persona elija' })
 }
