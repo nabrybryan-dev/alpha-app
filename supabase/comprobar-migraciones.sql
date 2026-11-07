@@ -3590,5 +3590,15 @@ select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desd
               or has_table_privilege('authenticated', 'public.guiones_llamada', 'delete') then 'NO'
             when not has_table_privilege('authenticated', 'public.guiones_llamada', 'select') then 'NO'
             else 'SI' end
+union all
+select '0170 - interruptor de la regla de ventana', 'estado_regla_ventana y apagar_regla_ventana existen, security definer, search_path fijo, authenticated ejecuta y anon no; apagar exige la capacidad encender_regla_ventana',
+       case when to_regprocedure('public.estado_regla_ventana()') is null or to_regprocedure('public.apagar_regla_ventana(text)') is null then 'NO'
+            when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.estado_regla_ventana()'), to_regprocedure('public.apagar_regla_ventana(text)'))
+                          and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('anon', 'public.estado_regla_ventana()', 'execute')
+              or has_function_privilege('anon', 'public.apagar_regla_ventana(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.apagar_regla_ventana(text)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.apagar_regla_ventana(text)')) not like '%tiene_capacidad(''encender_regla_ventana'')%' then 'NO'
+            else 'SI' end
 
 order by migracion, senal;

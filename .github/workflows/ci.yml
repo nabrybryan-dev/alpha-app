@@ -239,3 +239,6 @@ jobs:
 
       - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql
+
+      - name: El interruptor de la regla de ventana lo leen todos los del staff, lo encienden y apagan solo quienes tienen la capacidad, y cada cambio queda anotado con quien
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/270-interruptor-regla-ventana.sql
