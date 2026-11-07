@@ -150,22 +150,30 @@ function resolverChoques(s: Salida): void {
 
 const esClinico = (cita: string) => marcarSaludPorDiccionario(cita).marcas.length > 0
 
+/** Coloca lo que la tabla de vida.ts ya convirtió: habitual aparte; si la misma cita es vaga, manda lo vago. */
+function colocarDeTabla(p: ValorPropuesto, s: Salida): void {
+  if (tiempoDe(p.cita) === 'habitual') { s.habituales.push({ campo: p.campo, valor: p.valor, cita: p.cita }); return }
+  const vaga = formaVaga(p.cita)
+  const niveles = vaga ? nivelesDeGrado(p.campo, vaga.grado) : []
+  // «Medio estresado»: «medio» delante del estado lo REBAJA a regular (tarjeta L6), aunque la tabla diga MUCHO.
+  if (vaga?.grado === 'medio' && /^medi[oa] /.test(vaga.forma) && niveles.length === 1) {
+    s.propuestas.push({ campo: p.campo, valor: niveles[0], cita: p.cita, confianza: 'baja', origen: 'vago' })
+    return
+  }
+  // «Medio mal» trae «mal» y la tabla lee MALA a secas: si la misma cita es vaga, la persona elige.
+  const juntos = [...new Set([...niveles, String(p.valor)])]
+  if (niveles.length > 0 && juntos.length > 1) {
+    s.dudosas.push({ campo: p.campo, candidatos: juntos.map((valor) => ({ valor, cita: p.cita })), motivo: 'la frase es vaga: que la persona elija' })
+  } else s.propuestas.push({ ...p, origen: 'tabla' })
+}
+
 export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): ResultadoConectores {
   const base = proponerDesdeMensajeLargo(texto)
   if (base.tipo === 'riesgo') return base
   const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [] }
 
   // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
-  for (const p of base.propuestas) {
-    if (tiempoDe(p.cita) === 'habitual') { s.habituales.push({ campo: p.campo, valor: p.valor, cita: p.cita }); continue }
-    // «Medio mal» trae «mal» y la tabla lee MALA a secas: si la misma cita es vaga, la persona elige.
-    const grado = gradoVago(p.cita)
-    const niveles = grado ? nivelesDeGrado(p.campo, grado) : []
-    const juntos = [...new Set([...niveles, String(p.valor)])]
-    if (niveles.length > 0 && juntos.length > 1) {
-      s.dudosas.push({ campo: p.campo, candidatos: juntos.map((valor) => ({ valor, cita: p.cita })), motivo: 'la frase es vaga: que la persona elija' })
-    } else s.propuestas.push({ ...p, origen: 'tabla' })
-  }
+  for (const p of base.propuestas) colocarDeTabla(p, s)
 
   // 2. Lo que la tabla descartó en un área conocida: se intenta como vago.
   const vistas = new Set<string>([...base.propuestas, ...base.dudosas.flatMap((d) => d.candidatos)].map((c) => c.cita))
