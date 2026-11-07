@@ -1,13 +1,20 @@
-// La lógica de `cadena-agentes`, sin Deno ni red: se prueba con `node --test` (logica.test.ts).
+// La lógica de `cadena-agentes`, sin Deno ni red: se prueba con vitest (logica.test.ts).
 // index.ts solo la conecta con Deno.serve y con el cliente de Supabase.
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ID_CUESTIONARIO = /^preg-[\p{L}\p{N}._:-]{1,195}$/u;
 const MAX_DATOS = 64 * 1024;
 const MAX_ASIGNADOS = 20;
+const ORIGEN = /^[a-z0-9][a-z0-9-]{1,39}$/;
+const MAX_DETALLE = 4 * 1024;
+/** Minutos sin latido para dar un origen por caído (0171). */
+export const MINUTOS_SIN_LATIDO = 30;
 
 export type Rpc = (nombre: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 export type Respuesta = { estado: number; cuerpo: Record<string, unknown> };
+/** Manda un aviso (Telegram, en index.ts). `true` solo si salió: si no, no se marca y se reintenta. */
+export type Avisar = (texto: string) => Promise<boolean>;
+const sinAviso: Avisar = () => Promise.resolve(false);
 
 const bien = (cuerpo: Record<string, unknown>): Respuesta => ({ estado: 200, cuerpo });
 const mal = (estado: number, error: string): Respuesta => ({ estado, cuerpo: { error } });
@@ -47,6 +54,43 @@ function validarCuestionario(c: Record<string, unknown>): string | null {
   return null;
 }
 
+function validarLatido(c: Record<string, unknown>): string | null {
+  if (typeof c.origen !== "string" || !ORIGEN.test(c.origen)) return "origen inválido";
+  const d = c.detalle;
+  if (d === undefined) return null;
+  if (!d || typeof d !== "object" || Array.isArray(d)) return "detalle tiene que ser un objeto";
+  if (JSON.stringify(d).length > MAX_DETALLE) return "detalle demasiado grande";
+  return null;
+}
+
+type Cambio = { origen: string; cambio: "caido" | "volvio"; visto_en: string; minutos: number };
+
+const esCambio = (f: unknown): f is Cambio => {
+  const x = f as Partial<Cambio> | null;
+  return !!x && typeof x.origen === "string" && (x.cambio === "caido" || x.cambio === "volvio");
+};
+
+/** El texto del aviso. Solo el origen y los minutos: nada de nadie. */
+export function textoLatido(c: Cambio): string {
+  return c.cambio === "caido"
+    ? `Cadena de agentes: «${c.origen}» no da señales desde hace ${c.minutos} min. Revisa que el ASUS esté encendido, despierto y con internet, y que el n8n corra.`
+    : `Cadena de agentes: «${c.origen}» volvió a dar señales.`;
+}
+
+/** Cada cambio pendiente: un aviso y, solo si salió, la marca. Un fallo no corta a los demás. */
+async function vigilarLatidos(rpc: Rpc, avisar: Avisar): Promise<Respuesta> {
+  const pendientes = filas(await llamar(rpc, "cadena_latidos_por_avisar", { p_minutos: MINUTOS_SIN_LATIDO })).filter(esCambio);
+  const rows: { origen: string; cambio: string; avisado: boolean }[] = [];
+  for (const c of pendientes) {
+    const avisado = await avisar(textoLatido(c)).catch(() => false);
+    if (avisado) {
+      await llamar(rpc, "cadena_latido_avisado", { p_origen: c.origen, p_estado: c.cambio === "caido" ? "caido" : "vivo" });
+    }
+    rows.push({ origen: c.origen, cambio: c.cambio, avisado });
+  }
+  return bien({ rows });
+}
+
 /** Acciones de solo lectura sin parámetros: acción -> RPC. */
 const LECTURAS: Record<string, string> = {
   salud: "cadena_salud",
@@ -62,10 +106,10 @@ const CANARIO: Record<string, string> = {
   canario_borrar: "cadena_canario_borrar",
 };
 
-export const ACCIONES = [...Object.keys(LECTURAS), "insertar_cuestionario", ...Object.keys(CANARIO)];
+export const ACCIONES = [...Object.keys(LECTURAS), "insertar_cuestionario", ...Object.keys(CANARIO), "latido", "vigilar_latidos"];
 
 /** Despacha UNA acción. No hay SQL libre: cada acción es una RPC de la migración. */
-export async function despachar(cuerpo: unknown, rpc: Rpc): Promise<Respuesta> {
+export async function despachar(cuerpo: unknown, rpc: Rpc, avisar: Avisar = sinAviso): Promise<Respuesta> {
   const c = (cuerpo && typeof cuerpo === "object" && !Array.isArray(cuerpo) ? cuerpo : {}) as Record<string, unknown>;
   const accion = typeof c.accion === "string" ? c.accion : "";
 
@@ -85,6 +129,12 @@ export async function despachar(cuerpo: unknown, rpc: Rpc): Promise<Respuesta> {
     if (!UUID.test(uid)) return mal(400, "usuario_id inválido");
     return bien({ rows: filas(await llamar(rpc, CANARIO[accion], { p_usuario: uid })) });
   }
+  if (accion === "latido") {
+    const motivo = validarLatido(c);
+    if (motivo) return mal(400, motivo);
+    return bien({ rows: filas(await llamar(rpc, "cadena_latido", { p_origen: c.origen, p_detalle: c.detalle ?? {} })) });
+  }
+  if (accion === "vigilar_latidos") return vigilarLatidos(rpc, avisar);
   return mal(400, "acción desconocida");
 }
 
@@ -92,6 +142,7 @@ export async function despachar(cuerpo: unknown, rpc: Rpc): Promise<Respuesta> {
 export async function atender(
   metodo: string, claveRecibida: string, claveEsperada: string, leerJson: () => Promise<unknown>, rpc: Rpc,
   registrar: (texto: string) => void = () => {},
+  avisar: Avisar = sinAviso,
 ): Promise<Respuesta> {
   if (metodo !== "POST") return mal(405, "solo POST");
   if (!(await claveValida(claveEsperada, claveRecibida))) return mal(401, "no autorizado");
@@ -102,7 +153,7 @@ export async function atender(
     return mal(400, "JSON inválido");
   }
   try {
-    return await despachar(cuerpo, rpc);
+    return await despachar(cuerpo, rpc, avisar);
   } catch (e) {
     const texto = e instanceof Error ? e.message : String(e);
     registrar(texto);

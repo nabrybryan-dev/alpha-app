@@ -242,3 +242,6 @@ jobs:
 
       - name: El interruptor de la regla de ventana lo leen todos los del staff, lo encienden y apagan solo quienes tienen la capacidad, y cada cambio queda anotado con quien
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/270-interruptor-regla-ventana.sql
+
+      - name: Los latidos de la cadena avisan una vez cuando el ASUS calla mas de 30 min y otra cuando vuelve; solo service_role los escribe y los lee
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/271-latidos-cadena.sql

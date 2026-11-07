@@ -13,6 +13,10 @@
 //   { accion: "insertar_cuestionario", id, datos, asignado_a } -> rows: [{id, confirmado_en}]
 //   { accion: "canario_restos" }                            -> rows: [{usuario_id, creado_en}]
 //   { accion: "canario_estado" | "canario_proponer" | "canario_borrar", usuario_id } -> rows: [{...}]
+//   { accion: "latido", origen, detalle? }                  -> rows: [{origen, visto_en}]   (0171)
+//   { accion: "vigilar_latidos" }  (lo llama pg_cron)        -> rows: [{origen, cambio, avisado}]
+//     Avisa por Telegram (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID, los de `responder-chat`) UNA
+//     vez cuando un origen lleva más de 30 min sin latir y otra cuando vuelve.
 //
 // LO QUE NO DEJA HACER, a propósito:
 //   · No hay SQL libre ni nombre de RPC en la petición: la acción se traduce aquí.
@@ -27,7 +31,7 @@
 // secreto PROPIO (no el de `alta-cliente`): quien tenga esta clave no crea cuentas.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { atender, type Rpc } from "./logica.ts";
+import { atender, type Avisar, type Rpc } from "./logica.ts";
 
 const env = (k: string) => Deno.env.get(k) ?? "";
 
@@ -39,6 +43,20 @@ const rpc: Rpc = async (nombre, args) => {
   return { data, error: error ? { message: error.message } : null };
 };
 
+// Sin secretos de Telegram no sale nada y devuelve false: el aviso queda pendiente, no perdido.
+const avisar: Avisar = async (texto) => {
+  const token = env("TELEGRAM_BOT_TOKEN");
+  const chat = env("TELEGRAM_CHAT_ID");
+  if (!token || !chat) return false;
+  const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: chat, text: texto }),
+    signal: AbortSignal.timeout(4000),
+  });
+  return r.ok;
+};
+
 Deno.serve(async (req) => {
   const r = await atender(
     req.method,
@@ -47,6 +65,7 @@ Deno.serve(async (req) => {
     () => req.json(),
     rpc,
     (texto) => console.error("cadena-agentes:", texto),
+    avisar,
   );
   return new Response(JSON.stringify(r.cuerpo), {
     status: r.estado,

@@ -3618,4 +3618,15 @@ select '0170 - interruptor de la regla de ventana', 'estado_regla_ventana y apag
             when pg_get_functiondef(to_regprocedure('public.apagar_regla_ventana(text)')) not like '%tiene_capacidad(''encender_regla_ventana'')%' then 'NO'
             else 'SI' end
 
+union all
+select '0171 - latidos de la cadena', 'latidos_cadena con RLS y sin lectura para anon/authenticated; cadena_latido, cadena_latidos_por_avisar, cadena_latido_avisado y cadena_pedir_vigilancia solo service_role (el cron se mira aparte en cron.job)',
+       case when to_regclass('public.latidos_cadena') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.latidos_cadena')) then 'NO'
+            when has_table_privilege('anon', 'public.latidos_cadena', 'select') or has_table_privilege('authenticated', 'public.latidos_cadena', 'select') then 'NO'
+            when to_regprocedure('public.cadena_latido(text,jsonb)') is null or to_regprocedure('public.cadena_latidos_por_avisar(integer)') is null
+              or to_regprocedure('public.cadena_latido_avisado(text,text)') is null or to_regprocedure('public.cadena_pedir_vigilancia()') is null then 'NO'
+            when has_function_privilege('authenticated', 'public.cadena_latido(text,jsonb)', 'execute')
+              or has_function_privilege('authenticated', 'public.cadena_pedir_vigilancia()', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
