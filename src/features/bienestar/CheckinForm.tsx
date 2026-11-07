@@ -29,6 +29,11 @@ interface CheckinFormProps {
    * su hambre son justo lo que sostiene su plan.
    */
   pedirPeso?: boolean
+  /**
+   * El check-in de hoy A MEDIAS (`parcial: true`), si Praxis ya anotó parte. El formulario arranca con esos valores
+   * para que la persona complete lo que falta; al guardar con los 8 obligatorios deja de ser parcial.
+   */
+  inicial?: CheckinDiario
   onGuardar: (checkin: CheckinDiario) => void
 }
 
@@ -71,13 +76,32 @@ function CampoPills({
   )
 }
 
-export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, onGuardar, clasico = false }: CheckinFormProps) {
-  const [pesoKg, setPesoKg] = useState(pesoInicial ?? PESO_DE_FABRICA)
-  const [pasos, setPasos] = useState(pasosInicial ?? PASOS_DE_FABRICA)
+/**
+ * Con qué arranca el formulario. Sin `inicial`, como siempre (vacío, 7 h, peso y pasos del último reporte). Con un
+ * check-in A MEDIAS, con lo que Praxis ya anotó; lo marcado en `anotadoHoy` cuenta como tocado.
+ */
+function valoresDeArranque(inicial: CheckinDiario | undefined, pesoInicial?: number, pasosInicial?: number) {
+  const i: Partial<CheckinDiario> = inicial ?? {}
+  const anotado = i.anotadoHoy ?? []
+  return {
+    ...i,
+    pesoKg: i.pesoKg ?? pesoInicial ?? PESO_DE_FABRICA,
+    pasos: i.pasos ?? pasosInicial ?? PASOS_DE_FABRICA,
+    horasSueno: i.horasSueno ?? 7,
+    pesoTocado: anotado.includes('pesoKg'),
+    pasosTocados: anotado.includes('pasos'),
+    suenoTocado: anotado.includes('horasSueno'),
+  }
+}
+
+export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, inicial, onGuardar, clasico = false }: CheckinFormProps) {
+  const [arranque] = useState(() => valoresDeArranque(inicial, pesoInicial, pasosInicial))
+  const [pesoKg, setPesoKg] = useState(arranque.pesoKg)
+  const [pasos, setPasos] = useState(arranque.pasos)
   // Si la persona ya movió el campo, manda ella: una hidratación tardía no
-  // puede pisarle lo que acaba de escribir.
-  const [pesoTocado, setPesoTocado] = useState(false)
-  const [pasosTocados, setPasosTocados] = useState(false)
+  // puede pisarle lo que acaba de escribir. Lo que ya anotó hoy (en un parcial) cuenta como tocado.
+  const [pesoTocado, setPesoTocado] = useState(arranque.pesoTocado)
+  const [pasosTocados, setPasosTocados] = useState(arranque.pasosTocados)
 
   /**
    * El historial puede llegar DESPUÉS de abrir el formulario: se entra al
@@ -115,21 +139,21 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ver el comentario de arriba
     if (pasosInicial !== undefined && !pasosTocados) setPasos(pasosInicial)
   }, [pasosInicial, pasosTocados])
-  const [entreno, setEntreno] = useState('')
-  const [rendimiento, setRendimiento] = useState<Cualitativo3>()
-  const [motivacion, setMotivacion] = useState<Cantidad3>()
-  const [hambreEscala, setHambreEscala] = useState<number>()
-  const [cansancio, setCansancio] = useState<Cantidad3>()
-  const [estres, setEstres] = useState<Cantidad3>()
-  const [horasSueno, setHorasSueno] = useState(7)
-  const [suenoTocado, setSuenoTocado] = useState(false)
-  const [horaAcostarse, setHoraAcostarse] = useState('')
-  const [horaLevantarse, setHoraLevantarse] = useState('')
-  const [calidadSueno, setCalidadSueno] = useState<Cualitativo3>()
-  const [alimentacion, setAlimentacion] = useState<Cualitativo3>()
-  const [dolor, setDolor] = useState<number>()
-  const [dolorDonde, setDolorDonde] = useState('')
-  const [comentarios, setComentarios] = useState('')
+  const [entreno, setEntreno] = useState(arranque.entreno ?? '')
+  const [rendimiento, setRendimiento] = useState<Cualitativo3 | undefined>(arranque.rendimiento)
+  const [motivacion, setMotivacion] = useState<Cantidad3 | undefined>(arranque.motivacion)
+  const [hambreEscala, setHambreEscala] = useState<number | undefined>(arranque.hambreEscala)
+  const [cansancio, setCansancio] = useState<Cantidad3 | undefined>(arranque.cansancio)
+  const [estres, setEstres] = useState<Cantidad3 | undefined>(arranque.estres)
+  const [horasSueno, setHorasSueno] = useState(arranque.horasSueno)
+  const [suenoTocado, setSuenoTocado] = useState(arranque.suenoTocado)
+  const [horaAcostarse, setHoraAcostarse] = useState(arranque.horaAcostarse ?? '')
+  const [horaLevantarse, setHoraLevantarse] = useState(arranque.horaLevantarse ?? '')
+  const [calidadSueno, setCalidadSueno] = useState<Cualitativo3 | undefined>(arranque.calidadSueno)
+  const [alimentacion, setAlimentacion] = useState<Cualitativo3 | undefined>(arranque.alimentacion)
+  const [dolor, setDolor] = useState<number | undefined>(arranque.dolor)
+  const [dolorDonde, setDolorDonde] = useState(arranque.dolorDonde ?? '')
+  const [comentarios, setComentarios] = useState(arranque.comentarios ?? '')
   const [intento, setIntento] = useState(false)
 
   // Campos cualitativos obligatorios (peso/pasos/sueño ya traen valor numérico).
