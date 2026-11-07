@@ -539,11 +539,11 @@ begin
   end if;
 
   select m.estado into v_estado_mc from public.microciclos m where m.id = fila.microciclo_id;
+  -- Guarda de 0137 (base real): solo se aprueba un microciclo que sigue PROPUESTO.
   if v_estado_mc is distinct from 'propuesto' then
     raise exception 'El plan propuesto ya no está pendiente (estado del microciclo: %)', v_estado_mc
       using errcode = '22023';
   end if;
-
   -- 0137: aprobar ES la liberacion humana de ESTA version (guarda de 0135). Quien aprueba debe poder liberar; la huella se toma del contenido
   -- bloqueado en esta misma transaccion. Limite: la consola no manda la huella que vio la persona (propuesta C4: pasarla y compararla).
   if not public.tiene_capacidad('liberar_prescripcion') then
@@ -557,16 +557,16 @@ begin
 
   select m.estado into v_estado_mc from public.microciclos m where m.id = fila.microciclo_id;
   if v_estado_mc is distinct from 'activo' then
-    -- 0147: con choque `activar_microciclo` NO activa y NO levanta excepción (dejó un aviso en
-    -- `microciclos_choques`). Aprobar sin activar dejaba el plan 'aprobado' sobre un microciclo
-    -- 'propuesto' para siempre. Estado que ya existe en la 0086 para «esto lo mira Bryan»:
-    -- `espera_bryan`, con el motivo escrito. Sin autor ni fecha de decisión: nadie lo aprobó
-    -- todavía. Y NO se levanta excepción: deshacería el aviso que acaba de quedar escrito.
+    -- Solo un aviso pendiente habilita el recorrido de confirmacion de choque.
+    -- El motivo humano se conserva al final en ambas causas de espera.
     update public.aprobaciones_primer_plan a
        set estado = 'espera_bryan',
-           motivo_espera = 'Choque de microciclo: ya hay una semana de otro origen que no se pisa '
-                           'sin confirmar (ver el aviso del panel de Microciclos). Se aprobó, pero NO '
-                           'se activó.',
+           motivo_espera = (case when exists (
+             select 1 from public.microciclos_choques ch
+              where ch.propuesta_id = fila.microciclo_id and ch.estado = 'pendiente'
+           ) then 'Choque de microciclo: no se activo; requiere confirmar el aviso pendiente.'
+             else 'No se activo: estado ' || coalesce(v_estado_mc, 'no existe') || '.' end)
+             || case when v_motivo is not null then ' Motivo del aprobador: ' || v_motivo else '' end,
            actualizado_en = now()
      where a.id = aprobacion_id
     returning * into fila;
@@ -585,6 +585,80 @@ $$;
 
 revoke all on function public.decidir_primer_plan(uuid, text, text) from public, anon;
 grant execute on function public.decidir_primer_plan(uuid, text, text) to authenticated, service_role;
+
+-- H8: base integra de 0141 con comprobacion posterior al UPDATE.
+create or replace function public.activar_por_regla_ventana(p_aprobacion uuid)
+returns jsonb language plpgsql security definer set search_path = public
+as $$
+declare
+  a public.aprobaciones_primer_plan;
+  p public.regla_ventana_primer_plan;
+  v_uid uuid;
+  v_estado_mc text;
+  v_datos jsonb;
+  v_huella text;
+  v_ahora timestamptz := clock_timestamp();
+  v_act uuid;
+  v_activos integer;
+begin
+  select * into p from public.regla_ventana_primer_plan;
+  select * into a from public.aprobaciones_primer_plan where id = p_aprobacion for update;
+  if a.id is null then
+    raise exception 'regla_ventana: la aprobacion no existe' using errcode = 'P0002';
+  end if;
+  if p.activa is not true then  -- NULL (sin fila de parametros) tambien es apagada
+    raise exception 'regla_ventana: la regla esta apagada' using errcode = '42501';
+  end if;
+  if a.estado <> 'propuesto' or a.plazo_hasta > v_ahora then
+    raise exception 'regla_ventana: la ventana no ha vencido o el plan ya no esta propuesto' using errcode = '42501';
+  end if;
+  if a.clasificado_por is distinct from 'sistema' or a.clasificado_en is null then
+    raise exception 'regla_ventana: el plan no tiene clasificacion del sistema' using errcode = '42501';
+  end if;
+  if a.riesgo not in ('bajo', 'medio') or a.requiere_revision or cardinality(a.dudas_pendientes) > 0 then
+    raise exception 'regla_ventana: solo riesgo bajo o medio, sin dudas sin resolver y sin revision requerida' using errcode = '42501';
+  end if;
+  select usuario_id, estado, datos into v_uid, v_estado_mc, v_datos from public.microciclos where id = a.microciclo_id for update;
+  if v_uid is distinct from a.usuario_id or v_estado_mc is distinct from 'propuesto' then
+    raise exception 'regla_ventana: el microciclo ya no esta propuesto' using errcode = '42501';
+  end if;
+  v_huella := public.huella_microciclo(v_datos);
+  if a.huella_clasificada is distinct from v_huella then
+    raise exception 'regla_ventana: el contenido cambio despues de clasificarlo (la clasificacion es de otra version)' using errcode = '42501';
+  end if;
+  insert into public.liberaciones_microciclo (propuesta_id, persona_id, huella, liberado_por, actor)
+    values (a.microciclo_id, a.usuario_id, v_huella, null, 'regla_ventana') on conflict (propuesta_id, huella) do nothing;
+  -- Activar como lo hace activar_microciclo (cerrar el activo previo, abrir este, comprobar uno solo). Corre como dueno: el disparador de 0135/0138 no bloquea al dueno.
+  update public.microciclos set estado = 'cerrado' where usuario_id = a.usuario_id and id <> a.microciclo_id and estado = 'activo';
+  update public.microciclos set estado = 'activo' where id = a.microciclo_id;
+  -- 0147 (H8): el candado puede dejar la propuesta sin activar y sin error. Arriba ya se cerro
+  -- el activo anterior: devolver sin error dejaria a la persona SIN semana activa. Se lanza
+  -- un error para que vencer_primer_plan deshaga todo (el cierre incluido) y deje el plan en
+  -- espera_bryan con el motivo; tampoco hay auditoria ni aviso de una activacion que no fue.
+  select estado into v_estado_mc from public.microciclos where id = a.microciclo_id;
+  if v_estado_mc is distinct from 'activo' then
+    raise exception 'regla_ventana: el candado no dejo activar % (estado %); se deshace el cierre del activo anterior',
+      a.microciclo_id, coalesce(v_estado_mc, 'no existe');
+  end if;
+  select count(*) into v_activos from public.microciclos where usuario_id = a.usuario_id and estado = 'activo';
+  if v_activos <> 1 then
+    raise exception 'regla_ventana: quedaron % activos', v_activos;
+  end if;
+  update public.aprobaciones_primer_plan
+     set estado = 'vencido_aprobado', decidido_por = null, decidido_en = v_ahora, actualizado_en = v_ahora,
+         motivo = 'Regla de ventana (D-17-07/D-17-09): plazo vencido sin firma, riesgo bajo o medio clasificado por el sistema, sin dudas sin resolver ni revision requerida.'
+   where id = a.id;
+  insert into public.activaciones_regla_ventana (aprobacion_id, microciclo_id, persona_id, huella, ejecutada_en, ventana_vencio_en, riesgo, clasificado_en, rangos_horas_firma, motivo)
+    values (a.id, a.microciclo_id, a.usuario_id, v_huella, v_ahora, a.plazo_hasta, a.riesgo, a.clasificado_en, p.rangos_horas_firma,
+            'plazo vencido sin firma; riesgo bajo o medio; sin dudas sin resolver; sin revision requerida')
+    returning id into v_act;
+  insert into public.avisos_regla_ventana (activacion_id, mensaje)
+    values (v_act, 'La regla de ventana activo un primer plan sin firma (aprobacion ' || a.id || '). Revisalo: fue riesgo ' || a.riesgo || ' clasificado por el sistema.');
+  return jsonb_build_object('activacion_id', v_act, 'microciclo_id', a.microciclo_id, 'actor', 'regla_ventana', 'ejecutada_en', v_ahora);
+end;
+$$;
+revoke all on function public.activar_por_regla_ventana(uuid) from public, anon, authenticated;
+grant execute on function public.activar_por_regla_ventana(uuid) to service_role;
 
 create or replace function public.vencer_primer_plan()
 returns table (aprobados int, a_bryan int)
@@ -643,8 +717,16 @@ begin
     if v_espera is null then
       begin
         perform public.activar_por_regla_ventana(r.id);
-        n_aprob := n_aprob + 1;
-        continue;
+        select m.estado into v_estado_mc from public.microciclos m where m.id = r.microciclo_id;
+        if v_estado_mc = 'activo' then
+          n_aprob := n_aprob + 1;
+          continue;
+        end if;
+        v_espera := case when exists (
+          select 1 from public.microciclos_choques ch
+           where ch.propuesta_id = r.microciclo_id and ch.estado = 'pendiente'
+        ) then 'Choque de microciclo: la regla no activo; requiere confirmar el aviso pendiente.'
+          else 'No se activo: estado ' || coalesce(v_estado_mc, 'no existe') || '.' end;
       exception when others then
         v_espera := 'La regla de ventana no pudo activar el plan (' || sqlerrm || '); la guarda de liberacion exige que una persona libere esta version.';
       end;

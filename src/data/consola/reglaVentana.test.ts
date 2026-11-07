@@ -99,7 +99,7 @@ describe('los nombres salen de las migraciones', () => {
   it('las tres RPC existen con el parámetro p_nota', () => {
     const leer = (f: string) => readFileSync(join(process.cwd(), 'supabase', 'migrations', f), 'utf8')
     expect(leer('0143_encender_regla_ventana_con_registro.sql')).toMatch(/function public\.encender_regla_ventana\(p_nota text/)
-    const sql = leer('0170_interruptor_regla_ventana.sql')
+    const sql = leer('0172_interruptor_regla_ventana.sql')
     expect(sql).toMatch(/function public\.apagar_regla_ventana\(p_nota text/)
     expect(sql).toMatch(/function public\.estado_regla_ventana\(\)/)
     for (const clave of ["'activa'", "'ultimo_cambio'", "'activa_despues'", "'hecho_por'", "'hecho_por_nombre'", "'hecho_en'", "'nota'"]) {

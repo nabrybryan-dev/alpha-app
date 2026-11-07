@@ -3608,7 +3608,7 @@ select '0169 - el canario aislado', 'las cinco RPCs del canario existen, securit
             else 'SI' end
 
 union all
-select '0170 - interruptor de la regla de ventana', 'estado_regla_ventana y apagar_regla_ventana existen, security definer, search_path fijo, authenticated ejecuta y anon no; apagar exige la capacidad encender_regla_ventana',
+select '0172 - interruptor de la regla de ventana', 'estado_regla_ventana y apagar_regla_ventana existen, security definer, search_path fijo, authenticated ejecuta y anon no; apagar exige la capacidad encender_regla_ventana',
        case when to_regprocedure('public.estado_regla_ventana()') is null or to_regprocedure('public.apagar_regla_ventana(text)') is null then 'NO'
             when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.estado_regla_ventana()'), to_regprocedure('public.apagar_regla_ventana(text)'))
                           and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
@@ -3619,7 +3619,7 @@ select '0170 - interruptor de la regla de ventana', 'estado_regla_ventana y apag
             else 'SI' end
 
 union all
-select '0171 - latidos de la cadena', 'latidos_cadena con RLS y sin lectura para anon/authenticated; cadena_latido, cadena_latidos_por_avisar, cadena_latido_avisado y cadena_pedir_vigilancia solo service_role (el cron se mira aparte en cron.job)',
+select '0173 - latidos de la cadena', 'latidos_cadena con RLS y sin lectura para anon/authenticated; cadena_latido, cadena_latidos_por_avisar, cadena_latido_avisado y cadena_pedir_vigilancia solo service_role (el cron se mira aparte en cron.job)',
        case when to_regclass('public.latidos_cadena') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.latidos_cadena')) then 'NO'
             when has_table_privilege('anon', 'public.latidos_cadena', 'select') or has_table_privilege('authenticated', 'public.latidos_cadena', 'select') then 'NO'
@@ -3627,6 +3627,55 @@ select '0171 - latidos de la cadena', 'latidos_cadena con RLS y sin lectura para
               or to_regprocedure('public.cadena_latido_avisado(text,text)') is null or to_regprocedure('public.cadena_pedir_vigilancia()') is null then 'NO'
             when has_function_privilege('authenticated', 'public.cadena_latido(text,jsonb)', 'execute')
               or has_function_privilege('authenticated', 'public.cadena_pedir_vigilancia()', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0171a - el servidor solo lee purga y regla de ventana', 'service_role: solo SELECT en purgas_texto_libre, regla_ventana_primer_plan, activaciones_regla_ventana y avisos_regla_ventana',
+       case when exists (select 1 from unnest(array['public.purgas_texto_libre','public.regla_ventana_primer_plan',
+                                                    'public.activaciones_regla_ventana','public.avisos_regla_ventana']) t
+                          where to_regclass(t) is null
+                             or not has_table_privilege('service_role', t, 'select')
+                             or has_table_privilege('service_role', t, 'insert')
+                             or has_table_privilege('service_role', t, 'update')
+                             or has_table_privilege('service_role', t, 'delete')
+                             or has_table_privilege('service_role', t, 'truncate')) then 'NO'
+            else 'SI' end
+
+union all
+select '0170 - Praxis guarda el check-in confirmado', 'praxis_aplicar_checkin existe, security definer, search_path fijo; la ejecuta authenticated y no anon',
+       case when to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_checkin(text,integer,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_checkin(text,integer,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0170 - Praxis guarda el check-in confirmado', 'ranking_disciplina_vivo ya no cuenta los check-ins a medias (filtra datos.parcial)',
+       case when to_regprocedure('public.ranking_disciplina_vivo()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.ranking_disciplina_vivo()')) not like '%parcial%' then 'NO'
+            else 'SI' end
+
+union all
+select '0171b - lexicón por persona de Praxis', 'praxis_lexico_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
+       case when to_regclass('public.praxis_lexico_persona') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_lexico_persona')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'praxis_lexico_persona') <> 1 then 'NO'
+            when has_table_privilege('anon', 'public.praxis_lexico_persona', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'delete') then 'NO'
+            else 'SI' end
+
+union all
+select '0171b - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis_olvidar_mis_formas existen, security definer, las ejecuta authenticated y no anon',
+       case when to_regprocedure('public.praxis_aprender_forma(text,text,text)') is null
+              or to_regprocedure('public.praxis_olvidar_mis_formas()') is null then 'NO'
+            when not (select bool_and(p.prosecdef) from pg_proc p
+                       where p.oid in (to_regprocedure('public.praxis_aprender_forma(text,text,text)'), to_regprocedure('public.praxis_olvidar_mis_formas()'))) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aprender_forma(text,text,text)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_olvidar_mis_formas()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aprender_forma(text,text,text)', 'execute') then 'NO'
             else 'SI' end
 
 order by migracion, senal;

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0170 · El interruptor de la regla de ventana, en la consola: leer su estado y apagarla
+-- 0172 · El interruptor de la regla de ventana, en la consola: leer su estado y apagarla
 -- ============================================================================
 --
 -- Va después de la 0141 (regla de ventana) y la 0143 (encender_regla_ventana con registro).

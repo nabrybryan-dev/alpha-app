@@ -13,7 +13,7 @@
 //   { accion: "insertar_cuestionario", id, datos, asignado_a } -> rows: [{id, confirmado_en}]
 //   { accion: "canario_restos" }                            -> rows: [{usuario_id, creado_en}]
 //   { accion: "canario_estado" | "canario_proponer" | "canario_borrar", usuario_id } -> rows: [{...}]
-//   { accion: "latido", origen, detalle? }                  -> rows: [{origen, visto_en}]   (0171)
+//   { accion: "latido", origen, detalle? }                  -> rows: [{origen, visto_en}]   (0173)
 //   { accion: "vigilar_latidos" }  (lo llama pg_cron)        -> rows: [{origen, cambio, avisado}]
 //     Avisa por Telegram (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID, los de `responder-chat`) UNA
 //     vez cuando un origen lleva más de 30 min sin latir y otra cuando vuelve.

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0171 · Latidos de la cadena: la nube se entera cuando el ASUS deja de dar señales
+-- 0173 · Latidos de la cadena: la nube se entera cuando el ASUS deja de dar señales
 -- ============================================================================
 --
 -- Va después de la 0168 (cadena_agentes_sin_cli). NO se aplica sola.
@@ -49,7 +49,7 @@ revoke all on public.latidos_cadena from public, anon, authenticated;
 grant select on public.latidos_cadena to service_role;
 
 comment on table public.latidos_cadena is
-  'Último latido de cada pieza de la cadena (asus-n8n). Lo escribe cadena_latido(); lo vigila el cron vigilar-latidos-cadena (0171).';
+  'Último latido de cada pieza de la cadena (asus-n8n). Lo escribe cadena_latido(); lo vigila el cron vigilar-latidos-cadena (0173).';
 
 -- El latido. Un origen nuevo entra solo; uno conocido actualiza la hora y el detalle.
 create or replace function public.cadena_latido(p_origen text, p_detalle jsonb default '{}'::jsonb)

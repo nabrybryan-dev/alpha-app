@@ -7,7 +7,7 @@ const MAX_DATOS = 64 * 1024;
 const MAX_ASIGNADOS = 20;
 const ORIGEN = /^[a-z0-9][a-z0-9-]{1,39}$/;
 const MAX_DETALLE = 4 * 1024;
-/** Minutos sin latido para dar un origen por caído (0171). */
+/** Minutos sin latido para dar un origen por caído (0173). */
 export const MINUTOS_SIN_LATIDO = 30;
 
 export type Rpc = (nombre: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
