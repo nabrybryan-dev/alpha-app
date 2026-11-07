@@ -11,7 +11,7 @@ import { huellaDe, REPERTORIO, REPERTORIO_USTED, type HistorialPersona } from '.
 const fijo = (v: number) => () => v
 const todos = (x: typeof ECO_TU): string[] => [
   ...x.contento.conPalabra, ...x.contento.aperturas, ...x.contento.colas,
-  ...x.cansado.conSueno, ...x.cansado.aperturas, ...x.cansado.colas,
+  ...x.cansado.conSueno, ...x.cansado.aperturas, ...x.cansado.colas, ...x.cansado.colasLeve,
   ...x.semana_dura.aperturas, ...x.semana_dura.colas,
   ...x.tema_ajeno.futbol, ...x.tema_ajeno.gol, ...x.tema_ajeno.serie, ...x.tema_ajeno.aperturas, ...x.tema_ajeno.colas,
 ]
@@ -22,7 +22,7 @@ describe('leerTono: los cuatro casos de la cata', () => {
   })
   it('c04: «mal día, estoy agotada» es cansancio; con «dormí poquísimo» marca el sueño', () => {
     expect(leerTono('mal día la verdad, estoy agotada')?.tono).toBe('cansado')
-    expect(leerTono('dormí poquísimo y en el trabajo todo salió al revés')).toEqual({ tono: 'cansado', sueno: true })
+    expect(leerTono('dormí poquísimo y en el trabajo todo salió al revés')).toEqual({ tono: 'cansado', sueno: true, fuerte: true })
   })
   it('c06: «uy qué semana» es semana dura aunque no diga que fue mala', () => {
     expect(leerTono('hola! uy qué semana, salgo de la oficina a las siete')?.tono).toBe('semana_dura')
@@ -122,7 +122,33 @@ describe('reglas de voz en todos los textos del eco', () => {
     ])
     for (const a of aperturas) expect(a).not.toContain('?')
   })
-  it('en día malo no hay refrán ni dicho', () => {
+  it('agotada: nunca dicho ni frase; cansancio leve: a veces, y nunca dos seguidas', () => {
+    const leves = new Set(ECO_TU.cansado.colasLeve.map((c) => huellaDe(c)))
+    expect(leerTono('mal día la verdad, estoy agotada')?.fuerte).toBe(true)
+    expect(leerTono('hoy estoy cansado y sin ganas')?.fuerte).toBe(false)
+    for (let a = 0; a < 1; a += 0.05) {
+      const e = elegirEco({ lectura: { tono: 'cansado', fuerte: true }, historial: [], azar: fijo(a) })
+      expect(leves.has(e.huella.cola)).toBe(false)
+    }
+    const conDicho = [0, 0.3, 0.6, 0.99].map((a) => elegirEco({ lectura: { tono: 'cansado', fuerte: false }, historial: [], azar: fijo(a) }))
+    expect(conDicho.some((e) => leves.has(e.huella.cola))).toBe(true)
+    expect(conDicho.some((e) => !leves.has(e.huella.cola))).toBe(true)
+    let h: HistorialPersona = []
+    const salidas: boolean[] = []
+    for (let i = 0; i < 8; i++) {
+      const e = elegirEco({ lectura: { tono: 'cansado', fuerte: false }, historial: h, azar: fijo(0.99) })
+      salidas.push(leves.has(e.huella.cola))
+      h = [...h, e.huella]
+    }
+    for (let i = 1; i < salidas.length; i++) expect(salidas[i] && salidas[i - 1]).toBe(false)
+  })
+  it('las colas de dicho no culpan, no presionan y no prometen resultados', () => {
+    for (const x of [ECO_TU, ECO_USTED]) for (const c of x.cansado.colasLeve) {
+      expect(c).not.toMatch(/querer es poder|el que quiere|camarón|no hay mal que|vas a (lograr|bajar|ver)|verás|garantiz/i)
+      expect(c).not.toContain('!')
+    }
+  })
+  it('en día malo las aperturas y colas base no traen refrán ni dicho', () => {
     for (const x of [ECO_TU, ECO_USTED]) {
       for (const t of [...x.cansado.conSueno, ...x.cansado.aperturas, ...x.cansado.colas]) {
         expect(t).not.toMatch(/como dicen|mañana será otro día|no hay mal que/i)

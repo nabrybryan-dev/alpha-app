@@ -23,6 +23,8 @@ export interface LecturaDeTono {
   palabra?: string
   /** cansado: mencionó que durmió poco. */
   sueno?: boolean
+  /** cansado: llega muy mal («agotada», «no puedo más»): sin dicho ni frase (POLITICA-FRASES §3). */
+  fuerte?: boolean
   /** tema_ajeno: de qué habla. */
   tema?: TemaAjeno
   /** tema_ajeno/futbol: mencionó un gol. */
@@ -32,6 +34,7 @@ export interface LecturaDeTono {
 const sinTildes = (t: string): string => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 const CANSADO = /\bmal dia\b|\bagotad[oa]s?\b|\bcansad[oa]s?\b|\bsin ganas\b|\bno me dieron ganas\b|\bsin energia\b|\bsin pila\b|\bmuert[oa] del cansancio\b|\bdia (horrible|terrible|pesado|malo)\b|\btodo (me )?salio (al reves|mal)\b|\bfundid[oa]\b/
+const FUERTE = /\bagotad[oa]s?\b|\bmuert[oa] del cansancio\b|\bno puedo mas\b|\bdia (horrible|terrible)\b|\bfundid[oa]\b|\btodo (me )?salio (al reves|mal)\b|\bpesim[oa]\b/
 const SUENO = /\bdormi (poco|poquisimo|mal|fatal)\b|\bno dormi\b|\bcasi no duermo\b|\btrasnoch/
 const SEMANA = /\b(uy|uf|ay|ufff*|uyy*)?,? ?que semana\b|\bsemana (pesada|larga|dura|de locos|terrible|complicada)\b|\bno paro\b|\bando a mil\b/
 const CONTENTO = /\b(increible|genial|muy bien|super bien|brutal|bacan[oa]?|espectacular|buenisim[oa]|excelente|de maravilla|feliz|contentisim[oa]|content[oa])\b/
@@ -47,7 +50,7 @@ const PALABRA: Record<string, string> = { increible: 'increíble', buenisimo: 'b
  */
 export function leerTono(frase: string): LecturaDeTono | null {
   const t = sinTildes(frase)
-  if (CANSADO.test(t)) return { tono: 'cansado', sueno: SUENO.test(t) }
+  if (CANSADO.test(t)) return { tono: 'cansado', sueno: SUENO.test(t), fuerte: FUERTE.test(t) }
   if (SEMANA.test(t)) return { tono: 'semana_dura' }
   const alegria = t.match(CONTENTO)
   if (alegria) {
@@ -63,7 +66,8 @@ interface Juego { aperturas: readonly string[]; colas: readonly string[] }
 /** `{n}` = «, Nombre» o nada. `{p}` = la palabra de alegría de la persona. */
 type Textos = {
   contento: Juego & { conPalabra: readonly string[] }
-  cansado: Juego & { conSueno: readonly string[] }
+  /** colasLeve: dicho o frase de siembra, solo en cansancio leve y nunca dos veces seguidas (Bryan, 7-nov: «no siempre»). */
+  cansado: Juego & { conSueno: readonly string[]; colasLeve: readonly string[] }
   semana_dura: Juego
   tema_ajeno: Juego & { futbol: readonly string[]; gol: readonly string[]; serie: readonly string[] }
 }
@@ -111,6 +115,12 @@ export const ECO_TU: Textos = {
       'Aquí estoy para escucharte. ¿Qué fue lo más pesado?',
       'Si hoy no hay ganas, también vale. ¿Cómo te puedo acompañar?',
       'Cuéntame lo que quieras, o lo dejamos para cuando tengas más aire.',
+    ],
+    colasLeve: [
+      'Como dicen por ahí, poco a poco se anda lejos. ¿Cómo te puedo acompañar?',
+      'Como dice el dicho, más vale paso que dure y no trote que canse. ¿Qué fue lo más pesado?',
+      'Lo que siembras en días así también cuenta para lo que viene. ¿Quieres contarme cómo vas?',
+      'Los días que cuestan también son parte de lo que estás construyendo. ¿Cómo te sientes ahora?',
     ],
   },
   semana_dura: {
@@ -196,6 +206,12 @@ export const ECO_USTED: Textos = {
       'Si hoy no hay ganas, también vale. ¿Cómo le puedo acompañar?',
       'Cuénteme lo que quiera, o lo dejamos para cuando tenga más aire.',
     ],
+    colasLeve: [
+      'Como dicen por ahí, poco a poco se anda lejos. ¿Cómo le puedo acompañar?',
+      'Como dice el dicho, más vale paso que dure y no trote que canse. ¿Qué fue lo más pesado?',
+      'Lo que siembra en días así también cuenta para lo que viene. ¿Quiere contarme cómo va?',
+      'Los días que cuestan también son parte de lo que está construyendo. ¿Cómo se siente ahora?',
+    ],
   },
   semana_dura: {
     aperturas: [
@@ -251,6 +267,14 @@ function aperturasPara(l: LecturaDeTono, x: Textos): readonly string[] {
   }
 }
 
+/** En cansancio leve se suman las colas con dicho o siembra, salvo que una de ellas haya salido en las últimas colas. */
+function colasPara(l: LecturaDeTono, x: Textos, recientesC: readonly string[]): readonly string[] {
+  if (l.tono !== 'cansado' || l.fuerte) return x[l.tono].colas
+  const leves = x.cansado.colasLeve
+  const yaSalio = leves.some((c) => recientesC.includes(huellaDe(c)))
+  return yaSalio ? x.cansado.colas : [...x.cansado.colas, ...leves]
+}
+
 export interface EcoElegido {
   apertura: string
   cola: string
@@ -270,7 +294,7 @@ export function elegirEco(p: {
   const recientesA = p.historial.slice(-VENTANA_APERTURA).map((h) => h.apertura).filter((a): a is string => !!a)
   const recientesC = p.historial.slice(-VENTANA_COLA).map((h) => h.cola).filter((c): c is string => !!c)
   const cruda = elegirSinRepetir(opciones, recientesA, p.azar)
-  const cola = elegirSinRepetir(x[p.lectura.tono].colas, recientesC, p.azar)
+  const cola = elegirSinRepetir(colasPara(p.lectura, x, recientesC), recientesC, p.azar)
   const nombre = p.nombre?.trim() || null
   const usar = nombre !== null && !p.historial.slice(-(VENTANA_NOMBRE - 1)).some((h) => h.nombre)
   const palabra = p.lectura.palabra ?? ''
