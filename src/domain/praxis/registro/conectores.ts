@@ -16,6 +16,7 @@
 import { TRAMOS } from '../../senales/hambre.ts'
 import { marcarSaludPorDiccionario } from '../ingreso/extraer.ts'
 import { normalizarTexto } from './numeros.ts'
+import { REGULAR_ES_FRECUENCIA } from './vida.ts'
 import {
   proponerDesdeMensajeLargo, trozosDeMensaje,
   type AreaDudosa, type CampoCheckin, type TrozoDescartado, type ValorPropuesto,
@@ -47,7 +48,8 @@ export function gradoVago(cita: string): Grado | null {
  * que se guarda para aprender cómo habla cada persona: nunca la frase entera.
  */
 export function formaVaga(cita: string): { forma: string; grado: Grado } | null {
-  const n = normalizarTexto(cita).replace(/\s+/g, ' ').trim()
+  // «Voy regular al gimnasio»: el «regular» de frecuencia no es un grado (misma regla que vida.ts).
+  const n = normalizarTexto(cita).replace(/\s+/g, ' ').trim().replace(REGULAR_ES_FRECUENCIA, ' ')
   for (const [re, grado] of LEXICO_VAGO) {
     const m = re.exec(n)
     if (m) return { forma: m[0].trim(), grado }

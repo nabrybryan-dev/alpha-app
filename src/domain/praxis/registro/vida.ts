@@ -47,9 +47,17 @@ const ALIMENTACION: [RegExp, Calidad3][] = [
   [/\b(regular|mas o menos)/, 'REGULAR'],
 ]
 
+/** «regular» tras un verbo de frecuencia (no «el entreno regular») o «regularmente»: cuántas veces, no cómo le fue. */
+export const REGULAR_ES_FRECUENCIA =/(?<!\bel )\b(voy|entreno|vengo|asisto|entrenando)( [a-z]+)? regular\b|\bregularmente\b/
+
 function buscar<T>(tabla: [RegExp, T][], n: string): T | null {
   for (const [re, v] of tabla) if (re.test(n)) return v
   return null
+}
+
+/** Rendimiento por la tabla, salvo el «regular» de frecuencia. */
+function rendimientoDe(n: string): Calidad3 | null {
+  return REGULAR_ES_FRECUENCIA.test(n) ? null : buscar(RENDIMIENTO, n)
 }
 
 /** Calidad del sueño. La negación de «mal» ("no dormí mal") NO es BUENA: es REGULAR. */
@@ -259,7 +267,8 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     // Ánimo (decisión de Bryan, 5-nov-2026): `CheckinDiario` no tiene ese campo, así que no se mapea; queda visible.
     else if (campo === 'animo') { descartado.push({ cita: e.cita, motivo: 'el check-in no tiene campo de ánimo: no se anota' }); continue }
     else if (campo === 'ganas_de_entrenar') { valor = ganasDeEntrenar(e.cita); destino = 'motivacion' }
-    else if (campo === 'rendimiento') { valor = buscar(RENDIMIENTO, n); destino = 'rendimiento' }
+    // «Voy regular al gimnasio», «regularmente»: es frecuencia, no cómo le fue (Bryan, 7-nov-2026).
+    else if (campo === 'rendimiento') { valor = rendimientoDe(n); destino = 'rendimiento' }
     else if (campo === 'alimentacion') { valor = buscar(ALIMENTACION, n); destino = 'alimentacion' }
     else if (campo === 'hambre') {
       const num = numeroDeCita(e.cita)
