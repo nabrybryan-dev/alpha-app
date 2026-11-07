@@ -14,10 +14,11 @@
  *  - Peso, entreno del día y tiempos sueltos (caminata, siesta, pantalla) van al check-in
  *    (`pesoKg`, `entreno`, `comentarios`) como CITA: nunca se convierten en pasos ni en otra cosa.
  */
-import { horaDeCita, minutosDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
+import { minutosDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
 import { etiquetaDeFecha, fechaLocal, horaLocal, sumarDias } from './fecha.ts'
 import { revisarAguaDeltaMl, revisarHorasSueno, revisarPasos, revisarPesoCorporal } from './limites.ts'
 import { VASO_ML } from './medidas.ts'
+import { conNumero, horaDicha, horasDeSueno, pasosDeCita } from './suenoPasos.ts'
 import type {
   CampoEscala, Confianza, ContextoRegistro, Pregunta, RegistroCheckin, RegistroHidratacion, VidaExtraida,
 } from './tipos.ts'
@@ -185,7 +186,8 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     }
   }
   if (v.sueno_horas) {
-    const n = numeroDeCita(v.sueno_horas)
+    // Un rango o «y pico» se pregunta sin bloquear lo demás (medición 7-nov, vida-sueno-pasos.test.ts).
+    const n = conNumero(horasDeSueno(v.sueno_horas), () => { seguimiento = seguimiento ?? { texto: '¿Cuántas horas dormiste, más o menos?', opciones: [], campo_bloqueante: 'horasSueno' } })
     if (n) {
       const ver = revisarHorasSueno(n.valor)
       if (ver.tipo === 'imposible') {
@@ -205,8 +207,8 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
       pregunta: { texto: '¿A qué hora te dormiste más o menos?', opciones: [], campo_bloqueante: 'horaAcostarse' },
     }
   }
-  const acostarse = horaDeCita(v.hora_acostarse, 'acostarse')
-  const levantarse = horaDeCita(v.hora_levantarse, 'levantarse')
+  const acostarse = horaDicha(v.hora_acostarse, 'acostarse')
+  const levantarse = horaDicha(v.hora_levantarse, 'levantarse')
   if (acostarse) poner('horaAcostarse', acostarse, 'alta')
   if (levantarse) poner('horaLevantarse', levantarse, 'alta')
   if (acostarse && levantarse && parche.horasSueno === undefined) {
@@ -225,7 +227,7 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
   // Pasos: nunca a partir de «bastante» ni de minutos.
   let diferido = false
   if (v.pasos) {
-    const n = numeroDeCita(v.pasos)
+    const n = conNumero(pasosDeCita(v.pasos), () => { seguimiento = seguimiento ?? { texto: '¿Cuántos pasos marca tu celular o reloj?', opciones: [], campo_bloqueante: 'pasos' } })
     if (n) {
       const ver = revisarPasos(n.valor)
       if (ver.tipo === 'imposible') {
