@@ -2,6 +2,17 @@ import { decidirTurno, type Turno } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { Trato } from '../../../domain/praxis/plan/responder'
 import { limpiarDictado } from './dictado'
+import { elegirSaludo, type HistorialPersona, type HuellaDeRespuesta, type SaludoElegido, type Situacion, type Voz } from '../../../domain/praxis/charla/saludos'
+
+/**
+ * Bandera de los saludos por situación y por persona (diseño 6-nov, secciones 3.1 a 3.3). APAGADA: con ella apagada
+ * el comportamiento es el de siempre (mapa de «la última dicha» y saludos por mañana/tarde/noche). Encenderla
+ * exige el sí de Bryan y que el que llama pase `ctx.saludos` con el historial de CADA persona.
+ */
+export const SALUDOS_POR_SITUACION = false
+let banderaSaludos: boolean = SALUDOS_POR_SITUACION
+/** Para las pruebas: fuerza la bandera (`null` vuelve al valor del código). */
+export function fijarSaludosPorSituacion(v: boolean | null): void { banderaSaludos = v ?? SALUDOS_POR_SITUACION }
 
 /**
  * La charla de Praxis (Bryan, 2-oct y 3-oct).
@@ -39,9 +50,13 @@ export interface ContextoDeCharla {
   yaHablo: boolean
   /** El nombre de pila, si existe. Se usa en algunas aperturas, no en todas. */
   nombre?: string | null
+  /** Solo se mira con la bandera encendida: la situación del día, la voz y el historial de ESTA persona. */
+  saludos?: { voz: Voz; situacion: Situacion | null; historial: HistorialPersona; humor?: boolean }
 }
 
 export interface RespuestaDeCharla {
+  /** Solo con la bandera encendida: lo que el que llama agrega al historial de esta persona. */
+  huella?: HuellaDeRespuesta
   intencion: IntencionDeCharla
   /** Lo que se dice si la respuesta es local: la apertura y la cola juntas, cuando hay apertura. */
   texto: string
@@ -183,6 +198,14 @@ function elegirVariante<T>(clave: string, lista: readonly T[]): T {
   return lista[i]
 }
 
+/** El saludo por situación, si la bandera está encendida y hay situación; `null`: sigue el libreto de siempre. La voz asesorado es solo de tú. */
+function saludoPorSituacion(ctx: ContextoDeCharla): SaludoElegido | null {
+  const s = ctx.saludos
+  if (!banderaSaludos || !s || !s.situacion) return null
+  if (s.voz === 'asesorado' && ctx.trato !== 'tu') return null
+  return elegirSaludo({ voz: s.voz, situacion: s.situacion, nombre: ctx.nombre, historial: s.historial, azar: () => azar(), humor: s.humor })
+}
+
 function aperturaDe(momento: Momento, nombre: string | null | undefined): string {
   const n = nombre?.trim() || null
   return elegirVariante(`apertura:${momento}`, APERTURAS[momento]).replace('{n}', n ? `, ${n}` : '')
@@ -251,7 +274,7 @@ export function aperturaInmediata(frase: string, ctx: ContextoDeCharla): string 
   const n = sinNombre(normalizarCharla(frase))
   if (!n || /\d/.test(n) || n.split(' ').length > 7 || !RE_EMPIEZA_SALUDANDO.test(n)) return null
   if (n === 'buenas noches' && ctx.yaHablo) return null // ahí es una despedida
-  return aperturaDe(momentoDelDia(ctx.hora), ctx.nombre)
+  return saludoPorSituacion(ctx)?.apertura ?? aperturaDe(momentoDelDia(ctx.hora), ctx.nombre)
 }
 
 /** Si la frase ENTERA es charla, qué se contesta; si no, `null` (va al flujo de siempre). No decide nada de seguridad: eso ya pasó. */
@@ -263,6 +286,8 @@ export function responderCharla(frase: string, ctx: ContextoDeCharla): Respuesta
   const m = momentoDelDia(hora)
   switch (intencion) {
     case 'saludo': {
+      const nuevo = saludoPorSituacion(ctx)
+      if (nuevo) return { intencion, texto: `${nuevo.apertura} ${nuevo.cola}`, esperaAnimo: true, apertura: nuevo.apertura, cola: nuevo.cola, huella: nuevo.huella }
       const apertura = aperturaDe(m, ctx.nombre)
       const cola = elegirPar(elegirVariante(`cola:${m}`, COLAS[m]), trato)
       return { intencion, texto: `${apertura} ${cola}`, esperaAnimo: true, apertura, cola }
