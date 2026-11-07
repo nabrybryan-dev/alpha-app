@@ -2,7 +2,10 @@
 -- 0170 · Praxis: guardar el check-in que la persona confirmó (por el libro) y el ranking sin check-ins a medias
 -- ============================================================================
 --
--- SIN APLICAR. Escrita el 7-nov-2026 (paso 4 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md).
+-- APLICADA en la base real el 7-nov-2026 con el sí de Bryan (apply_migration), tras pasar la prueba 265 en el CI del PR #446.
+-- Antes de aplicar se comprobó que ranking_disciplina_vivo de la base era IGUAL al de la 0048 (md5 507e18fa… con saltos
+-- CRLF). Señales tras aplicar: security definer, search_path fijo, anon no ejecuta, el ranking filtra parcial (29 filas).
+-- Escrita el 7-nov-2026 (paso 4 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md).
 -- Aplicarla es decisión de Bryan. La prueba `supabase/test/265-praxis-aplicar-checkin.sql` corre en el CI sobre base
 -- vacía. Necesita la 0161 (el libro) aplicada. Nada la llama todavía: la tarjeta del check-in está detrás de
 -- `CONECTORES_EN_TARJETA` (apagada) y la Edge Function no tiene aún la rama del check-in.

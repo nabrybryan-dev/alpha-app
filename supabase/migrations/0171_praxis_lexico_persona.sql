@@ -2,7 +2,9 @@
 -- 0171 · Praxis: cómo dice las cosas cada persona (lexicón por persona)
 -- ============================================================================
 --
--- SIN APLICAR. Escrita el 7-nov-2026 (paso 5 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md).
+-- APLICADA en la base real el 7-nov-2026 con el sí de Bryan (apply_migration), tras pasar la prueba 266 en el CI del PR #446.
+-- Señales tras aplicar: RLS, una política (lee el dueño), sin escritura directa, funciones definer, anon nada, 0 filas.
+-- Escrita el 7-nov-2026 (paso 5 del diseño docs/specs/2026-11-07-conectores-lenguaje-a-checkin-diseno.md).
 -- Aplicarla es decisión de Bryan. La prueba `supabase/test/266-praxis-lexico-persona.sql` corre en el CI. Nada la llama
 -- todavía (la tarjeta del check-in está detrás de `CONECTORES_EN_TARJETA`, apagada).
 --
