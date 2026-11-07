@@ -46,6 +46,7 @@ const REPETIDOS_DE_ANTES: Record<string, string> = {
   '0062': 'el cribado guarda su historia · el saludo es una via — las dos aplicadas el 10-sep',
   '0065': 'el video es de cada quien · los dias que puede entrenar — las dos del 10-sep',
   '0117': 'area de dudas agenticas (M2, 23-oct) · cola de dudas de Praxis (29-oct) — las dos aplicadas',
+  '0171': 'servidor solo lee purga y regla (7-nov 20:47 UTC) · lexico de la persona de Praxis (7-nov 21:28 UTC) — las dos aplicadas',
 }
 
 /**
