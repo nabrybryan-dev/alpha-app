@@ -264,7 +264,7 @@ describe('ranuras: el resumen del final', () => {
     const d = analizarHistorial([persona('Entreno tres días a la semana'), persona('No, son cuatro días a la semana')])
     expect(armarResumen(d).lineas[0].estado).toBe('por_confirmar')
     const eq = armarResumen(e, 'equipo').texto
-    expect(eq).toMatch(/días por semana: 4/)
+    expect(eq).toMatch(/Días por semana: 4 días/)
     expect(eq).not.toMatch(/Entendí que/)
   })
 

@@ -153,8 +153,8 @@ export function analizarHistorial(historial: readonly TurnoDeCharla[], etiquetas
   for (const id of IDS_RANURA) {
     const mias = candidatas.filter((c) => c.id === id)
     if (mias.length === 0) continue
-    let actual: Citado | null = null
-    let duda: RanuraDudosa | null = null
+    let actual = null as Citado | null
+    let duda = null as RanuraDudosa | null
     for (const c of mias) {
       const nuevo: Citado = { valor: c.valor, cita: c.cita, turno: c.turno }
       if (c.retira && actual) {
