@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { REPERTORIO, huellaDe, registrarUso, type HistorialPersona } from '../../../domain/praxis/charla/saludos'
+import { REPERTORIO, REPERTORIO_USTED, huellaDe, registrarUso, type HistorialPersona } from '../../../domain/praxis/charla/saludos'
 import {
   SALUDOS_POR_SITUACION, fijarAzarDeCharla, fijarSaludosPorSituacion, reiniciarVariantes, responderCharla, aperturaInmediata,
   type ContextoDeCharla,
@@ -65,10 +65,13 @@ describe('SALUDOS_POR_SITUACION', () => {
     vistas.forEach((a, i) => expect(vistas.slice(Math.max(0, i - 5), i)).not.toContain(a))
   })
 
-  it('encendida, la voz asesorado en «usted» cae al libreto de siempre', () => {
+  it('encendida, con trato «usted» sale del repertorio en usted, con su huella', () => {
     fijarSaludosPorSituacion(true)
     const r = responderCharla('hola', { ...conSaludos(), trato: 'usted' })!
-    expect(r.huella).toBeUndefined()
+    expect(r.huella?.situacion).toBe('vuelve_tras_dias')
+    expect(REPERTORIO_USTED.vuelve_tras_dias.colas).toContain(r.cola)
+    expect(REPERTORIO_USTED.vuelve_tras_dias.aperturas.map(huellaDe)).toContain(r.huella!.apertura)
+    expect(r.texto).not.toMatch(/\b(t[uú]|te|tu|tus|contigo|quieres|puedes)\b/i)
   })
 
   it('encendida, la voz del equipo no usa tú', () => {

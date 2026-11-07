@@ -202,8 +202,7 @@ function elegirVariante<T>(clave: string, lista: readonly T[]): T {
 function saludoPorSituacion(ctx: ContextoDeCharla): SaludoElegido | null {
   const s = ctx.saludos
   if (!banderaSaludos || !s || !s.situacion) return null
-  if (s.voz === 'asesorado' && ctx.trato !== 'tu') return null
-  return elegirSaludo({ voz: s.voz, situacion: s.situacion, nombre: ctx.nombre, historial: s.historial, azar: () => azar(), humor: s.humor })
+  return elegirSaludo({ voz: s.voz, situacion: s.situacion, nombre: ctx.nombre, historial: s.historial, azar: () => azar(), humor: s.humor, trato: ctx.trato })
 }
 
 function aperturaDe(momento: Momento, nombre: string | null | undefined): string {
