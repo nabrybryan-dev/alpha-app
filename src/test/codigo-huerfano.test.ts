@@ -125,6 +125,10 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  'src/domain/praxis/charla/ranuras.ts#armarResumen': 'Pieza ranuras de la charla: detrás de RANURAS_EN_CHARLA (apagada); la conectará la pantalla del resumen cuando Bryan la encienda. Probada en ranuras.test.ts.',
+  'src/domain/praxis/charla/ranuras.ts#debeAvisarAlCoach': 'Pieza ranuras de la charla: detrás de RANURAS_EN_CHARLA (apagada); la conectará la pantalla del resumen cuando Bryan la encienda. Probada en ranuras.test.ts.',
+  'src/domain/praxis/charla/ranuras.ts#FORMULAS_PROHIBIDAS': 'Pieza ranuras de la charla: detrás de RANURAS_EN_CHARLA (apagada); la conectará la pantalla del resumen cuando Bryan la encienda. Probada en ranuras.test.ts.',
+  'src/domain/praxis/charla/ranuras.ts#siguientePregunta': 'Pieza ranuras de la charla: detrás de RANURAS_EN_CHARLA (apagada); la conectará la pantalla del resumen cuando Bryan la encienda. Probada en ranuras.test.ts.',
   // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
   // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
   'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
@@ -171,7 +175,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'La Edge Function lo manda en meta.version_prompt_riesgo para saber con qué prompt medido ' +
     'se leyó cada frase; fuera del alcance de este análisis.',
   // La charla con modelo (3-oct): el servidor la llama desde la Edge Function `praxis-registro`, que vive fuera de src/.
-  'src/domain/praxis/charla/modelo.ts#armarContextoCharla': 'La consume la Edge Function praxis-registro para armar el pedazo de charla del mensaje; fuera del alcance de este análisis.',
   'src/domain/praxis/charla/modelo.ts#leerContextoCharla': 'La consume la Edge Function praxis-registro para sanear trato, nombre, apertura y turnos; fuera del alcance de este análisis.',
   'src/domain/praxis/charla/modelo.ts#leerRespuestaCharla': 'La consume la Edge Function praxis-registro para validar la respuesta de charla del modelo; fuera del alcance de este análisis.',
   'src/domain/praxis/charla/promptCharla.ts#VERSION_PROMPT_CHARLA': 'La Edge Function lo manda en meta.version_prompt_charla; fuera del alcance de este análisis.',
