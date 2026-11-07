@@ -45,7 +45,8 @@ update public.usuarios_app set rol = 'coach' where id = 'e7000000-0000-0000-0000
 update public.usuarios_app set rol = 'nutricionista' where id = 'e7000000-0000-0000-0000-000000000002';
 insert into public.capacidades_staff (usuario_id, capacidad) values
   ('e7000000-0000-0000-0000-000000000002', 'leer_entrenamiento'),
-  ('e7000000-0000-0000-0000-000000000002', 'aprobar_primer_plan');
+  ('e7000000-0000-0000-0000-000000000002', 'aprobar_primer_plan'),
+  ('e7000000-0000-0000-0000-000000000002', 'liberar_prescripcion');
 
 -- anon no ejecuta la RPC; nadie con sesión ejecuta la función del trigger.
 select pruebas.afirmar(
