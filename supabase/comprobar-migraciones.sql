@@ -3678,4 +3678,24 @@ select '0171b - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis
             when not has_function_privilege('authenticated', 'public.praxis_aprender_forma(text,text,text)', 'execute') then 'NO'
             else 'SI' end
 
+union all
+select '0175 - respuestas con seudonimo', 'codigos y lecturas con RLS sin acceso directo; RPC con codigo, sin usuario_id, solo service_role',
+       case when to_regclass('public.codigos_cadena') is null or to_regclass('public.lecturas_cadena') is null then 'NO'
+            when not (select bool_and(relrowsecurity) from pg_class where oid in (to_regclass('public.codigos_cadena'),to_regclass('public.lecturas_cadena'))) then 'NO'
+            when exists (select 1 from pg_policies where schemaname='public' and tablename in ('codigos_cadena','lecturas_cadena')) then 'NO'
+            when exists (select 1 from unnest(array['anon','authenticated','service_role']) r,
+                         unnest(array['public.codigos_cadena','public.lecturas_cadena']) t
+                         where has_table_privilege(r,t,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')) then 'NO'
+            when to_regprocedure('public.cadena_respuestas_preg()') is null or to_regprocedure('public.cadena_codigo_interno(uuid)') is null then 'NO'
+            when pg_get_function_result(to_regprocedure('public.cadena_respuestas_preg()')) not like '%codigo text%'
+              or pg_get_function_result(to_regprocedure('public.cadena_respuestas_preg()')) like '%usuario_id%' then 'NO'
+            when exists (select 1 from unnest(array['anon','authenticated','service_role']) r
+                         where has_function_privilege(r,'public.cadena_codigo_interno(uuid)','execute')) then 'NO'
+            when has_function_privilege('anon','public.cadena_respuestas_preg()','execute')
+              or has_function_privilege('authenticated','public.cadena_respuestas_preg()','execute')
+              or not has_function_privilege('service_role','public.cadena_respuestas_preg()','execute') then 'NO'
+            when exists (select 1 from pg_proc where oid in (to_regprocedure('public.cadena_respuestas_preg()'),to_regprocedure('public.cadena_codigo_interno(uuid)'))
+                         and (not prosecdef or not exists (select 1 from unnest(coalesce(proconfig,'{}')) c where c like 'search_path=%'))) then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

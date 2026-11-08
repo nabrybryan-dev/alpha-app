@@ -3,6 +3,18 @@ import { ACCIONES, atender, despachar, MINUTOS_SIN_LATIDO, textoLatido, type Rpc
 
 type Llamada = { nombre: string; args?: Record<string, unknown> }
 
+describe('respuestas_preg con seudonimo', () => {
+  it('entrega el codigo y conserva las demas columnas de la RPC', async () => {
+    const fila = { respuesta_id: 'ficticia', cuestionario_id: 'preg-PRUEBA', codigo: 'piloto-10',
+      fecha_iso: '2026-11-08T00:00:00Z', valores: { marca: 'ficticia' }, pregunta_ref: 'ref', solicitud_id: 'sol' }
+    const { rpc, llamadas } = rpcFalso({ cadena_respuestas_preg: [fila] })
+    const r = await despachar({ accion: 'respuestas_preg' }, rpc)
+    expect(r).toEqual({ estado: 200, cuerpo: { rows: [fila] } })
+    expect((r.cuerpo.rows as Record<string, unknown>[])[0]).not.toHaveProperty('usuario_id')
+    expect(llamadas).toEqual([{ nombre: 'cadena_respuestas_preg', args: undefined }])
+  })
+})
+
 function rpcFalso(respuestas: Record<string, unknown> = {}) {
   const llamadas: Llamada[] = []
   const rpc: Rpc = async (nombre, args) => {
