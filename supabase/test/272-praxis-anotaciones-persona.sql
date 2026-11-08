@@ -1,4 +1,4 @@
--- Praxis: cuaderno de anotaciones por persona (0175). Migración SIN APLICAR en producción; esta prueba corre en el CI sobre
+-- Praxis: cuaderno de anotaciones por persona (0176). Migración SIN APLICAR en producción; esta prueba corre en el CI sobre
 -- una base vacía con todas las migraciones. ESCRITA el 8-nov sin poder ejecutarse en un Postgres local: si falla en el CI,
 -- el fallo es de la prueba o de la migración, y hay que leerlo antes de tocar nada.
 --
@@ -117,6 +117,6 @@ begin
 end $$;
 reset role;
 
-\echo 'OK · cuaderno de anotaciones: idempotente, valida tipo/dia/campos, solo lo propio, olvidar (0175)'
+\echo 'OK · cuaderno de anotaciones: idempotente, valida tipo/dia/campos, solo lo propio, olvidar (0176)'
 
 rollback;

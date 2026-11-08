@@ -1,5 +1,5 @@
 /**
- * Anotaciones del cuaderno de la persona (decisión de Bryan, 8-nov-2026; tabla `praxis_anotaciones_persona`, migración 0175).
+ * Anotaciones del cuaderno de la persona (decisión de Bryan, 8-nov-2026; tabla `praxis_anotaciones_persona`, migración 0176).
  * Dos frases no llenan ningún campo del check-in pero dicen algo que vale revisar más adelante:
  *   · «estoy molida de las piernas»            -> recuperación tardía de esa zona.
  *   · «me sentí pesada después del almuerzo»   -> cómo reacciona su organismo a esa comida (patrón).

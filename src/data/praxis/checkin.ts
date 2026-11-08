@@ -97,7 +97,7 @@ export type ResultadoAnotar =
   | { ok: false; motivo: 'nada' | 'otra_persona' | 'sin_migracion' | 'no_se_pudo' }
 
 /**
- * Anota en el cuaderno de la persona (RPC `praxis_anotar_patron`, 0175) lo que ella tocó en la tarjeta. Una clave por
+ * Anota en el cuaderno de la persona (RPC `praxis_anotar_patron`, 0176) lo que ella tocó en la tarjeta. Una clave por
  * mensaje y posición: tocar dos veces no duplica. El alimento no se manda (queda vacío). Nunca lanza; el aviso de fallo
  * es de texto fijo: ni la persona ni la frase viajan en él.
  */

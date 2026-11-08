@@ -1,13 +1,14 @@
 -- ============================================================================
--- 0175 · Praxis: el cuaderno de anotaciones de cada persona (recuperación de una zona, reacción a una comida)
+-- 0176 · Praxis: el cuaderno de anotaciones de cada persona (recuperación de una zona, reacción a una comida)
 -- ============================================================================
 --
 -- SIN APLICAR. Escrita el 8-nov-2026 por decisión de Bryan (chat, opción a del cuaderno propio). Aplicarla es otro sí.
 -- La prueba `supabase/test/272-praxis-anotaciones-persona.sql` corre en el CI. NO SE EJECUTÓ en un Postgres local.
 --
 -- NÚMERO. Revisado el 8-nov: la base real llega a 0171 (list_migrations); origin/main trae 0172 y 0173;
--- `origin/praxis/busqueda-mixta` trae 0174; ninguna rama remota trae 0175 ni un test 272. Volver a mirar `origin/*` y
--- `schema_migrations` justo antes de subirla: el 7-nov dos sesiones tomaron el mismo 0171.
+-- `origin/praxis/busqueda-mixta` trae 0174. Nació como 0175; al rechequear antes de aplicar (8-nov) apareció
+-- `origin/claude/cadena-codigo-0175-20261108` con su propio 0175 (cadena_respuestas_con_codigo), y se renumeró a 0176.
+-- Ninguna rama remota trae 0176 ni un test 272. Volver a mirar `origin/*` y `schema_migrations` justo antes de aplicarla.
 --
 -- PARA QUÉ. Bryan firmó los seis huecos de los conectores el 8-nov. Dos frases no llenan ningún campo del check-in,
 -- pero dicen algo que vale la pena revisar más adelante:
@@ -65,7 +66,7 @@ create index if not exists praxis_anotaciones_persona_por_dia
   on public.praxis_anotaciones_persona (usuario_id, tipo, dia desc);
 
 comment on table public.praxis_anotaciones_persona is
-  'Cuaderno de la persona (0175, 2026-11-08): recuperacion tardia de una zona o reaccion a una comida, con fecha y su cita. '
+  'Cuaderno de la persona (0176, 2026-11-08): recuperacion tardia de una zona o reaccion a una comida, con fecha y su cita. '
   'Solo la lee la persona; solo la escribe praxis_anotar_patron; la persona la borra con praxis_olvidar_mis_anotaciones. No entra al entrenamiento.';
 
 alter table public.praxis_anotaciones_persona enable row level security;
@@ -133,7 +134,7 @@ end
 $$;
 
 comment on function public.praxis_anotar_patron(text, text, text, text, text, text, date) is
-  'Anota en el cuaderno de quien llama una recuperacion de zona o una reaccion a comida, con su cita. Idempotente por clave; sin dias futuros (Bogota). auth.uid(); sin usuario_id. 0175.';
+  'Anota en el cuaderno de quien llama una recuperacion de zona o una reaccion a comida, con su cita. Idempotente por clave; sin dias futuros (Bogota). auth.uid(); sin usuario_id. 0176.';
 
 revoke execute on function public.praxis_anotar_patron(text, text, text, text, text, text, date) from public, anon;
 grant execute on function public.praxis_anotar_patron(text, text, text, text, text, text, date) to authenticated, service_role;
@@ -161,7 +162,7 @@ end
 $$;
 
 comment on function public.praxis_olvidar_mis_anotaciones() is
-  'Borra todo el cuaderno de anotaciones de quien llama (derecho a supresion). Devuelve cuantas borro. 0175.';
+  'Borra todo el cuaderno de anotaciones de quien llama (derecho a supresion). Devuelve cuantas borro. 0176.';
 
 revoke execute on function public.praxis_olvidar_mis_anotaciones() from public, anon;
 grant execute on function public.praxis_olvidar_mis_anotaciones() to authenticated, service_role;

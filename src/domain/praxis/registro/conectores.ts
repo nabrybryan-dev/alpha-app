@@ -107,7 +107,7 @@ export type ResultadoConectores =
   | {
     tipo: 'propuesta'; propuestas: PropuestaConectada[]; dudosas: AreaDudosa[]
     preguntas: PreguntaDeTramo[]; habituales: Habitual[]; descartado: TrozoDescartado[]
-    /** Para el cuaderno de la persona (0175): no llenan el check-in. Se guardan solo si ella toca la tarjeta. */
+    /** Para el cuaderno de la persona (0176): no llenan el check-in. Se guardan solo si ella toca la tarjeta. */
     anotaciones: Anotacion[]
   }
 

@@ -59,7 +59,7 @@ export interface FilaTarjeta {
 
 export interface TarjetaCheckin {
   filas: FilaTarjeta[]; tramos: PreguntaDeTramo[]; faltantes: CampoCheckin[]
-  /** Para el cuaderno de la persona (0175): no llenan el check-in; se guardan solo si ella las toca. */
+  /** Para el cuaderno de la persona (0176): no llenan el check-in; se guardan solo si ella las toca. */
   anotaciones: Anotacion[]
 }
 

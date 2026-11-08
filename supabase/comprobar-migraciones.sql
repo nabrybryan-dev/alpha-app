@@ -3679,7 +3679,7 @@ select '0171b - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis
             else 'SI' end
 
 union all
-select '0175 - cuaderno de anotaciones de Praxis', 'praxis_anotaciones_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
+select '0176 - cuaderno de anotaciones de Praxis', 'praxis_anotaciones_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
        case when to_regclass('public.praxis_anotaciones_persona') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_anotaciones_persona')) then 'NO'
             when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'praxis_anotaciones_persona') <> 1 then 'NO'
@@ -3690,7 +3690,7 @@ select '0175 - cuaderno de anotaciones de Praxis', 'praxis_anotaciones_persona c
             else 'SI' end
 
 union all
-select '0175 - cuaderno de anotaciones de Praxis', 'praxis_anotar_patron y praxis_olvidar_mis_anotaciones existen, security definer, las ejecuta authenticated y no anon',
+select '0176 - cuaderno de anotaciones de Praxis', 'praxis_anotar_patron y praxis_olvidar_mis_anotaciones existen, security definer, las ejecuta authenticated y no anon',
        case when to_regprocedure('public.praxis_anotar_patron(text,text,text,text,text,text,date)') is null
               or to_regprocedure('public.praxis_olvidar_mis_anotaciones()') is null then 'NO'
             when not (select bool_and(p.prosecdef) from pg_proc p

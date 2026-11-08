@@ -61,7 +61,7 @@ export interface ConexionPraxis {
     yaHoy: () => CampoCheckin[]
     lexico: () => Promise<FormaAprendida[]>
     guardar: (p: { mensajeId: string; confirmado: Confirmado; aprendizajes: { campo: CampoCheckin; forma: string; valor: string }[] }) => Promise<ResultadoGuardarCheckin>
-    /** Cuaderno de la persona (0175). AUSENTE = la tarjeta no ofrece anotaciones. Solo tras su toque. */
+    /** Cuaderno de la persona (0176). AUSENTE = la tarjeta no ofrece anotaciones. Solo tras su toque. */
     anotar?: (p: { mensajeId: string; anotaciones: Anotacion[] }) => Promise<ResultadoAnotar>
   }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */

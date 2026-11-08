@@ -1,4 +1,4 @@
-/** El cuaderno de anotaciones, lado datos (RPC praxis_anotar_patron, 0175). ESCRITAS POR IA: SOLO PRUEBA. */
+/** El cuaderno de anotaciones, lado datos (RPC praxis_anotar_patron, 0176). ESCRITAS POR IA: SOLO PRUEBA. */
 import { describe, expect, it, vi } from 'vitest'
 import { anotarPatron, RPC_ANOTAR_PATRON } from './checkin'
 import type { Anotacion } from '../../domain/praxis/registro/anotaciones'
@@ -38,7 +38,7 @@ describe('anotarPatron', () => {
     expect(d.rpc).not.toHaveBeenCalled()
     expect(e.rpc).not.toHaveBeenCalled()
   })
-  it('0175 sin aplicar (PGRST202) = sin_migracion, sin avisar de error', async () => {
+  it('0176 sin aplicar (PGRST202) = sin_migracion, sin avisar de error', async () => {
     const d = deps({ rpc: vi.fn(async () => ({ data: null, error: { code: 'PGRST202' } })) })
     expect(await anotarPatron({ usuarioId: 'u1', mensajeId: 'm1', anotaciones: [zona] }, d)).toEqual({ ok: false, motivo: 'sin_migracion' })
     expect(d.anotarFallo).not.toHaveBeenCalled()

@@ -87,7 +87,7 @@ describe('tras el toque', () => {
     expect(checkin.anotar).not.toHaveBeenCalled()
   })
 
-  it('0175 sin aplicar: lo dice y no promete nada', async () => {
+  it('0176 sin aplicar: lo dice y no promete nada', async () => {
     const { c } = conexion({ anotar: vi.fn(async () => ({ ok: false, motivo: 'sin_migracion' })) })
     const { tocar } = await abrir(c, 'estoy molida de las piernas')
     tocar!(vacio, [], [{ tipo: 'recuperacion_zona', zona: 'piernas', cita: 'x' }])
