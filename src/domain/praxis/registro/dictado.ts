@@ -5,14 +5,31 @@
  * que la medición encontró mal o perdidas. Reglas de Bryan (7-nov): un RANGO se pregunta con los dos números (nunca
  * se anota el primero), los minutos del sueño se suman con un decimal, y lo vago o «y pico» queda visible, no se guarda.
  */
-import { escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, type NumeroEncontrado } from './numeros.ts'
+import {
+  ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
+  type NumeroEncontrado,
+} from './numeros.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
   | { tipo: 'valor'; valor: T; aproximado: boolean }
   | { tipo: 'rango'; etiquetas: [string, string] }
+  /** Se entendió algo pero hay que confirmarlo (p. ej. «7:30» sin unidad): se pregunta, no se guarda. */
+  | { tipo: 'confirmar'; texto: string; opciones: string[] }
   | { tipo: 'vago' }
   | null
+
+const esCifra = (t: string): boolean => valorLiteral(t) !== null || ES_PALABRA_NUMERICA(t) || /^(minutos?|mins?)$/.test(t)
+const esNumeroOUnidad = (t: string): boolean => esCifra(t) || /^(horas?|pasos?)$/.test(t)
+
+/**
+ * Tras un número, «y» + una palabra que no es cifra ni fracción («y pico», «y algo», «y poquito», «y tanto») es vago:
+ * no se inventa el resto. «y media», «y cuarto», «y 30 minutos», «y treinta», «y 500» son cifra y se siguen leyendo.
+ */
+function yConPalabraVaga(n: string): boolean {
+  const tk = n.split(' ')
+  return tk.some((t, i) => t === 'y' && i > 0 && i + 1 < tk.length && esNumeroOUnidad(tk[i - 1]) && !esCifra(tk[i + 1]))
+}
 
 /** Separa lo pegado: «4h» → «4 h», «250ml» → «250 ml», «9pm» → «9 pm». */
 export function separarPegado(texto: string): string {
@@ -133,9 +150,17 @@ function valorDeSueno(n: string, primero: number): number {
 
 export function leerSueno(cita: string): Lectura {
   const n = textoDeSueno(cita)
-  if (/\by pico\b/.test(n)) return { tipo: 'vago' }
+  if (yConPalabraVaga(n)) return { tipo: 'vago' }
   const r = buscarRango(n)
   if (r) return { tipo: 'rango', etiquetas: [`${fmt(r.a.valor)} horas`, `${fmt(r.b.valor)} horas`] }
+  // «7:30» sin unidad puede ser 7 h 30 min o una hora de reloj: antes daba 7 en silencio; ahora se pregunta.
+  const reloj = cita.match(/\b(\d{1,2}):([0-5]\d)\b(?!\s*(?:horas?|hrs?|hs|h\b|min))/i)
+  if (reloj) {
+    const h = Number(reloj[1])
+    const m = Number(reloj[2])
+    const dicho = m === 0 ? `${h} horas` : `${h} horas y ${m} minutos`
+    return { tipo: 'confirmar', texto: `¿Dormiste ${dicho}?`, opciones: [dicho] }
+  }
   const base = numeroDeCita(n)
   if (!base) return sinNumero(n)
   return { tipo: 'valor', valor: valorDeSueno(n, base.valor), aproximado: base.aproximado }
@@ -160,12 +185,13 @@ function textoDePasos(cita: string): string {
   const t = cita
     .replace(/(\d+(?:[.,]\d+)?)\s*k\b/gi, (_m, x: string) => String(Math.round(Number(x.replace(',', '.')) * 1000)))
     .replace(/\b(\d{1,3})[, ](\d{3})\b/g, '$1$2')
-  return juntarMil(normalizarTexto(separarPegado(t)).replace(/\bmil y medio\b/g, 'mil quinientos'))
+  // «8 mil pasos y 500»: la «y» y la palabra «pasos» estorban a «N mil» + resto (daba 8.000 y perdía los 500).
+  return juntarMil(normalizarTexto(separarPegado(t)).replace(/\bmil y medio\b/g, 'mil quinientos').replace(/\bmil pasos y (?=\d)/g, 'mil '))
 }
 
 export function leerPasos(cita: string): Lectura {
   const n = textoDePasos(cita)
-  if (/\by pico\b/.test(n)) return { tipo: 'vago' }
+  if (yConPalabraVaga(n)) return { tipo: 'vago' }
   const r = buscarRango(n)
   if (r) {
     const { a, b } = r
@@ -231,6 +257,9 @@ export function dudaDe(l: Lectura<unknown>, cita: string | null | undefined, cam
   if (!cita || !l) return {}
   if (l.tipo === 'rango') {
     return { cita, seguimiento: { texto: `Dijiste «${cita}»: ¿cuál fue?`, opciones: [...l.etiquetas], campo_bloqueante: campo } }
+  }
+  if (l.tipo === 'confirmar') {
+    return { cita, seguimiento: { texto: l.texto, opciones: l.opciones, campo_bloqueante: campo } }
   }
   if (l.tipo === 'vago') {
     return {

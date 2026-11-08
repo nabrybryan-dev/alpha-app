@@ -58,7 +58,7 @@ export function valorLiteral(token: string): number | null {
   return null
 }
 
-const ES_PALABRA_NUMERICA = (t: string): boolean =>
+export const ES_PALABRA_NUMERICA = (t: string): boolean =>
   t in UNIDADES || t in DECENAS || t in CENTENAS ||
   t === 'mil' || t === 'medio' || t === 'media' || t === 'cuarto' || t === 'cuartos' || t === 'par'
 

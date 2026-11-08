@@ -49,7 +49,7 @@ const guardado = (r: ResultadoVida): Record<string, unknown> =>
 
 describe('sueño: «7:30» sin unidad se pregunta, no se anota como 7', () => {
   it('«7:30» no es un valor', () => {
-    expect(leerSueno('7:30').tipo).not.toBe('valor')
+    expect(leerSueno('7:30')?.tipo).not.toBe('valor')
   })
   it.each(['7:30', 'dormí 7:30', '8:15'])('«%s» no guarda horas y pregunta', (cita) => {
     const r = correr({ sueno_horas: cita })
