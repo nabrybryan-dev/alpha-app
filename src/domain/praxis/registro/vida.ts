@@ -48,7 +48,7 @@ const ALIMENTACION: [RegExp, Calidad3][] = [
 ]
 
 /** «regular» tras un verbo de frecuencia (no «el entreno regular») o «regularmente»: cuántas veces, no cómo le fue. */
-export const REGULAR_ES_FRECUENCIA =/(?<!\bel )\b(voy|entreno|vengo|asisto|entrenando)( [a-z]+)? regular\b|\bregularmente\b/
+export const REGULAR_ES_FRECUENCIA =/(?<!\bel )\b(voy|entreno|vengo|asisto|entrenando|hago)( [a-z]+)? regular\b|\bregularmente\b/
 
 function buscar<T>(tabla: [RegExp, T][], n: string): T | null {
   for (const [re, v] of tabla) if (re.test(n)) return v
