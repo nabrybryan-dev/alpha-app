@@ -3,7 +3,7 @@ import type { IdDeRegion } from '../../sujeto/regiones'
 import { guionDelDia } from '../guia/guionDelDia'
 import type { EstadoDeLaGuia } from '../guia/useZonaDePraxis'
 import { ordenDeZonas } from '../guia/zonasDePraxis'
-import type { Orden } from './ordenesDeVoz'
+import type { Orden } from '../../../../domain/praxis/ordenes/ordenesDeVoz'
 
 /** Lo que una orden de voz puede mover: lo mismo que ya mueven los toques y el campo de dudas, y nada más. */
 export interface MandosDelSalon {

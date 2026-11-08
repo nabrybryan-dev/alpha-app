@@ -2,6 +2,7 @@ import type { FalloDelRegistrador, RespuestaDeGuardar, RespuestaDelRegistrador, 
 import type { ContextoCharla } from '../../domain/praxis/charla/modelo'
 import { limpiarTurnos } from '../../domain/praxis/charla/modelo'
 import { leerMarcaDelServidor } from '../../domain/praxis/masGrave'
+import { leerPropuestaDeshacer } from '../../domain/praxis/deshacer/pantalla'
 import type { MarcaDeRiesgo } from '../../domain/praxis/riesgo'
 import type { Propuesta, RegistroPropuesto } from '../../domain/praxis/registro/tipos'
 import type { Tarjeta } from '../../domain/praxis/registro/tarjeta'
@@ -40,6 +41,11 @@ export interface PeticionProponer {
    * Viaja solo en esta petición: ni el cliente ni el servidor lo guardan en ningún sitio.
    */
   charla?: ContextoCharla
+  /**
+   * La memoria de la charla (0166, 7-nov): a qué charla y en qué turno va la frase. El servidor la guarda solo con su
+   * interruptor encendido, con el usuario de la sesión (nunca se manda quién es).
+   */
+  memoria?: { charlaId: string; turno: number }
 }
 
 export interface PeticionGuardar {
@@ -60,17 +66,30 @@ function motivoDe(status: number): FalloDelRegistrador {
   return 'red'
 }
 
-async function llamar(sesion: SesionDeFunciones, ruta: string, cuerpo: unknown): Promise<{ ok: true; datos: unknown } | { ok: false; motivo: FalloDelRegistrador }> {
+/**
+ * Cuánto se espera una respuesta que solo LEE o PROPONE (Bryan, 6-nov: «se demora mucho en
+ * contestar»). Sin tope, con mala señal en el gimnasio la pantalla esperaba sin fin y sin decir
+ * nada. Las llamadas que ESCRIBEN (guardar) no llevan tope: cortarlas no deshace lo que el
+ * servidor ya guardó y la persona tocaría «guardar» otra vez.
+ */
+export const ESPERA_MAXIMA_MS = 20_000
+
+async function llamar(sesion: SesionDeFunciones, ruta: string, cuerpo: unknown, opciones: { conTope?: boolean } = {}): Promise<{ ok: true; datos: unknown } | { ok: false; motivo: FalloDelRegistrador }> {
+  const corte = opciones.conTope && typeof AbortController !== 'undefined' ? new AbortController() : null
+  const reloj = corte ? setTimeout(() => corte.abort(), ESPERA_MAXIMA_MS) : 0
   try {
     const r = await fetch(`${sesion.url}${ruta}`, {
       method: 'POST',
       headers: { authorization: `Bearer ${sesion.access_token}`, 'content-type': 'application/json' },
       body: JSON.stringify(cuerpo),
+      ...(corte ? { signal: corte.signal } : {}),
     })
     if (!r.ok) return { ok: false, motivo: motivoDe(r.status) }
     return { ok: true, datos: await r.json() }
   } catch {
     return { ok: false, motivo: 'red' }
+  } finally {
+    if (corte) clearTimeout(reloj)
   }
 }
 
@@ -78,6 +97,19 @@ async function llamar(sesion: SesionDeFunciones, ruta: string, cuerpo: unknown):
 function sinVacios(o: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null))
 }
+
+/** Las fichas con que el portero contestó: solo las que son texto. */
+function fichasDe(portero: unknown): string[] {
+  return Array.isArray(portero) ? portero.filter((f): f is string => typeof f === 'string') : []
+}
+
+function respuestaDeDeshacer(datos: unknown, mensajeId: string): RespuestaDelRegistrador | null {
+  if ((datos as { tipo?: unknown } | null)?.tipo !== 'deshacer') return null
+  const deshacer = leerPropuestaDeshacer((datos as { propuesta?: unknown }).propuesta)
+  return deshacer ? { ok: true, deshacer, mensajeId } : { ok: false, motivo: 'no_entendi' }
+}
+
+const memoriaParaElServidor = (m: PeticionProponer['memoria']) => (m ? { charla_id: m.charlaId, turno: m.turno } : undefined)
 
 export async function proponerRegistro(sesion: SesionDeFunciones | null, p: PeticionProponer): Promise<RespuestaDelRegistrador> {
   if (!sesion?.access_token || !sesion.url) return { ok: false, motivo: 'sin_sesion' }
@@ -90,15 +122,18 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
     checkin_hoy: p.checkinHoy,
     pantalla_ejercicio_id: p.pantallaEjercicioId,
     charla: p.charla ? { trato: p.charla.trato, nombre: p.charla.nombre ?? undefined, turnos: limpiarTurnos(p.charla.turnos), apertura: p.charla.apertura ?? undefined } : undefined,
-  }))
+    memoria_charla: memoriaParaElServidor(p.memoria),
+  }), { conTope: true })
   if (!r.ok) return r
+  // Libro encendido y la frase pedía deshacer: la propuesta es de otra forma. Sin `tipo:'deshacer'` todo sigue como siempre.
+  const alQuitar = respuestaDeDeshacer(r.datos, p.mensajeId)
+  if (alQuitar) return alQuitar
   const datos = r.datos as { propuesta?: Propuesta; tarjeta?: Tarjeta; charla?: { texto?: unknown }; meta?: { portero?: unknown } } | null
   if (!datos?.propuesta || !datos.tarjeta || !Array.isArray(datos.propuesta.registros) || !Array.isArray(datos.tarjeta.lineas)) {
     return { ok: false, motivo: 'no_entendi' }
   }
   const charla = typeof datos.charla?.texto === 'string' && datos.charla.texto.trim() ? datos.charla.texto.trim() : undefined
-  const portero = datos.meta?.portero
-  const fichas = Array.isArray(portero) ? portero.filter((f): f is string => typeof f === 'string') : []
+  const fichas = fichasDe(datos.meta?.portero)
   return { ok: true, propuesta: datos.propuesta, tarjeta: datos.tarjeta, mensajeId: p.mensajeId, ...(charla ? { charla } : {}), ...(fichas.length ? { fichas } : {}) }
 }
 
@@ -110,7 +145,7 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
  */
 export async function releerRiesgo(sesion: SesionDeFunciones | null, frase: string): Promise<MarcaDeRiesgo | null> {
   if (!sesion?.access_token || !sesion.url) return null
-  const r = await llamar(sesion, RUTA, { accion: 'releer_riesgo', frase })
+  const r = await llamar(sesion, RUTA, { accion: 'releer_riesgo', frase }, { conTope: true })
   return r.ok ? leerMarcaDelServidor(r.datos) : null
 }
 
@@ -142,7 +177,7 @@ export async function guardarRegistro(sesion: SesionDeFunciones | null, p: Petic
  */
 export async function extraerIngreso(sesion: SesionDeFunciones | null, p: { turno: TurnoId; texto: string }): Promise<RespuestaIngreso> {
   if (!sesion?.access_token || !sesion.url) return { ok: false, motivo: 'sin_sesion' }
-  const r = await llamar(sesion, RUTA, { accion: 'ingreso', turno: p.turno, texto: p.texto })
+  const r = await llamar(sesion, RUTA, { accion: 'ingreso', turno: p.turno, texto: p.texto }, { conTope: true })
   if (!r.ok) return r
   const d = r.datos as {
     tipo?: unknown; derivada?: unknown; campos?: Record<string, string | number>; temas?: unknown; toques?: unknown; descartados?: unknown

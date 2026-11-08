@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { db } from '../../../data/dbInstance'
 import { visibilidadDelAsesorado } from '../../../data/visibilidadDelAsesorado'
 import { UMBRAL_DOLOR_QUE_AVISA } from '../../../domain/senales/dolor'
+import { checkinCompleto } from '../../../domain/checkinCompleto'
+import { AvisoAMedias } from '../../bienestar/AvisoAMedias'
 import { CheckinForm } from '../../bienestar/CheckinForm'
 import { CheckDibujado } from '../../entrenar/CheckDibujado'
 
@@ -33,7 +35,10 @@ function Casilla({ valor, etiqueta, rojo = false }: { valor: string; etiqueta: s
  */
 export function ChequeoDeHoy({ usuarioId, hoy, clasico = false }: ChequeoDeHoyProps) {
   const checkins = db.bienestar.byUsuario(usuarioId)
-  const deHoy = checkins.find((c) => c.fecha === hoy)
+  const filaDeHoy = checkins.find((c) => c.fecha === hoy)
+  // Uno a medias no está «Registrado»: el formulario sigue abierto con lo ya anotado (Bryan, 7-nov-2026).
+  const deHoy = filaDeHoy && checkinCompleto(filaDeHoy) ? filaDeHoy : undefined
+  const aMedias = filaDeHoy && !deHoy ? filaDeHoy : undefined
   const verPeso = visibilidadDelAsesorado(usuarioId).verComposicion
   const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
   const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
@@ -76,7 +81,11 @@ export function ChequeoDeHoy({ usuarioId, hoy, clasico = false }: ChequeoDeHoyPr
           </Link>
         </>
       ) : (
+        <>
+        {aMedias && <AvisoAMedias />}
         <CheckinForm
+          key={aMedias ? 'a-medias' : 'nuevo'}
+          inicial={aMedias}
           clasico={clasico}
           usuarioId={usuarioId}
           fecha={hoy}
@@ -85,6 +94,7 @@ export function ChequeoDeHoy({ usuarioId, hoy, clasico = false }: ChequeoDeHoyPr
           pedirPeso={verPeso}
           onGuardar={(c) => db.bienestar.guardar(c)}
         />
+        </>
       )}
 
       {/* /bienestar sigue viva como detalle: allí están el resumen del día y el botón del

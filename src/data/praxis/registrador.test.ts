@@ -21,6 +21,41 @@ function conFetch(respuesta: { status: number; cuerpo?: unknown } | Error) {
 
 afterEach(() => vi.unstubAllGlobals())
 
+/** Un fetch que nunca contesta, salvo que lo corten con la señal (como en una red mala). */
+function conFetchColgado() {
+  const espia = vi.fn((_url: string, opciones?: RequestInit) => new Promise<Response>((_res, rechazar) => {
+    opciones?.signal?.addEventListener('abort', () => rechazar(new DOMException('cortado', 'AbortError')))
+  }))
+  vi.stubGlobal('fetch', espia)
+  return espia
+}
+
+describe('tiempo límite (Bryan, 6-nov: «se demora mucho en contestar»)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('proponer corta a los 20 s y lo dice como red, en vez de esperar sin fin', async () => {
+    vi.useFakeTimers()
+    conFetchColgado()
+    const r = proponerRegistro(sesion, { frase: 'x', mensajeId: 'm1', horaLocal: 'h' })
+    await vi.advanceTimersByTimeAsync(19_999)
+    let listo = false
+    void r.then(() => { listo = true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(listo).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(await r).toEqual({ ok: false, motivo: 'red' })
+  })
+
+  it('guardar NO se corta: escribe, y cortarlo invitaría a guardar dos veces', async () => {
+    vi.useFakeTimers()
+    const espia = conFetchColgado()
+    void guardarRegistro(sesion, { mensajeId: 'm1', registros: [{ tarjeta_id: 'm1:0' }] } as never)
+    await vi.advanceTimersByTimeAsync(0)
+    const [, opciones] = espia.mock.calls[0] as unknown as [string, RequestInit]
+    expect(opciones.signal).toBeUndefined()
+  })
+})
+
 describe('proponerRegistro', () => {
   it('llama a la función con el JWT de la persona y sin mandar quién es', async () => {
     const espia = conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: {} } })
@@ -35,10 +70,31 @@ describe('proponerRegistro', () => {
     expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
   })
 
+  it('0166: manda a qué charla y en qué turno va la frase, sin decir quién es', async () => {
+    const espia = conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: {} } })
+    await proponerRegistro(sesion, { frase: 'hola', mensajeId: 'm1', horaLocal: 'h', memoria: { charlaId: 'c-1', turno: 3 } })
+    const cuerpo = JSON.parse((espia.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(cuerpo.memoria_charla).toEqual({ charla_id: 'c-1', turno: 3 })
+    expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
+  })
+
   it('lee las fichas con que contestó el portero y descarta lo que no sea texto', async () => {
     conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: { portero: ['ficha-a', 7] } } })
     const r = await proponerRegistro(sesion, { frase: '¿cuánto descanso?', mensajeId: 'm1', horaLocal: 'h' })
     expect(r).toEqual({ ok: true, propuesta, tarjeta, mensajeId: 'm1', fichas: ['ficha-a'] })
+  })
+
+  it("si la función responde {tipo:'deshacer'}, devuelve la propuesta de quitar y no una tarjeta de guardar", async () => {
+    const tarjetaFirmada = { campo: 'deshacer', registro_id: '11111111-1111-4111-8111-111111111111', tipo: 'series', descripcion: '3 series', vence_en: '2026-11-05T15:02:00.000Z', token: 'firma' }
+    conFetch({ status: 200, cuerpo: { tipo: 'deshacer', propuesta: { accion: 'confirmar_deshacer', texto: 'Voy a quitar las series. ¿Lo quito?', botones: [], tarjeta: tarjetaFirmada }, meta: {} } })
+    const r = await proponerRegistro(sesion, { frase: 'deshaz lo último', mensajeId: 'm9', horaLocal: 'h' })
+    expect(r).toMatchObject({ ok: true, mensajeId: 'm9', deshacer: { accion: 'confirmar_deshacer', tarjeta: tarjetaFirmada } })
+    expect(r).not.toHaveProperty('propuesta')
+  })
+
+  it("un {tipo:'deshacer'} con propuesta ilegible no se pinta: no_entendi", async () => {
+    conFetch({ status: 200, cuerpo: { tipo: 'deshacer', propuesta: { accion: 'confirmar_deshacer', texto: 't', tarjeta: null } } })
+    expect(await proponerRegistro(sesion, { frase: 'deshaz', mensajeId: 'm', horaLocal: 'h' })).toEqual({ ok: false, motivo: 'no_entendi' })
   })
 
   it('sin sesión de nube no llama a nadie', async () => {

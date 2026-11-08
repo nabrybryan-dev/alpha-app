@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { BuzonComentarios } from '../entrenar/miEntreno/BuzonComentarios'
 import { AvisosYo } from './AvisosYo'
@@ -10,7 +11,7 @@ import { CambiarClave } from './CambiarClave'
  * Se llega desde el menú de cuenta de la cabecera (`TopBar`). El buzón es el mismo `BuzonComentarios` de Mi entreno, sin cambios.
  */
 export default function YoPage() {
-  const { usuario } = useSesion()
+  const { usuario, esNube } = useSesion()
   return (
     <div className="flex flex-col gap-5">
       <header className="flex flex-col gap-1 pt-1">
@@ -21,6 +22,7 @@ export default function YoPage() {
       <AvisosYo usuarioId={usuario.id} />
       <BuzonComentarios />
       <CambiarClave />
+      {esNube && <Link to="/yo/derechos" className="glass rounded-2xl p-4 text-accion">Tus datos y derechos →</Link>}
     </div>
   )
 }

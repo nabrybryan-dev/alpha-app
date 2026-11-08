@@ -1,3 +1,4 @@
+import { checkinCompleto } from './checkinCompleto'
 import { sesionCompleta } from './cumplimiento'
 import type {
   AdherenciaNutricional,
@@ -158,7 +159,8 @@ export function construirRanking(datos: DatosRanking, hoy: string): FilaRanking[
       const adherencias = datos.adherencias.filter((a) => a.usuarioId === u.id && a.fecha >= limite)
       const si = adherencias.filter((a) => a.estado === 'si').length
       const parcial = adherencias.filter((a) => a.estado === 'parcial').length
-      const checkins = datos.checkins.filter((c) => c.usuarioId === u.id && c.fecha >= limite).length
+      // Uno a medias no cuenta (Bryan, 7-nov-2026).
+      const checkins = datos.checkins.filter((c) => c.usuarioId === u.id && c.fecha >= limite && checkinCompleto(c)).length
       const seriesRegistradas = contarSeries(activo)
       const ejerciciosProgresados = contarProgresiones(activo)
       const preguntas = coachId

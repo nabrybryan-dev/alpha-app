@@ -45,6 +45,10 @@ const COMPROBADOR = join(process.cwd(), 'supabase', 'comprobar-migraciones.sql')
 const REPETIDOS_DE_ANTES: Record<string, string> = {
   '0062': 'el cribado guarda su historia · el saludo es una via — las dos aplicadas el 10-sep',
   '0065': 'el video es de cada quien · los dias que puede entrenar — las dos del 10-sep',
+  '0117': 'area de dudas agenticas (M2, 23-oct) · cola de dudas de Praxis (29-oct) — las dos aplicadas',
+  // 7-nov: dos sesiones tomaron el 0171 a la vez. La revisión de números se hizo contra las ramas remotas, y la primera
+  // se aplicó ANTES de subirse a ninguna rama, así que la segunda no la vio. Las dos aplicadas: no se renombra ninguna.
+  '0171': '0171a la clave del servidor solo lee purga y regla (aplicada 20:47 UTC) · 0171b lexicón por persona de Praxis (21:28 UTC) — las dos aplicadas el 7-nov',
 }
 
 /**
