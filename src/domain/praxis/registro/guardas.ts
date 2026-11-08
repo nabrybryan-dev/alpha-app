@@ -6,7 +6,7 @@
  * mecanismo que ya existe (rango / vago / descartado). Todas las funciones reciben texto ya normalizado
  * (`normalizarTexto`) salvo que se diga otra cosa.
  */
-import { escanearNumeros, type NumeroEncontrado } from './numeros.ts'
+import { ES_PALABRA_NUMERICA, escanearNumeros, type NumeroEncontrado } from './numeros.ts'
 
 const NUMERO_EN_PALABRAS = 'un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte|veintiuno|veintidos|veintitres|veinticuatro'
 
@@ -58,6 +58,38 @@ export function articuloSuelto(n: string, unidad: RegExp): boolean {
   if (!e || e.hasta - e.desde !== 1) return false
   const tokens = n.split(' ').filter(Boolean)
   return /^(un|una|uno)$/.test(tokens[e.desde]) && !unidad.test(tokens[e.hasta] ?? '')
+}
+
+const NUMEROS_ESCRITOS = [
+  'cinco', 'doce', 'once', 'siete', 'nueve', 'ocho', 'diez', 'trece', 'catorce', 'quince', 'veinte', 'treinta', 'cuarenta',
+  'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa', 'cien', 'ciento', 'cuatro',
+]
+
+function distancia(a: string, b: string): number {
+  const fila = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let diag = fila[0]
+    fila[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const arriba = fila[j]
+      fila[j] = Math.min(fila[j] + 1, fila[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1))
+      diag = arriba
+    }
+  }
+  return fila[b.length]
+}
+
+/**
+ * «sinco mil», «dose mil»: la palabra antes de «mil» casi es un número pero no lo es. El escáner leía solo «mil» (1.000)
+ * y se anotaba un dato que nadie dijo; ahora queda a la vista.
+ */
+export function numeroMalDictadoAntesDeMil(n: string): boolean {
+  const tokens = n.split(' ').filter(Boolean)
+  return tokens.some((t, i) => {
+    if (t !== 'mil' || i === 0) return false
+    const p = tokens[i - 1]
+    return p.length >= 4 && !ES_PALABRA_NUMERICA(p) && !/\d/.test(p) && NUMEROS_ESCRITOS.some((w) => distancia(p, w) === 1)
+  })
 }
 
 const UNIDAD_DE_CIFRA = /^(horas?|hrs?|mil|pasos?|vasos?|litros?|minutos?|mins?)$/

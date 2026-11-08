@@ -9,7 +9,7 @@ import {
   ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
   type NumeroEncontrado,
 } from './numeros.ts'
-import { articuloSuelto, clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, rangoSinConector, unidadAjena } from './guardas.ts'
+import { articuloSuelto, clausulasDeReloj, conflictoDeCifras, esCota, numeroMalDictadoAntesDeMil, quitarRelojes, rangoSinConector, unidadAjena } from './guardas.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
@@ -221,7 +221,7 @@ export function leerPasos(cita: string): Lectura {
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
   const ajena = unidadAjena(n, 'pasos')
   if (ajena) return { tipo: 'ajena', ...ajena }
-  if (articuloSuelto(n, /^(pasos?|mil)$/)) return { tipo: 'vago' }
+  if (articuloSuelto(n, /^(pasos?|mil)$/) || numeroMalDictadoAntesDeMil(n)) return { tipo: 'vago' }
   if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
   const choque = conflictoDeCifras(n)
   if (choque) return { tipo: 'rango', etiquetas: [`${conMiles(choque[0].valor)} pasos`, `${conMiles(choque[1].valor)} pasos`] }
@@ -274,7 +274,9 @@ export function leerHora(cita: string | null | undefined, contexto: 'acostarse' 
     return a && b ? { tipo: 'valor', valor: a, aproximado: false } : { tipo: 'vago' }
   }
   const hora = horaUna(crudo, contexto)
-  return hora ? { tipo: 'valor', valor: hora, aproximado: false } : null
+  if (hora) return { tipo: 'valor', valor: hora, aproximado: false }
+  // «a las 25», «a las onze»: dijo una hora y no se pudo leer; no se calla, queda a la vista con el campo ofrecido.
+  return /\d/.test(n) || /\b(?:a|desde|hasta)\s+l(?:as|a)\s+\S+/.test(n) ? { tipo: 'vago' } : null
 }
 
 // ---------------------------------------------------------------------------
