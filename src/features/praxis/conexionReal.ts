@@ -5,7 +5,8 @@ import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
 import { deshacerRegistro, elegirParaDeshacer } from '../../data/praxis/deshacer'
 import { aplicarAguaDePraxis, fijarTotalDelDia } from '../../data/praxis/agua'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
-import { camposLlenosHoy, guardarCheckinDePraxis, leerMiLexico } from '../../data/praxis/checkin'
+import { anotarPatron, camposLlenosHoy, guardarCheckinDePraxis, leerMiLexico } from '../../data/praxis/checkin'
+import type { Anotacion } from '../../domain/praxis/registro/anotaciones'
 import { CONECTORES_EN_TARJETA } from '../../domain/praxis/registro/tarjetaCheckin'
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
@@ -73,6 +74,7 @@ export function crearConexionPraxis(
         yaHoy: () => camposLlenosHoy(db.bienestar.byUsuario(usuarioId).find((c) => c.fecha === hoy)),
         lexico: () => leerMiLexico(),
         guardar: (p: Parameters<NonNullable<ConexionPraxis['checkin']>['guardar']>[0]) => guardarCheckinDePraxis({ usuarioId, ...p }),
+        anotar: (p: { mensajeId: string; anotaciones: Anotacion[] }) => anotarPatron({ usuarioId, ...p }),
       },
     } : {}),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),

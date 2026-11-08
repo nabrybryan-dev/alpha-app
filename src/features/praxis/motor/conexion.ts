@@ -7,7 +7,8 @@ import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
 import type { RespuestaDeElegir } from '../../../data/praxis/deshacer'
 import type { ResultadoDeshacer, TarjetaFirmada } from '../../../domain/praxis/deshacer/pantalla'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
-import type { ResultadoGuardarCheckin } from '../../../data/praxis/checkin'
+import type { ResultadoAnotar, ResultadoGuardarCheckin } from '../../../data/praxis/checkin'
+import type { Anotacion } from '../../../domain/praxis/registro/anotaciones'
 import type { FormaAprendida } from '../../../domain/praxis/registro/lexicoPersona'
 import type { CampoCheckin } from '../../../domain/praxis/registro/mensajeLargo'
 import type { Confirmado } from '../../../domain/praxis/registro/tarjetaCheckin'
@@ -60,6 +61,8 @@ export interface ConexionPraxis {
     yaHoy: () => CampoCheckin[]
     lexico: () => Promise<FormaAprendida[]>
     guardar: (p: { mensajeId: string; confirmado: Confirmado; aprendizajes: { campo: CampoCheckin; forma: string; valor: string }[] }) => Promise<ResultadoGuardarCheckin>
+    /** Cuaderno de la persona (0175). AUSENTE = la tarjeta no ofrece anotaciones. Solo tras su toque. */
+    anotar?: (p: { mensajeId: string; anotaciones: Anotacion[] }) => Promise<ResultadoAnotar>
   }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
   preguntar: (p: { frase: string; queFalto: QueFalto; citas: string[] }) => Promise<ResultadoDejarPregunta>
