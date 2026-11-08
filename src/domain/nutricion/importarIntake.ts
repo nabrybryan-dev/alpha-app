@@ -1,4 +1,5 @@
 import type { Respuestas } from './encuesta'
+import { senalesDeLaEncuesta } from './perfilCalculado'
 
 /**
  * De la encuesta de captación de atletaalpha.com a las respuestas de la app.
@@ -56,16 +57,74 @@ function generoDeIntake(valor: unknown): 'M' | 'H' | null {
   return null
 }
 
+/**
+ * El ciclo menstrual de la landing, al vocabulario de la app.
+ *
+ * Las opciones EXACTAS de la landing (alpha-praxis-chat: landing/src/lib/intake/flow.ts,
+ * `solo_mujeres_ciclo`) son 'Regular', 'Irregular', 'Amenorrea (ausencia)', 'Menopausia' y
+ * 'No aplica'. La app solo admite cinco valores —regular, irregular, ausente,
+ * anticoncepcion_hormonal, prefiere_no_decir— y la base los fija con un `check` (0016): un sexto
+ * haría fallar la subida del perfil entero. Por eso:
+ *   · la amenorrea es 'ausente', y no se pierde nada;
+ *   · la menopausia también es 'ausente' (no le baja, que es lo que dice esa opción en la app),
+ *     pero NO es lo mismo que una amenorrea en una deportista joven: se guarda además lo que dijo
+ *     en `cicloEnLaCaptacion`, para que la nutricionista lo lea;
+ *   · 'No aplica' sigue siendo 'prefiere_no_decir' (no alarma), como en la app.
+ *
+ * LO QUE NO RECONOCE NO SE IGNORA. Hasta el 31-oct-2026 una respuesta desconocida se quedaba en
+ * `null` —sin ciclo y sin señal—, y así se colaron la amenorrea y la menopausia: la persona veía
+ * sus cifras sin que nadie lo mirara. El sexo desconocido no se adivina y se vuelve a preguntar;
+ * el ciclo no se puede tratar igual, porque mientras no se conteste no hay señal y las cifras se
+ * enseñan. Así que una respuesta desconocida se guarda tal cual en `cicloEnLaCaptacion` —sin
+ * inventarle un valor de la app— y eso basta para que la persona quede en revisión.
+ *
+ * Se compara normalizado: sin tildes, en minúsculas, con la puntuación como espacio. Los
+ * paréntesis NO se quitan: 'Regular (pero hace meses que no me baja)' no es 'Regular'.
+ */
 const CICLOS: Record<string, string> = {
   regular: 'regular',
   irregular: 'irregular',
   ausente: 'ausente',
+  amenorrea: 'ausente',
+  'amenorrea ausencia': 'ausente',
+  menopausia: 'ausente',
   'no aplica': 'prefiere_no_decir',
 }
 
-function cicloDeIntake(valor: unknown): string | null {
-  const limpio = texto(valor)?.toLowerCase()
-  return limpio ? (CICLOS[limpio] ?? null) : null
+/** Las que se traducen pero pierden algo: se guarda también lo que dijo. */
+const CICLOS_QUE_SE_GUARDAN_TAL_CUAL = new Set(['menopausia'])
+
+function normalizarOpcion(valor: string): string {
+  return valor
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+interface CicloImportado {
+  /** Uno de los cinco de la app, o `null` si no hay uno que lo diga. */
+  ciclo: string | null
+  /** Lo que contestó, cuando la app no puede decirlo exacto. */
+  enLaCaptacion: string | null
+}
+
+function cicloDeIntake(valor: unknown): CicloImportado {
+  const original = texto(valor)
+  const clave = original ? normalizarOpcion(original) : ''
+  if (!original || !clave) return { ciclo: null, enLaCaptacion: null }
+  const ciclo = CICLOS[clave] ?? null
+  const guardarTalCual = ciclo === null || CICLOS_QUE_SE_GUARDAN_TAL_CUAL.has(clave)
+  return { ciclo, enLaCaptacion: guardarTalCual ? original : null }
+}
+
+/** La línea del listado del importador para el ciclo, o `null` si no pide revisión. */
+function senalDeCiclo({ ciclo, enLaCaptacion }: CicloImportado, pideRevision: boolean): string | null {
+  if (!pideRevision) return null
+  if (ciclo === null) return `ciclo menstrual con una respuesta que la app no reconoce («${enLaCaptacion}»): la revisa la nutricionista`
+  if (enLaCaptacion) return `ciclo menstrual ausente: «${enLaCaptacion}»`
+  return 'ciclo menstrual irregular o ausente'
 }
 
 /** "Cocino la mayoría de mis comidas" → casi_siempre. */
@@ -116,7 +175,11 @@ export function importarIntake(crudo: IntakeCrudo): ResultadoImportacion {
   if (genero === 'M') poner('caderaCm', numero(a.medida_cadera_cm))
   poner('diasEntreno', numero(a.dias_por_semana))
   poner('frecuenciaCocina', cocinaDeIntake(a.cocina_o_compra))
-  if (genero === 'M') poner('cicloMenstrual', cicloDeIntake(a.solo_mujeres_ciclo))
+  // `!== 'H'` y no `=== 'M'`: la landing solo hace esta pregunta a mujeres, así que una respuesta
+  // con el sexo sin reconocer se lee igual. Dejarla caer sería perder justo la señal de alarma.
+  const ciclo = genero !== 'H' ? cicloDeIntake(a.solo_mujeres_ciclo) : cicloDeIntake(null)
+  poner('cicloMenstrual', ciclo.ciclo)
+  poner('cicloEnLaCaptacion', ciclo.enLaCaptacion)
 
   /**
    * Las alergias entran como "otra" + el texto, nunca interpretadas.
@@ -136,9 +199,9 @@ export function importarIntake(crudo: IntakeCrudo): ResultadoImportacion {
     // Viaja en las respuestas para que la app lo vea sin volver a leer el JSON.
     respuestas.antecedenteTca = 'si'
   }
-  if (respuestas.cicloMenstrual === 'irregular' || respuestas.cicloMenstrual === 'ausente') {
-    senales.push('ciclo menstrual irregular o ausente')
-  }
+  // La misma regla que la compuerta de la app: el listado no puede decir otra cosa que la pantalla.
+  const senalCiclo = senalDeCiclo(ciclo, senalesDeLaEncuesta(respuestas).cicloAlterado === true)
+  if (senalCiclo) senales.push(senalCiclo)
 
   /**
    * Lo que el intake no pregunta y no se puede deducir.

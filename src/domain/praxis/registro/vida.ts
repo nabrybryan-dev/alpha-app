@@ -14,10 +14,11 @@
  *  - Peso, entreno del día y tiempos sueltos (caminata, siesta, pantalla) van al check-in
  *    (`pesoKg`, `entreno`, `comentarios`) como CITA: nunca se convierten en pasos ni en otra cosa.
  */
-import { horaDeCita, minutosDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
+import { minutosDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
+import { dudaDe, leerHora, leerPasos, leerSueno, type Duda, type Lectura } from './dictado.ts'
+import { resolverAgua } from './agua.ts'
 import { etiquetaDeFecha, fechaLocal, horaLocal, sumarDias } from './fecha.ts'
-import { revisarAguaDeltaMl, revisarHorasSueno, revisarPasos, revisarPesoCorporal } from './limites.ts'
-import { VASO_ML } from './medidas.ts'
+import { revisarHorasSueno, revisarPasos, revisarPesoCorporal } from './limites.ts'
 import type {
   CampoEscala, Confianza, ContextoRegistro, Pregunta, RegistroCheckin, RegistroHidratacion, VidaExtraida,
 } from './tipos.ts'
@@ -47,9 +48,17 @@ const ALIMENTACION: [RegExp, Calidad3][] = [
   [/\b(regular|mas o menos)/, 'REGULAR'],
 ]
 
+/** «regular» tras un verbo de frecuencia (no «el entreno regular») o «regularmente»: cuántas veces, no cómo le fue. */
+export const REGULAR_ES_FRECUENCIA =/(?<!\bel )\b(voy|entreno|vengo|asisto|entrenando|hago)( [a-z]+)? regular\b|\bregularmente\b/
+
 function buscar<T>(tabla: [RegExp, T][], n: string): T | null {
   for (const [re, v] of tabla) if (re.test(n)) return v
   return null
+}
+
+/** Rendimiento por la tabla, salvo el «regular» de frecuencia. */
+function rendimientoDe(n: string): Calidad3 | null {
+  return REGULAR_ES_FRECUENCIA.test(n) ? null : buscar(RENDIMIENTO, n)
 }
 
 /** Calidad del sueño. La negación de «mal» ("no dormí mal") NO es BUENA: es REGULAR. */
@@ -103,6 +112,8 @@ export interface OpcionesVida {
 
 const TIEMPO_ETIQUETA = { caminata: 'Caminata', siesta: 'Siesta', pantalla: 'Pantalla' } as const
 
+export { mlDeAgua, segmentosDeAgua } from './agua.ts'
+
 export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '', opciones: OpcionesVida = {}): ResultadoVida {
   const hoy = fechaLocal(ctx.ahora)
   const parche: Record<string, string | number> = {}
@@ -119,6 +130,15 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     if (previo !== undefined && previo !== null) antes[campo] = previo as string | number
   }
 
+  const valorDe = (l: Lectura<string>): string | null => (l?.tipo === 'valor' ? l.valor : null)
+  // Un rango se pregunta y lo vago queda visible; si ya hay otra pregunta en curso, el segundo queda en `descartado`.
+  const anotarDuda = (d: Duda) => {
+    if (d.descartado) descartado.push(d.descartado)
+    if (!d.seguimiento) return
+    if (!seguimiento) seguimiento = d.seguimiento
+    else if (!d.descartado) descartado.push({ cita: d.cita ?? d.seguimiento.texto, motivo: 'tiene dos opciones y ya te estoy preguntando otro dato: dime cuál fue' })
+  }
+
   // Sueño
   const senalAprox = v.senales.includes('aproximado')
   // «Ayer dormí nueve horas» puede ser la noche que acaba de pasar o la anterior: se pregunta.
@@ -129,8 +149,10 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
       pregunta: { texto: `¿Fue la noche de anoche o la del ${domingo.split(' ')[0]}?`, opciones: ['La de anoche', `La del ${domingo.split(' ')[0]}`], campo_bloqueante: 'fecha_del_sueno' },
     }
   }
-  if (v.sueno_horas) {
-    const n = numeroDeCita(v.sueno_horas)
+  const sueno = v.sueno_horas ? leerSueno(v.sueno_horas) : null
+  anotarDuda(dudaDe(sueno, v.sueno_horas, 'horasSueno'))
+  {
+    const n = sueno?.tipo === 'valor' ? sueno : null
     if (n) {
       const ver = revisarHorasSueno(n.valor)
       if (ver.tipo === 'imposible') {
@@ -150,8 +172,12 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
       pregunta: { texto: '¿A qué hora te dormiste más o menos?', opciones: [], campo_bloqueante: 'horaAcostarse' },
     }
   }
-  const acostarse = horaDeCita(v.hora_acostarse, 'acostarse')
-  const levantarse = horaDeCita(v.hora_levantarse, 'levantarse')
+  const lecturaAcostarse = leerHora(v.hora_acostarse, 'acostarse')
+  const lecturaLevantarse = leerHora(v.hora_levantarse, 'levantarse')
+  anotarDuda(dudaDe(lecturaAcostarse, v.hora_acostarse, 'horaAcostarse'))
+  anotarDuda(dudaDe(lecturaLevantarse, v.hora_levantarse, 'horaLevantarse'))
+  const acostarse = valorDe(lecturaAcostarse)
+  const levantarse = valorDe(lecturaLevantarse)
   if (acostarse) poner('horaAcostarse', acostarse, 'alta')
   if (levantarse) poner('horaLevantarse', levantarse, 'alta')
   if (acostarse && levantarse && parche.horasSueno === undefined) {
@@ -169,8 +195,10 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
 
   // Pasos: nunca a partir de «bastante» ni de minutos.
   let diferido = false
-  if (v.pasos) {
-    const n = numeroDeCita(v.pasos)
+  const lecturaPasos = v.pasos ? leerPasos(v.pasos) : null
+  anotarDuda(dudaDe(lecturaPasos, v.pasos, 'pasos'))
+  {
+    const n = lecturaPasos?.tipo === 'valor' ? lecturaPasos : null
     if (n) {
       const ver = revisarPasos(n.valor)
       if (ver.tipo === 'imposible') {
@@ -189,7 +217,7 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     descartado.push({ cita: v.actividad_sin_numero, motivo: '«bastante» o «un rato» no se convierte en minutos ni pasos' })
     // Solo si habla de caminar se ofrece el campo de pasos; una siesta o un estiramiento no lo piden.
     if (/(camin|paso|trot|corr)/.test(normalizarTexto(v.actividad_sin_numero))) {
-      seguimiento = { texto: '¿Tu celular o reloj te marca cuántos pasos llevas hoy?', opciones: [], campo_bloqueante: 'pasos' }
+      seguimiento = seguimiento ?? { texto: '¿Tu celular o reloj te marca cuántos pasos llevas hoy?', opciones: [], campo_bloqueante: 'pasos' }
     }
   }
 
@@ -204,7 +232,8 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     // Ánimo (decisión de Bryan, 5-nov-2026): `CheckinDiario` no tiene ese campo, así que no se mapea; queda visible.
     else if (campo === 'animo') { descartado.push({ cita: e.cita, motivo: 'el check-in no tiene campo de ánimo: no se anota' }); continue }
     else if (campo === 'ganas_de_entrenar') { valor = ganasDeEntrenar(e.cita); destino = 'motivacion' }
-    else if (campo === 'rendimiento') { valor = buscar(RENDIMIENTO, n); destino = 'rendimiento' }
+    // «Voy regular al gimnasio», «regularmente»: es frecuencia, no cómo le fue (Bryan, 7-nov-2026).
+    else if (campo === 'rendimiento') { valor = rendimientoDe(n); destino = 'rendimiento' }
     else if (campo === 'alimentacion') { valor = buscar(ALIMENTACION, n); destino = 'alimentacion' }
     else if (campo === 'hambre') {
       const num = numeroDeCita(e.cita)
@@ -289,37 +318,13 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '',
     })
   }
 
-  // Agua: vasos × 200 mL (Res. 810), tazas, litros («litro y medio»), «botella de 600», y varias cosas
-  // sumadas («tres vasos y una botella de 600»). Una botella sin tamaño se pregunta, no se inventa.
+  // Agua: ver agua.ts (vasos × 200 mL, litros, botellas con tamaño, rangos que se preguntan).
   if (v.agua) {
-    const texto = normalizarTexto(`${v.agua.cantidad} ${v.agua.medida ?? ''}`)
-      .replace(/\blitro y medio\b/, '1.5 litros')
-      .replace(/\bmedio litro\b/, '0.5 litros')
-    let ml = 0
-    const partes: string[] = []
-    let sinTamano = false
-    for (const seg of texto.split(/\by\b|,|\+/).map((x) => x.trim()).filter(Boolean)) {
-      const cant = numeroDeCita(seg)
-      const explicito = seg.match(/\bbotellas?\s+de\s+(\d{2,4})\b/)
-      if (explicito) {
-        const n = cant && cant.valor !== Number(explicito[1]) ? cant.valor : 1
-        ml += Number(explicito[1]) * n
-        partes.push(`${n > 1 ? n + ' × ' : ''}botella de ${explicito[1]} mL`)
-      } else if (/\b(ml|mililitros?)\b/.test(seg) && cant) { ml += cant.valor; partes.push(`${cant.valor} mL`) }
-      else if (/\blitros?\b/.test(seg) && cant) { ml += cant.valor * 1000; partes.push(`${cant.valor} L`) }
-      else if (/\b(botellas?|termo|garrafa)/.test(seg)) sinTamano = true
-      else if (/\b(vasos?|tazas?)\b/.test(seg) && cant) { ml += cant.valor * VASO_ML; partes.push(`${cant.valor} × ${VASO_ML} mL`) }
-    }
-    if (sinTamano) {
-      seguimiento = { texto: '¿De cuántos ml es tu botella (o si no sabes, pequeña, mediana o grande)?', opciones: ['Pequeña', 'Mediana', 'Grande'], campo_bloqueante: 'botella_ml' }
-    } else if (ml > 0) {
-      const ver = revisarAguaDeltaMl(ml, ctx.hidratacionHoyMl ?? 0)
-      if (ver.tipo === 'imposible') descartado.push({ cita: v.agua.cantidad, motivo: ver.motivo })
-      else {
-        if (ver.tipo === 'aviso') avisos.push(ver.aviso)
-        registros.push({ campo: 'hidratacion', fecha: hoy, delta_ml: ml, confianza: 'media', detalle: partes.join(' + ') })
-      }
-    }
+    const ag = resolverAgua(v.agua, ctx, hoy)
+    registros.push(...ag.registros)
+    descartado.push(...ag.descartado)
+    avisos.push(...ag.avisos)
+    if (ag.seguimiento) anotarDuda({ cita: v.agua.cantidad, seguimiento: ag.seguimiento })
   }
 
   return { registros, descartado, seguimiento, avisos }

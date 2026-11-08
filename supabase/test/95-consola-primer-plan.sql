@@ -9,8 +9,8 @@
 --   3. El asesorado no ve nada (ni su propia fila) y nadie escribe la tabla directamente
 --      desde una sesión de usuario, ni con la capacidad; staff sin aprobar_primer_plan no
 --      puede decidir.
---   4. vencer_primer_plan(): pasa SOLO bajo sin dudas; medio, alto y bajo-con-dudas quedan
---      en espera_bryan; lo que aún no vence no se toca. authenticated no puede llamarla.
+--   4. M2: regla apagada deja todos los vencidos en espera; encendida permite medio clasificado.
+--      Lo que aun no vence no se toca. authenticated no puede llamarla.
 --   5. La fila no se puede crear apuntando al microciclo de otra persona.
 --
 -- Bloque de UUID propio (a1…/b1…/c1…) para no chocar con los otros archivos. ROLLBACK al
@@ -51,8 +51,10 @@ on conflict (id) do update set
 insert into public.capacidades_staff (usuario_id, capacidad) values
   ('b1000000-0000-0000-0000-000000000001', 'leer_entrenamiento'),
   ('b1000000-0000-0000-0000-000000000001', 'aprobar_primer_plan'),
+  ('b1000000-0000-0000-0000-000000000001', 'liberar_prescripcion'),
   ('b1000000-0000-0000-0000-000000000002', 'leer_entrenamiento'),
   ('b1000000-0000-0000-0000-000000000002', 'aprobar_primer_plan'),
+  ('b1000000-0000-0000-0000-000000000002', 'liberar_prescripcion'),
   ('b1000000-0000-0000-0000-000000000002', 'autorizar_excepcion'),
   ('b1000000-0000-0000-0000-000000000003', 'leer_entrenamiento')
 on conflict do nothing;
@@ -264,33 +266,41 @@ end $$;
 reset role;
 
 -- ════════════════════════════════════════════════════════════════════════
--- 4 · vencer_primer_plan(): solo bajo sin dudas pasa; el resto espera a Bryan
+-- 4 · M2: con la regla apagada nadie pasa solo; clasificar no equivale a liberar
 -- ════════════════════════════════════════════════════════════════════════
+-- Clasificado por el sistema, sin revision: debe alcanzar la guarda de regla apagada.
+update public.regla_ventana_primer_plan set activa = false;
+select public.clasificar_primer_plan('c1000000-0000-0000-0000-000000000003', 'bajo', false);
 -- Contexto de servicio: sin sesión de usuario (auth.uid() nulo), como el cron.
 select set_config('request.jwt.claim.sub', '', false);
 set role service_role;
 
 select pruebas.afirmar(
-  (select aprobados from public.vencer_primer_plan()) = 1,
-  'vencer_primer_plan no aprobó exactamente un plan (el bajo sin dudas)'
+  (select aprobados = 0 and a_bryan = 3 from public.vencer_primer_plan()),
+  'la regla apagada debe dejar los tres vencidos en espera sin aprobar'
 );
 
 reset role;
 
 select pruebas.afirmar(
-  (select estado from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000003') = 'vencido_aprobado'
-  and (select decidido_por from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000003') is null,
-  'el bajo sin dudas no quedó vencido_aprobado sin autor'
+  (select estado from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000003') = 'espera_bryan'
+  and (select decidido_por from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000003') is null
+  and (select decidido_en from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000003') is null
+  and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000003') like '%regla de ventana%apagada%',
+  'el bajo clasificado debe esperar sin firma por la regla de ventana apagada'
 );
 
 select pruebas.afirmar(
-  (select estado from public.microciclos where id = 'm-pp-3') = 'activo',
-  'el plan vencido y aprobado no se publicó'
+  (select estado from public.microciclos where id = 'm-pp-3') = 'propuesto',
+  'el plan se publico pese a estar apagada la regla'
 );
 
 select pruebas.afirmar(
   (select estado from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000004') = 'espera_bryan'
-  and (select estado from public.microciclos where id = 'm-pp-4') = 'propuesto',
+  and (select estado from public.microciclos where id = 'm-pp-4') = 'propuesto'
+  -- Revisor 7-nov: espera por SU motivo (sin clasificacion), que se mira antes que la regla:
+  -- con la regla encendida seguiria esperando.
+  and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c1000000-0000-0000-0000-000000000004') like 'Sin clasificacion%',
   'el riesgo medio pasó solo al vencer'
 );
 
@@ -321,6 +331,27 @@ end $$;
 
 reset role;
 
+-- Caso positivo aislado: el sexto plan ahora vence y la regla se enciende como dueno.
+-- Todo se revierte con el ROLLBACK, incluido el registro de cambio de 0143.
+update public.aprobaciones_primer_plan set plazo_hasta = now() - interval '1 minute'
+ where id = 'c1000000-0000-0000-0000-000000000006';
+select public.clasificar_primer_plan('c1000000-0000-0000-0000-000000000006', 'medio', false);
+update public.regla_ventana_primer_plan set activa = true;
+select set_config('request.jwt.claim.sub', '', false);
+set role service_role;
+select pruebas.afirmar(
+  (select aprobados = 1 and a_bryan = 0 from public.vencer_primer_plan()),
+  'la regla encendida no aprobo el medio clasificado sin revision ni dudas'
+);
+reset role;
+select pruebas.afirmar(
+  (select estado = 'vencido_aprobado' and decidido_por is null and decidido_en is not null
+     from public.aprobaciones_primer_plan where microciclo_id = 'm-pp-6')
+  and (select estado = 'activo' from public.microciclos where id = 'm-pp-6')
+  and exists (select 1 from public.activaciones_regla_ventana a
+    join public.avisos_regla_ventana v on v.activacion_id = a.id where a.microciclo_id = 'm-pp-6'),
+  'la regla debe activar con auditoria y aviso, sin firma humana'
+);
 rollback;
 
 \echo 'OK · aprobación del primer plan (0086)'

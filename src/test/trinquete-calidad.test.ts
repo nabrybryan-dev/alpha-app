@@ -36,7 +36,7 @@ const ARCHIVOS_LARGOS: Record<string, number> = {
   'src/features/entrenar/salon/SalonEntrenar.tsx': 1342,
   'src/features/entrenar/visor/VisorPatron.tsx': 1510,
   'src/features/entrenar/visor/motor.ts': 870,
-  'supabase/functions/praxis-registro/index.ts': 973,
+  'supabase/functions/praxis-registro/index.ts': 965, // 7-nov: el cupo salió a cupo.ts al sumar la 0166
 }
 
 /** `archivo:funcion` (con `#n` si el nombre se repite en el archivo) -> complejidad. */
@@ -55,7 +55,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/domain/patrones/movimiento.ts:poseAnimada': 28,
   'src/domain/praxis/conversacion.ts:pasoTrasProponer': 21,
   'src/domain/praxis/ingreso/extraer.ts:validarIngreso': 38,
-  'src/domain/praxis/plan/responder.ts:responderDelPlan': 28,
+  'src/domain/praxis/plan/responder.ts:responderSobreElPlan': 27,
   'src/domain/praxis/registro/comida.ts:resolverComida': 85,
   'src/domain/praxis/registro/ejercicio.ts:sinNombre': 22,
   'src/domain/praxis/registro/esquema.ts:validarExtraccion': 26,
@@ -67,7 +67,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/domain/praxis/registro/resolver.ts:resolverEjercicioDelMensaje': 40,
   'src/domain/praxis/registro/resolver.ts:resolverPropuesta': 101,
   'src/domain/praxis/registro/tarjeta.ts:construirTarjeta': 21,
-  'src/domain/praxis/registro/vida.ts:resolverVida': 98,
+  'src/domain/praxis/registro/vida.ts:resolverVida': 86,
   'src/domain/sujeto/contrato.ts:verificarCifra': 31,
   'src/features/coach/NotasDeLlamada.tsx:NotasDeLlamada': 27,
   'src/features/coach/PanelMicrociclos.tsx:PanelMicrociclos': 23,

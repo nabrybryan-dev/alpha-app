@@ -557,10 +557,10 @@ export interface CheckinDiario {
    * los pasos abren con los del reporte anterior y el sueño con 7 horas; sin esta marca, un dato
    * arrastrado y uno anotado son indistinguibles (ver `domain/estimadores/datoAnotado.ts`).
    *
-   * Ausente en los reportes anteriores al 9-oct-2026: ahí no se sabe. Viaja dentro del `datos`
-   * jsonb, así que no necesita migración.
+   * Ausente en los reportes anteriores al 9-oct-2026: ahí no se sabe. Viaja en el `datos` jsonb: sin migración.
    */
   anotadoHoy?: CampoAnotable[]
+  parcial?: boolean // A medias: falta alguno de los 8; no cuenta hasta completarlo (Bryan, 7-nov-2026; domain/checkinCompleto.ts)
   /**
    * A qué hora se acostó y a qué hora se levantó, en formato `HH:MM` y hora
    * local de la persona. Opcionales: el check-in no se bloquea por ellas.

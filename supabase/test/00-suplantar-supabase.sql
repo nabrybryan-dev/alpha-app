@@ -48,7 +48,9 @@ create table if not exists auth.users (
   -- fila de `usuarios_app`. Sin la columna, cualquier alta revienta con
   -- «record "new" has no field "raw_user_meta_data"» — que suena a fallo del
   -- trigger y es solo que esta tabla de mentira estaba incompleta.
-  raw_user_meta_data jsonb
+  raw_user_meta_data jsonb,
+  -- La 0169 (cadena_canario_restos) ordena por la fecha de alta, como en Supabase.
+  created_at timestamptz not null default now()
 );
 
 -- Las dos cuentas de staff que la 0006 exige.

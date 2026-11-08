@@ -104,7 +104,8 @@ const FALLOS: Record<FalloDelRegistrador, Record<Trato, string>> = {
     usted: 'Van muchos mensajes en la última hora. No anoté este; por ahora use el formulario.',
   },
   // 502 = algo falló de MI lado (el modelo no contestó o su respuesta no se pudo leer): no es que la persona se explicara mal.
-  no_entendi: { tu: 'Se me enredó algo de mi lado y no anoté nada. ¿Me lo repites o lo pasas por el formulario?', usted: 'Se me enredó algo de mi lado y no anoté nada. ¿Me lo repite o lo pasa por el formulario?' },
+  // Bryan, 6-nov: el texto viejo («¿Me lo repites?») invitaba a repetir algo que, sin saldo del modelo, iba a fallar igual.
+  no_entendi: { tu: 'Algo falló de mi lado, no en lo que dijiste, y no anoté nada. Si vuelve a pasar, usa el formulario: puede que no pueda responder por un rato.', usted: 'Algo falló de mi lado, no en lo que dijo, y no anoté nada. Si vuelve a pasar, use el formulario: puede que no pueda responder por un rato.' },
   frase: { tu: 'Esa frase es muy larga para anotarla de una vez. Dímela por partes.', usted: 'Esa frase es muy larga para anotarla de una vez. Dígamela por partes.' },
 }
 

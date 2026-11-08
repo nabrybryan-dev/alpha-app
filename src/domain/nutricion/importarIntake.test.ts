@@ -150,6 +150,89 @@ describe('importarIntake', () => {
     })
   })
 
+  /**
+   * Las opciones EXACTAS que manda la landing (alpha-praxis-chat:
+   * products/web/apps/landing/src/lib/intake/flow.ts, `solo_mujeres_ciclo`):
+   * 'Regular', 'Irregular', 'Amenorrea (ausencia)', 'Menopausia', 'No aplica'.
+   *
+   * POR QUÉ EXISTE. Hasta el 31-oct-2026 el importador solo conocía 'regular',
+   * 'irregular', 'ausente' y 'no aplica'. 'Amenorrea (ausencia)' y 'Menopausia'
+   * caían en `null`: la persona entraba sin ciclo, sin señal, y la app le
+   * enseñaba sus cifras sin que la nutricionista lo mirara — justo a quien
+   * marcó que no le baja.
+   */
+  describe('el ciclo menstrual de la landing', () => {
+    const ciclo = (respuesta: unknown) => importarIntake(con({ solo_mujeres_ciclo: respuesta }))
+    const pideRevision = (respuesta: unknown) => senalesDeLaEncuesta(ciclo(respuesta).respuestas).cicloAlterado
+
+    it.each([
+      ['Regular', false],
+      ['Irregular', true],
+      ['Amenorrea (ausencia)', true],
+      ['Menopausia', true],
+      ['No aplica', false],
+    ])('«%s» → revisión de la nutricionista: %s', (respuesta, esperada) => {
+      expect(pideRevision(respuesta)).toBe(esperada)
+      // El listado del importador dice lo mismo que la compuerta de la app.
+      expect(ciclo(respuesta).senales.length > 0).toBe(esperada)
+    })
+
+    it('la amenorrea es un ciclo ausente, sin nada más que guardar', () => {
+      const { respuestas } = ciclo('Amenorrea (ausencia)')
+      expect(respuestas.cicloMenstrual).toBe('ausente')
+      expect(respuestas.cicloEnLaCaptacion).toBeUndefined()
+    })
+
+    it('la menopausia es un ciclo ausente, y se guarda lo que dijo: no es lo mismo que una amenorrea', () => {
+      const r = ciclo('Menopausia')
+      expect(r.respuestas.cicloMenstrual).toBe('ausente')
+      expect(r.respuestas.cicloEnLaCaptacion).toBe('Menopausia')
+      expect(r.senales.join(' ')).toMatch(/menopausia/i)
+    })
+
+    it('ni las tildes ni las mayúsculas ni los espacios cambian la lectura', () => {
+      for (const variante of ['AMENORREA (AUSENCIA)', '  amenorréa  ( ausencia ) ', 'Amenorrea']) {
+        expect(ciclo(variante).respuestas.cicloMenstrual, variante).toBe('ausente')
+      }
+      expect(ciclo(' MENOPÁUSIA ').respuestas.cicloMenstrual).toBe('ausente')
+      expect(ciclo('IRREGULAR').respuestas.cicloMenstrual).toBe('irregular')
+      expect(ciclo('regular ').respuestas.cicloMenstrual).toBe('regular')
+      expect(ciclo('NO APLICA').respuestas.cicloMenstrual).toBe('prefiere_no_decir')
+    })
+
+    it('una respuesta que no conoce va a revisión, no se ignora (falla hacia el lado seguro)', () => {
+      for (const desconocida of ['Perimenopausia', 'Regular, pero hace 3 meses no me baja', 'Posparto']) {
+        const r = ciclo(desconocida)
+        expect(senalesDeLaEncuesta(r.respuestas).cicloAlterado, desconocida).toBe(true)
+        // No se inventa un valor de la app: se guarda lo que dijo, tal cual.
+        expect(r.respuestas.cicloMenstrual, desconocida).toBeUndefined()
+        expect(r.respuestas.cicloEnLaCaptacion, desconocida).toBe(desconocida)
+        expect(r.senales.join(' '), desconocida).toMatch(/no reconoce/i)
+      }
+    })
+
+    it('sin respuesta, ninguna señal', () => {
+      for (const vacia of [undefined, null, '', '   ']) {
+        const r = ciclo(vacia)
+        expect(r.respuestas.cicloMenstrual).toBeUndefined()
+        expect(r.respuestas.cicloEnLaCaptacion).toBeUndefined()
+        expect(senalesDeLaEncuesta(r.respuestas).cicloAlterado).toBe(false)
+      }
+    })
+
+    it('si el sexo no se reconoce, el ciclo contestado se lee igual: la landing solo se lo pregunta a mujeres', () => {
+      const r = importarIntake(con({ genero: 'Prefiero no decir', solo_mujeres_ciclo: 'Amenorrea (ausencia)' }))
+      expect(senalesDeLaEncuesta(r.respuestas).cicloAlterado).toBe(true)
+    })
+
+    it('a un hombre no se le lee el ciclo', () => {
+      const r = importarIntake(con({ genero: 'Masculino', solo_mujeres_ciclo: 'Menopausia' }))
+      expect(r.respuestas.cicloMenstrual).toBeUndefined()
+      expect(r.respuestas.cicloEnLaCaptacion).toBeUndefined()
+      expect(r.senales).toEqual([])
+    })
+  })
+
   describe('cuando el JSON viene incompleto', () => {
     it('no revienta', () => {
       expect(() => importarIntake({})).not.toThrow()

@@ -61,10 +61,11 @@ describe('quienDecide', () => {
 })
 
 describe('queOcurreAlVencer', () => {
-  it('solo el bajo sin dudas pasa solo', () => {
-    expect(queOcurreAlVencer({ riesgo: 'bajo', estado: 'propuesto', dudasPendientes: [] })).toMatch(/pasa solo/)
+  it('bajo o medio sin dudas pasa solo solo con la aprobación automática; alto o con dudas, nunca', () => {
+    expect(queOcurreAlVencer({ riesgo: 'bajo', estado: 'propuesto', dudasPendientes: [] })).toMatch(/pasa solo al vencer si la aprobación automática está encendida/)
+    expect(queOcurreAlVencer({ riesgo: 'medio', estado: 'propuesto', dudasPendientes: [] })).toMatch(/pasa solo al vencer si la aprobación automática está encendida/)
     expect(queOcurreAlVencer({ riesgo: 'bajo', estado: 'propuesto', dudasPendientes: ['rodilla'] })).toMatch(/no pasa solo/)
-    expect(queOcurreAlVencer({ riesgo: 'medio', estado: 'propuesto', dudasPendientes: [] })).toMatch(/no pasa solo/)
+    expect(queOcurreAlVencer({ riesgo: 'alto', estado: 'propuesto', dudasPendientes: [] })).toMatch(/no pasa solo/)
   })
 })
 

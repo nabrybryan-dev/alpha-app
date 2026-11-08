@@ -1,0 +1,74 @@
+{
+  "version": "guion-llamada-v1",
+  "generado_en": "2026-10-30T15:00:00.000Z",
+  "origen": "modelo",
+  "reserva": {
+    "fecha": "2026-11-05",
+    "hora": "15:00",
+    "en_claro": "el jueves 5 de noviembre a las 3:00 p. m.",
+    "zona": "America/Bogota",
+    "confirmada_en": "2026-10-30T15:00:00.000Z"
+  },
+  "persona": {
+    "nombre": "Persona Ficticia",
+    "email": "persona.ficticia@ejemplo.test",
+    "whatsapp": "+57 300 000 0000",
+    "edad": 31,
+    "edad_tramo": "30-34",
+    "sexo": "mujer",
+    "objetivo": "Bajar grasa",
+    "decision": "Evaluando la inversión",
+    "pasos_al_dia": "menos de 6.000",
+    "dias_de_fuerza": "0 a 1",
+    "experiencia": "Menos de 6 meses",
+    "lugar": "En casa",
+    "molestias": ["rodilla"],
+    "gasto_diario_kcal": 1700,
+    "grasa_estimada_pct": 30
+  },
+  "alerta_salud": { "hay": false, "requiere_aval": false, "menor_de_edad": false },
+  "apertura": "Hola. Soy Manuela, de Alpha. Gracias por hacer tu evaluación. Me contaste que entrenas y sientes que tu cuerpo no responde. ¿Qué es lo que más te ha costado sostener?",
+  "dolores": [
+    { "texto": "Siente que entrena y se esfuerza, pero su cuerpo sigue estancado.", "fuente": "formulario" },
+    { "texto": "Pasa buena parte del día sentada: menos de 6.000 pasos al día.", "fuente": "formulario" },
+    { "texto": "«Empiezo con ganas y a las tres semanas lo dejo.»", "fuente": "palabras" }
+  ],
+  "que_mostrar": [
+    {
+      "tema": "gasto_diario",
+      "titulo": "Su gasto diario",
+      "dato": "1.700 kcal al día (estimado)",
+      "como_decirlo": "Mira tu gasto diario: es la base de tu plan de comida, calculado con tu cuerpo y tu movimiento de hoy."
+    },
+    {
+      "tema": "pasos",
+      "titulo": "Los pasos de cada día",
+      "dato": "Hoy: menos de 6.000 pasos al día",
+      "como_decirlo": "Lo primero que movemos son tus pasos: ahí está el cambio más fácil de sostener."
+    },
+    {
+      "tema": "seguimiento",
+      "titulo": "El seguimiento",
+      "dato": null,
+      "como_decirlo": "Revisamos contigo cómo vas y ajustamos el plan con tus datos."
+    }
+  ],
+  "objeciones_probables": [
+    {
+      "tipo": "tiempo",
+      "objecion": "«No tengo tiempo»",
+      "respuesta": "Por eso el plan parte de los días que sí tienes y de entrenar en casa. Si una semana se complica, lo ajustamos."
+    },
+    {
+      "tipo": "lo_voy_a_pensar",
+      "objecion": "«Lo voy a pensar»",
+      "respuesta": "Claro, piénsalo con calma; tu evaluación queda guardada. ¿Te queda alguna duda?"
+    }
+  ],
+  "cierre": "Si te sirve, el siguiente paso es completar tu primer mes. ¿Te envío el enlace?",
+  "avisos": ["Confirma si ya pagó el abono.", "No prometas kilos ni plazos, y no comentes su aspecto."],
+  "recomendaciones_praxis": [
+    "Suma pasos a tu promedio diario esta semana: primero se mueve el gasto y solo después se toca la comida.",
+    "No fuerces lo que molesta en tu rodilla: en tu plan esos movimientos se reemplazan."
+  ]
+}

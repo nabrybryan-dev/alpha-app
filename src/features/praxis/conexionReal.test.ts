@@ -30,6 +30,14 @@ describe('crearConexionPraxis', () => {
   beforeEach(() => localStorage.clear())
   afterEach(() => vi.clearAllMocks())
 
+  it('con la bandera encendida ofrece el check-in por conectores; yaHoy lee solo el check-in de HOY de la persona', async () => {
+    const c = crearConexionPraxis('u-valentina', () => {})
+    expect(c.checkin).toBeDefined()
+    expect(Array.isArray(c.checkin?.yaHoy())).toBe(true)
+    // Sin nube (modo demo) lo aprendido sale vacío y no hay red.
+    expect(await c.checkin?.lexico()).toEqual([])
+  })
+
   it('lee lo de la persona con sesión, ya pasado por la lista blanca', () => {
     const c = crearConexionPraxis('u-valentina', () => {})
     const ve = c.leer()
