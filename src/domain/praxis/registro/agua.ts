@@ -6,7 +6,7 @@
 import { normalizarTexto, numeroDeCita, type NumeroDeCita } from './numeros.ts'
 import { buscarRango, separarPegado, variantesDeRango } from './dictado.ts'
 import { revisarAguaDeltaMl } from './limites.ts'
-import { conflictoDeCifras, unidadAjena } from './guardas.ts'
+import { clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, unidadAjena } from './guardas.ts'
 import { VASO_ML } from './medidas.ts'
 import type { ContextoRegistro, Pregunta, RegistroHidratacion } from './tipos.ts'
 
@@ -131,14 +131,23 @@ export function resolverAgua(agua: { cantidad: string; medida: string | null }, 
     return salida
   }
   // «dos vasos, no, tres»: dos cifras en conflicto, se pregunta cuál (antes ganaba la primera).
-  const choque = conflictoDeCifras(normalizarTexto(dicho.replace(/(\d),(\d)/g, '$1.$2')))
+  const choque = conflictoDeCifras(quitarRelojes(normalizarTexto(dicho.replace(/(\d),(\d)/g, '$1.$2'))))
   if (choque) {
     const unidad = normalizarTexto(dicho).split(' ').find((t) => /^(vasos?|litros?|ml|botellas?|tazas?)$/.test(t))
     const et = (v: number) => (unidad ? `${v} ${unidad}` : String(v))
     salida.seguimiento = { texto: `Dijiste «${dicho}»: ¿cuál fue?`, opciones: [et(choque[0].valor), et(choque[1].valor)], campo_bloqueante: 'agua_cantidad' }
     return salida
   }
-  const { ml, partes, sinTamano } = mlDeAgua(dicho)
+  const norma = normalizarTexto(dicho)
+  // «ni un vaso», «ningún vaso»: es cero, no 1 vaso. «ni 3 vasos» es una cota: se pregunta cuánta fue.
+  if (/\bni (un|una|uno)\b|\bningun[oa]?\b/.test(norma)) return salida
+  if (esCota(norma)) {
+    salida.seguimiento = PREGUNTA_CUANTA
+    return salida
+  }
+  // «a las 8 me tomé 2 vasos»: la hora no es la cantidad (daba 8 vasos).
+  const sinReloj = clausulasDeReloj(norma).length > 0 ? quitarRelojes(norma) : dicho
+  const { ml, partes, sinTamano } = mlDeAgua(sinReloj)
   if (sinTamano) salida.seguimiento = PREGUNTA_BOTELLA
   else if (ml > 0) {
     const ver = revisarAguaDeltaMl(ml, ctx.hidratacionHoyMl ?? 0)
