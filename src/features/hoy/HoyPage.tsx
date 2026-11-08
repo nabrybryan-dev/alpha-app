@@ -2,7 +2,6 @@ import { nombreDelMicrociclo, palabraMicrociclo, siglaDelMicrociclo } from '../.
 import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
-import { AnilloDelDia } from '../../components/ui/AnilloDelDia'
 import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
@@ -29,7 +28,8 @@ import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
-import { HOY_CON_ANILLO } from './banderas'
+import { AnilloDeHoy } from './AnilloDeHoy'
+import { hoyConAnillo, marcoDeHoy } from './reglasDelAnillo'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
 import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
 import { PedirPermiso } from '../avisos/PedirPermiso'
@@ -489,18 +489,7 @@ export default function HoyPage() {
   // staff conserva el tema claro de main (`data-theme="light"`, más abajo) hasta el paso 9.
   const marco = '-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5'
 
-  // C1 (bandera apagada por defecto): el anillo del día y las tarjetas a 22 px, solo asesorado.
-  // DECISIÓN PENDIENTE DE BRYAN: no existe en Hoy un dato claro de «hecho del día» (lo que hay
-  // es el cumplimiento de la SEMANA, `cumplimientoSemana`, y `sesionHecha`, que es de una
-  // sesión). No se inventa una cuenta: el anillo queda con «sin dato» (raya, no cero) hasta
-  // que Bryan diga cuál es. Rojo y plata son los tokens existentes (`--rojo`, `--placa`).
-  const conAnillo = HOY_CON_ANILLO && !esStaff
-  const hechoDelAnillo: number | undefined = undefined
-  const anilloDelDia = conAnillo ? (
-    <div className="entrada entrada-2 flex justify-center">
-      <AnilloDelDia hecho={hechoDelAnillo} subtitulo="del día" etiqueta="Sin dato del día" />
-    </div>
-  ) : null
+  const conAnillo = hoyConAnillo(esStaff)
 
   if (esStaff) {
     // «Mi día» del staff (maqueta «Espacios de Alpha», 28-sep): igual que antes de las bandas.
@@ -545,7 +534,7 @@ export default function HoyPage() {
 
   // El asesorado, en tres bandas: 0 (solo si aplica) · Hoy · La semana · El resto.
   return (
-    <div className={conAnillo ? `${marco} hoy-con-anillo` : marco}>
+    <div className={marcoDeHoy(marco, conAnillo)}>
       {encabezado}
 
       {/* Banda 0: lo que se dice antes que nada. Sin nada que decir, no ocupa sitio. */}
@@ -556,7 +545,7 @@ export default function HoyPage() {
       {/* Banda 1: lo de hoy. La sesión primero (04 §1.2: estaba en el puesto 9 de 19); la
           pregunta del día va justo detrás porque es de dolor. */}
       <section aria-label="Lo de hoy" className="flex flex-col gap-4">
-        {anilloDelDia}
+        <AnilloDeHoy visible={conAnillo} />
         {tarjetaSesion}
         {carteles}
         {preguntaDeLaCadena}
