@@ -9,7 +9,7 @@ import {
   ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
   type NumeroEncontrado,
 } from './numeros.ts'
-import { clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, rangoSinConector } from './guardas.ts'
+import { clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, rangoSinConector, unidadAjena } from './guardas.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
@@ -18,6 +18,8 @@ export type Lectura<T = number> =
   /** Se entendió algo pero hay que confirmarlo (p. ej. «7:30» sin unidad): se pregunta, no se guarda. */
   | { tipo: 'confirmar'; texto: string; opciones: string[] }
   | { tipo: 'vago' }
+  /** La cifra trae otra unidad («5 km», «25 años»): no se anota; `ofrecer` pide el dato en la unidad del campo. */
+  | { tipo: 'ajena'; unidad: string; ofrecer: boolean }
   | null
 
 const esCifra = (t: string): boolean => valorLiteral(t) !== null || ES_PALABRA_NUMERICA(t) || /^(minutos?|mins?)$/.test(t)
@@ -167,6 +169,8 @@ export function leerSueno(cita: string): Lectura {
   // Las horas de reloj de la frase («a las 2 me desperté y dormí 4 horas») no son horas dormidas.
   const n = quitarRelojes(completo)
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
+  const ajena = unidadAjena(n, 'sueno')
+  if (ajena) return { tipo: 'ajena', ...ajena }
   if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
   const r = buscarRango(n) ?? rangoSinConector(n)
   if (r) return { tipo: 'rango', etiquetas: [`${fmt(r.a.valor)} horas`, `${fmt(r.b.valor)} horas`] }
@@ -214,6 +218,8 @@ export function leerPasos(cita: string): Lectura {
   const completo = textoDePasos(cita)
   const n = quitarRelojes(completo)
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
+  const ajena = unidadAjena(n, 'pasos')
+  if (ajena) return { tipo: 'ajena', ...ajena }
   if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
   const choque = conflictoDeCifras(n)
   if (choque) return { tipo: 'rango', etiquetas: [`${conMiles(choque[0].valor)} pasos`, `${conMiles(choque[1].valor)} pasos`] }
@@ -256,6 +262,8 @@ export function leerHora(cita: string | null | undefined, contexto: 'acostarse' 
   }
   // Dos horas de reloj en la cita («a las 5 pero me levanté a las 6», «no a las 10 sino a las 11»): no se mezclan
   // (daba 05:06); se pregunta cuál. Si alguna no se puede leer, queda visible como vago.
+  const ajena = unidadAjena(n, 'hora')
+  if (ajena) return { tipo: 'ajena', ...ajena }
   const clausulas = clausulasDeReloj(n)
   if (clausulas.length >= 2) {
     const a = horaUna(clausulas[0], contexto)
@@ -281,6 +289,10 @@ const PEDIR: Record<CampoDictado, string> = {
   agua_cantidad: '¿Cuánta agua fue?',
 }
 
+const UNIDAD_DEL_CAMPO: Record<CampoDictado, string> = {
+  horasSueno: 'horas de sueño', pasos: 'pasos', horaAcostarse: 'una hora del reloj', horaLevantarse: 'una hora del reloj', agua_cantidad: 'agua',
+}
+
 export interface Duda {
   /** Lo que la persona dijo, para mostrarlo si esta duda no cabe en la pregunta del momento. */
   cita?: string
@@ -296,6 +308,13 @@ export function dudaDe(l: Lectura<unknown>, cita: string | null | undefined, cam
   }
   if (l.tipo === 'confirmar') {
     return { cita, seguimiento: { texto: l.texto, opciones: l.opciones, campo_bloqueante: campo } }
+  }
+  if (l.tipo === 'ajena') {
+    return {
+      cita,
+      descartado: { cita, motivo: `está en ${l.unidad}, no en ${UNIDAD_DEL_CAMPO[campo]}, así que no se guardó` },
+      ...(l.ofrecer ? { seguimiento: { texto: PEDIR[campo], opciones: [], campo_bloqueante: campo } } : {}),
+    }
   }
   if (l.tipo === 'vago') {
     return {

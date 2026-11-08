@@ -26,6 +26,29 @@ export function quitarRelojes(n: string): string {
   return n.replace(CLAUSULA_RELOJ, ' ').replace(/\s+/g, ' ').trim()
 }
 
+const AJENAS = /^(anos?|series?|repeticiones|reps?|pisos?|pesos|dolares|kilos?|kg|libras?|pedidos?|personas|dias?|semanas?|meses|calorias|kcal|gramos|grados|cuotas)$/
+const DISTANCIA_O_TIEMPO = /^(km|kms|kilometros?|metros?|minutos?|mins?|horas?)$/
+
+export type CampoDeUnidad = 'pasos' | 'sueno' | 'hora' | 'agua'
+
+/**
+ * La cifra va con una unidad que no es la de ese campo («5 km», «30 minutos», «25 años», «3 series de 8»,
+ * «8 horas de trabajo»): no se anota. `ofrecer` es true si la unidad es una forma de medir lo mismo (distancia o
+ * tiempo caminado) y vale la pena pedir el dato en su unidad.
+ */
+export function unidadAjena(n: string, campo: CampoDeUnidad): { unidad: string; ofrecer: boolean } | null {
+  const tokens = n.split(' ').filter(Boolean)
+  const primero = escanearNumeros(n)[0]
+  if (!primero) return null
+  const u = tokens[primero.hasta] ?? ''
+  if (AJENAS.test(u) || (campo !== 'agua' && campo !== 'hora' && /^(veces|vez)$/.test(u))) return { unidad: u, ofrecer: false }
+  if (campo === 'pasos' && DISTANCIA_O_TIEMPO.test(u)) return { unidad: u, ofrecer: true }
+  if (campo === 'sueno' && /^(horas?|minutos?) de (trabajo|turno|oficina|estudio|clase|manejo)\b/.test(tokens.slice(primero.hasta).join(' '))) {
+    return { unidad: tokens.slice(primero.hasta, primero.hasta + 3).join(' '), ofrecer: false }
+  }
+  return null
+}
+
 const UNIDAD_DE_CIFRA = /^(horas?|hrs?|mil|pasos?|vasos?|litros?|minutos?|mins?)$/
 
 /**

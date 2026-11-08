@@ -6,7 +6,7 @@
 import { normalizarTexto, numeroDeCita, type NumeroDeCita } from './numeros.ts'
 import { buscarRango, separarPegado, variantesDeRango } from './dictado.ts'
 import { revisarAguaDeltaMl } from './limites.ts'
-import { conflictoDeCifras } from './guardas.ts'
+import { conflictoDeCifras, unidadAjena } from './guardas.ts'
 import { VASO_ML } from './medidas.ts'
 import type { ContextoRegistro, Pregunta, RegistroHidratacion } from './tipos.ts'
 
@@ -122,6 +122,12 @@ export function resolverAgua(agua: { cantidad: string; medida: string | null }, 
   const rango = buscarRango(normalizarTexto(dicho.replace(/(\d),(\d)/g, '$1.$2')))
   if (rango) {
     salida.seguimiento = { texto: `Dijiste «${dicho}»: ¿cuál fue?`, opciones: variantesDeRango(rango), campo_bloqueante: 'agua_cantidad' }
+    return salida
+  }
+  // «70 kilos», «25 años»: la cifra es de otra cosa; no se pregunta cuánta agua fue.
+  const ajena = unidadAjena(normalizarTexto(dicho), 'agua')
+  if (ajena) {
+    salida.descartado.push({ cita: agua.cantidad, motivo: `está en ${ajena.unidad}, no en agua, así que no se guardó` })
     return salida
   }
   // «dos vasos, no, tres»: dos cifras en conflicto, se pregunta cuál (antes ganaba la primera).
