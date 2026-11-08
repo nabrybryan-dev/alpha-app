@@ -9,7 +9,7 @@ import {
   ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
   type NumeroEncontrado,
 } from './numeros.ts'
-import { clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, rangoSinConector, unidadAjena } from './guardas.ts'
+import { articuloSuelto, clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, rangoSinConector, unidadAjena } from './guardas.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
@@ -171,6 +171,7 @@ export function leerSueno(cita: string): Lectura {
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
   const ajena = unidadAjena(n, 'sueno')
   if (ajena) return { tipo: 'ajena', ...ajena }
+  if (articuloSuelto(n, /^(horas?|hrs?|h|minutos?|mins?)$/)) return { tipo: 'vago' }
   if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
   const r = buscarRango(n) ?? rangoSinConector(n)
   if (r) return { tipo: 'rango', etiquetas: [`${fmt(r.a.valor)} horas`, `${fmt(r.b.valor)} horas`] }
@@ -220,6 +221,7 @@ export function leerPasos(cita: string): Lectura {
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
   const ajena = unidadAjena(n, 'pasos')
   if (ajena) return { tipo: 'ajena', ...ajena }
+  if (articuloSuelto(n, /^(pasos?|mil)$/)) return { tipo: 'vago' }
   if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
   const choque = conflictoDeCifras(n)
   if (choque) return { tipo: 'rango', etiquetas: [`${conMiles(choque[0].valor)} pasos`, `${conMiles(choque[1].valor)} pasos`] }

@@ -49,6 +49,17 @@ export function unidadAjena(n: string, campo: CampoDeUnidad): { unidad: string; 
   return null
 }
 
+/**
+ * «un camello», «como un tronco», «una noche entera», «un resto»: «un/una» es el artículo, no la cifra 1. Solo es 1
+ * si lo sigue la unidad del campo («una hora», «un paso»).
+ */
+export function articuloSuelto(n: string, unidad: RegExp): boolean {
+  const e = escanearNumeros(n)[0]
+  if (!e || e.hasta - e.desde !== 1) return false
+  const tokens = n.split(' ').filter(Boolean)
+  return /^(un|una|uno)$/.test(tokens[e.desde]) && !unidad.test(tokens[e.hasta] ?? '')
+}
+
 const UNIDAD_DE_CIFRA = /^(horas?|hrs?|mil|pasos?|vasos?|litros?|minutos?|mins?)$/
 
 /**
