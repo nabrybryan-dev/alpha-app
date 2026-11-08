@@ -247,6 +247,8 @@ export function leerHora(cita: string | null | undefined, contexto: 'acostarse' 
   const n = normalizarTexto(crudo)
   if (/\bmedianoche\b/.test(n)) return { tipo: 'valor', valor: '00:00', aproximado: false }
   if (/\bmediodia\b/.test(n)) return { tipo: 'valor', valor: '12:00', aproximado: false }
+  // «a las 12 y pico de la noche»: el «y pico» deja la hora abierta; no se inventa la hora en punto.
+  if (/\by (pico|piquito)\b/.test(n)) return { tipo: 'vago' }
   const r = buscarRango(n)
   if (r) {
     const [a, b] = variantesDeRango(r).map((x) => horaUna(x, contexto))
