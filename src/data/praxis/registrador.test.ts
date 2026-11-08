@@ -21,6 +21,41 @@ function conFetch(respuesta: { status: number; cuerpo?: unknown } | Error) {
 
 afterEach(() => vi.unstubAllGlobals())
 
+/** Un fetch que nunca contesta, salvo que lo corten con la señal (como en una red mala). */
+function conFetchColgado() {
+  const espia = vi.fn((_url: string, opciones?: RequestInit) => new Promise<Response>((_res, rechazar) => {
+    opciones?.signal?.addEventListener('abort', () => rechazar(new DOMException('cortado', 'AbortError')))
+  }))
+  vi.stubGlobal('fetch', espia)
+  return espia
+}
+
+describe('tiempo límite (Bryan, 6-nov: «se demora mucho en contestar»)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('proponer corta a los 20 s y lo dice como red, en vez de esperar sin fin', async () => {
+    vi.useFakeTimers()
+    conFetchColgado()
+    const r = proponerRegistro(sesion, { frase: 'x', mensajeId: 'm1', horaLocal: 'h' })
+    await vi.advanceTimersByTimeAsync(19_999)
+    let listo = false
+    void r.then(() => { listo = true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(listo).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(await r).toEqual({ ok: false, motivo: 'red' })
+  })
+
+  it('guardar NO se corta: escribe, y cortarlo invitaría a guardar dos veces', async () => {
+    vi.useFakeTimers()
+    const espia = conFetchColgado()
+    void guardarRegistro(sesion, { mensajeId: 'm1', registros: [{ tarjeta_id: 'm1:0' }] } as never)
+    await vi.advanceTimersByTimeAsync(0)
+    const [, opciones] = espia.mock.calls[0] as unknown as [string, RequestInit]
+    expect(opciones.signal).toBeUndefined()
+  })
+})
+
 describe('proponerRegistro', () => {
   it('llama a la función con el JWT de la persona y sin mandar quién es', async () => {
     const espia = conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: {} } })
@@ -32,6 +67,14 @@ describe('proponerRegistro', () => {
     expect((opciones.headers as Record<string, string>).authorization).toBe('Bearer jwt-de-la-persona')
     const cuerpo = JSON.parse(opciones.body as string)
     expect(cuerpo).toEqual({ frase: 'seguí el plan', mensaje_id: 'm1', hora_local: '2026-10-01T08:00:00-05:00', hidratacion_hoy_ml: 500 })
+    expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
+  })
+
+  it('0166: manda a qué charla y en qué turno va la frase, sin decir quién es', async () => {
+    const espia = conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: {} } })
+    await proponerRegistro(sesion, { frase: 'hola', mensajeId: 'm1', horaLocal: 'h', memoria: { charlaId: 'c-1', turno: 3 } })
+    const cuerpo = JSON.parse((espia.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(cuerpo.memoria_charla).toEqual({ charla_id: 'c-1', turno: 3 })
     expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
   })
 

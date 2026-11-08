@@ -20,7 +20,7 @@ const SES = { access_token: 'jwt', url: 'https://x.supabase.co' }
 const ID_A = '11111111-1111-4111-8111-111111111111'
 const ID_B = '22222222-2222-4222-8222-222222222222'
 const TARJETA = (id: string) => ({ campo: 'deshacer', registro_id: id, tipo: 'series', descripcion: '3 series', vence_en: '2026-11-05T15:02:00.000Z', token: `firma-${id.slice(0, 2)}` })
-const veVacio: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo', 'perfil', 'checkins', 'plan_de_comida'] }
+const veVacio: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo', 'perfil', 'checkins', 'plan_de_comida'] }
 
 type Cuerpo = Record<string, unknown>
 interface Red { proponer: () => { status: number; cuerpo: unknown }; deshacer: (c: Cuerpo) => { status: number; cuerpo: unknown } | Promise<{ status: number; cuerpo: unknown }> }

@@ -7,7 +7,7 @@ import { SALUD_SIN_REGISTRO, decidirTurno, pasoTrasProponer, resumenDeGuardado, 
  * seguridad: primero el filtro de riesgo por reglas, después lo que se contesta sin
  * modelo, y solo al final el registrador (que es el único camino que llega a un modelo).
  */
-const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo'] }
+const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo'] }
 const HOY = '2026-10-01'
 
 describe('decidirTurno · seguridad primero', () => {
@@ -95,7 +95,7 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
     ['sin_sesion', /sesión/],
     ['red', /conexión/],
     ['limite', /muchos mensajes/],
-    ['no_entendi', /Se me enredó algo de mi lado/],
+    ['no_entendi', /^Algo falló de mi lado, no en lo que dijiste/],
   ] as const)('si el registrador falla (%s) lo dice y no inventa un registro', (motivo, patron) => {
     const p = pasoTrasProponer({ ok: false, motivo }, 'tu')
     expect(p.paso).toBe('fallo')

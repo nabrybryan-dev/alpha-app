@@ -273,3 +273,71 @@ describe('loQuePraxisVe · datos a medias', () => {
     expect(loQuePraxisVe(crudo({ hidratacionHoyMl: undefined }), HOY).hidratacionHoyMl).toBe(0)
   })
 })
+
+describe('loQuePraxisVe · agua, check-in de hoy y semana (solo lo propio, sin rellenar)', () => {
+  const otra = { usuarioId: 'otro' }
+  const adh = (fecha: string, estado: 'si' | 'parcial' | 'no', extra: Record<string, unknown> = {}) => ({ id: `a-${fecha}`, usuarioId: 'u1', fecha, estado, ...extra })
+
+  it('el agua de hoy sale con su fecha; sin nada anotado es null, no 0', () => {
+    expect(loQuePraxisVe(crudo(), HOY).aguaHoy).toEqual({ fecha: HOY, ml: 750 })
+    expect(loQuePraxisVe(crudo({ hidratacionHoyMl: 0 }), HOY).aguaHoy).toBeNull()
+    expect(loQuePraxisVe(crudo({ hidratacionHoyMl: undefined }), HOY).aguaHoy).toBeNull()
+    expect(loQuePraxisVe(crudo({ hidratacionHoyMl: -5 }), HOY).aguaHoy).toBeNull()
+  })
+
+  it('el check-in de hoy es el de hoy, no el de ayer, y sin el peso', () => {
+    const ve = loQuePraxisVe(crudo({ checkins: [checkin('2026-09-30', { pasos: 1234 })] }), HOY)
+    expect(ve.checkinHoy).toBeNull()
+    const hoy = loQuePraxisVe(crudo(), HOY).checkinHoy
+    expect(hoy?.campos.fecha).toBe(HOY)
+    expect(hoy?.campos.pasos).toBe(9000)
+    expect(JSON.stringify(hoy)).not.toContain('pesoKg')
+  })
+
+  it('lo arrastrado no se presenta como anotado: solo `anotadoHoy` lo prueba', () => {
+    const p = (anotadoHoy?: CheckinDiario['anotadoHoy']) => loQuePraxisVe(crudo({ checkins: [checkin(HOY, { anotadoHoy })] }), HOY).checkinHoy?.procedencia
+    expect(p(['pasos'])).toEqual({ pasos: 'anotado', horasSueno: 'arrastrado' })
+    expect(p([])).toEqual({ pasos: 'arrastrado', horasSueno: 'arrastrado' })
+    expect(p(['horasSueno'])).toEqual({ pasos: 'arrastrado', horasSueno: 'anotado' })
+    expect(p(undefined)).toEqual({ pasos: 'sin_marca', horasSueno: 'sin_marca' })
+  })
+
+  it('un número que el check-in no trae no lleva procedencia ni valor por omisión', () => {
+    const c = checkin(HOY, { anotadoHoy: [] })
+    delete c.pasos
+    delete c.horasSueno
+    const hoy = loQuePraxisVe(crudo({ checkins: [c] }), HOY).checkinHoy
+    expect(hoy?.procedencia).toEqual({})
+    expect(hoy?.campos).not.toHaveProperty('pasos')
+    expect(hoy?.campos).not.toHaveProperty('horasSueno')
+  })
+
+  it('la semana en curso cuenta de lunes a hoy (jueves 2026-10-01: lunes 09-28)', () => {
+    const ve = loQuePraxisVe(crudo({ adherencias: [adh('2026-09-27', 'no'), adh('2026-09-28', 'si'), adh('2026-09-30', 'parcial'), adh('2026-10-01', 'si'), adh('2026-10-02', 'no')] }), HOY)
+    expect(ve.adherenciaSemana).toEqual({ desde: '2026-09-28', hasta: HOY, si: 2, parcial: 1, no: 0, diasTranscurridos: 4 })
+  })
+
+  it('en domingo la semana llega al lunes anterior; en lunes es solo hoy', () => {
+    expect(loQuePraxisVe(crudo({ adherencias: [adh('2026-10-04', 'si')] }), '2026-10-04').adherenciaSemana).toMatchObject({ desde: '2026-09-28', diasTranscurridos: 7 })
+    expect(loQuePraxisVe(crudo({ adherencias: [adh('2026-10-05', 'si'), adh('2026-10-04', 'no')] }), '2026-10-05').adherenciaSemana).toMatchObject({ desde: '2026-10-05', si: 1, no: 0, diasTranscurridos: 1 })
+  })
+
+  it('sin registros esta semana es null, no ceros; dos marcas el mismo día cuentan una', () => {
+    expect(loQuePraxisVe(crudo({ adherencias: [adh('2026-09-20', 'si')] }), HOY).adherenciaSemana).toBeNull()
+    expect(loQuePraxisVe(crudo({ adherencias: [adh('2026-10-01', 'no'), adh('2026-10-01', 'si')] }), HOY).adherenciaSemana).toMatchObject({ si: 1, no: 0 })
+  })
+
+  it('AISLAMIENTO: con dos personas en el almacén, nada de la otra se ve', () => {
+    const ve = loQuePraxisVe(crudo({
+      checkins: [checkin(HOY, { ...otra, pasos: 777, anotadoHoy: ['pasos'] })],
+      adherencias: [adh(HOY, 'si', otra), adh('2026-09-29', 'parcial', otra)],
+      hidratacionHoyMl: 0,
+    }), HOY)
+    expect(ve.checkinHoy).toBeNull()
+    expect(ve.adherenciaSemana).toBeNull()
+    expect(ve.aguaHoy).toBeNull()
+    const mezcla = loQuePraxisVe(crudo({ checkins: [checkin(HOY, { ...otra, pasos: 777 }), checkin(HOY)], adherencias: [adh(HOY, 'no', otra), adh(HOY, 'si')] }), HOY)
+    expect(mezcla.checkinHoy?.campos.pasos).toBe(9000)
+    expect(mezcla.adherenciaSemana).toMatchObject({ si: 1, no: 0 })
+  })
+})

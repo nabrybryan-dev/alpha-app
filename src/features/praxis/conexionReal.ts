@@ -3,8 +3,10 @@ import { leerLoQuePraxisVe } from '../../data/praxis/fuente'
 import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/preguntasEnEspera'
 import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
 import { deshacerRegistro, elegirParaDeshacer } from '../../data/praxis/deshacer'
-import { aplicarAguaDePraxis } from '../../data/praxis/agua'
+import { aplicarAguaDePraxis, fijarTotalDelDia } from '../../data/praxis/agua'
 import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
+import { camposLlenosHoy, guardarCheckinDePraxis, leerMiLexico } from '../../data/praxis/checkin'
+import { CONECTORES_EN_TARJETA } from '../../domain/praxis/registro/tarjetaCheckin'
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
@@ -47,6 +49,7 @@ export function crearConexionPraxis(
         // Solo cuando la persona eligió un ejercicio con un toque: si no, no viaja.
         ...(contexto?.pantallaEjercicioId ? { pantallaEjercicioId: contexto.pantallaEjercicioId } : {}),
         ...(contexto?.charla ? { charla: contexto.charla } : {}),
+        ...(contexto?.memoria ? { memoria: contexto.memoria } : {}),
         horaLocal: horaLocalIso(),
         hidratacionHoyMl: ve.hidratacionHoyMl,
         verComposicion: ve.comida ? ve.comida.verCifras : false,
@@ -62,8 +65,17 @@ export function crearConexionPraxis(
     },
     deshacer: {
       elegir: async (registroId) => elegirParaDeshacer(await sesionDeFunciones(), registroId),
-      confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p),
+      // Agua deshecha: el teléfono fija el total que quedó en la base (ver `data/praxis/deshacer.ts`).
+      confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p, (fecha, ml) => fijarTotalDelDia(db.nutricion, usuarioId, fecha, ml)),
     },
+    // Check-in desde lo que la persona cuenta: SOLO con la bandera encendida (apagada = no existe y nada cambia).
+    ...(CONECTORES_EN_TARJETA ? {
+      checkin: {
+        yaHoy: () => camposLlenosHoy(db.bienestar.byUsuario(usuarioId).find((c) => c.fecha === hoy)),
+        lexico: () => leerMiLexico(),
+        guardar: (p: Parameters<NonNullable<ConexionPraxis['checkin']>['guardar']>[0]) => guardarCheckinDePraxis({ usuarioId, ...p }),
+      },
+    } : {}),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),
     irAlFormulario,

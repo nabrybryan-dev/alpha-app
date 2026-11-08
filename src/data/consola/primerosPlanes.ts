@@ -90,7 +90,12 @@ export function aPrimerPlan(fila: FilaPrimerPlan): PrimerPlan | null {
  *  pantalla decía «Nada esperando tu firma» con la red caída. */
 export type LecturaBandeja<T> = { ok: true; datos: T[] } | { ok: false; error: string }
 
-/** Los que siguen pendientes (`propuesto` o `espera_bryan`). Nunca lanza: ante un error, sin
+/** El canario diario de la cadena (migración 0169) crea un primer plan de una persona inventada
+ *  con este prefijo de microciclo y lo borra a los segundos. No es trabajo de nadie: la bandeja
+ *  no lo enseña, tampoco si un borrado falla y sobrevive a su pasada. */
+export const PREFIJO_MICROCICLO_CANARIO = 'PRUEBA-AGENTES-CANARIO-'
+
+/** Los que siguen pendientes (`propuesto` o `espera_bryan`), sin el canario. Nunca lanza: ante un error, sin
  *  conexión o sin permiso, `{ ok: false, error }`. En demo, la bandeja está vacía de verdad. */
 export async function primerosPlanesPendientes(): Promise<LecturaBandeja<PrimerPlan>> {
   if (!modoNube) return { ok: true, datos: [] }
@@ -99,6 +104,7 @@ export async function primerosPlanesPendientes(): Promise<LecturaBandeja<PrimerP
       .from(TABLA_PRIMER_PLAN)
       .select(SELECCION)
       .in('estado', ['propuesto', 'espera_bryan'])
+      .not('microciclo_id', 'like', `${PREFIJO_MICROCICLO_CANARIO}%`)
       .order('plazo_hasta', { ascending: true })
     if (error) return { ok: false, error: error.message || 'No se pudo leer la bandeja.' }
     if (!data) return { ok: false, error: 'La base no devolvió la bandeja.' }

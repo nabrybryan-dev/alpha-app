@@ -42,6 +42,27 @@ describe('deshacerRegistro: POST /deshacer con la tarjeta firmada y el confirmad
   })
 })
 
+describe('deshacerRegistro: el agua deshecha se fija en el teléfono', () => {
+  it('deshecho con agua: avisa la fecha y el total que quedaron', async () => {
+    conFetch({ status: 200, cuerpo: { tipo: 'deshacer', resultado: 'deshecho', texto: 'x', agua: { fecha: '2026-11-05', total_ml: 1000 } } })
+    const fijar = vi.fn()
+    expect(await deshacerRegistro(sesion, { tarjeta, mensajeId: 'm' }, fijar)).toBe('deshecho')
+    expect(fijar).toHaveBeenCalledWith('2026-11-05', 1000)
+  })
+  it.each([
+    ['sin agua', { tipo: 'deshacer', resultado: 'deshecho', texto: 'x' }, 200],
+    ['no deshecho', { tipo: 'deshacer', resultado: 'cambio_despues', texto: 'x', agua: { fecha: '2026-11-05', total_ml: 1000 } }, 200],
+    ['fecha rara', { tipo: 'deshacer', resultado: 'deshecho', texto: 'x', agua: { fecha: 'hoy', total_ml: 1000 } }, 200],
+    ['total fuera de rango', { tipo: 'deshacer', resultado: 'deshecho', texto: 'x', agua: { fecha: '2026-11-05', total_ml: 10001 } }, 200],
+    ['estado de error', { tipo: 'deshacer', resultado: 'deshecho', texto: 'x', agua: { fecha: '2026-11-05', total_ml: 1000 } }, 502],
+  ])('%s: no toca el agua del teléfono', async (_n, cuerpo, status) => {
+    conFetch({ status, cuerpo })
+    const fijar = vi.fn()
+    await deshacerRegistro(sesion, { tarjeta, mensajeId: 'm' }, fijar)
+    expect(fijar).not.toHaveBeenCalled()
+  })
+})
+
 describe('elegirParaDeshacer: POST /deshacer {elegir}', () => {
   it('devuelve la confirmación de ese candidato y manda solo {elegir}', async () => {
     const espia = conFetch({ status: 200, cuerpo: { tipo: 'deshacer', propuesta: { accion: 'confirmar_deshacer', texto: 'Voy a quitar…', botones: [], tarjeta } } })

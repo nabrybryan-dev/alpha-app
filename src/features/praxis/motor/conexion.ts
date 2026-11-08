@@ -7,6 +7,10 @@ import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
 import type { RespuestaDeElegir } from '../../../data/praxis/deshacer'
 import type { ResultadoDeshacer, TarjetaFirmada } from '../../../domain/praxis/deshacer/pantalla'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
+import type { ResultadoGuardarCheckin } from '../../../data/praxis/checkin'
+import type { FormaAprendida } from '../../../domain/praxis/registro/lexicoPersona'
+import type { CampoCheckin } from '../../../domain/praxis/registro/mensajeLargo'
+import type { Confirmado } from '../../../domain/praxis/registro/tarjetaCheckin'
 
 /**
  * La conexión de la escena con los datos y el cerebro reales.
@@ -30,7 +34,7 @@ export interface ConexionPraxis {
    * ejercicio que la persona eligió con un toque cuando Praxis preguntó cuál fue: el
    * registrador lo usa para no volver a preguntar.
    */
-  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla }) => Promise<RespuestaDelRegistrador>
+  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla; memoria?: { charlaId: string; turno: number } }) => Promise<RespuestaDelRegistrador>
   /**
    * «Gana la lectura más grave»: relee con el modelo una frase que el filtro marcó como cuidado o salud y devuelve la marca
    * más grave (o `null`). AUSENTE = el interruptor de consentimiento está apagado y la frase marcada NO sale del teléfono.
@@ -46,6 +50,16 @@ export interface ConexionPraxis {
   deshacer?: {
     elegir: (registroId: string) => Promise<RespuestaDeElegir>
     confirmar: (p: { tarjeta: TarjetaFirmada; mensajeId: string }) => Promise<ResultadoDeshacer>
+  }
+  /**
+   * El check-in desde lo que la persona cuenta (conectores; `CONECTORES_EN_TARJETA`). AUSENTE = apagado: la frase sigue el
+   * camino de siempre. `yaHoy` = cuáles de los 8 ya están llenos hoy; `lexico` = lo aprendido de quien tiene la sesión;
+   * `guardar` solo se llama tras el toque en «Anotar». Nunca lanzan.
+   */
+  checkin?: {
+    yaHoy: () => CampoCheckin[]
+    lexico: () => Promise<FormaAprendida[]>
+    guardar: (p: { mensajeId: string; confirmado: Confirmado; aprendizajes: { campo: CampoCheckin; forma: string; valor: string }[] }) => Promise<ResultadoGuardarCheckin>
   }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
   preguntar: (p: { frase: string; queFalto: QueFalto; citas: string[] }) => Promise<ResultadoDejarPregunta>

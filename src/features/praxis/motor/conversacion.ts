@@ -8,10 +8,11 @@ import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data
 import { Cab, compactar, enfocarControles, limpiarControles, montar, refrescar } from './cabecera'
 import { charlaSuelta, decidirTurnoConCharla, pareceCharla, type CharlaConModelo } from './charla'
 import { mostrarDeshacer } from './deshacer'
+import { intentarCheckin } from './checkinConectado'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
-import { guardar, leer, reducido, trato, tu } from './entorno'
+import { guardar, leer, trato, tu } from './entorno'
 import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
 import { Penta } from './penta'
@@ -30,7 +31,8 @@ import { Cancelado, Dia, S, cancelar, emitir, esperaCon, vigilar } from './sesio
  *      (`charla.ts`). Los saludos, el «¿cómo estás?» y lo que el plan no puede contestar van al modelo (la
  *      misma llamada del registrador), con una APERTURA corta que Praxis dice al instante mientras piensa.
  *      Si el modelo tarda o falla, cae al libreto local: nunca un silencio y nunca un «no te entendí».
- *      La charla es solo texto: no guarda nada y no crea tarjetas.
+ *      La charla es solo texto: no crea tarjetas. Desde la 0166 (7-nov) el SERVIDOR puede guardar la frase y su
+ *      respuesta como memoria entre días (interruptor PRAXIS_GUARDAR_CHARLA); la charla local de 0 ms no sale de aquí.
  *   2. Una pregunta por el plan se contesta con lo que Praxis ve (lista blanca), sin modelo.
  *   3. Lo demás va al registrador (Edge Function `praxis-registro`): vuelve una PROPUESTA,
  *      se enseña en una tarjeta y se guarda solo si la persona toca «Guardar».
@@ -48,7 +50,7 @@ function idMensaje(): string {
 
 function pensando(si: boolean): void {
   const dicho = $('#dicho')
-  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; if (reducido()) $('#ayuda').textContent = 'Pensando…' }
+  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; $('#ayuda').textContent = 'Pensando…' } // se lee siempre, no solo con movimiento reducido (Bryan, 6-nov)
   else { if (Onda.estadoActual === 'piensa') Onda.estado('reposo'); dicho.removeAttribute('aria-busy'); $('#srPiensa').textContent = ''; if ($('#ayuda').textContent === 'Pensando…') $('#ayuda').textContent = '' }
 }
 
@@ -226,6 +228,12 @@ async function decirCharlaDelModelo(c: ConexionPraxis, dicho: string, tok: numbe
   await dijo(texto, tok)
 }
 
+/** Primero el check-in por conectores (bandera apagada = no hace nada); si no lo toma, el registrador de siempre. */
+async function registrarOCheckin(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
+  if (!ejercicioId && (await intentarCheckin(c, frase, tok, idMensaje))) return
+  return registrar(c, frase, tok, ejercicioId, ch)
+}
+
 async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
   let r: RespuestaDelRegistrador | null
   pensando(true)
@@ -233,6 +241,7 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
     const pedido = c.proponer(frase, idMensaje(), {
       ...(ejercicioId ? { pantallaEjercicioId: ejercicioId } : {}),
       charla: { trato: trato(), nombre: c.nombre ?? null, turnos: ch.previos, apertura: ch.apertura },
+      memoria: { charlaId, turno: turnosHablados }, // 0166: el servidor la guarda solo con su interruptor encendido
     })
     const esperado = ch.esCharla ? conLimite(pedido, limitesDeCharla.esperaMs) : pedido
     if (ch.apertura) { // la entrada corta sale ya; el modelo sigue pensando
@@ -284,6 +293,8 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
 
 /* Lo último que dijo Praxis: ¿fue una pregunta de ánimo? Y cuántas veces habló ya la persona en esta sesión. Solo sirven a la charla. */
 let animoPendiente = false, turnosHablados = 0
+/* La charla de esta sesión (0166): un id nuevo cada vez que arranca la conversación; con el turno ordena la memoria. */
+let charlaId = idMensaje()
 
 /* ——— «Gana la lectura más grave» ———
    La respuesta del filtro (cuidado o salud) se muestra YA, sin esperar. En paralelo, y solo si el interruptor de consentimiento
@@ -340,10 +351,10 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
     return
   }
   if (turno.paso === 'charlaModelo') {
-    await registrar(c, frase, tok, undefined, { previos, apertura: turno.apertura, alFallar: turno.alFallar, plan: turno.plan, abreAnimo: turno.abreAnimo, esCharla: true })
+    await registrarOCheckin(c, frase, tok, undefined, { previos, apertura: turno.apertura, alFallar: turno.alFallar, plan: turno.plan, abreAnimo: turno.abreAnimo, esCharla: true })
     return
   }
-  await registrar(c, frase, tok, eleccion?.ejercicioId, { previos, apertura: null, alFallar: null, plan: null, abreAnimo: false, esCharla: !eleccion && pareceCharla(frase) })
+  await registrarOCheckin(c, frase, tok, eleccion?.ejercicioId, { previos, apertura: null, alFallar: null, plan: null, abreAnimo: false, esCharla: !eleccion && pareceCharla(frase) })
 }
 
 /* ——— Las preguntas en espera: «te aviso cuando responda» se cumple al abrir la sala ——— */
@@ -380,7 +391,7 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
   try {
     if (!S.t0) S.t0 = performance.now()
     S.turno = 'conversa'; S.enFirma = false; S.cola = []
-    animoPendiente = false; turnosHablados = 0; historial = []
+    animoPendiente = false; turnosHablados = 0; historial = []; charlaId = idMensaje()
     Cab.pendiente = false // conectada no se compacta: el agujero se queda en el centro, que es por donde se habla (Bryan, 2-oct)
     Onda.soltarFirma(); Onda.estado('reposo')
     Penta.cerrar(); $('#penta').hidden = true; $('#muelle').hidden = false; $('#editor').hidden = true

@@ -67,6 +67,7 @@ const AMPLIACIONES = [
   ['0102_admin_tablero.sql', 'ver_administracion'],
   ['0106_dos_cuentas_de_bryan.sql', 'solo_tablero'],
   ['0106_dos_cuentas_de_bryan.sql', 'puesto_de_coach'],
+  ['0143_encender_regla_ventana_con_registro.sql', 'encender_regla_ventana'],
 ] as const
 
 describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087 + 0090 + 0094 a 0098, 0102 y 0106)', () => {

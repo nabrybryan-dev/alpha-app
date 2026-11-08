@@ -7,7 +7,7 @@ import { fuenteReal } from './fuenteReal'
  * Praxis ve (lista blanca). Un día sin check-in es un hueco, no un día inventado.
  */
 const ve: LoQuePraxisVe = {
-  activo: null, cerrados: [], perfil: null, adherencias: [], hidratacionHoyMl: 0, comida: null, falta: [],
+  activo: null, cerrados: [], perfil: null, adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: [],
   checkins: [
     { fecha: '2026-09-20', horasSueno: 8, calidadSueno: 'BUENA' },
     { fecha: '2026-09-29', horasSueno: 6, calidadSueno: 'MALA', estres: 'MUCHO', comentarios: 'semana pesada' },

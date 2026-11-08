@@ -8,6 +8,8 @@ import { XP_POR_ACCION } from '../../domain/gamification'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { leerEstadoAvisos, type EstadoAvisos } from '../avisos/estadoAvisos'
+import { checkinCompleto } from '../../domain/checkinCompleto'
+import { AvisoAMedias } from './AvisoAMedias'
 import { CheckinForm } from './CheckinForm'
 import { filasCheckin } from './filasCheckin'
 import { HistorialDeCheckins } from './HistorialDeCheckins'
@@ -34,7 +36,10 @@ export default function BienestarPage() {
   }, [])
 
   const checkins = db.bienestar.byUsuario(usuario.id)
-  const deHoy = checkins.find((c) => c.fecha === hoy)
+  const filaDeHoy = checkins.find((c) => c.fecha === hoy)
+  // Uno a medias no está «Registrado»: el formulario sigue abierto con lo ya anotado (Bryan, 7-nov-2026).
+  const deHoy = filaDeHoy && checkinCompleto(filaDeHoy) ? filaDeHoy : undefined
+  const aMedias = filaDeHoy && !deHoy ? filaDeHoy : undefined
   // Arranca los steppers cerca del último valor real registrado.
   const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
   const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
@@ -95,7 +100,10 @@ export default function BienestarPage() {
         </Card>
       ) : (
         <Card className="entrada entrada-2">
+          {aMedias && <AvisoAMedias />}
           <CheckinForm
+            key={aMedias ? 'a-medias' : 'nuevo'}
+            inicial={aMedias}
             usuarioId={usuario.id}
             fecha={hoy}
             pesoInicial={pesoInicial}

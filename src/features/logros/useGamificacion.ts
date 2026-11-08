@@ -1,4 +1,5 @@
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { soloCompletos } from '../../domain/checkinCompleto'
 import { estadoPreparacion, resumenMicrociclo, sesionCompleta } from '../../domain/cumplimiento'
 import {
   calcularRacha,
@@ -67,7 +68,9 @@ export function useGamificacion(usuarioId: string): Gamificacion {
 }
 
 function calcular(usuarioId: string, hoy: string): Gamificacion {
-  const checkins = db.bienestar.byUsuario(usuarioId)
+  const todos = db.bienestar.byUsuario(usuarioId)
+  // Puntos y racha: solo los completos; uno a medias no cuenta (Bryan, 7-nov-2026). Lo que dice del entreno sí es un dato.
+  const checkins = soloCompletos(todos)
   const adherencias = db.nutricion.adherenciasByUsuario(usuarioId)
   const respuestas = db.cuestionarios.respuestasDe(usuarioId)
   const microciclos = db.microciclos.byUsuario(usuarioId)
@@ -78,7 +81,7 @@ function calcular(usuarioId: string, hoy: string): Gamificacion {
   const sesionesRegistradas = sesiones.filter(sesionCompleta).length
   const preparaciones = sesiones.filter((s) => estadoPreparacion(s) === 'hecha').length
 
-  const fechasEntreno = checkins
+  const fechasEntreno = todos
     .filter((c) => c.entreno && c.entreno.toLowerCase() !== 'descanso')
     .map((c) => c.fecha)
 

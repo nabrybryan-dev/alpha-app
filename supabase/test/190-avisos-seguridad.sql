@@ -3,8 +3,8 @@
 -- Lo que se prueba, por rol (asesorado A y B, Manuela nutricionista, Bryan coach, staff
 -- nutricionista sin capacidades, anon):
 --   1. checkins_nutricion está en `security_invoker = on` (el ERROR del advisor).
---   2. Lo que ve cada rol NO cambia: el asesorado solo lo suyo; Bryan y cualquier staff
---      (Manuela incluida, que NO puede leer la tabla `checkins`) ven toda la cartera, con las
+--   2. Lo que ve cada rol (desde M2, 0134): el asesorado solo lo suyo; Bryan y Manuela, con
+--      leer_entrenamiento, toda la cartera; el staff sin capacidades ni asignacion, nada. Con las
 --      ocho columnas de siempre y sin `datos` entero; anon no lee ni ejecuta la función.
 --   3. es_nutricionista() y firmo_yo() no las ejecuta anon ni public; authenticated sí.
 --
@@ -31,6 +31,15 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('fc000000-0000-0000-0000-000000000003', 'Staff sin permisos', 'nutricionista', 'SP')
 on conflict (id) do update set
   nombre = excluded.nombre, rol = excluded.rol, avatar_iniciales = excluded.avatar_iniciales;
+
+-- Desde M2 (0134, decision de Bryan del 16-oct, aplicada en la base real el 23-oct) la lectura es
+-- propio + coach asignado + leer_entrenamiento/leer_nutricion. En la base real Bryan y Manuela
+-- tienen leer_entrenamiento (comprobado el 7-nov); la semilla lo copia. El staff sin capacidades
+-- ni asignacion ya no ve la cartera.
+insert into public.capacidades_staff (usuario_id, capacidad) values
+  ('fc000000-0000-0000-0000-000000000001', 'leer_entrenamiento'),
+  ('fc000000-0000-0000-0000-000000000002', 'leer_entrenamiento')
+on conflict do nothing;
 
 -- Dos check-ins de A, uno de B, uno de Manuela (como asesorada), con campos NO nutricionales.
 insert into public.checkins (id, usuario_id, fecha, datos) values
@@ -98,7 +107,7 @@ select pruebas.afirmar(
 reset role;
 
 -- ════════════════════════════════════════════════════════════════════════
--- 3 · Manuela (nutricionista): toda la cartera por la vista, solo lo suyo por la tabla
+-- 3 · Manuela (nutricionista con leer_entrenamiento): toda la cartera, por la vista y por la tabla (0134)
 -- ════════════════════════════════════════════════════════════════════════
 select pruebas.soy('fc000000-0000-0000-0000-000000000001');
 set role authenticated;
@@ -108,13 +117,13 @@ select pruebas.afirmar(
   'Manuela dejó de ver toda la cartera en checkins_nutricion'
 );
 select pruebas.afirmar(
-  (select count(*) from public.checkins where id like 'as-%') = 1,
-  'Manuela lee de la tabla checkins más que lo suyo'
+  (select count(*) from public.checkins where id like 'as-%') = 4,
+  'Manuela, con leer_entrenamiento, no lee la cartera en la tabla checkins (0134)'
 );
 reset role;
 
 -- ════════════════════════════════════════════════════════════════════════
--- 4 · Bryan (coach) y staff nutricionista sin capacidades: toda la cartera, igual que antes
+-- 4 · Bryan (coach con leer_entrenamiento): toda la cartera. Staff sin capacidades ni asignacion: nada (0134)
 -- ════════════════════════════════════════════════════════════════════════
 select pruebas.soy('fc000000-0000-0000-0000-000000000002');
 set role authenticated;
@@ -129,9 +138,9 @@ select pruebas.soy('fc000000-0000-0000-0000-000000000003');
 set role authenticated;
 select pruebas.exigir_rls();
 select pruebas.afirmar(
-  (select count(*) from public.checkins_nutricion where id like 'as-%') = 4
+  (select count(*) from public.checkins_nutricion where id like 'as-%') = 0
   and (select count(*) from public.checkins where id like 'as-%') = 0,
-  'el staff sin capacidades ve distinto que antes (toda la cartera por la vista, nada por la tabla)'
+  'el staff sin capacidades ni asignacion ve check-ins de la cartera (0134 lo cierra)'
 );
 reset role;
 

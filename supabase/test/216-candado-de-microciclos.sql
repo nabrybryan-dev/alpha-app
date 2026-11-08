@@ -13,7 +13,7 @@
 --   6. Confirmar (solo el coach) activa de verdad y cierra el aviso; un asesorado no confirma ni
 --      descarta (se comprueba el MENSAJE de la guarda, no cualquier 42501, y que nada cambió);
 --      confirmar sobre una propuesta que no se puede activar falla y deja el aviso pendiente.
---   7. La cadena confirma con set_config('alpha.pisar_microciclo','si',true).
+--   7. Solo la RPC confirma: set_config no permite falsificar la autorización.
 --   8. Un primer plan que choca queda en espera_bryan (decidir y vencer), nunca 'aprobado' sin activar.
 --   9. El asesorado no lee los avisos; anon no ejecuta NINGUNA función de la 0147.
 --  10. El trigger que fija el origen se dispara antes que el candado (por nombre y por comportamiento).
@@ -32,7 +32,8 @@ insert into auth.users (id, email) values
   ('d2000000-0000-0000-0000-000000000006', 'cd-f@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000007', 'cd-g@ejemplo.test'),
   ('d2000000-0000-0000-0000-000000000008', 'cd-h@ejemplo.test'),
-  ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test')
+  ('e2000000-0000-0000-0000-000000000001', 'cd-coach@ejemplo.test'),
+  ('e2000000-0000-0000-0000-000000000002', 'cd-libera@ejemplo.test')
 on conflict (id) do nothing;
 
 insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
@@ -44,7 +45,8 @@ insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('d2000000-0000-0000-0000-000000000006', 'Candado F', 'asesorado', 'CF'),
   ('d2000000-0000-0000-0000-000000000007', 'Candado G', 'asesorado', 'CG'),
   ('d2000000-0000-0000-0000-000000000008', 'Candado H', 'asesorado', 'CH'),
-  ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO')
+  ('e2000000-0000-0000-0000-000000000001', 'Coach candado', 'coach', 'CO'),
+  ('e2000000-0000-0000-0000-000000000002', 'Libera candado', 'coach', 'LC')
 on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
 -- Como la cadena: sin sesión de usuario.
@@ -60,12 +62,29 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos) values
 insert into public.capacidades_staff (usuario_id, capacidad) values
   ('e2000000-0000-0000-0000-000000000001', 'leer_entrenamiento'),
   ('e2000000-0000-0000-0000-000000000001', 'aprobar_primer_plan'),
-  ('e2000000-0000-0000-0000-000000000001', 'autorizar_excepcion')
+  ('e2000000-0000-0000-0000-000000000001', 'liberar_prescripcion'),
+  ('e2000000-0000-0000-0000-000000000001', 'autorizar_excepcion'),
+  -- Desde M2 (0142, D-17-57) quien edita una propuesta no la libera: libera otra persona del equipo.
+  ('e2000000-0000-0000-0000-000000000002', 'leer_entrenamiento'),
+  ('e2000000-0000-0000-0000-000000000002', 'liberar_prescripcion'),
+  ('e2000000-0000-0000-0000-000000000002', 'aprobar_primer_plan')
 on conflict do nothing;
 
 select pruebas.afirmar(
   (select count(*) from public.microciclos where id like 'cd-%' and origen = 'cadena') = 7,
   'lo cargado sin sesión de usuario no quedó con origen cadena'
+);
+
+-- H5: ni acceso a la tabla ni permisos heredados de PUBLIC para falsificar filas.
+select pruebas.afirmar(
+  not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.pisadas_microciclo_autorizadas', 'DELETE')
+  and not has_table_privilege('anon', 'public.pisadas_microciclo_autorizadas', 'INSERT')
+  and not has_table_privilege('anon', 'public.pisadas_microciclo_autorizadas', 'SELECT')
+  and not has_function_privilege('anon', 'public.pisada_microciclo_autorizada(text)', 'EXECUTE'),
+  'H5: un rol público puede acceder a las autorizaciones de pisar'
 );
 
 -- ─ 0 · El ORDEN de los triggers (hallazgo H4) ───────────────────────────
@@ -95,6 +114,9 @@ select pruebas.afirmar(
   'lo cargado con sesión de usuario no quedó con origen app, autor y hora'
 );
 
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
+select public.liberar_microciclo('cd-a-9', public.huella_microciclo((select datos from public.microciclos where id = 'cd-a-9')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-a-9');
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-a-9') = 'activo'
@@ -107,7 +129,15 @@ select pruebas.afirmar(
 insert into public.microciclos (id, usuario_id, numero, estado, datos)
 values ('cd-b-9app', 'd2000000-0000-0000-0000-000000000002', 9, 'propuesto', '{}'::jsonb);
 
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
+select public.liberar_microciclo('cd-b-9app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-b-9app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+select set_config('alpha.pisar_microciclo', 'si', true); -- H5: falsificación por authenticated
 select public.activar_microciclo('cd-b-9app');   -- no debe levantar excepción
+-- También el trigger ignora la variable: satisfacer M2 no permite eludir el candado.
+select public.autorizar_activacion('cd-b-9app');
+update public.microciclos set estado = 'activo' where id = 'cd-b-9app';
+select set_config('alpha.pisar_microciclo', '', true);
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-b-9app') = 'propuesto'
   and (select estado from public.microciclos where id = 'cd-b-9') = 'activo',
@@ -123,6 +153,7 @@ select pruebas.afirmar(
 -- H4 por comportamiento: el coach (sesión) inserta DIRECTO un M9 'activo' sobre el M9 'activo' de la
 -- cadena de D. Con el origen ya fijado ('app') eso es un choque. Si el candado se evaluara antes de
 -- fijar el origen vería 'cadena' (el valor por defecto), no vería choque y activaría en silencio.
+reset role; -- Canal dueno: 0138 prohibe INSERT activo directo a authenticated.
 insert into public.microciclos (id, usuario_id, numero, estado, datos)
 values ('cd-d-9app', 'd2000000-0000-0000-0000-000000000004', 9, 'activo', '{}'::jsonb);
 select pruebas.afirmar(
@@ -137,7 +168,11 @@ select pruebas.afirmar(
   'el insert activo con sesión no dejó su aviso'
 );
 
+set role authenticated;
 -- Un reintento de la cola no duplica el aviso.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
+select public.liberar_microciclo('cd-b-9app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-b-9app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-b-9app');
 select pruebas.afirmar(
   (select count(*) from public.microciclos_choques where propuesta_id = 'cd-b-9app') = 1,
@@ -189,9 +224,14 @@ select pruebas.afirmar(
 );
 
 -- ─ 7 · La cadena confirma de forma explícita ────────────────────────────
-select set_config('alpha.pisar_microciclo', 'si', true);
-update public.microciclos set estado = 'activo' where id = 'cd-a-9cad';
-select set_config('alpha.pisar_microciclo', '', true);
+-- La propuesta de la cadena también se confirma mediante la RPC y liberación humana.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.liberar_microciclo('cd-a-9cad', public.huella_microciclo((select datos from public.microciclos where id = 'cd-a-9cad')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+select public.confirmar_pisar_microciclo('cd-a-9cad');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-a-9cad') = 'activo',
   'la cadena no pudo activar con la confirmación explícita'
@@ -200,7 +240,14 @@ select pruebas.afirmar(
 -- ─ 5 · Misma procedencia: sin aviso ─────────────────────────────────────
 insert into public.microciclos (id, usuario_id, numero, estado, datos)
 values ('cd-c-9', 'd2000000-0000-0000-0000-000000000003', 9, 'propuesto', '{}'::jsonb);
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
+select public.liberar_microciclo('cd-c-9', public.huella_microciclo((select datos from public.microciclos where id = 'cd-c-9')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.activar_microciclo('cd-c-9');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-c-9') = 'activo'
   and not exists (select 1 from public.microciclos_choques where usuario_id = 'd2000000-0000-0000-0000-000000000003'),
@@ -295,7 +342,7 @@ set role authenticated;
 
 -- La confirmación no queda abierta para la siguiente operación de la sesión.
 select pruebas.afirmar(
-  coalesce(current_setting('alpha.pisar_microciclo', true), '') <> 'si',
+  not public.pisada_microciclo_autorizada('cd-b-9app'),
   'la confirmación quedó puesta en la sesión'
 );
 
@@ -311,8 +358,9 @@ insert into public.aprobaciones_primer_plan (id, usuario_id, microciclo_id, ries
   ('c2000000-0000-0000-0000-000000000005', 'd2000000-0000-0000-0000-000000000005', 'cd-e-5app', 'bajo', '{}', now() + interval '1 day'),
   ('c2000000-0000-0000-0000-000000000006', 'd2000000-0000-0000-0000-000000000006', 'cd-f-5app', 'bajo', '{}', now() - interval '1 minute');
 
--- decidir_primer_plan: el coach aprueba y la base no activa por el choque.
-select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+-- decidir_primer_plan: aprueba alguien del equipo que NO editó la propuesta (0142: aprobar libera,
+-- y quien edita no libera), y la base no activa por el choque.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
 set role authenticated;
 select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar');
 reset role;
@@ -329,18 +377,202 @@ select pruebas.afirmar(
   'decidir_primer_plan con choque no dejó el aviso (¿se lanzó una excepción que lo deshizo?)'
 );
 
+-- M2: alcanzar el camino elegible de la regla antes de comprobar el choque.
+select public.clasificar_primer_plan('c2000000-0000-0000-0000-000000000006', 'bajo', false);
+update public.regla_ventana_primer_plan set activa = true;
+select set_config('request.jwt.claim.sub', '', false);
 -- vencer_primer_plan: lo vencido que choca NO cuenta como vencido_aprobado.
-select * from public.vencer_primer_plan();
+select pruebas.afirmar(
+  (select aprobados = 0 and a_bryan = 1 from public.vencer_primer_plan()),
+  'el choque elegible no debe contarse como aprobado'
+);
 select pruebas.afirmar(
   (select estado from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') = 'espera_bryan'
   and (select motivo_espera from public.aprobaciones_primer_plan where id = 'c2000000-0000-0000-0000-000000000006') like 'Choque de microciclo%'
-  and (select estado from public.microciclos where id = 'cd-f-5app') = 'propuesto',
+  and (select estado from public.microciclos where id = 'cd-f-5app') = 'propuesto'
+  and (select estado from public.microciclos where id = 'cd-f-5') = 'activo'
+  and not exists (select 1 from public.activaciones_regla_ventana where microciclo_id = 'cd-f-5app'),
   'vencer_primer_plan contó como vencido_aprobado un plan que el candado no activó'
 );
 select pruebas.afirmar(
   (select count(*) from public.microciclos_choques where propuesta_id = 'cd-f-5app' and estado = 'pendiente') = 1,
   'vencer_primer_plan con choque no dejó el aviso'
 );
+
+-- H7: un microciclo CERRADO no se aprueba (guarda de 0137, como en la base real): error 22023,
+-- la aprobacion no cambia y no se escribe ningun motivo de choque.
+savepoint h7_cerrado;
+update public.microciclos set estado = 'cerrado' where id = 'cd-e-5app';
+delete from public.microciclos_choques where propuesta_id = 'cd-e-5app';
+update public.aprobaciones_primer_plan set estado = 'propuesto', motivo_espera = null
+ where id = 'c2000000-0000-0000-0000-000000000005';
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+do $$
+begin
+  begin
+    perform public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar', 'Revisado por el aprobador H7');
+    raise exception 'FALLO H7: se aprobo un microciclo cerrado';
+  exception when sqlstate '22023' then null;
+  end;
+end $$;
+reset role;
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'propuesto'
+      and motivo_espera is null and decidido_por is null and decidido_en is null),
+  'H7: aprobar un cerrado debe fallar sin tocar la aprobacion ni escribir motivo de choque'
+);
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+do $$
+declare v_msg text;
+begin
+  begin
+    perform public.confirmar_pisar_microciclo('cd-e-5app');
+    raise exception 'FALLO H7: confirmar acepto un cerrado';
+  exception when others then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg not like 'confirmar_pisar_microciclo: la propuesta cd-e-5app no quedó activa%' then
+      raise exception 'FALLO H7: error inesperado: %', v_msg;
+    end if;
+  end;
+end $$;
+reset role;
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'propuesto' and decidido_por is null)
+  and (select estado = 'cerrado' from public.microciclos where id = 'cd-e-5app')
+  and not exists (select 1 from public.microciclos_choques where propuesta_id = 'cd-e-5app'),
+  'H7: confirmar no debe aprobar ni crear un choque para el cerrado'
+);
+rollback to savepoint h7_cerrado;
+
+-- H7: tambien conserva el motivo humano cuando SI hay un aviso pendiente.
+savepoint h7_motivo_choque;
+update public.aprobaciones_primer_plan set estado = 'propuesto'
+ where id = 'c2000000-0000-0000-0000-000000000005';
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.decidir_primer_plan('c2000000-0000-0000-0000-000000000005', 'aprobar', 'Motivo humano con choque H7');
+reset role;
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000005' and estado = 'espera_bryan'
+      and motivo_espera like 'Choque de microciclo%Motivo humano con choque H7'),
+  'H7: el choque debe conservar el motivo humano al final'
+);
+rollback to savepoint h7_motivo_choque;
+
+-- H8: simular un choque que aparece DESPUES de la comprobacion previa.
+-- Un trigger de prueba cambia el numero antes del candado real; no sustituye el candado.
+savepoint h8_trigger;
+update public.aprobaciones_primer_plan set estado = 'propuesto', motivo_espera = null
+ where id = 'c2000000-0000-0000-0000-000000000006';
+update public.microciclos set numero = 6 where id = 'cd-f-5app';
+delete from public.microciclos_choques where propuesta_id = 'cd-f-5app';
+create function pruebas.h8_numero_antes_del_candado()
+returns trigger language plpgsql as $$
+begin
+  if new.id = 'cd-f-5app' and new.estado = 'activo' then
+    new.numero := 5;
+  end if;
+  return new;
+end $$;
+create trigger trg_microciclos_aa_h8
+  before update of estado on public.microciclos
+  for each row execute function pruebas.h8_numero_antes_del_candado();
+select set_config('request.jwt.claim.sub', '', false);
+select pruebas.afirmar(
+  not exists (select 1 from public.microciclos m,
+    lateral public.microciclo_choque(m.usuario_id, m.id, m.numero, m.origen) ch
+    where m.id = 'cd-f-5app'),
+  'H8: la preparacion debe superar la comprobacion previa de choque'
+);
+select pruebas.afirmar(
+  (select aprobados = 0 and a_bryan = 1 from public.vencer_primer_plan()),
+  'H8: el bloqueo silencioso del trigger no cuenta como aprobado'
+);
+select pruebas.afirmar(
+  exists (select 1 from public.aprobaciones_primer_plan
+    where id = 'c2000000-0000-0000-0000-000000000006' and estado = 'espera_bryan'
+      and motivo_espera like '%candado no dejo activar%' and decidido_en is null)
+  and (select estado = 'propuesto' from public.microciclos where id = 'cd-f-5app')
+  -- Lo que importa: la semana activa anterior NO quedo cerrada (el error deshizo el cierre).
+  and (select estado = 'activo' from public.microciclos where id = 'cd-f-5')
+  and (select count(*) = 1 from public.microciclos where usuario_id = 'd2000000-0000-0000-0000-000000000006' and estado = 'activo')
+  and not exists (select 1 from public.activaciones_regla_ventana where microciclo_id = 'cd-f-5app'),
+  'H8: el bloqueo silencioso no aprueba, no audita y NO deja a la persona sin semana activa'
+);
+rollback to savepoint h8_trigger;
+
+-- H4: coach con liberación vigente, pero sin aprobar_primer_plan: activa sin aprobar.
+-- Los savepoints conservan los casos originales de E/F para el resto de la prueba.
+savepoint h4_sin_aprobar;
+delete from public.capacidades_staff
+ where usuario_id = 'e2000000-0000-0000-0000-000000000001'
+   and capacidad = 'aprobar_primer_plan';
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+select public.confirmar_pisar_microciclo('cd-e-5app');
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-e-5app') = 'activo'
+  and (select estado = 'espera_bryan' and decidido_por is null and decidido_en is null
+         and motivo is null and motivo_espera like 'Choque de microciclo%'
+         from public.aprobaciones_primer_plan where microciclo_id = 'cd-e-5app'),
+  'H4: sin aprobar_primer_plan se cambió la aprobación o no se activó la propuesta liberada'
+);
+rollback to savepoint h4_sin_aprobar;
+release savepoint h4_sin_aprobar;
+
+-- H4: riesgo alto, puede aprobar/liberar pero no autorizar excepciones.
+savepoint h4_sin_excepcion;
+update public.aprobaciones_primer_plan set riesgo = 'alto' where microciclo_id = 'cd-f-5app';
+delete from public.capacidades_staff
+ where usuario_id = 'e2000000-0000-0000-0000-000000000001'
+   and capacidad = 'autorizar_excepcion';
+select pruebas.soy('e2000000-0000-0000-0000-000000000002');
+set role authenticated;
+select public.liberar_microciclo('cd-f-5app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-f-5app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+select public.confirmar_pisar_microciclo('cd-f-5app');
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-f-5app') = 'activo'
+  and (select estado = 'espera_bryan' and riesgo = 'alto' and decidido_por is null
+         and decidido_en is null and motivo is null and motivo_espera like 'Choque de microciclo%'
+         from public.aprobaciones_primer_plan where microciclo_id = 'cd-f-5app'),
+  'H4: sin autorizar_excepcion se aprobó un plan de riesgo alto'
+);
+rollback to savepoint h4_sin_excepcion;
+release savepoint h4_sin_excepcion;
+
+-- H4/0135: confirmar sigue exigiendo liberar_prescripcion aunque exista liberación vigente.
+savepoint h4_sin_liberar;
+delete from public.capacidades_staff
+ where usuario_id = 'e2000000-0000-0000-0000-000000000001'
+   and capacidad = 'liberar_prescripcion';
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
+set role authenticated;
+do $$
+begin
+  begin
+    perform public.confirmar_pisar_microciclo('cd-e-5app');
+    raise exception 'FALLO: H4 confirmó sin liberar_prescripcion';
+  exception when insufficient_privilege then
+    if sqlerrm <> 'activar_microciclo: falta la capacidad de liberar' then raise; end if;
+  end;
+end $$;
+reset role;
+select pruebas.afirmar(
+  (select estado from public.microciclos where id = 'cd-e-5app') = 'propuesto'
+  and (select estado from public.aprobaciones_primer_plan where microciclo_id = 'cd-e-5app') = 'espera_bryan'
+  and not exists (select 1 from public.pisadas_microciclo_autorizadas where xid = txid_current()),
+  'H4: fallar sin liberar cambió el plan o dejó autorización residual'
+);
+rollback to savepoint h4_sin_liberar;
+release savepoint h4_sin_liberar;
 
 -- ─ 8b · «Activar igualmente» aprueba el plan en espera por choque (decidido por Bryan, 29-oct) ─
 -- Activar igualmente aprueba el plan: F está en espera_bryan (vencido, bloque 8; su aviso sigue pendiente) por choque (bloque 8). G tiene otro
@@ -360,6 +592,9 @@ select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 set role authenticated;
 
 -- Con motivo de choque: queda aprobado por quien confirma, con fecha, y la propuesta activa.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
+select public.liberar_microciclo('cd-f-5app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-f-5app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.confirmar_pisar_microciclo('cd-f-5app');
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-f-5app') = 'activo'
@@ -370,6 +605,9 @@ select pruebas.afirmar(
 );
 
 -- Sin motivo de choque (espera por otra causa): se activa la propuesta pero el plan NO se toca.
+select pruebas.soy('e2000000-0000-0000-0000-000000000002'); -- libera otra persona (0142)
+select public.liberar_microciclo('cd-g-5app', public.huella_microciclo((select datos from public.microciclos where id = 'cd-g-5app')));
+select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 select public.confirmar_pisar_microciclo('cd-g-5app');
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-g-5app') = 'activo'
@@ -380,10 +618,8 @@ select pruebas.afirmar(
 );
 reset role;
 
--- ─ 8b · Una PWA vieja del asesorado NO pierde sus series por un choque (H4, regresión de la 0021) ─
--- H tiene un M9 activo de la cadena y un M8 cerrado que cargó la app. Su PWA cacheada drena un upsert
--- de M8 con estado 'activo' y series nuevas (activarlo choca con el M9 de la cadena). El candado conserva el estado (no activa), el aviso queda
--- REGISTRADO y la escritura NO falla: las series se guardan. Con staff y con la cadena no cambia nada.
+-- M2/0138 tiene precedencia: la PWA no activa por upsert sin autorizacion.
+-- Debe fallar con la guarda exacta; sus anotaciones normales sin activar siguen permitidas.
 select set_config('request.jwt.claim.sub', '', false);  -- sin sesión: la cadena
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
   ('cd-h-9', 'd2000000-0000-0000-0000-000000000008', 9, 'activo', '{}'::jsonb);
@@ -392,9 +628,19 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos) values
   ('cd-h-8', 'd2000000-0000-0000-0000-000000000008', 8, 'cerrado', '{}'::jsonb);
 select pruebas.soy('d2000000-0000-0000-0000-000000000008');
 set role authenticated;
-insert into public.microciclos (id, usuario_id, numero, estado, datos)
-values ('cd-h-8', 'd2000000-0000-0000-0000-000000000008', 8, 'activo', '{"series":"nuevas"}'::jsonb)
-on conflict (id) do update set estado = excluded.estado, datos = excluded.datos;
+do $$
+begin
+  begin
+    insert into public.microciclos (id, usuario_id, numero, estado, datos)
+    values ('cd-h-8', 'd2000000-0000-0000-0000-000000000008', 8, 'activo', '{"series":"nuevas"}'::jsonb)
+    on conflict (id) do update set estado = excluded.estado, datos = excluded.datos;
+    raise exception 'FALLO: el asesorado activo sin liberacion';
+  exception when insufficient_privilege then
+    if sqlerrm not like 'un microciclo solo pasa a activo por activar_microciclo con liberacion%' then raise; end if;
+  end;
+end $$;
+-- La escritura habitual conserva el estado cerrado y guarda las series.
+update public.microciclos set datos = '{"series":"nuevas"}'::jsonb where id = 'cd-h-8';
 reset role;
 select pruebas.afirmar(
   (select estado from public.microciclos where id = 'cd-h-8') = 'cerrado'
@@ -402,8 +648,8 @@ select pruebas.afirmar(
   'el upsert del asesorado perdió las series o activó la semana pese al choque'
 );
 select pruebas.afirmar(
-  (select count(*) from public.microciclos_choques where usuario_id = 'd2000000-0000-0000-0000-000000000008' and estado = 'pendiente') = 1,
-  'el choque provocado por una sesión de asesorado no quedó registrado como aviso'
+  (select count(*) from public.microciclos_choques where usuario_id = 'd2000000-0000-0000-0000-000000000008' and estado = 'pendiente') = 0,
+  'la activacion rechazada por M2 no debe dejar un aviso de choque'
 );
 
 -- ─ 9 · anon no ejecuta NADA de la 0147 (LINEA DE DEFENSA H2) ─────────────
