@@ -11,6 +11,7 @@ const estado = {
   rpcArgs: undefined as unknown,
   rpcRespuesta: { data: null as unknown, error: null as { message: string; code?: string } | null },
   estadosPedidos: undefined as unknown,
+  exclusion: undefined as unknown,
 }
 
 vi.mock('../supabase', () => ({
@@ -22,7 +23,12 @@ vi.mock('../supabase', () => ({
       select: () => ({
         in: (_c: string, valores: unknown) => {
           estado.estadosPedidos = valores
-          return { order: () => Promise.resolve({ data: estado.filas, error: estado.error }) }
+          return {
+            not: (columna: string, operador: string, valor: string) => {
+              estado.exclusion = { columna, operador, valor }
+              return { order: () => Promise.resolve({ data: estado.filas, error: estado.error }) }
+            },
+          }
         },
       }),
     }),
@@ -33,7 +39,7 @@ vi.mock('../supabase', () => ({
   }),
 }))
 
-const { COLUMNAS_PRIMER_PLAN, aPrimerPlan, decidirPrimerPlan, primerosPlanesPendientes } = await import('./primerosPlanes')
+const { COLUMNAS_PRIMER_PLAN, PREFIJO_MICROCICLO_CANARIO, aPrimerPlan, decidirPrimerPlan, primerosPlanesPendientes } = await import('./primerosPlanes')
 
 const filaBase = {
   id: 'ap-1',
@@ -58,6 +64,7 @@ beforeEach(() => {
   estado.error = null
   estado.rpcArgs = undefined
   estado.rpcRespuesta = { data: null, error: null }
+  estado.exclusion = undefined
 })
 
 describe('las columnas salen del create table de la 0086', () => {
@@ -90,6 +97,18 @@ describe('primerosPlanesPendientes', () => {
     const lectura = await primerosPlanesPendientes()
     expect(estado.estadosPedidos).toEqual(['propuesto', 'espera_bryan'])
     expect(lectura.ok && lectura.datos.map((p) => p.id)).toEqual(['ap-1'])
+  })
+
+  // El canario de la cadena (0169) deja un primer plan de una persona inventada unos segundos;
+  // Manuela no debe verlo nunca en su bandeja, ni si el borrado falla y sobrevive.
+  it('excluye el primer plan del canario de la cadena por el prefijo de su microciclo', async () => {
+    await primerosPlanesPendientes()
+    expect(estado.exclusion).toEqual({ columna: 'microciclo_id', operador: 'like', valor: 'PRUEBA-AGENTES-CANARIO-%' })
+  })
+
+  it('el prefijo es el mismo que escribe la 0169', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase', 'migrations', '0169_cadena_canario.sql'), 'utf8')
+    expect(sql).toContain(`'${PREFIJO_MICROCICLO_CANARIO}' || left(p_usuario::text, 8)`)
   })
 
   // APP-F01 (revisión final de Codex, 28-sep): un error NO es una bandeja vacía. Antes

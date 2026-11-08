@@ -41,6 +41,18 @@ describe('lexicón de lo vago', () => {
     expect(r.propuestas.find((p) => p.campo === 'cansancio')).toMatchObject({ valor: 'REGULAR', confianza: 'baja' })
   })
 
+  it('C01e (batería 7-nov) «ando medio estresado» = REGULAR, como «medio cansada»: «medio» rebaja aunque la tabla diga MUCHO', () => {
+    const r = propuesta('ando medio estresado')
+    expect(r.propuestas.find((p) => p.campo === 'estres')).toMatchObject({ valor: 'REGULAR', confianza: 'baja', origen: 'vago' })
+    expect(r.dudosas.find((d) => d.campo === 'estres')).toBeUndefined()
+  })
+
+  it('C01f (batería 7-nov) «no dormí bien» = MALA: la negación que la tabla de sueño YA entiende no se descarta', () => {
+    expect(propuesta('no dormí bien').propuestas.find((p) => p.campo === 'calidadSueno')).toMatchObject({ valor: 'MALA' })
+    expect(propuesta('anoche no dormí muy bien').propuestas.find((p) => p.campo === 'calidadSueno')).toMatchObject({ valor: 'MALA' })
+    expect(propuesta('no dormí mal').propuestas.find((p) => p.campo === 'calidadSueno')).toMatchObject({ valor: 'REGULAR' })
+  })
+
   it('C01d «el entreno medio mal»: elige entre REGULAR y MALA', () => {
     const r = propuesta('El entreno medio mal')
     expect(r.dudosas.find((d) => d.campo === 'rendimiento')?.candidatos.map((c) => c.valor)).toEqual(['REGULAR', 'MALA'])

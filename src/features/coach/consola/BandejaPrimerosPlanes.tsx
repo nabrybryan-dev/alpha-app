@@ -99,8 +99,8 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
       extra={<span className="cifras text-lg font-bold text-texto">{planes ? pendientes : fallo !== null ? '—' : '…'}</span>}
     >
       <p className="mb-2.5 text-[12.5px] text-tenue">
-        Clientes nuevos de la landing. Si nadie decide antes del plazo, solo pasa el riesgo bajo sin dudas; lo
-        clínico espera siempre a Bryan.
+        Clientes nuevos de la landing. Si nadie decide antes del plazo y la aprobación automática está encendida,
+        pasa solo el riesgo bajo o medio sin dudas; el riesgo alto espera siempre a Bryan.
       </p>
       {fallo !== null ? (
         <FalloBandeja error={fallo} onReintentar={reintentar} />

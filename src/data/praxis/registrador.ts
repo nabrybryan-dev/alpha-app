@@ -41,6 +41,11 @@ export interface PeticionProponer {
    * Viaja solo en esta petición: ni el cliente ni el servidor lo guardan en ningún sitio.
    */
   charla?: ContextoCharla
+  /**
+   * La memoria de la charla (0166, 7-nov): a qué charla y en qué turno va la frase. El servidor la guarda solo con su
+   * interruptor encendido, con el usuario de la sesión (nunca se manda quién es).
+   */
+  memoria?: { charlaId: string; turno: number }
 }
 
 export interface PeticionGuardar {
@@ -104,6 +109,8 @@ function respuestaDeDeshacer(datos: unknown, mensajeId: string): RespuestaDelReg
   return deshacer ? { ok: true, deshacer, mensajeId } : { ok: false, motivo: 'no_entendi' }
 }
 
+const memoriaParaElServidor = (m: PeticionProponer['memoria']) => (m ? { charla_id: m.charlaId, turno: m.turno } : undefined)
+
 export async function proponerRegistro(sesion: SesionDeFunciones | null, p: PeticionProponer): Promise<RespuestaDelRegistrador> {
   if (!sesion?.access_token || !sesion.url) return { ok: false, motivo: 'sin_sesion' }
   const r = await llamar(sesion, RUTA, sinVacios({
@@ -115,6 +122,7 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
     checkin_hoy: p.checkinHoy,
     pantalla_ejercicio_id: p.pantallaEjercicioId,
     charla: p.charla ? { trato: p.charla.trato, nombre: p.charla.nombre ?? undefined, turnos: limpiarTurnos(p.charla.turnos), apertura: p.charla.apertura ?? undefined } : undefined,
+    memoria_charla: memoriaParaElServidor(p.memoria),
   }), { conTope: true })
   if (!r.ok) return r
   // Libro encendido y la frase pedía deshacer: la propuesta es de otra forma. Sin `tipo:'deshacer'` todo sigue como siempre.

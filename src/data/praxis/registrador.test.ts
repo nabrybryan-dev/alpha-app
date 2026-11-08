@@ -70,6 +70,14 @@ describe('proponerRegistro', () => {
     expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
   })
 
+  it('0166: manda a qué charla y en qué turno va la frase, sin decir quién es', async () => {
+    const espia = conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: {} } })
+    await proponerRegistro(sesion, { frase: 'hola', mensajeId: 'm1', horaLocal: 'h', memoria: { charlaId: 'c-1', turno: 3 } })
+    const cuerpo = JSON.parse((espia.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(cuerpo.memoria_charla).toEqual({ charla_id: 'c-1', turno: 3 })
+    expect(JSON.stringify(cuerpo)).not.toMatch(/usuario/i)
+  })
+
   it('lee las fichas con que contestó el portero y descarta lo que no sea texto', async () => {
     conFetch({ status: 200, cuerpo: { propuesta, tarjeta, meta: { portero: ['ficha-a', 7] } } })
     const r = await proponerRegistro(sesion, { frase: '¿cuánto descanso?', mensajeId: 'm1', horaLocal: 'h' })
