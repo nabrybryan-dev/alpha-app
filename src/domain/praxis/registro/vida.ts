@@ -17,6 +17,7 @@
 import { minutosDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
 import { dudaDe, leerHora, leerPasos, leerSueno, type Duda, type Lectura } from './dictado.ts'
 import { resolverAgua } from './agua.ts'
+import { esHipotetico } from './guardas.ts'
 import { etiquetaDeFecha, fechaLocal, horaLocal, sumarDias } from './fecha.ts'
 import { revisarHorasSueno, revisarPasos, revisarPesoCorporal } from './limites.ts'
 import type {
@@ -114,13 +115,28 @@ const TIEMPO_ETIQUETA = { caminata: 'Caminata', siesta: 'Siesta', pantalla: 'Pan
 
 export { mlDeAgua, segmentosDeAgua } from './agua.ts'
 
-export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '', opciones: OpcionesVida = {}): ResultadoVida {
+export function resolverVida(dicho: VidaExtraida, ctx: ContextoRegistro, frase = '', opciones: OpcionesVida = {}): ResultadoVida {
   const hoy = fechaLocal(ctx.ahora)
   const parche: Record<string, string | number> = {}
   const conf: Record<string, Confianza> = {}
   const antes: Record<string, string | number | null> = {}
   const registros: ResultadoVida['registros'] = []
   const descartado: ResultadoVida['descartado'] = []
+  // Un deseo, un plan o una meta no es lo que pasó: aunque el extractor lo haya citado, no se lee (8-nov-2026).
+  const sinPlanes = (cita: string | null | undefined): string | null => {
+    if (!cita) return cita ?? null
+    if (!frase || !esHipotetico(frase, cita)) return cita
+    descartado.push({ cita, motivo: 'es un plan, una meta o un hábito, no lo que pasó: no se guardó' })
+    return null
+  }
+  const v: VidaExtraida = {
+    ...dicho,
+    sueno_horas: sinPlanes(dicho.sueno_horas),
+    hora_acostarse: sinPlanes(dicho.hora_acostarse),
+    hora_levantarse: sinPlanes(dicho.hora_levantarse),
+    pasos: sinPlanes(dicho.pasos),
+    agua: dicho.agua && sinPlanes(`${dicho.agua.cantidad} ${dicho.agua.medida ?? ''}`.trim()) === null ? null : dicho.agua,
+  }
   const avisos: string[] = []
   let seguimiento: Pregunta | undefined
   const poner = (campo: string, valor: string | number, c: Confianza) => {

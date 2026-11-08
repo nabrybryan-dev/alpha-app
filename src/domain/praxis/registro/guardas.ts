@@ -6,7 +6,7 @@
  * mecanismo que ya existe (rango / vago / descartado). Todas las funciones reciben texto ya normalizado
  * (`normalizarTexto`) salvo que se diga otra cosa.
  */
-import { ES_PALABRA_NUMERICA, escanearNumeros, type NumeroEncontrado } from './numeros.ts'
+import { ES_PALABRA_NUMERICA, escanearNumeros, normalizarTexto, type NumeroEncontrado } from './numeros.ts'
 
 const NUMERO_EN_PALABRAS = 'un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|veinte|veintiuno|veintidos|veintitres|veinticuatro'
 
@@ -90,6 +90,34 @@ export function numeroMalDictadoAntesDeMil(n: string): boolean {
     const p = tokens[i - 1]
     return p.length >= 4 && !ES_PALABRA_NUMERICA(p) && !/\d/.test(p) && NUMEROS_ESCRITOS.some((w) => distancia(p, w) === 1)
   })
+}
+
+/** Deseo, plan, meta, futuro, hábito o duda declarada: lo que NO pasó. «mañana» de la mañana («esta mañana») no cuenta. */
+const MARCAS_DE_PLAN = new RegExp(
+  '\\b(quiero|quisiera|quiere|ojala|meta|metas|objetivo|voy a|vamos a|si me|si duermo|si camino|me gustaria|deberia|tengo que|debo|necesito|me falta|me faltan|para llegar|normalmente|generalmente|usualmente|suelo|no se si)\\b' +
+    '|(?<!\\b(?:esta|la|de la|en la|por la|toda la|cada) )\\bmanana\\b|(?<!\\bcomo )\\bsiempre\\b',
+)
+const CORTES_DE_CLAUSULA = /\b(?:pero|aunque|luego|despues|y)\b/g
+
+/**
+ * Defensa de segunda línea: aunque el extractor haya citado la cifra, si en SU parte de la frase hay un deseo, un
+ * plan o una meta («quiero dormir 8 horas», «mañana camino 10 mil», «mi meta es 3 litros»), no se anota. Solo mira lo
+ * que rodea a la cita dentro de su cláusula, no la cita misma («dos litros, mi meta era 3» sigue siendo 2 litros).
+ */
+export function esHipotetico(frase: string, cita: string): boolean {
+  const nf = normalizarTexto(frase)
+  const nc = normalizarTexto(cita)
+  if (!nf) return false
+  const idx = nc ? nf.indexOf(nc) : -1
+  if (idx < 0) return MARCAS_DE_PLAN.test(nf)
+  let ini = 0
+  let fin = nf.length
+  for (const m of nf.matchAll(CORTES_DE_CLAUSULA)) {
+    const desde = m.index ?? 0
+    if (desde + m[0].length <= idx) ini = desde + m[0].length
+    else if (desde >= idx + nc.length) { fin = desde; break }
+  }
+  return MARCAS_DE_PLAN.test(`${nf.slice(ini, idx)} ${nf.slice(idx + nc.length, fin)}`)
 }
 
 const UNIDAD_DE_CIFRA = /^(horas?|hrs?|mil|pasos?|vasos?|litros?|minutos?|mins?)$/
