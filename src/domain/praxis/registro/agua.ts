@@ -6,6 +6,7 @@
 import { normalizarTexto, numeroDeCita, type NumeroDeCita } from './numeros.ts'
 import { buscarRango, separarPegado, variantesDeRango } from './dictado.ts'
 import { revisarAguaDeltaMl } from './limites.ts'
+import { conflictoDeCifras } from './guardas.ts'
 import { VASO_ML } from './medidas.ts'
 import type { ContextoRegistro, Pregunta, RegistroHidratacion } from './tipos.ts'
 
@@ -121,6 +122,14 @@ export function resolverAgua(agua: { cantidad: string; medida: string | null }, 
   const rango = buscarRango(normalizarTexto(dicho.replace(/(\d),(\d)/g, '$1.$2')))
   if (rango) {
     salida.seguimiento = { texto: `Dijiste «${dicho}»: ¿cuál fue?`, opciones: variantesDeRango(rango), campo_bloqueante: 'agua_cantidad' }
+    return salida
+  }
+  // «dos vasos, no, tres»: dos cifras en conflicto, se pregunta cuál (antes ganaba la primera).
+  const choque = conflictoDeCifras(normalizarTexto(dicho.replace(/(\d),(\d)/g, '$1.$2')))
+  if (choque) {
+    const unidad = normalizarTexto(dicho).split(' ').find((t) => /^(vasos?|litros?|ml|botellas?|tazas?)$/.test(t))
+    const et = (v: number) => (unidad ? `${v} ${unidad}` : String(v))
+    salida.seguimiento = { texto: `Dijiste «${dicho}»: ¿cuál fue?`, opciones: [et(choque[0].valor), et(choque[1].valor)], campo_bloqueante: 'agua_cantidad' }
     return salida
   }
   const { ml, partes, sinTamano } = mlDeAgua(dicho)

@@ -9,6 +9,7 @@ import {
   ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
   type NumeroEncontrado,
 } from './numeros.ts'
+import { clausulasDeReloj, conflictoDeCifras, quitarRelojes } from './guardas.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
@@ -136,6 +137,9 @@ function horasConMinutos(n: string): number | null {
   const horas = m[1].trim() ? numeroDeCita(m[1])?.valor ?? null : 1
   if (horas === null) return null
   let resto = m[2].replace(/^y\s+/, '')
+  // «siete horas y media aunque con 2 despertadas»: lo que sigue a «media» o «cuarto» es ruido, no minutos.
+  if (/^media\b/.test(resto)) resto = 'media'
+  else if (/^(un )?cuarto\b/.test(resto)) resto = 'cuarto'
   const signo = /^menos\b/.test(resto) ? -1 : 1
   resto = resto.replace(/^menos\s+/, '')
   const min = resto ? minutosSueltos(resto, false) ?? 0 : 0
@@ -159,10 +163,17 @@ function valorDeSueno(n: string, primero: number): number {
 }
 
 export function leerSueno(cita: string): Lectura {
-  const n = textoDeSueno(cita)
+  const completo = textoDeSueno(cita)
+  // Las horas de reloj de la frase («a las 2 me desperté y dormí 4 horas») no son horas dormidas.
+  const n = quitarRelojes(completo)
+  if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
   if (yConPalabraVaga(n)) return { tipo: 'vago' }
   const r = buscarRango(n)
   if (r) return { tipo: 'rango', etiquetas: [`${fmt(r.a.valor)} horas`, `${fmt(r.b.valor)} horas`] }
+  const choque = conflictoDeCifras(n)
+  if (choque) return { tipo: 'rango', etiquetas: [`${fmt(choque[0].valor)} horas`, `${fmt(choque[1].valor)} horas`] }
+  // «a las 2 me desperté y dormí otras 4 horas»: son dos tramos y no se sabe el total.
+  if (/\botr[ao]s?\b/.test(n) && escanearNumeros(n).length > 0) return { tipo: 'vago' }
   // «7:30» sin unidad puede ser 7 h 30 min o una hora de reloj: antes daba 7 en silencio; ahora se pregunta.
   const reloj = cita.match(/\b(\d{1,2}):([0-5]\d)\b(?!\s*(?:horas?|hrs?|hs|h\b|min))/i)
   if (reloj) {
@@ -200,8 +211,12 @@ function textoDePasos(cita: string): string {
 }
 
 export function leerPasos(cita: string): Lectura {
-  const n = textoDePasos(cita)
+  const completo = textoDePasos(cita)
+  const n = quitarRelojes(completo)
+  if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
   if (yConPalabraVaga(n)) return { tipo: 'vago' }
+  const choque = conflictoDeCifras(n)
+  if (choque) return { tipo: 'rango', etiquetas: [`${conMiles(choque[0].valor)} pasos`, `${conMiles(choque[1].valor)} pasos`] }
   const r = buscarRango(n)
   if (r) {
     const { a, b } = r
@@ -236,6 +251,15 @@ export function leerHora(cita: string | null | undefined, contexto: 'acostarse' 
   if (r) {
     const [a, b] = variantesDeRango(r).map((x) => horaUna(x, contexto))
     return a && b ? { tipo: 'rango', etiquetas: [a, b] } : null
+  }
+  // Dos horas de reloj en la cita («a las 5 pero me levanté a las 6», «no a las 10 sino a las 11»): no se mezclan
+  // (daba 05:06); se pregunta cuál. Si alguna no se puede leer, queda visible como vago.
+  const clausulas = clausulasDeReloj(n)
+  if (clausulas.length >= 2) {
+    const a = horaUna(clausulas[0], contexto)
+    const b = horaUna(clausulas[clausulas.length - 1], contexto)
+    if (a && b && a !== b) return { tipo: 'rango', etiquetas: [a, b] }
+    return a && b ? { tipo: 'valor', valor: a, aproximado: false } : { tipo: 'vago' }
   }
   const hora = horaUna(crudo, contexto)
   return hora ? { tipo: 'valor', valor: hora, aproximado: false } : null
