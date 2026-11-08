@@ -49,6 +49,7 @@ export function crearConexionPraxis(
         // Solo cuando la persona eligió un ejercicio con un toque: si no, no viaja.
         ...(contexto?.pantallaEjercicioId ? { pantallaEjercicioId: contexto.pantallaEjercicioId } : {}),
         ...(contexto?.charla ? { charla: contexto.charla } : {}),
+        ...(contexto?.memoria ? { memoria: contexto.memoria } : {}),
         horaLocal: horaLocalIso(),
         hidratacionHoyMl: ve.hidratacionHoyMl,
         verComposicion: ve.comida ? ve.comida.verCifras : false,

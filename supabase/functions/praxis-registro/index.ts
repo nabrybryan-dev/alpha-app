@@ -21,7 +21,7 @@
 //    contiene ni la crea.
 //  - El usuario sale del token de sesión (se valida contra Supabase Auth), nunca
 //    del cuerpo. Los datos se leen y se escriben con el JWT de la PERSONA (RLS),
-//    nunca con service_role: la función no puede tocar lo de otro asesorado.
+//    nunca con service_role (única excepción vigilada: la memoria de la charla, `memoria.ts`, 0166).
 //  - El filtro clínico corre antes del modelo: un mensaje con dolor, lesión,
 //    síntoma, medicamento o riesgo NO llega a Haiku... salvo con el interruptor
 //    PRAXIS_RIESGO_MAS_GRAVE=1 (apagado por defecto): entonces una marca de «cuidado»
@@ -56,6 +56,9 @@ import { CORS, json } from './http.ts'
 import { horaConfiable, subDelJwt } from './hora.ts'
 import { deshacer, deshacerPorFrase, adherenciaGuardar, seriesGuardar, type EntornoLibro } from './deshacer.ts'
 import { intentarCaminoRapido, puedeEntrar } from './apoyo.ts'
+import { MAX_POR_HORA, excedeLimite, vistoIngreso } from './cupo.ts' // el tope por persona y hora
+export { MAX_POR_HORA }
+import { entornoMemoria, guardarTurnoCharla, type EntornoMemoria, type TurnoParaMemoria } from './memoria.ts' // 0166: la charla entre días, con su interruptor
 export { horaBogota, horaConfiable, subDelJwt } from './hora.ts'
 export type { ResultadoPortero } from './portero.ts'
 // La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
@@ -72,7 +75,7 @@ declare const Deno:
   | { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void }
   | undefined
 
-export interface Entorno extends EntornoLibro {
+export interface Entorno extends EntornoLibro, EntornoMemoria {
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   ANTHROPIC_API_KEY: string | undefined
@@ -96,29 +99,10 @@ export interface Dependencias {
 const MSG_NO_ENTENDI = 'Se me enredó algo de mi lado. ¿Me lo repites?'
 const TIMEOUT_MODELO_MS = 8000
 const MAX_FRASE = 600
-/** Mensajes por persona y hora. 30 → 60 (Bryan, 3-oct-2026): la charla ahora pasa por el modelo y gasta cupo. */
-export const MAX_POR_HORA = 60
 /** Una respuesta de CONTEXTO es larga a propósito (un minuto hablando son ~1.200 caracteres). */
 const MAX_TEXTO_INGRESO = 1500
 /** Un ingreso son 5 turnos: 40 por hora dan para ocho pruebas completas por persona. */
 const MAX_INGRESO_POR_HORA = 40
-
-// Tope por persona y hora. En memoria: se reinicia con la instancia, así que es
-// una red contra el abuso y no una cuota exacta (la cuota exacta vive en
-// `praxis_extracciones`, que llega con su migración). El ingreso lleva su propia cuenta:
-// una prueba completa no se come el cupo del registro.
-const visto = new Map<string, number[]>()
-const vistoIngreso = new Map<string, number[]>()
-function excedeLimite(usuario: string, ahoraMs: number, mapa: Map<string, number[]> = visto, maximo: number = MAX_POR_HORA): boolean {
-  const recientes = (mapa.get(usuario) ?? []).filter((t) => ahoraMs - t < 3_600_000)
-  if (recientes.length >= maximo) {
-    mapa.set(usuario, recientes)
-    return true
-  }
-  recientes.push(ahoraMs)
-  mapa.set(usuario, recientes)
-  return false
-}
 
 export function tokenDeCabecera(cabecera: string | null): string | null {
   const m = cabecera?.match(/^Bearer\s+(.+)$/i)
@@ -373,6 +357,8 @@ interface CuerpoProponer {
   comida_pendiente?: unknown
   /** La charla (3-oct): trato, nombre, hasta 6 turnos de esta sesión y el saludo ya dicho. Nada de esto se guarda. */
   charla?: unknown
+  /** 0166 (7-nov): a qué charla y en qué turno va la frase. Solo se usa con PRAXIS_GUARDAR_CHARLA=1. */
+  memoria_charla?: unknown
 }
 
 async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan: Promise<Plan>): Promise<Response> {
@@ -381,6 +367,8 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   if (frase.length > MAX_FRASE) return json({ error: 'La frase es muy larga' }, 400)
   const mensajeId = typeof cuerpo.mensaje_id === 'string' && cuerpo.mensaje_id ? cuerpo.mensaje_id : `m-${d.ahora().getTime()}`
   const t0 = d.ahora().getTime()
+  const recordar = (respuestas: TurnoParaMemoria['respuestas'], clinico: boolean, aviso: boolean) =>
+    guardarTurnoCharla(d, s.usuarioId, { marcaBruta: cuerpo.memoria_charla, frase, respuestas, clinico, aviso })
 
   // 1. Filtro de riesgo ANTES del modelo: el MISMO que corre en la pantalla (riesgo, pareja,
   //    niños, frases ambiguas, salud). Haiku no ve estas frases.
@@ -391,6 +379,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
     const marca = leida.marca
     const propuesta = derivarPorRiesgo(marca)
     await avisarAlCoach(d, s, { origen: 'praxis', nivel: nivelDeMarca(marca) })
+    await recordar([propuesta.respuesta], true, true)
     return json({
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
@@ -457,6 +446,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   if (marcaModelo) {
     const propuesta = derivarPorRiesgo(marcaModelo)
     await avisarAlCoach(d, s, { origen: 'praxis', nivel: nivelDeMarca(marcaModelo) })
+    await recordar([propuesta.respuesta], true, true)
     return json({
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
@@ -481,6 +471,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   const propuesta = portero ? { ...resuelta, respuesta: portero.respuesta, notas_coach: [...resuelta.notas_coach, portero.nota] } : resuelta
   // La charla: solo si no hay nada que guardar, preguntar ni derivar. Es TEXTO: no crea tarjeta de confirmación ni escribe nada.
   const textoCharla = !rapido && cabeCharla(propuesta, { intencionCharla: extraccion.intencion.includes('charla') && !extraccion.intencion.includes('consulta') }) ? leerRespuestaCharla(salida.entrada, contextoCharla) : null
+  await recordar([textoCharla, propuesta.respuesta], propuesta.accion === 'derivar', false)
   return json({
     propuesta,
     tarjeta: construirTarjeta(propuesta, mensajeId),
@@ -961,6 +952,7 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
         PRAXIS_CAMINO_RAPIDO: entorno('PRAXIS_CAMINO_RAPIDO'),
         PRAXIS_RIESGO_MAS_GRAVE: entorno('PRAXIS_RIESGO_MAS_GRAVE'),
+        ...entornoMemoria(entorno), // la única excepción a la llave de la persona vive en memoria.ts
         PRAXIS_LIBRO: entorno('PRAXIS_LIBRO'),
         PRAXIS_SECRETO_DESHACER: entorno('PRAXIS_SECRETO_DESHACER'),
         PORTERO_URL: entorno('PORTERO_URL'),

@@ -31,7 +31,8 @@ import { Cancelado, Dia, S, cancelar, emitir, esperaCon, vigilar } from './sesio
  *      (`charla.ts`). Los saludos, el «¿cómo estás?» y lo que el plan no puede contestar van al modelo (la
  *      misma llamada del registrador), con una APERTURA corta que Praxis dice al instante mientras piensa.
  *      Si el modelo tarda o falla, cae al libreto local: nunca un silencio y nunca un «no te entendí».
- *      La charla es solo texto: no guarda nada y no crea tarjetas.
+ *      La charla es solo texto: no crea tarjetas. Desde la 0166 (7-nov) el SERVIDOR puede guardar la frase y su
+ *      respuesta como memoria entre días (interruptor PRAXIS_GUARDAR_CHARLA); la charla local de 0 ms no sale de aquí.
  *   2. Una pregunta por el plan se contesta con lo que Praxis ve (lista blanca), sin modelo.
  *   3. Lo demás va al registrador (Edge Function `praxis-registro`): vuelve una PROPUESTA,
  *      se enseña en una tarjeta y se guarda solo si la persona toca «Guardar».
@@ -240,6 +241,7 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
     const pedido = c.proponer(frase, idMensaje(), {
       ...(ejercicioId ? { pantallaEjercicioId: ejercicioId } : {}),
       charla: { trato: trato(), nombre: c.nombre ?? null, turnos: ch.previos, apertura: ch.apertura },
+      memoria: { charlaId, turno: turnosHablados }, // 0166: el servidor la guarda solo con su interruptor encendido
     })
     const esperado = ch.esCharla ? conLimite(pedido, limitesDeCharla.esperaMs) : pedido
     if (ch.apertura) { // la entrada corta sale ya; el modelo sigue pensando
@@ -291,6 +293,8 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
 
 /* Lo último que dijo Praxis: ¿fue una pregunta de ánimo? Y cuántas veces habló ya la persona en esta sesión. Solo sirven a la charla. */
 let animoPendiente = false, turnosHablados = 0
+/* La charla de esta sesión (0166): un id nuevo cada vez que arranca la conversación; con el turno ordena la memoria. */
+let charlaId = idMensaje()
 
 /* ——— «Gana la lectura más grave» ———
    La respuesta del filtro (cuidado o salud) se muestra YA, sin esperar. En paralelo, y solo si el interruptor de consentimiento
@@ -387,7 +391,7 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
   try {
     if (!S.t0) S.t0 = performance.now()
     S.turno = 'conversa'; S.enFirma = false; S.cola = []
-    animoPendiente = false; turnosHablados = 0; historial = []
+    animoPendiente = false; turnosHablados = 0; historial = []; charlaId = idMensaje()
     Cab.pendiente = false // conectada no se compacta: el agujero se queda en el centro, que es por donde se habla (Bryan, 2-oct)
     Onda.soltarFirma(); Onda.estado('reposo')
     Penta.cerrar(); $('#penta').hidden = true; $('#muelle').hidden = false; $('#editor').hidden = true
