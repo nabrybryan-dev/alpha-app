@@ -14,8 +14,7 @@ import { respuestasDe, visibilidadDelAsesorado } from '../../data/visibilidadDel
 import type { MenuDia, TipoDia } from '../../domain/types'
 import { comidaDe } from './comidaDe'
 import { MiPlanSimple } from './MiPlanSimple'
-import { MiMercado } from './MiMercado'
-import { MI_MERCADO_MAQUETA } from './banderas'
+import { SeccionMercado } from './SeccionMercado'
 
 /**
  * El plan nutricional completo, por secciones.
@@ -46,7 +45,7 @@ const kcalDelTipo = (plan: Parameters<typeof macrosDelDia>[0], tipo: TipoDia) =>
 }
 
 /** `mercadoMaqueta` solo existe para probar la vista nueva; en la app manda la bandera. */
-export default function MiPlan({ mercadoMaqueta = MI_MERCADO_MAQUETA }: { mercadoMaqueta?: boolean } = {}) {
+export default function MiPlan({ mercadoMaqueta }: { mercadoMaqueta?: boolean } = {}) {
   const { usuario } = useSesion()
   useDbVersion()
   const navegar = useNavigate()
@@ -350,23 +349,8 @@ export default function MiPlan({ mercadoMaqueta = MI_MERCADO_MAQUETA }: { mercad
         </section>
       )}
 
-      {seccion === 'Mercado' && mercadoMaqueta && (<MiMercado asesoradoId={usuario.id} lineas={plan.listaCompras} />)}
-
-      {seccion === 'Mercado' && !mercadoMaqueta && (
-        <section className="rounded-2xl border border-linea bg-surface-1 p-4">
-          <h2 className="font-display text-base text-texto">Mercado de 15 días</h2>
-          <p className="mt-1 text-xs text-tenue">Compra una vez, cumple dos semanas.</p>
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {plan.listaCompras.map((item) => (
-              <li key={item} className="flex gap-2 text-sm leading-snug text-texto">
-                <span aria-hidden="true" className="text-tenue">
-                  ·
-                </span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
+      {seccion === 'Mercado' && (
+        <SeccionMercado asesoradoId={usuario.id} lineas={plan.listaCompras} maqueta={mercadoMaqueta} />
       )}
 
       {seccion === 'Suplementos' && (
