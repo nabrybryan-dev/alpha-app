@@ -26,6 +26,31 @@ export function quitarRelojes(n: string): string {
   return n.replace(CLAUSULA_RELOJ, ' ').replace(/\s+/g, ' ').trim()
 }
 
+const UNIDAD_DE_CIFRA = /^(horas?|hrs?|mil|pasos?|vasos?|litros?|minutos?|mins?)$/
+
+/**
+ * Rango sin «o»: «cinco, seis horas», «5 y 6 horas», «8, 9 mil pasos». Dos cifras pegadas (o unidas solo por «y») cuya
+ * segunda lleva la unidad: no es una suma. Se pregunta con las dos.
+ */
+export function rangoSinConector(n: string): { tokens: string[]; a: NumeroEncontrado; b: NumeroEncontrado } | null {
+  const tokens = n.split(' ').filter(Boolean)
+  const nums = escanearNumeros(n)
+  for (let i = 0; i + 1 < nums.length; i++) {
+    const [a, b] = [nums[i], nums[i + 1]]
+    const medio = tokens.slice(a.hasta, b.desde)
+    const pegadas = medio.length === 0 || (medio.length === 1 && medio[0] === 'y')
+    if (pegadas && a.valor !== b.valor && UNIDAD_DE_CIFRA.test(tokens[b.hasta] ?? '')) return { tokens, a, b }
+  }
+  return null
+}
+
+/** «menos de 5 horas», «más de 10 mil», «ni a 3000», «por lo menos…»: una cota no es el valor. */
+const COTA = /\b(menos de|mas de|ni|por debajo de|por encima de|al menos|por lo menos|minimo|maximo|no llegue a|no pase de)\b/
+
+export function esCota(n: string): boolean {
+  return COTA.test(n) && escanearNumeros(n).length > 0
+}
+
 /** Palabras que, entre dos cifras, dicen que la segunda corrige o cambia a la primera, o que son dos hechos distintos. */
 const MARCAS_DE_CORRECCION = new Set([
   'bueno', 'no', 'sino', 'perdon', 'digo', 'mejor', 'otra', 'otras', 'otro', 'otros', 'dormi', 'camine', 'tome',

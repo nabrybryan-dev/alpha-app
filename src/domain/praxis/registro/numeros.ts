@@ -111,13 +111,16 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
         const w = tokens[j]
         if (w === 'y') {
           const sig = tokens[j + 1]
-          // «y» une cuarenta y cinco / uno y medio; en otro sitio corta el número.
-          if (visto && sig !== undefined && (sig in UNIDADES || sig === 'medio' || sig === 'media')) {
+          // «y» une cuarenta y cinco / uno y medio; en otro sitio corta el número («cinco y seis horas» son dos cifras).
+          const tras = tokens[j - 1] in DECENAS ? sig in UNIDADES : false
+          if (visto && sig !== undefined && (tras || sig === 'medio' || sig === 'media' || (sig in UNIDADES && !(tokens[j - 1] in UNIDADES && UNIDADES[tokens[j - 1]] < 10 && UNIDADES[sig] < 10 && UNIDADES[sig] > 0)))) {
             j += 1
             continue
           }
           break
         }
+        // «cinco seis» son dos cifras (un rango dicho de corrido), no 11.
+        if (w in UNIDADES && j > i && tokens[j - 1] in UNIDADES) break
         if (w in UNIDADES) { cur += UNIDADES[w]; visto = true }
         else if (w in DECENAS) { cur += DECENAS[w]; visto = true }
         else if (w in CENTENAS) { cur += CENTENAS[w]; visto = true }

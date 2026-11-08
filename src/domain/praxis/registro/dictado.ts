@@ -9,7 +9,7 @@ import {
   ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
   type NumeroEncontrado,
 } from './numeros.ts'
-import { clausulasDeReloj, conflictoDeCifras, quitarRelojes } from './guardas.ts'
+import { clausulasDeReloj, conflictoDeCifras, esCota, quitarRelojes, rangoSinConector } from './guardas.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
@@ -167,8 +167,8 @@ export function leerSueno(cita: string): Lectura {
   // Las horas de reloj de la frase («a las 2 me desperté y dormí 4 horas») no son horas dormidas.
   const n = quitarRelojes(completo)
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
-  if (yConPalabraVaga(n)) return { tipo: 'vago' }
-  const r = buscarRango(n)
+  if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
+  const r = buscarRango(n) ?? rangoSinConector(n)
   if (r) return { tipo: 'rango', etiquetas: [`${fmt(r.a.valor)} horas`, `${fmt(r.b.valor)} horas`] }
   const choque = conflictoDeCifras(n)
   if (choque) return { tipo: 'rango', etiquetas: [`${fmt(choque[0].valor)} horas`, `${fmt(choque[1].valor)} horas`] }
@@ -214,10 +214,10 @@ export function leerPasos(cita: string): Lectura {
   const completo = textoDePasos(cita)
   const n = quitarRelojes(completo)
   if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
-  if (yConPalabraVaga(n)) return { tipo: 'vago' }
+  if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
   const choque = conflictoDeCifras(n)
   if (choque) return { tipo: 'rango', etiquetas: [`${conMiles(choque[0].valor)} pasos`, `${conMiles(choque[1].valor)} pasos`] }
-  const r = buscarRango(n)
+  const r = buscarRango(n) ?? rangoSinConector(n)
   if (r) {
     const { a, b } = r
     const mil = a.valor < 1000 && b.valor >= 1000 && b.valor % 1000 === 0
