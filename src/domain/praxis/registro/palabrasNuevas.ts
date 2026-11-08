@@ -15,8 +15,21 @@ import type { ValorCorto } from './respuestaCorta.ts'
 type Regla = [RegExp, ValorCorto]
 
 const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
-  estres: [[/\ba tope\b/, { valor: 'MUCHO' }]],
+  estres: [
+    [/\ba tope\b/, { valor: 'MUCHO' }],
+    // «Fresco» en Colombia también es tranquilo (8-nov, Bryan: sí).
+    [/\bfresc[oa]\b/, { valor: 'POCO' }],
+  ],
+  // «Con toda» y «a tope» se invierten según el campo (8-nov, Bryan: sí). Sin pregunta ni área no se llega aquí.
+  motivacion: [
+    [/\bcon toda\b/, { valor: 'MUCHO' }],
+    [/\ba tope\b/, { valor: 'MUCHO' }],
+  ],
   cansancio: [
+    // «Molida» sola = muy cansada. Con parte del cuerpo («molida de las piernas») es dolor muscular: no se mapea.
+    [/\bmolid[oa]\b(?!\s+(de|del|en|por)\b)(?!.*\b(pierna|brazo|espalda|pecho|hombro|gluteo|abdomen|cuadricep|musculo)s?\b)/, { valor: 'MUCHO' }],
+    [/\bfresc[oa]\b/, { valor: 'POCO' }],
+    [/\bcon toda\b/, { valor: 'POCO' }],
     [/\b(para )?nada cansad[oa]\b|\bno (estoy|me siento|ando) nada cansad[oa]\b/, { valor: 'POCO' }],
     [/\b(ya )?no (estoy|me siento|ando|amaneci|me levante)( tan| muy)? cansad[oa]\b/, { entre: ['POCO', 'REGULAR'] }],
     [/\b(muy|re|super|bien) cansad[oa]\b/, { valor: 'MUCHO' }],
@@ -26,6 +39,10 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
     [/\bcansad[oa]\b/, { entre: ['REGULAR', 'MUCHO'] }],
   ],
   calidadSueno: [
+    // «Descansé» también puede ser un día sin entreno: solo llega aquí si el área ya es sueño (8-nov, Bryan: sí).
+    [/\bno (descanse|he descansado)( bien| nada)?\b/, { valor: 'MALA' }],
+    [/\bdescanse (bien|rico|profundo)\b/, { valor: 'BUENA' }],
+    [/\bdescanse (poco|poquito)\b/, { entre: ['REGULAR', 'MALA'] }],
     [/\bdesvel/, { valor: 'MALA' }],
     [/\bno dormi (casi )?nada\b/, { valor: 'MALA' }],
     // «Poquito» es cantidad, no calidad: la persona elige (y las horas se preguntan aparte).
@@ -33,7 +50,9 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   ],
   rendimiento: [
     [/\bre bien\b/, { valor: 'BUENA' }],
-    [/\bsenti\b.*\bpesad[oa]\b/, { valor: 'MALA' }],
+    // «Pesada después del almuerzo» es digestión, no rendimiento (8-nov, Bryan: no se mapea).
+    [/\bsenti\b(?!.*\b(almuerzo|comida|comi|comiendo|cena|desayuno|merienda|digest\w*)\b).*\bpesad[oa]\b/, { valor: 'MALA' }],
+    [/\ba tope\b/, { valor: 'BUENA' }],
   ],
 }
 
