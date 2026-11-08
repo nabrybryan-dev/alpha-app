@@ -92,7 +92,8 @@ export function queOcurreAlVencer(fila: {
   dudasPendientes: readonly string[]
 }): string {
   if (fila.estado === 'espera_bryan') return 'Venció el plazo: espera a Bryan.'
-  if (fila.riesgo === 'bajo' && fila.dudasPendientes.length === 0) return 'Si nadie decide, pasa solo al vencer.'
+  if (fila.riesgo !== 'alto' && fila.dudasPendientes.length === 0)
+    return 'Si nadie decide: pasa solo al vencer si la aprobación automática está encendida; si no, espera a Bryan.'
   return 'Al vencer no pasa solo: esperará a Bryan.'
 }
 

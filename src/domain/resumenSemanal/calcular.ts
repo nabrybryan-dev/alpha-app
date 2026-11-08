@@ -1,4 +1,5 @@
 import type { CheckinDiario, Sesion } from '../types'
+import { soloCompletos } from '../checkinCompleto'
 import { sesionCompleta } from '../cumplimiento'
 import { regularidadDelSueno, type Regularidad } from '../sueno/regularidad'
 
@@ -49,7 +50,8 @@ export function resumenSemanal(datos: DatosDeLaSemana): ResumenSemanal {
     sesionesHechas: sesiones.filter(sesionCompleta).length,
     sesionesPautadas: sesiones.length,
     adherenciaPct: datos.adherenciaPct,
-    checkinsDeLaSemana: semana.length,
+    // Uno a medias no cuenta como check-in hecho (Bryan, 7-nov-2026); su sueño sí es un dato y sigue abajo.
+    checkinsDeLaSemana: soloCompletos(semana).length,
     // El sueño mira TODOS los check-ins que se le pasen y no solo siete: el
     // índice necesita noches seguidas, y recortar a siete de calendario dejaría
     // fuera justo las que completan la racha.

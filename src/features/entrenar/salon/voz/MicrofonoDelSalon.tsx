@@ -3,7 +3,7 @@ import { destinoDeLaVuelta } from '../camara/vueltaDelCuerpo'
 import type { EstadoDeLaGuia } from '../guia/useZonaDePraxis'
 import { BotonDeVoz } from './BotonDeVoz'
 import { ejecutarOrden } from './ejecutarOrden'
-import { interpretarOrden, respuestaDeLaOrden } from './ordenesDeVoz'
+import { interpretarOrden, respuestaDeLaOrden } from '../../../../domain/praxis/ordenes/ordenesDeVoz'
 import { useVozPermitida } from './useVozPermitida'
 
 export interface MicrofonoDelSalonProps {

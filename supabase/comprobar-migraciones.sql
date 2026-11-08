@@ -2730,4 +2730,952 @@ select '0159 - mensajes del equipo a Praxis', 'praxis_mensajes_equipo: RLS, equi
             when not has_column_privilege('authenticated', 'public.praxis_mensajes_equipo', 'frase', 'insert') then 'NO'
             else 'SI' end
 
+union all
+select '0161 - libro de registros de Praxis y agua', 'praxis_registros_aplicados: RLS, lectura propia y del equipo, clave unica de tarjeta, nadie escribe directo, sin anon',
+       case when to_regclass('public.praxis_registros_aplicados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_registros_aplicados')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados')) <> 2 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polcmd <> 'r') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_registros_aplicados') and p.polname = 'praxis_registros_aplicados_lee_staff') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.praxis_registros_aplicados')
+                               and k.conname = 'praxis_registros_aplicados_tarjeta_unica' and k.contype = 'u') then 'NO'
+            when has_table_privilege('anon', 'public.praxis_registros_aplicados', 'select')
+              or has_table_privilege('anon', 'public.praxis_registros_aplicados', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_registros_aplicados', 'select') then 'NO'
+            else 'SI' end
+union all
+select '0161 - libro de registros de Praxis y agua', 'praxis_aplicar_agua existe, es security definer con search_path fijo y la ejecutan los usuarios, no anon',
+       case when to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_agua(text,integer,integer)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_agua(text,integer,integer)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_aplicar_series existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_series(text,integer,text,text,jsonb)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_series(text,integer,text,text,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_series(text,integer,text,text,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_aplicar_adherencia existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_adherencia(text,integer,date,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_adherencia(text,integer,date,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_adherencia(text,integer,date,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_deshacer existe, security definer, search_path fijo, la ejecutan los usuarios y no anon',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0162 - series, adherencia y deshacer de Praxis', 'praxis_series_actuales (ayudante interno) existe y no la ejecuta ni anon ni authenticated; fijar_series_ejercicio sigue invoker (no se tocó)',
+       case when to_regprocedure('public.praxis_series_actuales(text,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.praxis_series_actuales(text,text)', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_series_actuales(text,text)', 'execute') then 'NO'
+            when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.fijar_series_ejercicio(text,text,jsonb)')) then 'NO'
+            else 'SI' end
+union all
+-- Migraciones 0116 a 0145, 0164 y 0165: senales anadidas para cerrar pruebas/migraciones-con-senal.
+select '0116 - bloqueo visible y anulable', 'alertas_coach: RLS, lee es_coach() o leer_entrenamiento, nadie con sesion escribe, anon sin nada',
+       case when to_regclass('public.alertas_coach') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_coach')) then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.alertas_coach') and p.polcmd <> 'r') then 'NO'
+            when has_table_privilege('anon', 'public.alertas_coach', 'select')
+              or has_table_privilege('anon', 'public.alertas_coach', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.alertas_coach', 'insert')
+              or has_table_privilege('authenticated', 'public.alertas_coach', 'update')
+              or has_table_privilege('authenticated', 'public.alertas_coach', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.alertas_coach', 'insert') then 'NO'
+            else 'SI' end
+union all
+select '0116 - bloqueo visible y anulable', 'ordenes.tipo admite anular_bloqueo sin perder los seis tipos anteriores',
+       case when to_regclass('public.ordenes') is null then 'NO'
+            when (select count(*) from pg_constraint
+                   where conrelid = 'public.ordenes'::regclass and contype = 'c'
+                     and pg_get_constraintdef(oid) like '%anular_bloqueo%'
+                     and pg_get_constraintdef(oid) like '%detener%'
+                     and pg_get_constraintdef(oid) like '%reportar_riesgo%'
+                     and pg_get_constraintdef(oid) like '%pedir_correccion%'
+                     and pg_get_constraintdef(oid) like '%responder%'
+                     and pg_get_constraintdef(oid) like '%reanudar%'
+                     and pg_get_constraintdef(oid) like '%preparar_firma%') <> 1 then 'NO'
+            else 'SI' end
+union all
+select '0116 - bloqueo visible y anulable', 'anular_bloqueo: security definer con search_path fijo, sin anon, con authenticated',
+       case when to_regprocedure('public.anular_bloqueo(uuid,text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.anular_bloqueo(uuid,text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.anular_bloqueo(uuid,text,text)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.anular_bloqueo(uuid,text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.anular_bloqueo(uuid,text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0116 - bloqueo visible y anulable', 'contexto_clinico_firmado: RLS, solo se lee con sesion, firmar_contexto_clinico definer con search_path y sin anon',
+       case when to_regclass('public.contexto_clinico_firmado') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.contexto_clinico_firmado')) then 'NO'
+            when has_table_privilege('anon', 'public.contexto_clinico_firmado', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'insert')
+              or has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'update')
+              or has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'delete') then 'NO'
+            when to_regprocedure('public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0116 - bloqueo visible y anulable', 'registro_entreno: RLS, la persona inserta y actualiza lo suyo, nadie con sesion borra, anon sin nada, porcentaje 0-100',
+       case when to_regclass('public.registro_entreno') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = 'public.registro_entreno'::regclass) then 'NO'
+            when has_table_privilege('anon', 'public.registro_entreno', 'select')
+              or has_table_privilege('anon', 'public.registro_entreno', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.registro_entreno', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.registro_entreno', 'insert')
+              or not has_table_privilege('authenticated', 'public.registro_entreno', 'update') then 'NO'
+            when exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'registro_entreno'
+                           and cmd in ('DELETE', 'ALL')) then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.registro_entreno'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%porcentaje%'
+                                and pg_get_constraintdef(oid) like '%100%') then 'NO'
+            -- 7-nov: la 0116 deja el unico en (usuario_id, fecha) a proposito; sesion_ref NO entra (corregida la senal).
+            when not exists (select 1 from pg_indexes
+                              where schemaname = 'public' and tablename = 'registro_entreno'
+                                and indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%(usuario_id, fecha)%') then 'NO'
+            else 'SI' end
+union all
+-- Que la 0116 NO haya tocado la adherencia a la dieta: sin columna porcentaje y con su unico (usuario, fecha).
+select '0116 - bloqueo visible y anulable', 'adherencias intacta: sin columna porcentaje y con unique (usuario_id, fecha)',
+       case when exists (select 1 from information_schema.columns
+                          where table_schema = 'public' and table_name = 'adherencias' and column_name = 'porcentaje') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.adherencias'::regclass and contype = 'u'
+                                and pg_get_constraintdef(oid) = 'UNIQUE (usuario_id, fecha)') then 'NO'
+            else 'SI' end
+union all
+-- 0117a: area de dudas agenticas (M2); la 0117 sin sufijo es la cola de dudas de Praxis.
+select '0117a - area de dudas agenticas', 'tarjetas: RLS, lectura de authenticated por coach o capacidad; sin escritura de sesiones; service_role inserta',
+       case when to_regclass('public.dudas_agenticas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.dudas_agenticas')) then 'NO'
+            when not exists (select 1 from pg_policy p
+                              where p.polrelid = to_regclass('public.dudas_agenticas') and p.polcmd = 'r'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach()%'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%'
+                                and p.polroles = array[(select oid from pg_roles where rolname = 'authenticated')]) then 'NO'
+            when has_table_privilege('anon', 'public.dudas_agenticas', 'select')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas', 'insert')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas', 'update')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas', 'delete')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas', 'truncate') then 'NO'
+            when not has_table_privilege('authenticated', 'public.dudas_agenticas', 'select')
+              or not has_table_privilege('service_role', 'public.dudas_agenticas', 'insert') then 'NO'
+            else 'SI' end
+union all
+select '0117a - area de dudas agenticas', 'recibos append-only: authenticated no escribe; service_role inserta y las sesiones no borran ni cambian',
+       case when to_regclass('public.dudas_agenticas_recibos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.dudas_agenticas_recibos')) then 'NO'
+            when has_table_privilege('authenticated', 'public.dudas_agenticas_recibos', 'insert')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas_recibos', 'update')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas_recibos', 'delete')
+              or has_table_privilege('authenticated', 'public.dudas_agenticas_recibos', 'truncate') then 'NO'
+            when not has_table_privilege('authenticated', 'public.dudas_agenticas_recibos', 'select')
+              or not has_table_privilege('service_role', 'public.dudas_agenticas_recibos', 'insert') then 'NO'
+            else 'SI' end
+union all
+select '0117a - area de dudas agenticas', 'decidir_duda_agentica es security definer con search_path fijo; authenticated puede decidir y anon no',
+       case when to_regprocedure('public.decidir_duda_agentica(uuid,integer,text,text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.decidir_duda_agentica(uuid,integer,text,text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.decidir_duda_agentica(uuid,integer,text,text,text)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.decidir_duda_agentica(uuid,integer,text,text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.decidir_duda_agentica(uuid,integer,text,text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0118 - expediente de mensajes privados', 'expediente_mensajes_privados: RLS, politica de lectura con la persona, authenticated solo lee, anon sin nada, service_role escribe',
+       case when to_regclass('public.expediente_mensajes_privados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.expediente_mensajes_privados')) then 'NO'
+            when has_table_privilege('anon', 'public.expediente_mensajes_privados', 'select') or has_table_privilege('anon', 'public.expediente_mensajes_privados', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.expediente_mensajes_privados', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.expediente_mensajes_privados', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.expediente_mensajes_privados', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.expediente_mensajes_privados', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.expediente_mensajes_privados', 'insert') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.expediente_mensajes_privados') and p.polname = 'expediente_mensajes_privados_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%persona_id%') then 'NO'
+            else 'SI' end
+union all
+select '0119 - asignacion de persona a coach', 'asignaciones_coach: RLS, politica de lectura abierta a leer_entrenamiento, authenticated solo lee; autorizaciones_reasignacion_coach cerrada a sesiones',
+       case when to_regclass('public.asignaciones_coach') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.asignaciones_coach')) then 'NO'
+            when has_table_privilege('anon', 'public.asignaciones_coach', 'select') or has_table_privilege('anon', 'public.asignaciones_coach', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.asignaciones_coach', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.asignaciones_coach', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.asignaciones_coach', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.asignaciones_coach', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.asignaciones_coach', 'insert') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.asignaciones_coach') and p.polname = 'asignaciones_coach_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%') then 'NO'
+            when to_regclass('public.autorizaciones_reasignacion_coach') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.autorizaciones_reasignacion_coach')) then 'NO'
+            when has_table_privilege('anon', 'public.autorizaciones_reasignacion_coach', 'select') or has_table_privilege('anon', 'public.autorizaciones_reasignacion_coach', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.autorizaciones_reasignacion_coach', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.autorizaciones_reasignacion_coach', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.autorizaciones_reasignacion_coach', 'insert') then 'NO'
+            else 'SI' end
+union all
+select '0119 - asignacion de persona a coach', 'es_coach_asignado y cambiar_coach_asignado: security definer con search_path fijo, authenticated ejecuta y anon no',
+       case when to_regprocedure('public.es_coach_asignado(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.es_coach_asignado(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.es_coach_asignado(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.es_coach_asignado(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.es_coach_asignado(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.cambiar_coach_asignado(uuid,uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.cambiar_coach_asignado(uuid,uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.cambiar_coach_asignado(uuid,uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.cambiar_coach_asignado(uuid,uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.cambiar_coach_asignado(uuid,uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0120 - receptor de alertas de la puerta', 'alertas_puerta: RLS, lectura del destinatario, authenticated solo lee; casos_alerta_puerta cerrada; recibir_alerta_puerta definer y sin ejecucion para sesiones',
+       case when to_regclass('public.alertas_puerta') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_puerta')) then 'NO'
+            when has_table_privilege('anon', 'public.alertas_puerta', 'select') or has_table_privilege('anon', 'public.alertas_puerta', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.alertas_puerta', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.alertas_puerta', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.alertas_puerta', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.alertas_puerta', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.alertas_puerta', 'insert') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.alertas_puerta') and p.polname = 'alertas_puerta_leer_destinatario') then 'NO'
+            when to_regclass('public.casos_alerta_puerta') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.casos_alerta_puerta')) then 'NO'
+            when has_table_privilege('anon', 'public.casos_alerta_puerta', 'select') or has_table_privilege('anon', 'public.casos_alerta_puerta', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.casos_alerta_puerta', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.casos_alerta_puerta', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.casos_alerta_puerta', 'insert') then 'NO'
+            when to_regprocedure('public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0121 - aviso semanal sin plan', 'alertas_coach admite sin_plan_semana_entrante (CHECK) y tiene el indice unico de un aviso por semana',
+       case when to_regclass('public.alertas_coach') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.alertas_coach')) then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.alertas_coach') and k.conname = 'alertas_coach_tipo_check' and pg_get_constraintdef(k.oid) like '%sin_plan_semana_entrante%' and pg_get_constraintdef(k.oid) like '%piso_agudo%') then 'NO'
+            when not exists (select 1 from pg_indexes i where i.schemaname = 'public' and i.indexname = 'alertas_coach_sin_plan_semana_unica') then 'NO'
+            else 'SI' end
+union all
+select '0122 - contexto firmado: estructura y autorizacion', 'validadores contexto_dolor_base_valido y contexto_sustancias_validas: solo service_role ejecuta; un CHECK de contexto_clinico_firmado los usa; firmar_contexto_clinico sigue definer',
+       case when to_regprocedure('public.contexto_dolor_base_valido(jsonb)') is null then 'NO'
+            when has_function_privilege('anon', 'public.contexto_dolor_base_valido(jsonb)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.contexto_dolor_base_valido(jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.contexto_dolor_base_valido(jsonb)', 'execute') then 'NO'
+            when to_regprocedure('public.contexto_sustancias_validas(jsonb)') is null then 'NO'
+            when has_function_privilege('anon', 'public.contexto_sustancias_validas(jsonb)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.contexto_sustancias_validas(jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.contexto_sustancias_validas(jsonb)', 'execute') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.contexto_clinico_firmado') and pg_get_constraintdef(k.oid) like '%contexto_dolor_base_valido%') then 'NO'
+            when to_regprocedure('public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.firmar_contexto_clinico(uuid,text,text,boolean,text,jsonb,jsonb,date)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0123 - vigencia y pausa del aviso semanal', 'usuarios_app tiene pago_vigente_hasta y pausa_activa (not null); generar_alerta_sin_plan_semana_entrante(date,date) solo service_role y la firma vieja (date) ya no existe',
+       case when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.usuarios_app') and a.attname = 'pago_vigente_hasta' and a.attnum > 0 and not a.attisdropped) then 'NO'
+            when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.usuarios_app') and a.attname = 'pausa_activa' and a.attnum > 0 and not a.attisdropped and a.attnotnull) then 'NO'
+            when to_regprocedure('public.generar_alerta_sin_plan_semana_entrante(date)') is not null then 'NO'
+            when to_regprocedure('public.generar_alerta_sin_plan_semana_entrante(date,date)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.generar_alerta_sin_plan_semana_entrante(date,date)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.generar_alerta_sin_plan_semana_entrante(date,date)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.generar_alerta_sin_plan_semana_entrante(date,date)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.generar_alerta_sin_plan_semana_entrante(date,date)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.generar_alerta_sin_plan_semana_entrante(date,date)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0124 - propuestas de zona con firma del coach', 'propuestas_zona_cambio: RLS, lectura por coach asignado o leer_entrenamiento, authenticated solo lee, anon sin nada',
+       case when to_regclass('public.propuestas_zona_cambio') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.propuestas_zona_cambio')) then 'NO'
+            when has_table_privilege('anon', 'public.propuestas_zona_cambio', 'select') or has_table_privilege('anon', 'public.propuestas_zona_cambio', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.propuestas_zona_cambio', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.propuestas_zona_cambio', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.propuestas_zona_cambio', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.propuestas_zona_cambio', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.propuestas_zona_cambio', 'insert') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.propuestas_zona_cambio') and p.polname = 'propuestas_zona_cambio_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach_asignado%'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%') then 'NO'
+            else 'SI' end
+union all
+select '0124 - propuestas de zona con firma del coach', 'proponer_cambio_zona solo service_role; decidir_propuesta_zona definer, authenticated decide y anon no',
+       case when to_regprocedure('public.proponer_cambio_zona(uuid,text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.proponer_cambio_zona(uuid,text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.proponer_cambio_zona(uuid,text,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.proponer_cambio_zona(uuid,text,text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.proponer_cambio_zona(uuid,text,text)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.proponer_cambio_zona(uuid,text,text)', 'execute') then 'NO'
+            when to_regprocedure('public.decidir_propuesta_zona(uuid,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.decidir_propuesta_zona(uuid,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.decidir_propuesta_zona(uuid,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.decidir_propuesta_zona(uuid,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.decidir_propuesta_zona(uuid,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0125 - aviso de regla vencida', 'alertas_coach admite regla_vencida (CHECK), indice unico por semana y generar_alertas_reglas_vencidas definer solo service_role',
+       case when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.alertas_coach') and k.conname = 'alertas_coach_tipo_check' and pg_get_constraintdef(k.oid) like '%regla_vencida%') then 'NO'
+            when not exists (select 1 from pg_indexes i where i.schemaname = 'public' and i.indexname = 'alertas_coach_regla_vencida_semana_unica') then 'NO'
+            when to_regprocedure('public.generar_alertas_reglas_vencidas(date)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.generar_alertas_reglas_vencidas(date)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.generar_alertas_reglas_vencidas(date)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.generar_alertas_reglas_vencidas(date)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.generar_alertas_reglas_vencidas(date)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.generar_alertas_reglas_vencidas(date)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0126 - piso agudo R7', 'piso_agudo_r7: RLS, sesiones sin ningun acceso, service_role lee, inserta y actualiza; registrar_senal_aguda_r7 definer solo service_role',
+       case when to_regclass('public.piso_agudo_r7') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.piso_agudo_r7')) then 'NO'
+            when has_table_privilege('anon', 'public.piso_agudo_r7', 'select') or has_table_privilege('anon', 'public.piso_agudo_r7', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.piso_agudo_r7', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.piso_agudo_r7', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.piso_agudo_r7', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.piso_agudo_r7', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.piso_agudo_r7', 'select') then 'NO'
+            when not has_table_privilege('service_role', 'public.piso_agudo_r7', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.piso_agudo_r7', 'update') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.piso_agudo_r7') and pg_get_constraintdef(k.oid) like '%pendiente_firma%' and pg_get_constraintdef(k.oid) like '%firmada%') then 'NO'
+            when to_regprocedure('public.registrar_senal_aguda_r7(uuid,date,text,boolean,uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.registrar_senal_aguda_r7(uuid,date,text,boolean,uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.registrar_senal_aguda_r7(uuid,date,text,boolean,uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.registrar_senal_aguda_r7(uuid,date,text,boolean,uuid)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.registrar_senal_aguda_r7(uuid,date,text,boolean,uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.registrar_senal_aguda_r7(uuid,date,text,boolean,uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0127 - alerta de la puerta v2: reserva', 'reservas_alerta_puerta_v2 cerrada a sesiones; reservar_alerta_puerta_v2 la ejecutan usuarios; recibir_alerta_puerta_v2 solo service_role; la v1 (receptor y reserva por caso) ya no es ejecutable; CHECK de causa v1',
+       case when to_regclass('public.reservas_alerta_puerta_v2') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.reservas_alerta_puerta_v2')) then 'NO'
+            when has_table_privilege('anon', 'public.reservas_alerta_puerta_v2', 'select') or has_table_privilege('anon', 'public.reservas_alerta_puerta_v2', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.reservas_alerta_puerta_v2', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.reservas_alerta_puerta_v2', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.reservas_alerta_puerta_v2', 'insert') then 'NO'
+            when to_regprocedure('public.reservar_alerta_puerta_v2(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.reservar_alerta_puerta_v2(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.reservar_alerta_puerta_v2(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.reservar_alerta_puerta_v2(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.reservar_alerta_puerta_v2(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when to_regprocedure('public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)') is null then 'NO'
+            when has_function_privilege('service_role', 'public.recibir_alerta_puerta(uuid,text,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when to_regprocedure('public.reservar_caso_alerta_puerta(uuid)') is null then 'NO'
+            when has_function_privilege('authenticated', 'public.reservar_caso_alerta_puerta(uuid)', 'execute') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.alertas_puerta') and k.conname = 'alertas_puerta_causa_v1_check' and pg_get_constraintdef(k.oid) like '%causa_alerta_puerta_valida_v1%') then 'NO'
+            else 'SI' end
+union all
+select '0128 - cola de alertas de la puerta', 'cola y outbox cerradas a sesiones; politica de lectura del suplente en escalada; supervisar_alertas_puerta definer solo service_role; trigger de encolado sobre alertas_puerta',
+       case when to_regclass('public.cola_alerta_puerta') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.cola_alerta_puerta')) then 'NO'
+            when has_table_privilege('anon', 'public.cola_alerta_puerta', 'select') or has_table_privilege('anon', 'public.cola_alerta_puerta', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.cola_alerta_puerta', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.cola_alerta_puerta', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.cola_alerta_puerta', 'insert') then 'NO'
+            when to_regclass('public.outbox_alerta_puerta') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.outbox_alerta_puerta')) then 'NO'
+            when has_table_privilege('anon', 'public.outbox_alerta_puerta', 'select') or has_table_privilege('anon', 'public.outbox_alerta_puerta', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.outbox_alerta_puerta', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.outbox_alerta_puerta', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.outbox_alerta_puerta', 'insert') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.alertas_puerta') and p.polname = 'alertas_puerta_leer_suplente_escalada'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%alerta_puerta_escalada_a_mi%') then 'NO'
+            when to_regprocedure('public.alerta_puerta_escalada_a_mi(uuid)') is null then 'NO'
+            when has_function_privilege('anon', 'public.alerta_puerta_escalada_a_mi(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.alerta_puerta_escalada_a_mi(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.supervisar_alertas_puerta(timestamptz)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.supervisar_alertas_puerta(timestamptz)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.supervisar_alertas_puerta(timestamptz)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.supervisar_alertas_puerta(timestamptz)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.supervisar_alertas_puerta(timestamptz)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.supervisar_alertas_puerta(timestamptz)', 'execute') then 'NO'
+            when not exists (select 1 from pg_trigger g where g.tgrelid = to_regclass('public.alertas_puerta') and g.tgname = 'alertas_puerta_encolar' and not g.tgisinternal) then 'NO'
+            else 'SI' end
+union all
+select '0129 - escritor de texto libre de la puerta', 'texto_libre_alerta_puerta cerrada a sesiones con alerta_id opcional y un texto por alerta; reservar_texto_libre_alerta_puerta_v2 para usuarios; recibir_texto_libre_alerta_puerta_v2 solo service_role',
+       case when to_regclass('public.texto_libre_alerta_puerta') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.texto_libre_alerta_puerta')) then 'NO'
+            when has_table_privilege('anon', 'public.texto_libre_alerta_puerta', 'select') or has_table_privilege('anon', 'public.texto_libre_alerta_puerta', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.texto_libre_alerta_puerta', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.texto_libre_alerta_puerta', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.texto_libre_alerta_puerta', 'insert') then 'NO'
+            when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.texto_libre_alerta_puerta') and a.attname = 'alerta_id' and a.attnum > 0 and not a.attisdropped and not a.attnotnull) then 'NO'
+            when not exists (select 1 from pg_indexes i where i.schemaname = 'public' and i.indexname = 'texto_libre_alerta_puerta_un_texto_por_alerta') then 'NO'
+            when to_regprocedure('public.reservar_texto_libre_alerta_puerta_v2(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.reservar_texto_libre_alerta_puerta_v2(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.reservar_texto_libre_alerta_puerta_v2(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.reservar_texto_libre_alerta_puerta_v2(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.reservar_texto_libre_alerta_puerta_v2(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.recibir_texto_libre_alerta_puerta_v2(text,uuid,text,uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.recibir_texto_libre_alerta_puerta_v2(text,uuid,text,uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.recibir_texto_libre_alerta_puerta_v2(text,uuid,text,uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.recibir_texto_libre_alerta_puerta_v2(text,uuid,text,uuid)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.recibir_texto_libre_alerta_puerta_v2(text,uuid,text,uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.recibir_texto_libre_alerta_puerta_v2(text,uuid,text,uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0130 - cotas de ocurrida_en en la alerta de la puerta', 'politica_alerta_puerta con ocurrida_max_futuro_min y ocurrida_max_antiguedad_dias; alertas_puerta con ocurrida_en_original y su CHECK; recibir_alerta_puerta_v2 sigue definer solo service_role',
+       case when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.politica_alerta_puerta') and a.attname = 'ocurrida_max_futuro_min' and a.attnum > 0 and not a.attisdropped and a.attnotnull) then 'NO'
+            when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.politica_alerta_puerta') and a.attname = 'ocurrida_max_antiguedad_dias' and a.attnum > 0 and not a.attisdropped and a.attnotnull) then 'NO'
+            when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.alertas_puerta') and a.attname = 'ocurrida_en_original' and a.attnum > 0 and not a.attisdropped) then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.alertas_puerta') and k.conname = 'alertas_puerta_ocurrida_original_check' and pg_get_constraintdef(k.oid) like '%ocurrida_en_original%') then 'NO'
+            when to_regprocedure('public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.recibir_alerta_puerta_v2(text,uuid,text,timestamptz,integer,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0131 - aislamiento de lectura del contexto clinico', 'contexto_clinico_leer: lee la propia persona, el coach asignado o leer_entrenamiento; ya no abre por es_coach() a cualquier coach',
+       case when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.contexto_clinico_firmado') and p.polname = 'contexto_clinico_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach_asignado%'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%'
+                                and pg_get_expr(p.polqual, p.polrelid) not like '%es_coach()%') then 'NO'
+            when to_regclass('public.contexto_clinico_firmado') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.contexto_clinico_firmado')) then 'NO'
+            when has_table_privilege('anon', 'public.contexto_clinico_firmado', 'select') or has_table_privilege('anon', 'public.contexto_clinico_firmado', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.contexto_clinico_firmado', 'delete') then 'NO'
+            else 'SI' end
+union all
+select '0132 - usuarios_app: columnas sensibles', 'authenticated lee solo columnas no sensibles de usuarios_app (no pago_vigente_hasta ni pausa_activa) y actualiza solo nombre y avatar_iniciales; estado_cuenta_persona definer',
+       case when to_regclass('public.usuarios_app') is null then 'NO'
+            when has_column_privilege('anon', 'public.usuarios_app', 'nombre', 'select') then 'NO'
+            when not has_column_privilege('authenticated', 'public.usuarios_app', 'nombre', 'select') then 'NO'
+            when has_column_privilege('authenticated', 'public.usuarios_app', 'pago_vigente_hasta', 'select') then 'NO'
+            when has_column_privilege('authenticated', 'public.usuarios_app', 'pausa_activa', 'select') then 'NO'
+            when not has_column_privilege('authenticated', 'public.usuarios_app', 'nombre', 'update') then 'NO'
+            when has_column_privilege('authenticated', 'public.usuarios_app', 'rol', 'update') then 'NO'
+            when to_regprocedure('public.estado_cuenta_persona(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.estado_cuenta_persona(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.estado_cuenta_persona(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.estado_cuenta_persona(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.estado_cuenta_persona(uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0133 - barrido de security definer', 'asignar_coach_inicial definer solo service_role; crear_usuario_app, proteger_estado_microciclo, proteger_perfil y proteger_rol no son ejecutables por anon ni authenticated',
+       case when to_regprocedure('public.asignar_coach_inicial(uuid,uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.asignar_coach_inicial(uuid,uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.asignar_coach_inicial(uuid,uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.asignar_coach_inicial(uuid,uuid)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.asignar_coach_inicial(uuid,uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.asignar_coach_inicial(uuid,uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.crear_ficha_si_falta(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.crear_ficha_si_falta(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.crear_ficha_si_falta(uuid)') and c like 'search_path=%') then 'NO'
+            when to_regprocedure('public.crear_usuario_app()') is null then 'NO'
+            when has_function_privilege('anon', 'public.crear_usuario_app()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.crear_usuario_app()', 'execute') then 'NO'
+            when to_regprocedure('public.proteger_estado_microciclo()') is null then 'NO'
+            when has_function_privilege('anon', 'public.proteger_estado_microciclo()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.proteger_estado_microciclo()', 'execute') then 'NO'
+            when to_regprocedure('public.proteger_perfil()') is null then 'NO'
+            when has_function_privilege('anon', 'public.proteger_perfil()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.proteger_perfil()', 'execute') then 'NO'
+            when to_regprocedure('public.proteger_rol()') is null then 'NO'
+            when has_function_privilege('anon', 'public.proteger_rol()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.proteger_rol()', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0134 - aislamiento de lectura de checkins y nutricion', 'es_coach_de definer; las politicas de checkins, adherencias y planes_nutricionales usan es_coach_de o es_coach_asignado, no el es_coach() general',
+       case when to_regprocedure('public.es_coach_de(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.es_coach_de(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.es_coach_de(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.es_coach_de(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.es_coach_de(uuid)', 'execute') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.checkins') and p.polname = 'checkins_todo_propio'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach_de%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.adherencias') and p.polname = 'adherencias_todo_propio'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach_de%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.planes_nutricionales') and p.polname = 'planes_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach_asignado%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.planes_nutricionales') and p.polname = 'planes_escribir_coach_insertar'
+                                and pg_get_expr(p.polwithcheck, p.polrelid) like '%es_coach_de%') then 'NO'
+            when to_regprocedure('public.checkins_nutricion_datos()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.checkins_nutricion_datos()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.checkins_nutricion_datos()') and c like 'search_path=%') then 'NO'
+            else 'SI' end
+union all
+select '0135 - guarda de liberacion', 'liberaciones_microciclo cerrada a sesiones; liberar_microciclo definer, authenticated ejecuta y anon no; microciclo_liberado definer; huella_microciclo existe',
+       case when to_regclass('public.liberaciones_microciclo') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.liberaciones_microciclo')) then 'NO'
+            when has_table_privilege('anon', 'public.liberaciones_microciclo', 'select') or has_table_privilege('anon', 'public.liberaciones_microciclo', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.liberaciones_microciclo', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.liberaciones_microciclo', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.liberaciones_microciclo', 'insert') then 'NO'
+            when to_regprocedure('public.liberar_microciclo(text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.liberar_microciclo(text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.liberar_microciclo(text,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.liberar_microciclo(text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.liberar_microciclo(text,text)', 'execute') then 'NO'
+            when to_regprocedure('public.microciclo_liberado(text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.microciclo_liberado(text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.microciclo_liberado(text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.microciclo_liberado(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.microciclo_liberado(text)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.microciclo_liberado(text)', 'execute') then 'NO'
+            when to_regprocedure('public.huella_microciclo(jsonb)') is null then 'NO'
+            else 'SI' end
+union all
+select '0136 - carga de asignaciones por tanda', 'tandas_carga_asignaciones cerrada a sesiones; asignaciones_coach tiene tanda_id; cargar, revertir y huella de tanda son definer solo service_role',
+       case when to_regclass('public.tandas_carga_asignaciones') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.tandas_carga_asignaciones')) then 'NO'
+            when has_table_privilege('anon', 'public.tandas_carga_asignaciones', 'select') or has_table_privilege('anon', 'public.tandas_carga_asignaciones', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.tandas_carga_asignaciones', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.tandas_carga_asignaciones', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.tandas_carga_asignaciones', 'insert') then 'NO'
+            when not exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.asignaciones_coach') and a.attname = 'tanda_id' and a.attnum > 0 and not a.attisdropped) then 'NO'
+            when to_regprocedure('public.cargar_asignaciones_tanda(jsonb,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.cargar_asignaciones_tanda(jsonb,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.cargar_asignaciones_tanda(jsonb,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.cargar_asignaciones_tanda(jsonb,boolean)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.cargar_asignaciones_tanda(jsonb,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.cargar_asignaciones_tanda(jsonb,boolean)', 'execute') then 'NO'
+            when to_regprocedure('public.revertir_tanda_asignaciones(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.revertir_tanda_asignaciones(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.revertir_tanda_asignaciones(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.revertir_tanda_asignaciones(uuid)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.revertir_tanda_asignaciones(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.revertir_tanda_asignaciones(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.huella_filas_tanda(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.huella_filas_tanda(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.huella_filas_tanda(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.huella_filas_tanda(uuid)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.huella_filas_tanda(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.huella_filas_tanda(uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0137 - primer plan bajo la guarda', 'decidir_primer_plan definer con search_path fijo, authenticated decide y anon no; vencer_primer_plan definer solo service_role',
+       case when to_regprocedure('public.decidir_primer_plan(uuid,text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.decidir_primer_plan(uuid,text,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.decidir_primer_plan(uuid,text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.decidir_primer_plan(uuid,text,text)', 'execute') then 'NO'
+            when to_regprocedure('public.vencer_primer_plan()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.vencer_primer_plan()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.vencer_primer_plan()') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.vencer_primer_plan()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.vencer_primer_plan()', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.vencer_primer_plan()', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0138 - senal de activacion no forjable', 'activaciones_autorizadas: RLS, nadie inserta ni actualiza, politica ligada a txid_current(); autorizar_activacion definer, authenticated ejecuta y anon no',
+       case when to_regclass('public.activaciones_autorizadas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.activaciones_autorizadas')) then 'NO'
+            when has_table_privilege('anon', 'public.activaciones_autorizadas', 'select') or has_table_privilege('anon', 'public.activaciones_autorizadas', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.activaciones_autorizadas', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.activaciones_autorizadas', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.activaciones_autorizadas', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.activaciones_autorizadas', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.activaciones_autorizadas', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.activaciones_autorizadas', 'insert') then 'NO'
+            when has_table_privilege('service_role', 'public.activaciones_autorizadas', 'update') then 'NO'
+            when has_table_privilege('service_role', 'public.activaciones_autorizadas', 'delete') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.activaciones_autorizadas') and p.polname = 'activaciones_autorizadas_propia'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%txid_current%') then 'NO'
+            when to_regprocedure('public.autorizar_activacion(text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.autorizar_activacion(text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.autorizar_activacion(text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.autorizar_activacion(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.autorizar_activacion(text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0139 - purga de texto libre con recibo y cobertura', 'purgas_texto_libre cerrada a sesiones y service_role solo lee; ejecutar_purga_texto_libre y estado_cobertura_purga solo service_role; purgar_texto_libre_alerta_puerta ya no la ejecuta ni service_role',
+       case when to_regclass('public.purgas_texto_libre') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.purgas_texto_libre')) then 'NO'
+            when has_table_privilege('anon', 'public.purgas_texto_libre', 'select') or has_table_privilege('anon', 'public.purgas_texto_libre', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.purgas_texto_libre', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.purgas_texto_libre', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.purgas_texto_libre', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.purgas_texto_libre', 'insert') then 'NO'
+            when has_table_privilege('service_role', 'public.purgas_texto_libre', 'update') then 'NO'
+            when has_table_privilege('service_role', 'public.purgas_texto_libre', 'delete') then 'NO'
+            when to_regprocedure('public.ejecutar_purga_texto_libre(text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.ejecutar_purga_texto_libre(text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.ejecutar_purga_texto_libre(text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.ejecutar_purga_texto_libre(text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.ejecutar_purga_texto_libre(text)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.ejecutar_purga_texto_libre(text)', 'execute') then 'NO'
+            when to_regprocedure('public.estado_cobertura_purga(interval)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.estado_cobertura_purga(interval)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.estado_cobertura_purga(interval)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.estado_cobertura_purga(interval)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.estado_cobertura_purga(interval)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.estado_cobertura_purga(interval)', 'execute') then 'NO'
+            when to_regprocedure('public.purgar_texto_libre_alerta_puerta(timestamptz)') is null then 'NO'
+            when has_function_privilege('service_role', 'public.purgar_texto_libre_alerta_puerta(timestamptz)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0140 - el liberador ve y activa propuestas', 'las politicas de microciclos (leer y actualizar_propio) abren tambien a quien tiene la capacidad liberar_prescripcion',
+       case when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.microciclos') and p.polname = 'microciclos_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%liberar_prescripcion%'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%es_coach%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.microciclos') and p.polname = 'microciclos_actualizar_propio'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%liberar_prescripcion%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.microciclos') and p.polname = 'microciclos_actualizar_propio'
+                                and pg_get_expr(p.polwithcheck, p.polrelid) like '%liberar_prescripcion%') then 'NO'
+            else 'SI' end
+union all
+select '0141 - regla de ventana del primer plan', 'regla_ventana_primer_plan, activaciones_regla_ventana y avisos_regla_ventana cerradas a escritura; avisos legibles solo con autorizar_excepcion; CHECKs de clasificacion y de riesgo bajo o medio',
+       case when to_regclass('public.regla_ventana_primer_plan') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.regla_ventana_primer_plan')) then 'NO'
+            when has_table_privilege('anon', 'public.regla_ventana_primer_plan', 'select') or has_table_privilege('anon', 'public.regla_ventana_primer_plan', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.regla_ventana_primer_plan', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.regla_ventana_primer_plan', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.regla_ventana_primer_plan', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.regla_ventana_primer_plan', 'insert') then 'NO'
+            when to_regclass('public.activaciones_regla_ventana') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.activaciones_regla_ventana')) then 'NO'
+            when has_table_privilege('anon', 'public.activaciones_regla_ventana', 'select') or has_table_privilege('anon', 'public.activaciones_regla_ventana', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.activaciones_regla_ventana', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.activaciones_regla_ventana', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.activaciones_regla_ventana', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.activaciones_regla_ventana', 'insert') then 'NO'
+            when to_regclass('public.avisos_regla_ventana') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.avisos_regla_ventana')) then 'NO'
+            when has_table_privilege('anon', 'public.avisos_regla_ventana', 'select') or has_table_privilege('anon', 'public.avisos_regla_ventana', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.avisos_regla_ventana', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.avisos_regla_ventana', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.avisos_regla_ventana', 'update') then 'NO'
+            when not has_table_privilege('service_role', 'public.avisos_regla_ventana', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.avisos_regla_ventana', 'insert') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.avisos_regla_ventana') and p.polname = 'avisos_regla_ventana_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%autorizar_excepcion%') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.aprobaciones_primer_plan') and k.conname = 'aprobaciones_primer_plan_clasificacion_coherente' and pg_get_constraintdef(k.oid) like '%clasificado_en%') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.aprobaciones_primer_plan') and k.conname = 'aprobaciones_primer_plan_vencido_solo_bajo' and pg_get_constraintdef(k.oid) like '%medio%') then 'NO'
+            else 'SI' end
+union all
+select '0141 - regla de ventana del primer plan', 'clasificar_primer_plan y activar_por_regla_ventana: definer con search_path fijo, solo service_role',
+       case when to_regprocedure('public.clasificar_primer_plan(uuid,text,boolean,text[])') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.clasificar_primer_plan(uuid,text,boolean,text[])')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.clasificar_primer_plan(uuid,text,boolean,text[])') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.clasificar_primer_plan(uuid,text,boolean,text[])', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.clasificar_primer_plan(uuid,text,boolean,text[])', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.clasificar_primer_plan(uuid,text,boolean,text[])', 'execute') then 'NO'
+            when to_regprocedure('public.activar_por_regla_ventana(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.activar_por_regla_ventana(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.activar_por_regla_ventana(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.activar_por_regla_ventana(uuid)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.activar_por_regla_ventana(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.activar_por_regla_ventana(uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0142 - autor distinto del liberador', 'ediciones_microciclo: RLS, service_role solo lee, sesiones nada; registrar_editor_microciclo no la ejecuta nadie; liberar_microciclo definer, authenticated ejecuta y anon no',
+       case when to_regclass('public.ediciones_microciclo') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.ediciones_microciclo')) then 'NO'
+            when has_table_privilege('anon', 'public.ediciones_microciclo', 'select') or has_table_privilege('anon', 'public.ediciones_microciclo', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.ediciones_microciclo', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.ediciones_microciclo', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.ediciones_microciclo', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.ediciones_microciclo', 'insert') then 'NO'
+            when has_table_privilege('service_role', 'public.ediciones_microciclo', 'update') then 'NO'
+            when has_table_privilege('service_role', 'public.ediciones_microciclo', 'delete') then 'NO'
+            when to_regprocedure('public.registrar_editor_microciclo()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.registrar_editor_microciclo()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.registrar_editor_microciclo()') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.registrar_editor_microciclo()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.registrar_editor_microciclo()', 'execute') then 'NO'
+            when has_function_privilege('service_role', 'public.registrar_editor_microciclo()', 'execute') then 'NO'
+            when to_regprocedure('public.liberar_microciclo(text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.liberar_microciclo(text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.liberar_microciclo(text,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.liberar_microciclo(text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.liberar_microciclo(text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0143 - encender la regla de ventana con registro', 'cambios_regla_ventana: RLS, service_role solo lee, sesiones nada; encender_regla_ventana definer, authenticated ejecuta y anon no; el trigger de registro no lo ejecuta nadie',
+       case when to_regclass('public.cambios_regla_ventana') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.cambios_regla_ventana')) then 'NO'
+            when has_table_privilege('anon', 'public.cambios_regla_ventana', 'select') or has_table_privilege('anon', 'public.cambios_regla_ventana', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.cambios_regla_ventana', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.cambios_regla_ventana', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.cambios_regla_ventana', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.cambios_regla_ventana', 'insert') then 'NO'
+            when has_table_privilege('service_role', 'public.cambios_regla_ventana', 'update') then 'NO'
+            when has_table_privilege('service_role', 'public.cambios_regla_ventana', 'delete') then 'NO'
+            when to_regprocedure('public.encender_regla_ventana(text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.encender_regla_ventana(text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.encender_regla_ventana(text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.encender_regla_ventana(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.encender_regla_ventana(text)', 'execute') then 'NO'
+            when to_regprocedure('public.registrar_cambio_regla_ventana()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.registrar_cambio_regla_ventana()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.registrar_cambio_regla_ventana()') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.registrar_cambio_regla_ventana()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.registrar_cambio_regla_ventana()', 'execute') then 'NO'
+            when has_function_privilege('service_role', 'public.registrar_cambio_regla_ventana()', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0144 - v3: borrar plan no activo y sin truncate', 'borrados_microciclo: service_role solo lee; microciclos sin DELETE para sesiones, sin TRUNCATE para nadie y sin politica microciclos_borrar_coach; borrar_microciclo definer, authenticated ejecuta y anon no',
+       case when to_regclass('public.borrados_microciclo') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.borrados_microciclo')) then 'NO'
+            when has_table_privilege('anon', 'public.borrados_microciclo', 'select') or has_table_privilege('anon', 'public.borrados_microciclo', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.borrados_microciclo', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.borrados_microciclo', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.borrados_microciclo', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.borrados_microciclo', 'insert') then 'NO'
+            when has_table_privilege('service_role', 'public.borrados_microciclo', 'update') then 'NO'
+            when has_table_privilege('service_role', 'public.borrados_microciclo', 'delete') then 'NO'
+            when has_table_privilege('authenticated', 'public.microciclos', 'delete') or has_table_privilege('anon', 'public.microciclos', 'delete') then 'NO'
+            when has_table_privilege('authenticated', 'public.microciclos', 'truncate') or has_table_privilege('anon', 'public.microciclos', 'truncate') or has_table_privilege('service_role', 'public.microciclos', 'truncate') then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.microciclos') and p.polname = 'microciclos_borrar_coach') then 'NO'
+            when to_regprocedure('public.borrar_microciclo(text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.borrar_microciclo(text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.borrar_microciclo(text,text)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.borrar_microciclo(text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.borrar_microciclo(text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0145 - v4: proteger la aprobacion del primer plan', 'reaperturas_primer_plan: service_role solo lee; aprobaciones_primer_plan sin TRUNCATE para nadie; alertas_coach admite primer_plan_reabierto; proteger_aprobacion_decidida definer que nadie ejecuta',
+       case when to_regclass('public.reaperturas_primer_plan') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.reaperturas_primer_plan')) then 'NO'
+            when has_table_privilege('anon', 'public.reaperturas_primer_plan', 'select') or has_table_privilege('anon', 'public.reaperturas_primer_plan', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.reaperturas_primer_plan', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.reaperturas_primer_plan', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.reaperturas_primer_plan', 'select') then 'NO'
+            when has_table_privilege('service_role', 'public.reaperturas_primer_plan', 'insert') then 'NO'
+            when has_table_privilege('service_role', 'public.reaperturas_primer_plan', 'update') then 'NO'
+            when has_table_privilege('service_role', 'public.reaperturas_primer_plan', 'delete') then 'NO'
+            when has_table_privilege('authenticated', 'public.aprobaciones_primer_plan', 'truncate') or has_table_privilege('anon', 'public.aprobaciones_primer_plan', 'truncate') or has_table_privilege('service_role', 'public.aprobaciones_primer_plan', 'truncate') then 'NO'
+            when not exists (select 1 from pg_constraint k where k.conrelid = to_regclass('public.alertas_coach') and k.conname = 'alertas_coach_tipo_check' and pg_get_constraintdef(k.oid) like '%primer_plan_reabierto%') then 'NO'
+            when to_regprocedure('public.proteger_aprobacion_decidida()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.proteger_aprobacion_decidida()')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.proteger_aprobacion_decidida()') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.proteger_aprobacion_decidida()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.proteger_aprobacion_decidida()', 'execute') then 'NO'
+            when has_function_privilege('service_role', 'public.proteger_aprobacion_decidida()', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0164 - mensajes solo con el equipo', 'es_staff_id definer con search_path fijo, authenticated ejecuta y anon no; la politica mensajes_enviar exige es_staff_id(para_id) o ser del equipo',
+       case when to_regprocedure('public.es_staff_id(uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.es_staff_id(uuid)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.es_staff_id(uuid)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.es_staff_id(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.es_staff_id(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.es_staff_id(uuid)', 'execute') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.mensajes') and p.polname = 'mensajes_enviar'
+                                and pg_get_expr(p.polwithcheck, p.polrelid) like '%es_staff_id%'
+                                and pg_get_expr(p.polwithcheck, p.polrelid) like '%es_staff%') then 'NO'
+            else 'SI' end
+union all
+select '0165 - solicitudes de derechos', 'solicitudes_derechos: RLS, authenticated lee pero no inserta ni actualiza a nivel de tabla ni borra, anon nada; insert solo en persona_id, coach_id, derecho y detalle (no creada_en); update solo en respondida_en, respondida_por y respuesta',
+       case when to_regclass('public.solicitudes_derechos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.solicitudes_derechos')) then 'NO'
+            when has_table_privilege('anon', 'public.solicitudes_derechos', 'select') or has_table_privilege('anon', 'public.solicitudes_derechos', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.solicitudes_derechos', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.solicitudes_derechos', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.solicitudes_derechos', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.solicitudes_derechos', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.solicitudes_derechos', 'insert') then 'NO'
+            when not has_column_privilege('authenticated', 'public.solicitudes_derechos', 'detalle', 'insert') then 'NO'
+            when has_column_privilege('authenticated', 'public.solicitudes_derechos', 'creada_en', 'insert') then 'NO'
+            when not has_column_privilege('authenticated', 'public.solicitudes_derechos', 'respuesta', 'update') then 'NO'
+            when has_column_privilege('authenticated', 'public.solicitudes_derechos', 'persona_id', 'update') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.solicitudes_derechos') and p.polname = 'solicitudes_derechos_crear'
+                                and pg_get_expr(p.polwithcheck, p.polrelid) like '%auth.uid%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.solicitudes_derechos') and p.polname = 'solicitudes_derechos_responder'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%respondida_en IS NULL%') then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.solicitudes_derechos') and p.polname = 'solicitudes_derechos_leer'
+                                and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%') then 'NO'
+            else 'SI' end
+union all
+select '0165 - solicitudes de derechos', 'purgar_solicitudes_derechos definer con search_path fijo, solo service_role',
+       case when to_regprocedure('public.purgar_solicitudes_derechos(timestamptz)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.purgar_solicitudes_derechos(timestamptz)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c where p.oid = to_regprocedure('public.purgar_solicitudes_derechos(timestamptz)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.purgar_solicitudes_derechos(timestamptz)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.purgar_solicitudes_derechos(timestamptz)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.purgar_solicitudes_derechos(timestamptz)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0166 - memoria de la charla de Praxis', 'praxis_charla_turnos: RLS, una sola lectura (capacidad leer_charlas_praxis), el navegador no inserta ni actualiza ni borra, sin anon; capacidad en el check; columna atendida_en',
+       case when to_regclass('public.praxis_charla_turnos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_charla_turnos')) then 'NO'
+            when (select count(*) from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd = 'r') <> 1 then 'NO'
+            when not exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd = 'r'
+                               and pg_get_expr(p.polqual, p.polrelid) like '%leer_charlas_praxis%') then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.praxis_charla_turnos') and p.polcmd in ('a', 'w', 'd', '*')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_charla_turnos', 'select')
+              or has_table_privilege('anon', 'public.praxis_charla_turnos', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_charla_turnos', 'delete') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_charla_turnos', 'texto', 'insert') then 'NO'
+            when not exists (select 1 from information_schema.columns where table_schema = 'public'
+                               and table_name = 'praxis_charla_turnos' and column_name = 'atendida_en') then 'NO'
+            when not exists (select 1 from pg_constraint where conrelid = to_regclass('public.capacidades_staff')
+                               and contype = 'c' and pg_get_constraintdef(oid) like '%leer_charlas_praxis%') then 'NO'
+            else 'SI' end
+union all
+select '0166 - memoria de la charla de Praxis', 'praxis_borrar_mi_charla, praxis_marcar_charla_atendida y praxis_purgar_charlas existen, security definer, search_path fijo; borrar-mi-charla la ejecutan los usuarios y no anon; marcar atendida y la purga solo service_role',
+       case when to_regprocedure('public.praxis_borrar_mi_charla(uuid)') is null
+              or to_regprocedure('public.praxis_purgar_charlas()') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_borrar_mi_charla(uuid)'))
+              or not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_purgar_charlas()')) then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_borrar_mi_charla(uuid)')), false)
+              or not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_purgar_charlas()')), false) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_borrar_mi_charla(uuid)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_purgar_charlas()', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_purgar_charlas()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_borrar_mi_charla(uuid)', 'execute') then 'NO'
+            when to_regprocedure('public.praxis_marcar_charla_atendida(uuid,uuid)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_marcar_charla_atendida(uuid,uuid)')) then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path%' from pg_proc p where p.oid = to_regprocedure('public.praxis_marcar_charla_atendida(uuid,uuid)')), false) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_marcar_charla_atendida(uuid,uuid)', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_marcar_charla_atendida(uuid,uuid)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0163 - deshacer el agua de Praxis', 'praxis_deshacer conserva security definer, search_path fijo y permisos, y su definición ya trae la rama agua (ya no dice que el agua no se puede deshacer)',
+       case when to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_deshacer(uuid,text,boolean)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_deshacer(uuid,text,boolean)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.praxis_deshacer(uuid,text,boolean)')) not like '%tipo = ''agua''%' then 'NO'
+            else 'SI' end
+
+union all
+select '0167 - guiones de llamada: los lee la consola, no los escribe nadie desde el navegador', 'guiones_llamada con RLS, una sola política de lectura (es_coach o leer_entrenamiento), unique (person_id, revision), usuario_id opcional, authenticated solo lee, anon nada',
+       case when to_regclass('public.guiones_llamada') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.guiones_llamada')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada') <> 1 then 'NO'
+            when not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'guiones_llamada'
+                               and cmd = 'SELECT' and qual like '%es_coach()%' and qual like '%leer_entrenamiento%') then 'NO'
+            when not exists (select 1 from pg_constraint where conrelid = to_regclass('public.guiones_llamada')
+                               and contype = 'u' and pg_get_constraintdef(oid) = 'UNIQUE (person_id, revision)') then 'NO'
+            when (select is_nullable from information_schema.columns where table_schema = 'public'
+                    and table_name = 'guiones_llamada' and column_name = 'usuario_id') <> 'YES' then 'NO'
+            when has_table_privilege('anon', 'public.guiones_llamada', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.guiones_llamada', 'insert')
+              or has_table_privilege('authenticated', 'public.guiones_llamada', 'update')
+              or has_table_privilege('authenticated', 'public.guiones_llamada', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.guiones_llamada', 'select') then 'NO'
+            else 'SI' end
+union all
+select '0168 - la cadena de n8n sin la CLI', 'las cuatro RPCs de cadena-agentes existen, security definer, search_path fijo y authenticated no las ejecuta (solo service_role)',
+       case when to_regprocedure('public.cadena_salud()') is null or to_regprocedure('public.cadena_altas_pendientes()') is null or to_regprocedure('public.cadena_respuestas_preg()') is null or to_regprocedure('public.cadena_insertar_cuestionario(text,jsonb,uuid[])') is null then 'NO'
+            when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.cadena_salud()'), to_regprocedure('public.cadena_altas_pendientes()'), to_regprocedure('public.cadena_respuestas_preg()'), to_regprocedure('public.cadena_insertar_cuestionario(text,jsonb,uuid[])'))
+                          and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('authenticated', 'public.cadena_salud()', 'execute') or has_function_privilege('authenticated', 'public.cadena_altas_pendientes()', 'execute') or has_function_privilege('authenticated', 'public.cadena_respuestas_preg()', 'execute') or has_function_privilege('authenticated', 'public.cadena_insertar_cuestionario(text,jsonb,uuid[])', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0169 - el canario aislado', 'las cinco RPCs del canario existen, security definer, search_path fijo, solo service_role; proponer aleja 100 años el plazo de su aprobación',
+       case when to_regprocedure('public.cadena_es_canario(uuid)') is null or to_regprocedure('public.cadena_canario_restos()') is null or to_regprocedure('public.cadena_canario_estado(uuid)') is null or to_regprocedure('public.cadena_canario_proponer(uuid)') is null or to_regprocedure('public.cadena_canario_borrar(uuid)') is null then 'NO'
+            when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.cadena_es_canario(uuid)'), to_regprocedure('public.cadena_canario_restos()'), to_regprocedure('public.cadena_canario_estado(uuid)'), to_regprocedure('public.cadena_canario_proponer(uuid)'), to_regprocedure('public.cadena_canario_borrar(uuid)'))
+                          and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('authenticated', 'public.cadena_es_canario(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_restos()', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_estado(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_proponer(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cadena_canario_borrar(uuid)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.cadena_canario_proponer(uuid)')) not like '%100 years%' then 'NO'
+            else 'SI' end
+
+union all
+select '0172 - interruptor de la regla de ventana', 'estado_regla_ventana y apagar_regla_ventana existen, security definer, search_path fijo, authenticated ejecuta y anon no; apagar exige la capacidad encender_regla_ventana',
+       case when to_regprocedure('public.estado_regla_ventana()') is null or to_regprocedure('public.apagar_regla_ventana(text)') is null then 'NO'
+            when exists (select 1 from pg_proc p where p.oid in (to_regprocedure('public.estado_regla_ventana()'), to_regprocedure('public.apagar_regla_ventana(text)'))
+                          and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('anon', 'public.estado_regla_ventana()', 'execute')
+              or has_function_privilege('anon', 'public.apagar_regla_ventana(text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.apagar_regla_ventana(text)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.apagar_regla_ventana(text)')) not like '%tiene_capacidad(''encender_regla_ventana'')%' then 'NO'
+            else 'SI' end
+
+union all
+select '0173 - latidos de la cadena', 'latidos_cadena con RLS y sin lectura para anon/authenticated; cadena_latido, cadena_latidos_por_avisar, cadena_latido_avisado y cadena_pedir_vigilancia solo service_role (el cron se mira aparte en cron.job)',
+       case when to_regclass('public.latidos_cadena') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.latidos_cadena')) then 'NO'
+            when has_table_privilege('anon', 'public.latidos_cadena', 'select') or has_table_privilege('authenticated', 'public.latidos_cadena', 'select') then 'NO'
+            when to_regprocedure('public.cadena_latido(text,jsonb)') is null or to_regprocedure('public.cadena_latidos_por_avisar(integer)') is null
+              or to_regprocedure('public.cadena_latido_avisado(text,text)') is null or to_regprocedure('public.cadena_pedir_vigilancia()') is null then 'NO'
+            when has_function_privilege('authenticated', 'public.cadena_latido(text,jsonb)', 'execute')
+              or has_function_privilege('authenticated', 'public.cadena_pedir_vigilancia()', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0171a - el servidor solo lee purga y regla de ventana', 'service_role: solo SELECT en purgas_texto_libre, regla_ventana_primer_plan, activaciones_regla_ventana y avisos_regla_ventana',
+       case when exists (select 1 from unnest(array['public.purgas_texto_libre','public.regla_ventana_primer_plan',
+                                                    'public.activaciones_regla_ventana','public.avisos_regla_ventana']) t
+                          where to_regclass(t) is null
+                             or not has_table_privilege('service_role', t, 'select')
+                             or has_table_privilege('service_role', t, 'insert')
+                             or has_table_privilege('service_role', t, 'update')
+                             or has_table_privilege('service_role', t, 'delete')
+                             or has_table_privilege('service_role', t, 'truncate')) then 'NO'
+            else 'SI' end
+
+union all
+select '0170 - Praxis guarda el check-in confirmado', 'praxis_aplicar_checkin existe, security definer, search_path fijo; la ejecuta authenticated y no anon',
+       case when to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.praxis_aplicar_checkin(text,integer,jsonb)') and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aplicar_checkin(text,integer,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aplicar_checkin(text,integer,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0170 - Praxis guarda el check-in confirmado', 'ranking_disciplina_vivo ya no cuenta los check-ins a medias (filtra datos.parcial)',
+       case when to_regprocedure('public.ranking_disciplina_vivo()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.ranking_disciplina_vivo()')) not like '%parcial%' then 'NO'
+            else 'SI' end
+
+union all
+select '0171b - lexicón por persona de Praxis', 'praxis_lexico_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
+       case when to_regclass('public.praxis_lexico_persona') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_lexico_persona')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'praxis_lexico_persona') <> 1 then 'NO'
+            when has_table_privilege('anon', 'public.praxis_lexico_persona', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_lexico_persona', 'delete') then 'NO'
+            else 'SI' end
+
+union all
+select '0171b - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis_olvidar_mis_formas existen, security definer, las ejecuta authenticated y no anon',
+       case when to_regprocedure('public.praxis_aprender_forma(text,text,text)') is null
+              or to_regprocedure('public.praxis_olvidar_mis_formas()') is null then 'NO'
+            when not (select bool_and(p.prosecdef) from pg_proc p
+                       where p.oid in (to_regprocedure('public.praxis_aprender_forma(text,text,text)'), to_regprocedure('public.praxis_olvidar_mis_formas()'))) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aprender_forma(text,text,text)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_olvidar_mis_formas()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_aprender_forma(text,text,text)', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

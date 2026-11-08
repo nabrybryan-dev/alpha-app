@@ -4,6 +4,7 @@ import { useSesion } from '../../app/SessionProvider'
 import { NOMBRE_SOMBRERO, type Sombrero } from '../../domain/equipo/sombreros'
 import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
+import { InterruptorReglaVentana } from '../coach/consola/InterruptorReglaVentana'
 import { ocupaPuestoCoach } from '../coach/consola/usePuestoCoach'
 import MiPlanPage from '../plan/MiPlanPage'
 import { AvisosDeSeguridad } from './AvisosDeSeguridad'
@@ -113,6 +114,7 @@ export default function BandejaPage() {
         )
       ) : (
         <div className="flex flex-col gap-3.5">
+          {!cargando && tiene('encender_regla_ventana') && <InterruptorReglaVentana />}
           <BandejaPrimerosPlanes />
           <BandejaPlanesRenovados />
         </div>
