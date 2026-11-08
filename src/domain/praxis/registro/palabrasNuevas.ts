@@ -9,6 +9,7 @@
  * la regla no vale y no se adivina. Las reglas que YA traen la negación dentro empiezan por ella, así que no la ven.
  */
 import { normalizarTexto } from './numeros.ts'
+import { ZONAS_DEL_CUERPO } from './anotaciones.ts'
 import type { CampoCheckin } from './mensajeLargo.ts'
 import type { ValorCorto } from './respuestaCorta.ts'
 
@@ -27,7 +28,8 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   ],
   cansancio: [
     // «Molida» sola = muy cansada. Con parte del cuerpo («molida de las piernas») es dolor muscular: no se mapea.
-    [/\bmolid[oa]\b(?!\s+(de|del|en|por)\b)(?!.*\b(pierna|brazo|espalda|pecho|hombro|gluteo|abdomen|cuadricep|musculo)s?\b)/, { valor: 'MUCHO' }],
+    // Con zona va al cuaderno (anotaciones.ts), no al cansancio. La lista de zonas es la misma.
+    [new RegExp(`\\bmolid[oa]\\b(?!\\s+(de|del|en|por)\\b)(?!.*\\b(${ZONAS_DEL_CUERPO})(e?s)?\\b)`), { valor: 'MUCHO' }],
     [/\bfresc[oa]\b/, { valor: 'POCO' }],
     [/\bcon toda\b/, { valor: 'POCO' }],
     [/\b(para )?nada cansad[oa]\b|\bno (estoy|me siento|ando) nada cansad[oa]\b/, { valor: 'POCO' }],
@@ -51,7 +53,7 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   rendimiento: [
     [/\bre bien\b/, { valor: 'BUENA' }],
     // «Pesada después del almuerzo» es digestión, no rendimiento (8-nov, Bryan: no se mapea).
-    [/\bsenti\b(?!.*\b(almuerzo|comida|comi|comiendo|cena|desayuno|merienda|digest\w*)\b).*\bpesad[oa]\b/, { valor: 'MALA' }],
+    [/\bsenti\b(?!.*\b(almuerzo|comida|comi|comer|comiendo|cena|desayuno|merienda|digest\w*)\b).*\bpesad[oa]\b/, { valor: 'MALA' }],
     [/\ba tope\b/, { valor: 'BUENA' }],
   ],
 }
