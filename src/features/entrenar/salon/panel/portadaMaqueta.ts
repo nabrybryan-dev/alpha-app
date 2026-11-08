@@ -26,7 +26,8 @@ const HOJA_DE_SIEMPRE =
 const ASA_DE_SIEMPRE = 'h-1 w-11 rounded-full bg-silver-500/60 transition-colors duration-base'
 const TITULO_DE_SIEMPRE = 'line-clamp-2 font-display text-[15px] font-black leading-tight text-texto'
 
-export function clasesDeLaHoja(maqueta: boolean): ClasesDeLaHoja {
+/** Sin argumento, manda la bandera de código. */
+export function clasesDeLaHoja(maqueta: boolean = SALON_PORTADA_MAQUETA): ClasesDeLaHoja {
   if (!maqueta) {
     return { hoja: HOJA_DE_SIEMPRE, asa: ASA_DE_SIEMPRE, titulo: TITULO_DE_SIEMPRE, sombraEnLinea: true }
   }
@@ -36,4 +37,9 @@ export function clasesDeLaHoja(maqueta: boolean): ClasesDeLaHoja {
     titulo: 'line-clamp-2 font-display leading-tight text-texto hoja-portada-titulo',
     sombraEnLinea: false,
   }
+}
+
+/** La sombra en línea de la hoja, o nada si la lleva la clase. Vive aquí para no subir la complejidad de PanelInferior. */
+export function sombraDeLaHoja(clases: ClasesDeLaHoja): string | undefined {
+  return clases.sombraEnLinea ? '0 -18px 40px -24px var(--salon-3d-sombra-caja)' : undefined
 }

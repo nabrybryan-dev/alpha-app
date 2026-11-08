@@ -5,6 +5,7 @@ import { SALON_PORTADA_MAQUETA, clasesDeLaHoja } from './portadaMaqueta'
 
 const css = readFileSync(join(__dirname, '../../../../styles/tokens.css'), 'utf8').replace(/\r\n/g, '\n')
 const panel = readFileSync(join(__dirname, 'PanelInferior.tsx'), 'utf8')
+const fuenteDeLaHoja = readFileSync(join(__dirname, 'portadaMaqueta.ts'), 'utf8')
 
 function regla(selector: string): string {
   const i = css.indexOf(`${selector} {`)
@@ -67,6 +68,9 @@ describe('la hoja de la portada del salón (C2)', () => {
     expect(panel).toContain('clases.asa')
     expect(panel).toContain('clases.titulo')
     expect(panel).not.toContain('bg-ink-900/95"')
-    expect(panel).toContain('maqueta = SALON_PORTADA_MAQUETA')
+    // Sin argumento manda la bandera de código: el valor por omisión vive en clasesDeLaHoja.
+    expect(panel).toContain('sombraDeLaHoja(clases)')
+    expect(fuenteDeLaHoja).toContain('maqueta: boolean = SALON_PORTADA_MAQUETA')
+    expect(clasesDeLaHoja()).toEqual(clasesDeLaHoja(SALON_PORTADA_MAQUETA))
   })
 })

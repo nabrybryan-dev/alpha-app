@@ -2,7 +2,7 @@ import { hoyIso } from '../../../../data/dbInstance'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Boton3D } from '../../../../components/ui/Boton3D'
 import { resumenDeLaHoja } from './resumenDeLaHoja'
-import { SALON_PORTADA_MAQUETA, clasesDeLaHoja } from './portadaMaqueta'
+import { clasesDeLaHoja, sombraDeLaHoja } from './portadaMaqueta'
 import {
   resumenSemana,
   sesionesFueraDeLaSemana,
@@ -182,7 +182,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     contenido,
     material,
     diaElegido = null,
-    maqueta = SALON_PORTADA_MAQUETA,
+    maqueta,
   } = props
   const clases = clasesDeLaHoja(maqueta)
 
@@ -288,7 +288,7 @@ export function PanelInferior(props: PanelInferiorProps) {
           maxHeight: abierto ? '84dvh' : undefined,
           transform: `translateY(${seguimiento}px)`,
           transition: arrastrando ? 'none' : 'transform var(--dur-base) var(--ease-salida)',
-          boxShadow: clases.sombraEnLinea ? '0 -18px 40px -24px var(--salon-3d-sombra-caja)' : undefined,
+          boxShadow: sombraDeLaHoja(clases),
         }}
       >
         {/* EL TIRADOR. Sin una letra: el nombre va en `aria-label`, que no es un nodo de
