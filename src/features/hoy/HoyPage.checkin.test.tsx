@@ -57,6 +57,21 @@ describe('Hoy · el check-in se hace sin salir de la pantalla', () => {
     expect(screen.getByText('5/10')).toBeInTheDocument()
   })
 
+  it('a medias (Praxis anotó parte): no dice «Registrado», avisa y deja el formulario abierto', async () => {
+    db.bienestar.guardar({
+      id: 'ck-hoy-test',
+      usuarioId: 'u-valentina',
+      fecha: hoyIso(),
+      calidadSueno: 'MALA',
+      parcial: true,
+    })
+    pintar()
+    await screen.findByRole('region', { name: 'Chequeo de hoy' })
+    expect(screen.queryByText('Registrado')).not.toBeInTheDocument()
+    expect(screen.getByText(/Tu check-in va a medias/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Guardar check-in/ })).toBeInTheDocument()
+  })
+
   it('el historial se va a Progreso, que ahora es su casa', async () => {
     db.bienestar.guardar({
       id: 'ck-hoy-test',

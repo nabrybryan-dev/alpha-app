@@ -217,6 +217,17 @@ describe('perfil legible', () => {
     expect(datosAlimentacion(undefined)).toEqual([])
   })
 
+  it('el ciclo de la encuesta de captación que la app no puede decir con sus palabras se enseña tal cual', () => {
+    const conCaptacion: PerfilNutricion = {
+      usuarioId: 'u-1',
+      respuestas: { cicloMenstrual: 'ausente', cicloEnLaCaptacion: 'Menopausia' },
+    }
+    expect(datosAlimentacion(conCaptacion)).toEqual([
+      { etiqueta: 'Ciclo menstrual', valor: 'ausente' },
+      { etiqueta: 'Ciclo menstrual (encuesta de captación)', valor: 'Menopausia' },
+    ])
+  })
+
   it('las señales numéricas del check-in, solo donde hay número', () => {
     const s = serieDeCheckins([checkin('2026-09-02', { dolor: 0 }), checkin('2026-09-01'), checkin('2026-09-03', { dolor: 3 })], 'dolor')
     // El cero es una medición: «sin dolor» cuenta.

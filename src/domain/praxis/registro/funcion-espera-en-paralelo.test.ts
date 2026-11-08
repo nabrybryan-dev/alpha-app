@@ -221,6 +221,14 @@ describe('las tres lecturas arrancan a la vez', () => {
     expect(Object.keys(t).sort()).toEqual(['auth', 'plan', 'puesto', 'rol'])
   })
 
+  it('tiempos-sesion trae el plan aunque el plan llegue DESPUÉS que auth y el rol (la carrera que tumbó el CI el 7-nov)', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const e = entorno({ tarda: { auth: 10, rol: 5, plan: 30 } })
+    await (await manejar(post(jwtDe(YO)), e.d)).json()
+    const sesion = log.mock.calls.map((x) => String(x[0]) + ' ' + String(x[1])).find((l) => l.includes('tiempos-sesion'))!
+    expect(Object.keys(JSON.parse(sesion.slice(sesion.indexOf('{')))).sort()).toEqual(['auth', 'plan', 'puesto', 'rol'])
+  })
+
   it('el filtro de riesgo sigue antes del modelo: una frase de vida no llama a nadie', async () => {
     const e = entorno()
     const c = await (await manejar(post(jwtDe(YO), { frase: 'ya no quiero vivir' }), e.d)).json()

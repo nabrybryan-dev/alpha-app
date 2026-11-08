@@ -218,7 +218,8 @@ app ya cargó la semana, la cadena no la pisa en silencio.
   `microciclos_choques`. La plantilla de carga lo comprueba antes de cerrar nada y devuelve
   `CHOQUE · ...` (léelo). El panel enseña el aviso con dos botones (`confirmar_pisar_microciclo` /
   `descartar_choque_microciclo`). Solo se pisa con la confirmación del coach o, desde la cadena,
-  con `select set_config('alpha.pisar_microciclo','si',true)` en su misma transacción.
+  con una fila en `pisadas_microciclo_autorizadas` en su misma transacción (7-nov, H5: la variable
+  de sesión `alpha.pisar_microciclo` ya no autoriza nada).
 - Un primer plan cuyo microciclo choca queda `espera_bryan` (no `aprobado`/`vencido_aprobado`).
 - **Orden de encendido:** aplicar la 0147 (a mano, Bryan) ANTES de poner la variable en Vercel y
   reconstruir. Sin la 0147 no hay candado y la bandera reabre el pisado en silencio.
