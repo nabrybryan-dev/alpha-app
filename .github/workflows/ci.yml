@@ -243,6 +243,9 @@ jobs:
       - name: El lexicón de cada persona lo lee solo ella, solo se escribe por la función (campos y escalas válidos, forma corta), y ella lo borra entero
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/266-praxis-lexico-persona.sql
 
+      - name: La busqueda mixta de la biblioteca (palabras mas sentido, rango reciproco) solo trae lo aprobado, funciona con una sola lista, respeta tope y k, y no la alcanzan un asesorado ni anon
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/267-praxis-busqueda-mixta.sql
+
       - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql
 
