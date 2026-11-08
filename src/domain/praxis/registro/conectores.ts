@@ -19,6 +19,7 @@ import { normalizarTexto } from './numeros.ts'
 import { REGULAR_ES_FRECUENCIA } from './vida.ts'
 import { respuestaCorta, type ValorCorto } from './respuestaCorta.ts'
 import { palabraNueva } from './palabrasNuevas.ts'
+import { anotacionDeTrozo, type Anotacion } from './anotaciones.ts'
 import {
   proponerDesdeMensajeLargo, trozosDeMensaje,
   type AreaDudosa, type CampoCheckin, type TrozoDescartado, type ValorPropuesto,
@@ -106,6 +107,8 @@ export type ResultadoConectores =
   | {
     tipo: 'propuesta'; propuestas: PropuestaConectada[]; dudosas: AreaDudosa[]
     preguntas: PreguntaDeTramo[]; habituales: Habitual[]; descartado: TrozoDescartado[]
+    /** Para el cuaderno de la persona (0176): no llenan el check-in. Se guardan solo si ella toca la tarjeta. */
+    anotaciones: Anotacion[]
   }
 
 /** Texto de cada tramo del hambre, el mismo que enseña el formulario (CheckinForm, DESCRIPCION_TRAMO). */
@@ -174,7 +177,13 @@ function colocarDeTabla(p: ValorPropuesto, s: Salida): void {
 export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): ResultadoConectores {
   const base = proponerDesdeMensajeLargo(texto)
   if (base.tipo === 'riesgo') return base
-  const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [] }
+  const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [], anotaciones: [] }
+
+  // 0. Lo que no llena el check-in pero va al cuaderno de la persona (recuperación de una zona, reacción a una comida).
+  for (const t of trozosDeMensaje(texto)) {
+    const a = anotacionDeTrozo(t, esClinico)
+    if (a) s.anotaciones.push(a)
+  }
 
   // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
   for (const p of base.propuestas) colocarDeTabla(p, s)

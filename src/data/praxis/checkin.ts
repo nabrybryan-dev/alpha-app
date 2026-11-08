@@ -3,6 +3,7 @@ import { reportarError } from '../errores/reportarError'
 import { modoNube, supabase } from '../supabase'
 import { CAMPOS_QUE_APRENDEN, type FormaAprendida } from '../../domain/praxis/registro/lexicoPersona'
 import { OBLIGATORIOS, type Confirmado } from '../../domain/praxis/registro/tarjetaCheckin'
+import type { Anotacion } from '../../domain/praxis/registro/anotaciones'
 import type { CampoCheckin } from '../../domain/praxis/registro/mensajeLargo'
 import type { CheckinDiario } from '../../domain/types'
 
@@ -82,6 +83,47 @@ export async function guardarCheckinDePraxis(
     return { ok: true, parcial: fila.parcial === true }
   } catch {
     try { d.anotarFallo(AVISO_FALLO) } catch { /* contar fallos no puede ser un fallo más */ }
+    return { ok: false, motivo: 'no_se_pudo' }
+  }
+}
+
+export const RPC_ANOTAR_PATRON = 'praxis_anotar_patron'
+const AVISO_ANOTAR = 'praxis_anotar_patron: no se pudo anotar en el cuaderno'
+/** Tope por tarjeta: una frase no da más de unas pocas anotaciones. */
+const MAX_ANOTACIONES = 5
+
+export type ResultadoAnotar =
+  | { ok: true; anotadas: number }
+  | { ok: false; motivo: 'nada' | 'otra_persona' | 'sin_migracion' | 'no_se_pudo' }
+
+/**
+ * Anota en el cuaderno de la persona (RPC `praxis_anotar_patron`, 0176) lo que ella tocó en la tarjeta. Una clave por
+ * mensaje y posición: tocar dos veces no duplica. El alimento no se manda (queda vacío). Nunca lanza; el aviso de fallo
+ * es de texto fijo: ni la persona ni la frase viajan en él.
+ */
+export async function anotarPatron(
+  entrada: { usuarioId: string; mensajeId: string; anotaciones: Anotacion[] },
+  deps: Partial<DependenciasCheckin> = {},
+): Promise<ResultadoAnotar> {
+  const d = { ...porDefecto(), ...deps }
+  const lista = entrada.anotaciones.slice(0, MAX_ANOTACIONES)
+  if (lista.length === 0) return { ok: false, motivo: 'nada' }
+  try {
+    const sesion = await d.usuarioDeLaSesion()
+    if (!sesion || sesion !== entrada.usuarioId) return { ok: false, motivo: 'otra_persona' }
+    let anotadas = 0
+    for (const [i, a] of lista.entries()) {
+      const r = await d.rpc(RPC_ANOTAR_PATRON, {
+        p_tipo: a.tipo, p_zona: a.zona ?? null, p_momento: a.momento ?? null, p_alimento: null,
+        p_cita: a.cita, p_clave: `${entrada.mensajeId}:${i}`.slice(0, 80),
+      })
+      if (r.error?.code === 'PGRST202') return { ok: false, motivo: 'sin_migracion' }
+      if (!r.error) anotadas++
+    }
+    if (anotadas === 0) { d.anotarFallo(AVISO_ANOTAR); return { ok: false, motivo: 'no_se_pudo' } }
+    return { ok: true, anotadas }
+  } catch {
+    try { d.anotarFallo(AVISO_ANOTAR) } catch { /* contar fallos no puede ser un fallo más */ }
     return { ok: false, motivo: 'no_se_pudo' }
   }
 }
