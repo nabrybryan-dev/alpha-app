@@ -18,6 +18,7 @@ import { marcarSaludPorDiccionario } from '../ingreso/extraer.ts'
 import { normalizarTexto } from './numeros.ts'
 import { REGULAR_ES_FRECUENCIA } from './vida.ts'
 import { respuestaCorta, type ValorCorto } from './respuestaCorta.ts'
+import { palabraNueva } from './palabrasNuevas.ts'
 import {
   proponerDesdeMensajeLargo, trozosDeMensaje,
   type AreaDudosa, type CampoCheckin, type TrozoDescartado, type ValorPropuesto,
@@ -198,7 +199,7 @@ function colocarDescartado(d: TrozoDescartado, s: Salida): void {
   if (!campo || esClinico(d.cita) || tiempoDe(d.cita) === 'habitual') { s.descartado.push(d); return }
   const grado = gradoConArea(d.cita)
   if (grado) { colocarVago(campo, d.cita, grado, s); return }
-  const corta = respuestaCorta(normalizarTexto(d.cita).replace(PALABRAS_DE_AREA, ' '), campo)
+  const corta = respuestaCorta(normalizarTexto(d.cita).replace(PALABRAS_DE_AREA, ' '), campo) ?? palabraNueva(d.cita, campo)
   if (corta) colocarCorta(campo, d.cita, corta, s)
   else s.descartado.push(d)
 }
@@ -227,7 +228,7 @@ function colocarSueltos(texto: string, ctx: ContextoConectores, vistas: Set<stri
     const destino = previo ?? ctx.preguntaAnterior ?? undefined
     previo = undefined
     if (esClinico(cita) || tiempoDe(cita) === 'habitual') continue
-    const corta = destino ? respuestaCorta(cita, destino) : null
+    const corta = destino ? (respuestaCorta(cita, destino) ?? palabraNueva(cita, destino)) : null
     if (destino && corta) { colocarCorta(destino, cita, corta, s); continue }
     const grado = gradoVago(cita)
     if (!grado) continue

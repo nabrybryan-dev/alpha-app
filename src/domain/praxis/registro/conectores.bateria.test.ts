@@ -113,6 +113,8 @@ describe('«regular» como FRECUENCIA no es un nivel (Bryan, 7-nov: ajustar la t
     'entreno regular, cuatro días',
     'voy regularmente al gym',
     'asisto regular a la rutina',
+    'hago gym regular', // sonda del 8-nov
+    'hago ejercicio regular',
   ])('«%s» no anota rendimiento', (frase) => {
     expect(salidaDe({ frase, p: 'motivacion' })).toEqual({})
   })
@@ -124,7 +126,7 @@ describe('«regular» como FRECUENCIA no es un nivel (Bryan, 7-nov: ajustar la t
 })
 
 describe('huecos conocidos (no son la meta: avisan si cambian)', () => {
-  it('«el entreno re bien» hoy no sale (palabra nueva: propuesta)', () => {
-    expect(salidaDe({ frase: 'el entreno re bien' })).toEqual({})
+  it('«el entreno re bien» sale BUENA desde las palabras nuevas del 7-nov (palabrasNuevas.ts)', () => {
+    expect(salidaDe({ frase: 'el entreno re bien' })).toEqual({ rendimiento: 'BUENA' })
   })
 })
