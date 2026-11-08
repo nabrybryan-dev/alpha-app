@@ -47,6 +47,23 @@ const correr = (extra: Partial<VidaExtraida>): ResultadoVida => resolverVida({ .
 const guardado = (r: ResultadoVida): Record<string, unknown> =>
   (r.registros.find((x) => x.campo === 'checkin') as { parche?: Record<string, unknown> } | undefined)?.parche ?? {}
 
+describe('«y» + palabras: solo es vago un resto corto de palabras vagas; una frase con cifra conserva el dato', () => {
+  it.each(['siete horas y un poco', 'siete horas y algo', '7 horas y poquito', 'ocho horas y tanto'])('sueño «%s» es vago', (cita) => {
+    expect(leerSueno(cita), cita).toEqual({ tipo: 'vago' })
+  })
+  it('pasos «10 mil pasos y algo» es vago', () => {
+    expect(leerPasos('10 mil pasos y algo')).toEqual({ tipo: 'vago' })
+  })
+  it.each([
+    ['7 horas y me desperté 3 veces', 7], ['seis horas y mal', 6], ['siete horas y me desperté varias veces', 7],
+  ] as [string, number][])('sueño «%s» no es vago: se lee %d', (cita, horas) => {
+    expect(leerSueno(cita), cita).toMatchObject({ tipo: 'valor', valor: horas })
+  })
+  it('pasos «8 mil pasos y subí escaleras» no es vago: se lee 8000', () => {
+    expect(leerPasos('8 mil pasos y subí escaleras')).toMatchObject({ tipo: 'valor', valor: 8000 })
+  })
+})
+
 describe('sueño: «7:30» sin unidad se pregunta, no se anota como 7', () => {
   it('«7:30» no es un valor', () => {
     expect(leerSueno('7:30')?.tipo).not.toBe('valor')
