@@ -40,6 +40,20 @@ const COMIDA = /\b(comi|comer|comiendo|comida|digest\w*|desayun\w*|almuerz\w*|al
 const ALIMENTO_DICHO = /\bcomi\s+(?:(?:el|la|los|las|un|una|unos|unas|mucho|mucha|muchos|muchas|poco|poca|bastante)\s+)?([a-z]{3,})\b/
 const NO_ES_ALIMENTO = new Set(['mucho', 'poco', 'bastante', 'demasiado', 'algo', 'cosas', 'bien', 'mal', 'normal', 'como', 'tarde', 'temprano', 'rico', 'harto'])
 
+/**
+ * «Me cayó pesado el helado»: la comida no trae palabra de comida, pero el verbo «caer pesado» más un sustantivo que no es
+ * del entreno ni de la vida diaria lo es. Lo que NO es comida va en la lista cerrada de abajo; si se escapa uno, la tarjeta
+ * se lo enseña a la persona con ese nombre y ella no toca «Anotar».
+ */
+const CAYO_PESADO_DESPUES = /\bcay(?:o|eron)\s+(?:(?:muy|re|bien|super|tan)\s+)?pesad[oa]s?\s+(?:el|la|los|las|ese|esa|esos|esas|un|una)\s+([a-z]{3,})\b/
+const CAYO_PESADO_ANTES = /\b(?:el|la|los|las|ese|esa|esos|esas|mi|mis)\s+([a-z]{3,})\s+(?:no\s+)?me\s+cay(?:o|eron)\s+(?:(?:muy|re|bien|super|tan)\s+)?pesad/
+const NO_COMIDA = new Set([
+  'entreno', 'entrenamiento', 'entrenos', 'gym', 'gimnasio', 'rutina', 'sesion', 'ejercicio', 'ejercicios', 'serie', 'series', 'sentadilla', 'sentadillas',
+  'cardio', 'pierna', 'piernas', 'dia', 'dias', 'semana', 'trabajo', 'jefe', 'jefa', 'examen', 'clase', 'reunion', 'tarea', 'charla', 'noticia', 'mensaje',
+  'comentario', 'viaje', 'calor', 'clima', 'ambiente', 'ritmo', 'peso', 'pesas', 'madrugon', 'plan', 'entrenador', 'entrenadora', 'companero', 'companera',
+])
+const DEL_ENTRENO = /\b(entreno|entrenamiento|gym|gimnasio|rutina|sesion|ejercicio|series?|sentadillas?|cardio|pesas)\b/
+
 /** Habla de otra persona («mi esposo está molido de las piernas»): no es del cuaderno de quien escribe. */
 const DE_OTRA_PERSONA = /\b(mi|su) (esposo|esposa|marido|pareja|novio|novia|hermano|hermana|mama|papa|madre|padre|hijo|hija|amigo|amiga|companero|companera|jefe|jefa|entrenador|entrenadora|abuelo|abuela|primo|prima|tio|tia|vecino|vecina)\b/
 const PRIMERA_PERSONA = /\b(yo|me|estoy|ando|quede|amaneci|siento|senti|tengo)\b/
@@ -70,9 +84,17 @@ export function anotacionDeTrozo(cita: string, esClinico: (c: string) => boolean
   if (!SINTIO_PESADO.test(n) || NEGADO_PESADO.test(n)) return null
   if (ANTES_DE_COMER.test(n) && !/\bdespues\b/.test(n)) return null
   if (COMIDA.test(n)) return { tipo: 'reaccion_comida', momento: MOMENTOS.find(([re]) => re.test(n))?.[1] ?? 'otro', cita: recortar(cita) }
+  // «Me cayó pesado el helado»: un alimento sin palabra de comida. El entreno, el jefe o el trabajo no cuentan.
+  const noEnNegado = !/\bno\s+me\s+cay/.test(n)
+  const dicho = noEnNegado ? (CAYO_PESADO_DESPUES.exec(n)?.[1] ?? CAYO_PESADO_ANTES.exec(n)?.[1]) : undefined
+  if (dicho) {
+    if (NO_COMIDA.has(dicho)) return null
+    return { tipo: 'reaccion_comida', momento: 'otro', alimento: dicho, cita: recortar(cita) }
+  }
+  if (DEL_ENTRENO.test(n)) return null
   // Sin comida en este trozo: vale solo si el de antes hablaba de lo que comió y no es clínico.
   const p = previo ? normalizarTexto(previo) : ''
-  if (!p || esClinico(previo ?? '') || !COMIDA.test(p) || /\b(no|nunca|ni|tampoco)\b\s+(?:\w+\s+)?comi\b/.test(p)) return null
+  if (!p ||esClinico(previo ?? '') || !COMIDA.test(p) || /\b(no|nunca|ni|tampoco)\b\s+(?:\w+\s+)?comi\b/.test(p)) return null
   const alimento = ALIMENTO_DICHO.exec(p)?.[1]
   return {
     tipo: 'reaccion_comida', momento: MOMENTOS.find(([re]) => re.test(p))?.[1] ?? 'otro', cita: recortar(cita),

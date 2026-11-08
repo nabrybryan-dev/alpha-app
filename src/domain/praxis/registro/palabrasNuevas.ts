@@ -24,7 +24,7 @@ const MOLIDA_SIN_ZONA = new RegExp(
 const FRESCA_DE_LA_PERSONA =
   /\b(?:me siento|siento|estoy|ando|amaneci|me levante|me desperte|quede|me veo)(?: muy| re| super| bien| tan)? (?:fresc[oa]|fresquit[oa])\b|\bfresc[oa] como (?:una )?lechuga\b|^fresc[oa]$/
 /** «Con toda» es ánimo solo si cierra la frase o lo sigue una palabra de ánimo; «con toda la pereza» no (sonda del 8-nov). */
-const CON_TODA = /\bcon toda(?:\s+(?:la\s+)?(?:energia|ganas|actitud|fuerza|motivacion|pila|bateria|disposicion))?$/
+const CON_TODA = /\bcon toda(?:\s+(?:(?:la\s+)?(?:energia|ganas|actitud|fuerza|motivacion|pila|bateria|disposicion)|(?:(?:al|a la|a|para el|para la)\s+)(?:gym|gimnasio|entreno|entrenamiento|rutina|entrenar)))?$/
 
 const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   estres: [
@@ -35,6 +35,7 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   // «Con toda» y «a tope» se invierten según el campo (8-nov, Bryan: sí). Sin pregunta ni área no se llega aquí.
   motivacion: [
     [CON_TODA, { valor: 'MUCHO' }],
+    [/\bcon (?:todas las|muchas|mil) ganas$/, { valor: 'MUCHO' }],
     [/\ba tope\b/, { valor: 'MUCHO' }],
   ],
   cansancio: [
@@ -67,7 +68,9 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
     [/\bre bien\b/, { valor: 'BUENA' }],
     // «Pesada después del almuerzo» es digestión, no rendimiento (8-nov, Bryan: no se mapea).
     // La palabra de comida puede ir antes («el desayuno me cayó pesado») o después: se mira toda la frase.
-    [/^(?!.*\b(?:almuerzo|almorzar|comida|comi|comer|comiendo|cena|cenar|desayuno|desayunar|merienda|digest\w*)\b).*\b(?:senti|cayo)\b.*\bpesad[oa]\b/, { valor: 'MALA' }],
+    [/^(?!.*\b(?:almuerzo|almorzar|comida|comi|comer|comiendo|cena|cenar|desayuno|desayunar|merienda|digest\w*)\b).*\bsenti\b.*\bpesad[oa]\b/, { valor: 'MALA' }],
+    // «Me cayó pesado» es del entreno solo si la frase habla del entreno; «me cayó pesado el helado» es comida.
+    [/^(?=.*\b(?:entreno|entrenamiento|gym|gimnasio|rutina|sesion|ejercicio|series?|sentadillas?|cardio|pesas)\b).*\bcay(?:o|eron)\b.*\bpesad[oa]s?\b/, { valor: 'MALA' }],
     [/\ba tope\b/, { valor: 'BUENA' }],
   ],
 }
