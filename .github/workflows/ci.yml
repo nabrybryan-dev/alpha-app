@@ -251,3 +251,6 @@ jobs:
 
       - name: Los latidos de la cadena avisan una vez cuando el ASUS calla mas de 30 min y otra cuando vuelve; solo service_role los escribe y los lee
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/271-latidos-cadena.sql
+
+      - name: El cuaderno de anotaciones de cada persona (recuperación de una zona, reacción a una comida) lo lee solo ella, solo se escribe por la función (idempotente, sin días futuros), y ella lo borra entero
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/272-praxis-anotaciones-persona.sql
