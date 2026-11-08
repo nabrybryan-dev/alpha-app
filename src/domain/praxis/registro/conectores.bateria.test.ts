@@ -113,6 +113,8 @@ describe('«regular» como FRECUENCIA no es un nivel (Bryan, 7-nov: ajustar la t
     'entreno regular, cuatro días',
     'voy regularmente al gym',
     'asisto regular a la rutina',
+    'hago gym regular', // sonda del 8-nov
+    'hago ejercicio regular',
   ])('«%s» no anota rendimiento', (frase) => {
     expect(salidaDe({ frase, p: 'motivacion' })).toEqual({})
   })

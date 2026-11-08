@@ -62,3 +62,49 @@ describe('trampas', () => {
     expect(salida('a tope')).toEqual({})
   })
 })
+
+/**
+ * Sonda del 8-nov: 37 frases nuevas por toda la cadena. Destapó que las palabras nuevas IGNORABAN la negación
+ * («no me desvelé» salía sueño MALO, «no me levanté con energía» salía POCO cansancio) y que «un poco / re / súper
+ * cansada» salían igual que «cansada» a secas.
+ */
+describe('negación: lo negado no se lee como lo afirmado', () => {
+  it.each([
+    ['no me desvelé', {}],
+    ['no me levanté con energía', {}],
+    ['no dormí poco, dormí 8 horas', { horasSueno: 8 }],
+    ['no estoy a tope de estrés', {}],
+  ] as const)('«%s»', (frase, esperado) => {
+    expect(salida(frase)).toEqual(esperado)
+  })
+
+  it('«no estoy cansada» = poco o regular; «nada cansado» = poco', () => {
+    expect(salida('no estoy cansada')).toEqual({ cansancio: ['POCO', 'REGULAR'] })
+    expect(salida('no me siento cansado')).toEqual({ cansancio: ['POCO', 'REGULAR'] })
+    expect(salida('ya no estoy tan cansada')).toEqual({ cansancio: ['POCO', 'REGULAR'] })
+    expect(salida('nada cansado hoy')).toEqual({ cansancio: 'POCO' })
+  })
+})
+
+describe('cuánto cansancio dice el intensificador', () => {
+  it('«un poco cansada» = poco o regular', () => {
+    expect(salida('un poco cansada')).toEqual({ cansancio: ['POCO', 'REGULAR'] })
+  })
+  it.each(['re cansado', 'súper cansada', 'bien cansada'])('«%s» = mucho', (frase) => {
+    expect(salida(frase)).toEqual({ cansancio: 'MUCHO' })
+  })
+})
+
+describe('«buenísimo» vale en toda área de calidad, no solo en el entreno', () => {
+  it('sueño, comida y respuesta corta', () => {
+    expect(salida('el sueño buenísimo')).toEqual({ calidadSueno: 'BUENA' })
+    expect(salida('la comida buenísima')).toEqual({ alimentacion: 'BUENA' })
+    expect(salida('buenísimo', 'calidadSueno')).toEqual({ calidadSueno: 'BUENA' })
+  })
+})
+
+describe('«comí no tanto» es cantidad, no calidad de la comida', () => {
+  it('no se anota alimentación', () => {
+    expect(salida('comí no tanto')).toEqual({})
+  })
+})
