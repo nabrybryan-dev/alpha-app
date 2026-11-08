@@ -912,7 +912,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   const rol = await rolEnCurso
   const ocupaElPuesto = await puestoEnCurso.catch(() => false)
   if (!puedeEntrar(rol, ocupaElPuesto)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
-  console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
+  void planEnCurso.catch(() => undefined).then(() => console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))) // tras el plan (carrera del 7-nov)
   const sesion: Sesion = { usuarioId: auth.id, token, rol, puesto: ocupaElPuesto }
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')

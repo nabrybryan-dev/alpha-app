@@ -49,6 +49,11 @@ describe('los números de la semana', () => {
     expect(r.sesionesPautadas).toBe(3)
   })
 
+  it('un check-in a medias no cuenta en «check-ins de la semana» (Bryan, 7-nov-2026)', () => {
+    const r = resumenSemanal({ sesiones: [], checkins: [{ ...checkin('2026-09-01'), parcial: true }, checkin('2026-09-02')] })
+    expect(r.checkinsDeLaSemana).toBe(1)
+  })
+
   it('sin sesiones ni check-ins no se cae, y no inventa ceros con cara de dato', () => {
     const r = resumenSemanal({ sesiones: [], checkins: [] })
     expect(r).toMatchObject({ sesionesHechas: 0, sesionesPautadas: 0, checkinsDeLaSemana: 0 })

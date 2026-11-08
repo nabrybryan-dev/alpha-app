@@ -68,6 +68,17 @@ describe('construirRanking', () => {
     expect(ana).toMatchObject({ sesionesCompletas: 2, diasCumplidos: 2, checkins: 1, puntos: 10 })
   })
 
+  it('un check-in a medias no suma en el ranking (Bryan, 7-nov-2026)', () => {
+    const filas = construirRanking(
+      {
+        usuarios, microciclos: [], adherencias: [],
+        checkins: [{ id: 'c1', usuarioId: 'u-a', fecha: '2026-07-16', parcial: true }, { id: 'c2', usuarioId: 'u-a', fecha: '2026-07-15' }],
+      },
+      HOY,
+    )
+    expect(filas.find((f) => f.usuarioId === 'u-a')).toMatchObject({ checkins: 1 })
+  })
+
   it('ignora registros fuera de la ventana de 30 días', () => {
     const filas = construirRanking(
       {

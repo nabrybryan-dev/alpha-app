@@ -237,5 +237,17 @@ jobs:
       - name: La memoria de la charla de Praxis la leen solo quien tiene la capacidad y los agentes, la escriben solo los agentes y se borra a 30 días de atendida (tope 90)
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/264-praxis-memoria-de-charla.sql
 
+      - name: Praxis guarda en el check-in de hoy solo lo propio y lo confirmado, en la escala del formulario, una vez por tarjeta, marca a medias y el ranking no lo cuenta
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/265-praxis-aplicar-checkin.sql
+
+      - name: El lexicón de cada persona lo lee solo ella, solo se escribe por la función (campos y escalas válidos, forma corta), y ella lo borra entero
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/266-praxis-lexico-persona.sql
+
       - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql
+
+      - name: El interruptor de la regla de ventana lo leen todos los del staff, lo encienden y apagan solo quienes tienen la capacidad, y cada cambio queda anotado con quien
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/270-interruptor-regla-ventana.sql
+
+      - name: Los latidos de la cadena avisan una vez cuando el ASUS calla mas de 30 min y otra cuando vuelve; solo service_role los escribe y los lee
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/271-latidos-cadena.sql
