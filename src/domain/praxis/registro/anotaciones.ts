@@ -67,37 +67,55 @@ const HABITUAL = /\b(siempre|normalmente|por lo general|generalmente|suelo|todos
 
 const recortar = (c: string) => (c.length > MAX_CITA ? c.slice(0, MAX_CITA) : c)
 
+const momentoDe = (n: string): MomentoDeComida => MOMENTOS.find(([re]) => re.test(n))?.[1] ?? 'otro'
+const NEGADO_COMI = /\b(no|nunca|ni|tampoco)\b\s+(?:\w+\s+)?comi\b/
+
+/** ¿El trozo cuenta algo PROPIO y de HOY? Ni clínico, ni habitual, ni pregunta o deseo, ni de otra persona. */
+function esPropioYDeHoy(cita: string, n: string, esClinico: (c: string) => boolean): boolean {
+  if (esClinico(cita) || HABITUAL.test(n) || NO_ES_UN_HECHO.test(cita.toLowerCase())) return false
+  return !(DE_OTRA_PERSONA.test(n) && !PRIMERA_PERSONA.test(n))
+}
+
+/** «Molida de las piernas», «las piernas molidas», o una zona más de la misma lista. Lo negado no entra. */
+function recuperacionDeZona(n: string, cita: string, seguidaDeZona: boolean): Anotacion | null {
+  const suelta = seguidaDeZona ? ZONA_SUELTA.exec(n) : null
+  const z = suelta ?? (NEGADO_MOLIDA.test(n) ? null : (ZONA_DESPUES.exec(n) ?? ZONA_ANTES.exec(n)))
+  return z ? { tipo: 'recuperacion_zona', zona: `${z[1]}${z[2] ?? ''}`, cita: recortar(cita) } : null
+}
+
+/** «Comí frijoles» + «me sentí pesada»: una reacción partida por la «y». El alimento sale del trozo de antes. */
+function comidaDelTrozoAnterior(cita: string, previo: string | undefined, esClinico: (c: string) => boolean): Anotacion | null {
+  const p = previo ? normalizarTexto(previo) : ''
+  if (!p || esClinico(previo ?? '') || !COMIDA.test(p) || NEGADO_COMI.test(p)) return null
+  const alimento = ALIMENTO_DICHO.exec(p)?.[1]
+  return {
+    tipo: 'reaccion_comida', momento: momentoDe(p), cita: recortar(cita),
+    ...(alimento && !NO_ES_ALIMENTO.has(alimento) ? { alimento } : {}),
+  }
+}
+
+/** «Me cayó pesado el helado»: un alimento sin palabra de comida. El entreno, el jefe o el trabajo no cuentan. */
+function alimentoCaidoPesado(n: string): string | undefined {
+  if (/\bno\s+me\s+cay/.test(n)) return undefined
+  return CAYO_PESADO_DESPUES.exec(n)?.[1] ?? CAYO_PESADO_ANTES.exec(n)?.[1]
+}
+
+function reaccionAUnaComida(n: string, cita: string, previo: string | undefined, esClinico: (c: string) => boolean): Anotacion | null {
+  if (!SINTIO_PESADO.test(n) || NEGADO_PESADO.test(n)) return null
+  if (ANTES_DE_COMER.test(n) && !/\bdespues\b/.test(n)) return null
+  if (COMIDA.test(n)) return { tipo: 'reaccion_comida', momento: momentoDe(n), cita: recortar(cita) }
+  const dicho = alimentoCaidoPesado(n)
+  if (dicho) return NO_COMIDA.has(dicho) ? null : { tipo: 'reaccion_comida', momento: 'otro', alimento: dicho, cita: recortar(cita) }
+  if (DEL_ENTRENO.test(n)) return null
+  return comidaDelTrozoAnterior(cita, previo, esClinico)
+}
+
 /**
  * Anotación de un trozo (frase). `esClinico` lo pone el llamador: un trozo clínico no se anota por aquí.
- * `previo` = el trozo de antes: «comí frijoles» + «me sentí pesada» es UNA reacción a una comida, partida por la «y».
+ * `previo` = el trozo de antes; `seguidaDeZona` = el de antes fue una recuperación de zona (una lista de zonas).
  */
 export function anotacionDeTrozo(cita: string, esClinico: (c: string) => boolean, previo?: string, seguidaDeZona = false): Anotacion | null {
   const n = normalizarTexto(cita)
-  if (esClinico(cita) || HABITUAL.test(n) || NO_ES_UN_HECHO.test(cita.toLowerCase())) return null
-  if (DE_OTRA_PERSONA.test(n) && !PRIMERA_PERSONA.test(n)) return null
-  const suelta = seguidaDeZona ? ZONA_SUELTA.exec(n) : null
-  if (suelta) return { tipo: 'recuperacion_zona', zona: `${suelta[1]}${suelta[2] ?? ''}`, cita: recortar(cita) }
-  if (!NEGADO_MOLIDA.test(n)) {
-    const z = ZONA_DESPUES.exec(n) ?? ZONA_ANTES.exec(n)
-    if (z) return { tipo: 'recuperacion_zona', zona: `${z[1]}${z[2] ?? ''}`, cita: recortar(cita) }
-  }
-  if (!SINTIO_PESADO.test(n) || NEGADO_PESADO.test(n)) return null
-  if (ANTES_DE_COMER.test(n) && !/\bdespues\b/.test(n)) return null
-  if (COMIDA.test(n)) return { tipo: 'reaccion_comida', momento: MOMENTOS.find(([re]) => re.test(n))?.[1] ?? 'otro', cita: recortar(cita) }
-  // «Me cayó pesado el helado»: un alimento sin palabra de comida. El entreno, el jefe o el trabajo no cuentan.
-  const noEnNegado = !/\bno\s+me\s+cay/.test(n)
-  const dicho = noEnNegado ? (CAYO_PESADO_DESPUES.exec(n)?.[1] ?? CAYO_PESADO_ANTES.exec(n)?.[1]) : undefined
-  if (dicho) {
-    if (NO_COMIDA.has(dicho)) return null
-    return { tipo: 'reaccion_comida', momento: 'otro', alimento: dicho, cita: recortar(cita) }
-  }
-  if (DEL_ENTRENO.test(n)) return null
-  // Sin comida en este trozo: vale solo si el de antes hablaba de lo que comió y no es clínico.
-  const p = previo ? normalizarTexto(previo) : ''
-  if (!p ||esClinico(previo ?? '') || !COMIDA.test(p) || /\b(no|nunca|ni|tampoco)\b\s+(?:\w+\s+)?comi\b/.test(p)) return null
-  const alimento = ALIMENTO_DICHO.exec(p)?.[1]
-  return {
-    tipo: 'reaccion_comida', momento: MOMENTOS.find(([re]) => re.test(p))?.[1] ?? 'otro', cita: recortar(cita),
-    ...(alimento && !NO_ES_ALIMENTO.has(alimento) ? { alimento } : {}),
-  }
+  if (!esPropioYDeHoy(cita, n, esClinico)) return null
+  return recuperacionDeZona(n, cita, seguidaDeZona) ?? reaccionAUnaComida(n, cita, previo, esClinico)
 }
