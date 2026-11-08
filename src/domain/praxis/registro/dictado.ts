@@ -28,8 +28,18 @@ const esNumeroOUnidad = (t: string): boolean => esCifra(t) || /^(horas?|pasos?)$
  */
 function yConPalabraVaga(n: string): boolean {
   const tk = n.split(' ')
-  return tk.some((t, i) => t === 'y' && i > 0 && i + 1 < tk.length && esNumeroOUnidad(tk[i - 1]) && !esCifra(tk[i + 1]))
+  return tk.some((t, i) => {
+    if (t !== 'y' || i === 0 || !esNumeroOUnidad(tk[i - 1])) return false
+    const resto = tk.slice(i + 1)
+    // Solo un resto de una o dos palabras cuya primera (tras «un/una») es vaga: «y algo», «y un poco».
+    // «y me desperté 3 veces» o «y mal» no son vagos: la cifra de antes se conserva.
+    if (resto.length < 1 || resto.length > 2) return false
+    const p = resto[0] === 'un' || resto[0] === 'una' ? resto[1] : resto[0]
+    return PALABRAS_VAGAS.has(p ?? '')
+  })
 }
+
+const PALABRAS_VAGAS = new Set(['pico', 'piquito', 'algo', 'poco', 'poquito', 'poquitico', 'tanto', 'tantico', 'tantito', 'monedas'])
 
 /** Separa lo pegado: «4h» → «4 h», «250ml» → «250 ml», «9pm» → «9 pm». */
 export function separarPegado(texto: string): string {
