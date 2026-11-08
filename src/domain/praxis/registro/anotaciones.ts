@@ -3,8 +3,9 @@
  * Dos frases no llenan ningún campo del check-in pero dicen algo que vale revisar más adelante:
  *   · «estoy molida de las piernas»            -> recuperación tardía de esa zona.
  *   · «me sentí pesada después del almuerzo»   -> cómo reacciona su organismo a esa comida (patrón).
- * Puro: solo PROPONE. Se guarda cuando la persona toca la tarjeta. El alimento no se saca de las palabras (queda vacío
- * para que la persona lo añada): adivinar «qué comió» de una frase suelta daría anotaciones falsas.
+ * Puro: solo PROPONE. Se guarda cuando la persona toca la tarjeta. El alimento solo se rescata cuando la persona lo dijo
+ * justo antes («comí frijoles y me sentí pesada»); nunca se adivina de una frase suelta.
+ * Lo NEGADO no se anota («no me sentí pesada después del almuerzo»): guardar lo contrario de lo dicho es peor que perderlo.
  */
 import { normalizarTexto } from './numeros.ts'
 
@@ -17,28 +18,64 @@ export interface Anotacion {
   tipo: 'recuperacion_zona' | 'reaccion_comida'
   zona?: string
   momento?: MomentoDeComida
+  /** Solo si la persona lo nombró en el trozo anterior («comí frijoles»). La persona lo ve en la tarjeta. */
+  alimento?: string
   cita: string
 }
 
-const MOLIDA_DE_ZONA = new RegExp(`\\bmolid[oa]s?\\b.*?\\b(${ZONAS_DEL_CUERPO})(e?s)?\\b`)
-const SINTIO_PESADO = /\b(senti|siento|sentia|cayo|cayeron|cae|caen|quede|estoy|estuve)\b.*\bpesad[oa]s?\b|\bpesad[oa]s?\b.*\b(despues|luego)\b/
+/** La base rechaza una cita de más de 300 caracteres: se recorta aquí, antes de llegar a ella. */
+const MAX_CITA = 300
+
+const ZONA_DESPUES = new RegExp(`\\bmolid[oa]s?\\b.*?\\b(${ZONAS_DEL_CUERPO})(e?s)?\\b`)
+const ZONA_ANTES = new RegExp(`\\b(${ZONAS_DEL_CUERPO})(e?s)?\\b(?:\\s+\\w+){0,2}?\\s+molid[oa]s?\\b`)
+/** Una zona más de la misma lista («de las piernas, de los brazos y de la espalda»): el trozo es solo la zona. */
+const ZONA_SUELTA = new RegExp(`^(?:y |tambien |ademas )?(?:(?:de|del|en|con) )?(?:(?:la|las|el|los|mis|mi) )?(${ZONAS_DEL_CUERPO})(e?s)?$`)
+const NEGADO_MOLIDA = /\b(no|nunca|ni|tampoco|nada)\b(?:\s+\w+){0,3}?\s+molid/
+const SINTIO_PESADO = /\b(senti|siento|sentia|cayo|cayeron|cae|caen|quede|estoy|estuve|estuvo|estaba|estuvieron|estaban|esta)\b.*\bpesad[oa]s?\b|\bpesad[oa]s?\b.*\b(despues|luego)\b/
+const NEGADO_PESADO = /\b(no|nunca|ni|tampoco)\b(?:\s+\w+){0,4}?\s+pesad/
 const MOMENTOS: [RegExp, MomentoDeComida][] = [
-  [/\bdesayun/, 'desayuno'], [/\balmuerz/, 'almuerzo'], [/\bcena\b/, 'cena'], [/\b(merienda|onces)\b/, 'merienda'],
+  [/\bdesayun/, 'desayuno'], [/\b(almuerz|almorz)/, 'almuerzo'], [/\b(cena\b|cenar|cenando|cene\b)/, 'cena'], [/\b(merienda|onces)\b/, 'merienda'],
 ]
-const COMIDA = /\b(comi|comer|comiendo|comida|digest\w*|desayun\w*|almuerz\w*|cena|merienda|onces)\b/
+const COMIDA = /\b(comi|comer|comiendo|comida|digest\w*|desayun\w*|almuerz\w*|almorz\w*|cena|cenar|cenando|merienda|onces)\b/
+const ALIMENTO_DICHO = /\bcomi\s+(?:(?:el|la|los|las|un|una|unos|unas|mucho|mucha|muchos|muchas|poco|poca|bastante)\s+)?([a-z]{3,})\b/
+const NO_ES_ALIMENTO = new Set(['mucho', 'poco', 'bastante', 'demasiado', 'algo', 'cosas', 'bien', 'mal', 'normal', 'como', 'tarde', 'temprano', 'rico', 'harto'])
+
+/** Habla de otra persona («mi esposo está molido de las piernas»): no es del cuaderno de quien escribe. */
+const DE_OTRA_PERSONA = /\b(mi|su) (esposo|esposa|marido|pareja|novio|novia|hermano|hermana|mama|papa|madre|padre|hijo|hija|amigo|amiga|companero|companera|jefe|jefa|entrenador|entrenadora|abuelo|abuela|primo|prima|tio|tia|vecino|vecina)\b/
+const PRIMERA_PERSONA = /\b(yo|me|estoy|ando|quede|amaneci|siento|senti|tengo)\b/
+/** Una pregunta, un deseo o un «si estuviera…» no cuentan lo que le pasó. */
+const NO_ES_UN_HECHO = /^\s*¿|\?\s*$|\bsi (estuviera|estuviese|estuvieras|me sintiera|fuera|tuviera)\b|\bojala\b/
+/** «Pesada ANTES del almuerzo» no es una reacción a la comida. */
+const ANTES_DE_COMER = /\bantes (?:de |del )(?:la |el )?(?:comer|almuerzo|almorzar|cena|cenar|desayuno|desayunar|merienda)/
 
 /** Lo habitual («siempre me cae pesado el almuerzo») es del perfil, no de hoy. */
 const HABITUAL = /\b(siempre|normalmente|por lo general|generalmente|suelo|todos los dias)\b/
 
-/** Anotaciones de un trozo (frase). `esClinico` lo pone el llamador: un trozo clínico no se anota por aquí. */
-export function anotacionDeTrozo(cita: string, esClinico: (c: string) => boolean): Anotacion | null {
+const recortar = (c: string) => (c.length > MAX_CITA ? c.slice(0, MAX_CITA) : c)
+
+/**
+ * Anotación de un trozo (frase). `esClinico` lo pone el llamador: un trozo clínico no se anota por aquí.
+ * `previo` = el trozo de antes: «comí frijoles» + «me sentí pesada» es UNA reacción a una comida, partida por la «y».
+ */
+export function anotacionDeTrozo(cita: string, esClinico: (c: string) => boolean, previo?: string, seguidaDeZona = false): Anotacion | null {
   const n = normalizarTexto(cita)
-  if (esClinico(cita) || HABITUAL.test(n)) return null
-  const z = MOLIDA_DE_ZONA.exec(n)
-  if (z) return { tipo: 'recuperacion_zona', zona: `${z[1]}${z[2] ?? ''}`, cita }
-  if (SINTIO_PESADO.test(n) && COMIDA.test(n)) {
-    const momento = MOMENTOS.find(([re]) => re.test(n))?.[1] ?? 'otro'
-    return { tipo: 'reaccion_comida', momento, cita }
+  if (esClinico(cita) || HABITUAL.test(n) || NO_ES_UN_HECHO.test(cita.toLowerCase())) return null
+  if (DE_OTRA_PERSONA.test(n) && !PRIMERA_PERSONA.test(n)) return null
+  const suelta = seguidaDeZona ? ZONA_SUELTA.exec(n) : null
+  if (suelta) return { tipo: 'recuperacion_zona', zona: `${suelta[1]}${suelta[2] ?? ''}`, cita: recortar(cita) }
+  if (!NEGADO_MOLIDA.test(n)) {
+    const z = ZONA_DESPUES.exec(n) ?? ZONA_ANTES.exec(n)
+    if (z) return { tipo: 'recuperacion_zona', zona: `${z[1]}${z[2] ?? ''}`, cita: recortar(cita) }
   }
-  return null
+  if (!SINTIO_PESADO.test(n) || NEGADO_PESADO.test(n)) return null
+  if (ANTES_DE_COMER.test(n) && !/\bdespues\b/.test(n)) return null
+  if (COMIDA.test(n)) return { tipo: 'reaccion_comida', momento: MOMENTOS.find(([re]) => re.test(n))?.[1] ?? 'otro', cita: recortar(cita) }
+  // Sin comida en este trozo: vale solo si el de antes hablaba de lo que comió y no es clínico.
+  const p = previo ? normalizarTexto(previo) : ''
+  if (!p || esClinico(previo ?? '') || !COMIDA.test(p) || /\b(no|nunca|ni|tampoco)\b\s+(?:\w+\s+)?comi\b/.test(p)) return null
+  const alimento = ALIMENTO_DICHO.exec(p)?.[1]
+  return {
+    tipo: 'reaccion_comida', momento: MOMENTOS.find(([re]) => re.test(p))?.[1] ?? 'otro', cita: recortar(cita),
+    ...(alimento && !NO_ES_ALIMENTO.has(alimento) ? { alimento } : {}),
+  }
 }

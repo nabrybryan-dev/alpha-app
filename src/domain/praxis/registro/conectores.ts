@@ -180,10 +180,13 @@ export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): Re
   const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [], anotaciones: [] }
 
   // 0. Lo que no llena el check-in pero va al cuaderno de la persona (recuperación de una zona, reacción a una comida).
-  for (const t of trozosDeMensaje(texto)) {
-    const a = anotacionDeTrozo(t, esClinico)
+  const trozos = trozosDeMensaje(texto)
+  let seguidaDeZona = false
+  trozos.forEach((t, i) => {
+    const a = anotacionDeTrozo(t, esClinico, trozos[i - 1], seguidaDeZona)
+    seguidaDeZona = a?.tipo === 'recuperacion_zona'
     if (a) s.anotaciones.push(a)
-  }
+  })
 
   // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
   for (const p of base.propuestas) colocarDeTabla(p, s)

@@ -15,23 +15,34 @@ import type { ValorCorto } from './respuestaCorta.ts'
 
 type Regla = [RegExp, ValorCorto]
 
+const ZONA = `(?:${ZONAS_DEL_CUERPO})(?:e?s)?`
+/** «Molida» sin zona del cuerpo cerca, ni después («de las piernas») ni antes («las piernas molidas»). Con zona va al cuaderno. */
+const MOLIDA_SIN_ZONA = new RegExp(
+  `(?<!${ZONA} )\\bmolid[oa]s?\\b(?!\\s+(?:(?:de|del|en|por)\\s+)?(?:(?:la|las|el|los|mis|mi)\\s+)?${ZONA}\\b)`,
+)
+/** «Fresca» dicho de la PERSONA («me siento fresca», «amanecí fresco»), no del clima ni de la ensalada (sonda del 8-nov). */
+const FRESCA_DE_LA_PERSONA =
+  /\b(?:me siento|siento|estoy|ando|amaneci|me levante|me desperte|quede|me veo)(?: muy| re| super| bien| tan)? (?:fresc[oa]|fresquit[oa])\b|\bfresc[oa] como (?:una )?lechuga\b|^fresc[oa]$/
+/** «Con toda» es ánimo solo si cierra la frase o lo sigue una palabra de ánimo; «con toda la pereza» no (sonda del 8-nov). */
+const CON_TODA = /\bcon toda(?:\s+(?:la\s+)?(?:energia|ganas|actitud|fuerza|motivacion|pila|bateria|disposicion))?$/
+
 const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   estres: [
     [/\ba tope\b/, { valor: 'MUCHO' }],
     // «Fresco» en Colombia también es tranquilo (8-nov, Bryan: sí).
-    [/\bfresc[oa]\b/, { valor: 'POCO' }],
+    [FRESCA_DE_LA_PERSONA, { valor: 'POCO' }],
   ],
   // «Con toda» y «a tope» se invierten según el campo (8-nov, Bryan: sí). Sin pregunta ni área no se llega aquí.
   motivacion: [
-    [/\bcon toda\b/, { valor: 'MUCHO' }],
+    [CON_TODA, { valor: 'MUCHO' }],
     [/\ba tope\b/, { valor: 'MUCHO' }],
   ],
   cansancio: [
-    // «Molida» sola = muy cansada. Con parte del cuerpo («molida de las piernas») es dolor muscular: no se mapea.
-    // Con zona va al cuaderno (anotaciones.ts), no al cansancio. La lista de zonas es la misma.
-    [new RegExp(`\\bmolid[oa]\\b(?!\\s+(de|del|en|por)\\b)(?!.*\\b(${ZONAS_DEL_CUERPO})(e?s)?\\b)`), { valor: 'MUCHO' }],
-    [/\bfresc[oa]\b/, { valor: 'POCO' }],
-    [/\bcon toda\b/, { valor: 'POCO' }],
+    // «Molida» sola = muy cansada («de tanto trabajar» también). Con zona del cuerpo es recuperación: va al cuaderno.
+    [MOLIDA_SIN_ZONA, { valor: 'MUCHO' }],
+    [FRESCA_DE_LA_PERSONA, { valor: 'POCO' }],
+    [CON_TODA, { valor: 'POCO' }],
+    [/\benergia a tope\b|\ba tope de energia\b/, { valor: 'POCO' }],
     [/\b(para )?nada cansad[oa]\b|\bno (estoy|me siento|ando) nada cansad[oa]\b/, { valor: 'POCO' }],
     [/\b(ya )?no (estoy|me siento|ando|amaneci|me levante)( tan| muy)? cansad[oa]\b/, { entre: ['POCO', 'REGULAR'] }],
     [/\b(muy|re|super|bien) cansad[oa]\b/, { valor: 'MUCHO' }],
@@ -42,8 +53,10 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   ],
   calidadSueno: [
     // «Descansé» también puede ser un día sin entreno: solo llega aquí si el área ya es sueño (8-nov, Bryan: sí).
-    [/\bno (descanse|he descansado)( bien| nada)?\b/, { valor: 'MALA' }],
-    [/\bdescanse (bien|rico|profundo)\b/, { valor: 'BUENA' }],
+    // «No descansé mal» NO es MALA: el lookahead lo suelta a la regla de «descansé mal», que la negación anula.
+    [/\bno (?:descanse|he descansado)(?: bien| nada| casi nada| mucho)?(?! (?:mal|fatal|pesimo))\b/, { valor: 'MALA' }],
+    [/\bdescanse (?:(?:super|muy|re|tan) )?(?:bien|rico|profundo|perfecto|de maravilla|de lujo|como nunca)\b/, { valor: 'BUENA' }],
+    [/\bdescanse (?:(?:super|muy|re|tan) )?(?:mal|fatal|pesimo|horrible)\b/, { valor: 'MALA' }],
     [/\bdescanse (poco|poquito)\b/, { entre: ['REGULAR', 'MALA'] }],
     [/\bdesvel/, { valor: 'MALA' }],
     [/\bno dormi (casi )?nada\b/, { valor: 'MALA' }],
@@ -53,7 +66,8 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
   rendimiento: [
     [/\bre bien\b/, { valor: 'BUENA' }],
     // «Pesada después del almuerzo» es digestión, no rendimiento (8-nov, Bryan: no se mapea).
-    [/\bsenti\b(?!.*\b(almuerzo|comida|comi|comer|comiendo|cena|desayuno|merienda|digest\w*)\b).*\bpesad[oa]\b/, { valor: 'MALA' }],
+    // La palabra de comida puede ir antes («el desayuno me cayó pesado») o después: se mira toda la frase.
+    [/^(?!.*\b(?:almuerzo|almorzar|comida|comi|comer|comiendo|cena|cenar|desayuno|desayunar|merienda|digest\w*)\b).*\b(?:senti|cayo)\b.*\bpesad[oa]\b/, { valor: 'MALA' }],
     [/\ba tope\b/, { valor: 'BUENA' }],
   ],
 }
