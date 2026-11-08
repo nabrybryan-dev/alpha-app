@@ -71,8 +71,15 @@ function sinNumero(n: string): Lectura<never> {
 const PALABRAS_HORA = 'un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce'
 
 function textoDeSueno(cita: string): string {
-  const t = separarPegado(cita.replace(/(\d)\s*(?:hrs?|hs|h)\b/gi, '$1 horas'))
+  const t = separarPegado(
+    cita
+      // «7:30 horas» y «7h30»: la hora y los minutos van pegados; se separan para que los minutos se sumen.
+      .replace(/\b(\d{1,2}):(\d{2})\s*(?:horas?|hrs?|hs|h)\b/gi, '$1 horas $2')
+      .replace(/(\d)\s*(?:hrs?|hs|h)(?=\d)/gi, '$1 horas ')
+      .replace(/(\d)\s*(?:hrs?|hs|h)\b/gi, '$1 horas'),
+  )
   return normalizarTexto(t)
+    .replace(new RegExp(`\\b(${PALABRAS_HORA})\\s+(?:hrs?|hs|h)\\b`, 'g'), '$1 horas')
     .replace(new RegExp(`\\b(${PALABRAS_HORA})(horas?)\\b`, 'g'), '$1 $2')
     // «siete y veinte»: el escáner las sumaría (27); son 7 h y 20 min.
     .replace(new RegExp(`\\b(${PALABRAS_HORA}) y (${Object.keys(MINUTOS_EN_PALABRAS).join('|')})\\b`, 'g'), (_m, h: string, mi: string) => `${h} y ${MINUTOS_EN_PALABRAS[mi]}`)
