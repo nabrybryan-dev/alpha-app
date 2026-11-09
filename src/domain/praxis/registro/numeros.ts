@@ -123,7 +123,6 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
       while (j < tokens.length) {
         const w = tokens[j]
         if (w === 'y') {
-          const sig = tokens[j + 1]
           // «y» une cuarenta y cinco / uno y medio; en otro sitio corta el número («cinco y seis horas» son dos cifras).
           if (yUneCifras(tokens, j, visto)) {
             j += 1
