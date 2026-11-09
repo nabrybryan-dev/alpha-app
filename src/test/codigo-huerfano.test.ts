@@ -126,6 +126,15 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Saludos por situación (6-nov-2026): tres piezas para el orquestador de la charla de varios temas, que aún no existe
+  // en la app; hoy solo las ejercita saludos.test.ts. La parte de saludos ya está enchufada en charla.ts tras
+  // SALUDOS_POR_SITUACION (apagada).
+  'src/domain/praxis/charla/saludos.ts#elegirConector':
+    'Conector entre temas: lo usará el orquestador de la respuesta con varios temas (piezas P3/P4 del diseño de la capa conversacional).',
+  'src/domain/praxis/charla/saludos.ts#ordenarRespuesta':
+    'Caso #9 de la landing (saludo primero): lo usará el mismo orquestador al armar la respuesta; hoy el saludo local ya va primero.',
+  'src/domain/praxis/charla/saludos.ts#debeDecirAviso':
+    'Caso #2 de la landing (aviso una sola vez por charla): necesita el estado de la charla (P4) para saber qué avisos ya se dieron.',
   // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
   // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
   'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
