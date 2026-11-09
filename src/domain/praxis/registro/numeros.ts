@@ -79,6 +79,19 @@ export interface NumeroEncontrado {
   hasta: number
 }
 
+/**
+ * ¿La «y» de la posición j une dos partes de un mismo número? Sí en «cuarenta y cinco», «uno y medio», «mil y cinco»;
+ * no entre dos cifras sueltas de una sola cifra («cinco y seis horas» son dos cifras, un rango).
+ */
+function yUneCifras(tokens: string[], j: number, visto: boolean): boolean {
+  const sig = tokens[j + 1]
+  if (!visto || sig === undefined) return false
+  if (sig === 'medio' || sig === 'media') return true
+  if (!(sig in UNIDADES)) return false
+  const ant = tokens[j - 1]
+  return !(ant in UNIDADES && UNIDADES[ant] < 10 && UNIDADES[sig] < 10 && UNIDADES[sig] > 0)
+}
+
 /** Todos los números de un texto, en orden de aparición. */
 export function escanearNumeros(texto: string): NumeroEncontrado[] {
   const tokens = normalizarTexto(texto).split(' ').filter(Boolean)
@@ -112,15 +125,14 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
         if (w === 'y') {
           const sig = tokens[j + 1]
           // «y» une cuarenta y cinco / uno y medio; en otro sitio corta el número («cinco y seis horas» son dos cifras).
-          const tras = tokens[j - 1] in DECENAS ? sig in UNIDADES : false
-          if (visto && sig !== undefined && (tras || sig === 'medio' || sig === 'media' || (sig in UNIDADES && !(tokens[j - 1] in UNIDADES && UNIDADES[tokens[j - 1]] < 10 && UNIDADES[sig] < 10 && UNIDADES[sig] > 0)))) {
+          if (yUneCifras(tokens, j, visto)) {
             j += 1
             continue
           }
           break
         }
         // «cinco seis» son dos cifras (un rango dicho de corrido), no 11.
-        if (w in UNIDADES && j > i && tokens[j - 1] in UNIDADES) break
+        if (j > i && w in UNIDADES && tokens[j - 1] in UNIDADES) break
         if (w in UNIDADES) { cur += UNIDADES[w]; visto = true }
         else if (w in DECENAS) { cur += DECENAS[w]; visto = true }
         else if (w in CENTENAS) { cur += CENTENAS[w]; visto = true }

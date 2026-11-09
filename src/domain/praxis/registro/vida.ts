@@ -115,21 +115,15 @@ const TIEMPO_ETIQUETA = { caminata: 'Caminata', siesta: 'Siesta', pantalla: 'Pan
 
 export { mlDeAgua, segmentosDeAgua } from './agua.ts'
 
-export function resolverVida(dicho: VidaExtraida, ctx: ContextoRegistro, frase = '', opciones: OpcionesVida = {}): ResultadoVida {
-  const hoy = fechaLocal(ctx.ahora)
-  const parche: Record<string, string | number> = {}
-  const conf: Record<string, Confianza> = {}
-  const antes: Record<string, string | number | null> = {}
-  const registros: ResultadoVida['registros'] = []
-  const descartado: ResultadoVida['descartado'] = []
-  // Un deseo, un plan o una meta no es lo que pasó: aunque el extractor lo haya citado, no se lee (8-nov-2026).
+/** Un deseo, un plan o una meta no es lo que pasó: aunque el extractor lo haya citado, no se lee (8-nov-2026). */
+function quitarPlanes(dicho: VidaExtraida, frase: string, descartado: ResultadoVida['descartado']): VidaExtraida {
   const sinPlanes = (cita: string | null | undefined): string | null => {
     if (!cita) return cita ?? null
     if (!frase || !esHipotetico(frase, cita)) return cita
     descartado.push({ cita, motivo: 'es un plan, una meta o un hábito, no lo que pasó: no se guardó' })
     return null
   }
-  const v: VidaExtraida = {
+  return {
     ...dicho,
     sueno_horas: sinPlanes(dicho.sueno_horas),
     hora_acostarse: sinPlanes(dicho.hora_acostarse),
@@ -137,6 +131,16 @@ export function resolverVida(dicho: VidaExtraida, ctx: ContextoRegistro, frase =
     pasos: sinPlanes(dicho.pasos),
     agua: dicho.agua && sinPlanes(`${dicho.agua.cantidad} ${dicho.agua.medida ?? ''}`.trim()) === null ? null : dicho.agua,
   }
+}
+
+export function resolverVida(dicho: VidaExtraida, ctx: ContextoRegistro, frase = '', opciones: OpcionesVida = {}): ResultadoVida {
+  const hoy = fechaLocal(ctx.ahora)
+  const parche: Record<string, string | number> = {}
+  const conf: Record<string, Confianza> = {}
+  const antes: Record<string, string | number | null> = {}
+  const registros: ResultadoVida['registros'] = []
+  const descartado: ResultadoVida['descartado'] = []
+  const v = quitarPlanes(dicho, frase, descartado)
   const avisos: string[] = []
   let seguimiento: Pregunta | undefined
   const poner = (campo: string, valor: string | number, c: Confianza) => {
