@@ -100,13 +100,25 @@ const MARCAS_DE_PLAN = new RegExp(
 const CORTES_DE_CLAUSULA = /\b(?:pero|aunque|luego|despues|y)\b/g
 
 /**
+ * Una coma corta la cláusula cuando lo que sigue trae su propio marcador de día («hoy», «anoche», «llevo»), un verbo de lo
+ * hecho («dormí», «tomé») o un plan/hábito propio: «suelo caminar 6 mil, hoy llevo 9 mil». Una coma sin eso («ni idea, 5 mil»)
+ * no corta. Se pasa a «pero», que ya es corte, ANTES de que normalizarTexto borre las comas.
+ */
+const TRAS_COMA_CORTA = /,\s*(?=(?:hoy|anoche|ahora|esta (?:manana|tarde|noche)|llevo|llevaba|dormi|tome|camine|hice|logre|me acoste|me levante|manana|quiero|ojala|mi meta|voy a|normalmente|siempre|suelo|generalmente|usualmente)\b)/g
+
+function cortarPorComas(t: string): string {
+  const sinTildes = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  return normalizarTexto(sinTildes.replace(TRAS_COMA_CORTA, ' pero '))
+}
+
+/**
  * Defensa de segunda línea: aunque el extractor haya citado la cifra, si en SU parte de la frase hay un deseo, un
  * plan o una meta («quiero dormir 8 horas», «mañana camino 10 mil», «mi meta es 3 litros»), no se anota. Solo mira lo
  * que rodea a la cita dentro de su cláusula, no la cita misma («dos litros, mi meta era 3» sigue siendo 2 litros).
  */
 export function esHipotetico(frase: string, cita: string): boolean {
-  const nf = normalizarTexto(frase)
-  const nc = normalizarTexto(cita)
+  const nf = cortarPorComas(frase)
+  const nc = cortarPorComas(cita)
   if (!nf) return false
   const idx = nc ? nf.indexOf(nc) : -1
   if (idx < 0) return MARCAS_DE_PLAN.test(nf)
