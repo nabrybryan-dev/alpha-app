@@ -37,7 +37,11 @@ export function resumenDeLaHoja({ sesion, semana, diaElegido, sesionCta }: Entra
   const n = sesion.ejercicios?.length ?? 0
   const detalle = `${n} ${n === 1 ? 'ejercicio' : 'ejercicios'}`
   if (!sesionCta) return { titulo, detalle, boton: null }
-  const texto =
-    dia?.estado === 'completada' ? 'Ver resumen' : sesionCta.empezada ? 'Continuar sesión' : 'Empezar sesión'
-  return { titulo, detalle, boton: { texto, a: `/entrenar/sesion/${sesionCta.id}` } }
+  // Día doble: si la sesión en pantalla es la OTRA del mismo día, el botón es de ella, no de
+  // `sesionCta`; abrirla y anotarla es por separado.
+  const propia = sesion.id !== sesionCta.id ? dia?.sesiones?.find((s) => s.sesionId === sesion.id) : undefined
+  const completada = propia ? propia.completada : dia?.estado === 'completada'
+  const empezada = propia ? sesion.ejercicios.some((e) => e.series.length > 0) : sesionCta.empezada
+  const texto = completada ? 'Ver resumen' : empezada ? 'Continuar sesión' : 'Empezar sesión'
+  return { titulo, detalle, boton: { texto, a: `/entrenar/sesion/${propia ? sesion.id : sesionCta.id}` } }
 }

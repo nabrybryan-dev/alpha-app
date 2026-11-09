@@ -151,6 +151,30 @@ function DiaDeLaSemana({ dia }: { dia: DiaRuta }) {
   const clase = 'flex items-center gap-3 rounded-2xl border p-3 '
   const claseHoy = 'border-accion/40 bg-accion/10'
 
+  // Doble sesión: una fila por sesión (mañana primero, noche debajo), cada una con su enlace.
+  if (dia.sesiones && dia.sesiones.length > 1) {
+    return (
+      <div className={`flex flex-col gap-2 rounded-2xl border p-2 ${dia.esHoy ? 'border-accion/40 bg-accion/10' : 'border-linea bg-surface-1'}`}>
+        <span className="cifras px-1 text-xs text-tenue">
+          {NOMBRE_DIA[dia.dia]} {dia.numero} · {dia.sesiones.length} sesiones
+        </span>
+        {dia.sesiones.map((s) => (
+          <Link
+            key={s.sesionId}
+            to={`/entrenar/sesion/${s.sesionId}`}
+            className="press flex items-center gap-3 rounded-xl border border-linea bg-surface-2 p-3"
+          >
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="line-clamp-2 text-sm font-semibold text-texto">{s.titulo}</span>
+              <span className="text-xs leading-snug text-tenue">{s.detalle}</span>
+            </span>
+            <EtiquetaEstado estado={s.completada ? 'completada' : dia.esHoy ? 'hoy' : 'programada'} esHoy={dia.esHoy && !s.completada} />
+          </Link>
+        ))}
+      </div>
+    )
+  }
+
   if (dia.sesionId) {
     return (
       <Link
