@@ -51,6 +51,7 @@ import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
 import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { diaEnPantalla } from './rumbo/diaEnPantalla'
+import { useSesionEnPantalla } from './useSesionEnPantalla'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
@@ -301,20 +302,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const [semanaAbierta, setSemanaAbierta] = useState(false)
   // Estable: la lista escucha Escape en un efecto que depende de esto.
   const cerrarSemana = useCallback(() => setSemanaAbierta(false), [])
-  /**
-   * La sesión del día elegido, si hay uno.
-   *
-   * Sale del MISMO reparto que pinta la semana —`armarSemana`, ya calculado por el
-   * dominio— y no de un segundo cruce por nombre de día: dos formas de repartir sesiones
-   * en días se separan, y entonces la semana abriría una sesión y el calendario diría otra.
-   */
-  const sesionDelDiaElegido =
-    diaElegido === null
-      ? undefined
-      : microciclo.sesiones.find((s) => s.id === props.semana[diaElegido]?.sesionId)
-  // Con un día elegido manda ese día, AUNQUE sea de descanso: caer a la sesión por omisión
-  // pintaba los ejercicios del lunes bajo «MIÉRCOLES · viendo» (revisión ciega del 25-oct).
-  const sesionEnPantalla = diaElegido === null ? sesion : sesionDelDiaElegido
+  const { sesionEnPantalla, sesionesDelDia, elegirSesion } = useSesionEnPantalla({
+    semana: props.semana, sesiones: microciclo.sesiones, sesion, diaElegido,
+  })
   const ejercicio =
     retenido ??
     (ejercicioManual !== null
@@ -1191,6 +1181,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             diaElegido={diaElegido}
             semanaAbierta={semanaAbierta}
             onAbrirSemana={() => setSemanaAbierta(true)}
+            sesionesDelDia={sesionesDelDia}
+            onElegirSesion={(id) => { setEjercicioManual(null); setTrabajadasEn({}); elegirSesion(id) }}
           />
         </div>
 
