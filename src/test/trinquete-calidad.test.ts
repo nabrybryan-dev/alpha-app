@@ -60,7 +60,7 @@ const FUNCIONES_COMPLEJAS: Record<string, number> = {
   'src/domain/praxis/registro/ejercicio.ts:sinNombre': 22,
   'src/domain/praxis/registro/esquema.ts:validarExtraccion': 26,
   'src/domain/praxis/registro/guardado.ts:prepararSeries': 28,
-  'src/domain/praxis/registro/numeros.ts:escanearNumeros': 34,
+  'src/domain/praxis/registro/numeros.ts:escanearNumeros': 33,
   'src/domain/praxis/registro/numeros.ts:horaDeCita': 25,
   'src/domain/praxis/registro/resolver.ts:resolverBloque': 83,
   'src/domain/praxis/registro/resolver.ts:resolverCorreccion': 24,
