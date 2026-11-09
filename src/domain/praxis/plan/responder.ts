@@ -67,11 +67,12 @@ function ejercicioNombrado(n: string, m: MicrocicloVisto | null): Hallado | null
   return mejor
 }
 
-function sesionDeHoy(m: MicrocicloVisto, hoy: string): SesionVista | null {
-  const porFecha = m.sesiones.find((s) => s.fecha === hoy)
-  if (porFecha) return porFecha
+/** Las sesiones de hoy, en orden: con doble sesión (mañana y repaso de noche) son dos. */
+function sesionesDeHoy(m: MicrocicloVisto, hoy: string): SesionVista[] {
+  const porFecha = m.sesiones.filter((s) => s.fecha === hoy)
+  if (porFecha.length > 0) return porFecha
   const dia = DIAS[new Date(`${hoy}T12:00:00Z`).getUTCDay()]
-  return m.sesiones.find((s) => !s.fecha && s.dia && sinTildes(s.dia) === dia) ?? null
+  return m.sesiones.filter((s) => !s.fecha && s.dia && sinTildes(s.dia) === dia)
 }
 
 const PREGUNTA_AGUA = /\b(agua|hidratacion)\b/
@@ -170,11 +171,15 @@ function responderSobreElPlan(frase: string, ve: LoQuePraxisVe, hoy: string, tra
     const lista = m.sesiones.map((s) => (s.dia ? `${s.nombre} (${s.dia})` : s.nombre)).join(', ')
     const semana = t(`Esta semana, en tu microciclo ${m.numero}, tienes: ${lista}.`, `Esta semana, en su microciclo ${m.numero}, tiene: ${lista}.`)
     if (/\bsemana\b/.test(n)) return { tipo: 'respuesta', texto: semana, citas: [`M${m.numero} · semana`], ofrecePregunta: false }
-    const s = sesionDeHoy(m, hoy)
-    if (!s) return { tipo: 'respuesta', texto: t(`Para hoy no veo una sesión con fecha en tu plan. ${semana}`, `Para hoy no veo una sesión con fecha en su plan. ${semana}`), citas: [`M${m.numero} · semana`], ofrecePregunta: false }
-    const ejercicios = s.ejercicios.map((e) => e.nombre).join(', ')
-    const cuerpo = ejercicios || [...s.bloquesCardio, ...s.preparacion].map((p) => p.titulo).join(', ')
-    return { tipo: 'respuesta', texto: t(`Hoy te toca ${s.nombre}${cuerpo ? `: ${cuerpo}` : ''}.`, `Hoy le toca ${s.nombre}${cuerpo ? `: ${cuerpo}` : ''}.`), citas: [`M${m.numero} · ${s.nombre}`], ofrecePregunta: false }
+    const deHoy = sesionesDeHoy(m, hoy)
+    if (deHoy.length === 0) return { tipo: 'respuesta', texto: t(`Para hoy no veo una sesión con fecha en tu plan. ${semana}`, `Para hoy no veo una sesión con fecha en su plan. ${semana}`), citas: [`M${m.numero} · semana`], ofrecePregunta: false }
+    const detalle = (s: SesionVista) => {
+      const ejercicios = s.ejercicios.map((e) => e.nombre).join(', ')
+      const cuerpo = ejercicios || [...s.bloquesCardio, ...s.preparacion].map((p) => p.titulo).join(', ')
+      return `${s.nombre}${cuerpo ? `: ${cuerpo}` : ''}`
+    }
+    const lista2 = deHoy.map(detalle).join(' y después ')
+    return { tipo: 'respuesta', texto: t(`Hoy te toca ${lista2}.`, `Hoy le toca ${lista2}.`), citas: deHoy.map((s) => `M${m.numero} · ${s.nombre}`), ofrecePregunta: false }
   }
 
   // 6. Lo demás: no se contesta de memoria.
