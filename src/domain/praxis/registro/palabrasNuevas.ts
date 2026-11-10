@@ -63,9 +63,15 @@ const POR_CAMPO: Partial<Record<CampoCheckin, Regla[]>> = {
     [/\bno dormi (casi )?nada\b/, { valor: 'MALA' }],
     // «Poquito» es cantidad, no calidad: la persona elige (y las horas se preguntan aparte).
     [/\bdormi (poquito|poco)\b/, { entre: ['REGULAR', 'MALA'] }],
+    // Sueño partido (9-nov, prueba de Claude): «me desperté dos veces» no dice si fue regular o mala; la persona elige.
+    [/\bme desperte (?:(?:dos|tres|cuatro|cinco|varias|muchas|unas|algunas) veces|a cada rato|a menudo)\b/, { entre: ['REGULAR', 'MALA'] }],
   ],
   rendimiento: [
     [/\bre bien\b/, { valor: 'BUENA' }],
+    // «Salió bien / mal» (9-nov, prueba de Claude): «no salió bien» va primero y es MALA; en una frase suelta solo llega aquí con el área ya dicha.
+    [/\bno (?:me )?salio (?:muy |tan |nada )?bien\b/, { valor: 'MALA' }],
+    [/\bsalio (?:muy |super |re |tan )?bien\b/, { valor: 'BUENA' }],
+    [/\bsalio (?:muy |super |re |tan )?mal\b/, { valor: 'MALA' }],
     // «Pesada después del almuerzo» es digestión, no rendimiento (8-nov, Bryan: no se mapea).
     // La palabra de comida puede ir antes («el desayuno me cayó pesado») o después: se mira toda la frase.
     [/^(?!.*\b(?:almuerzo|almorzar|comida|comi|comer|comiendo|cena|cenar|desayuno|desayunar|merienda|digest\w*)\b).*\bsenti\b.*\bpesad[oa]\b/, { valor: 'MALA' }],

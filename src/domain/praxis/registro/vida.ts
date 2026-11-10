@@ -38,8 +38,12 @@ const ESTRES: [RegExp, Valor3][] = [
 ]
 const RENDIMIENTO: [RegExp, Calidad3][] = [
   // «súper» solo intensifica (5-nov-2026): sin palabra buena al lado no da valor, y «súper mal» es MALA.
+  // «No salió bien» es MALA y va primero para que «salió bien» no la lea al revés (9-nov, prueba de Claude).
+  [/\bno (?:me )?salio (?:muy |tan |nada )?bien\b/, 'MALA'],
   [/\b(mal|fatal|pesimo|flojo|sin fuerza)/, 'MALA'],
   [/\b(fuerte|excelente|muy bien|super bien|me fue bien|me fue super bien|a full|volando)/, 'BUENA'],
+  // «Estuvo durísimo pero salió bien»: lo duro no es el resultado; «salió bien» sí (9-nov, prueba de Claude).
+  [/\bsalio (?:muy |super |re |tan )?bien\b/, 'BUENA'],
   [/\b(regular|normal|mas o menos)/, 'REGULAR'],
 ]
 const ALIMENTACION: [RegExp, Calidad3][] = [
