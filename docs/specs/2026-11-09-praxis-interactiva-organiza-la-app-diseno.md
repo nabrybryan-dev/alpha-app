@@ -224,6 +224,8 @@ Decididas: (1) traer sin confirmación; fijar, ocultar, mover, deshacer y restab
 
 (9) Tope de piezas ocultas a la vez: 6 (Bryan, 9-nov). (10) La sombra de la decisión de organización se registra desde el cliente, sin tocar la Edge Function (Bryan, 9-nov). (11) Se mide con una muestra de 20 frases que Bryan etiqueta a ciegas; las frases las escribe Claude y no cuentan para aprobar.
 
+(12) Lo que aprendimos de las 20 frases que Bryan etiquetó a ciegas el 9-nov: «qué tengo escondido» debe listar lo que la persona ya ocultó; una queja («me aburre el álbum») hace que Praxis OFREZCA esconderlo, sin mandarlo; «pon el agua» sin lugar es traer; «borra», «elimina» y «no quiero que me salga» esconden; «regrésame todo como venía» restablece. Quedan abiertas «quita eso» (choca con el deshacer de registros) y «déjame ver solo lo importante» (un modo que este diseño no tiene).
+
 Siguen abiertas:
 
 1. Lista de lo `fija` (qué piezas jamás se ocultan). Mi propuesta está en §5.1.
