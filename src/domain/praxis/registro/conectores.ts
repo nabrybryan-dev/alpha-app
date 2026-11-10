@@ -157,9 +157,9 @@ function resolverChoques(s: Salida, texto: string): void {
 }
 
 /**
- * «Dormí bien PERO descansé poco»: cuando un mismo campo trae valores a los dos lados del «pero», pesa lo de después
- * (la parte adversativa es lo que la persona quiere decir). Así no se ofrece la escala entera. Sigue siendo una duda
- * que la persona confirma; solo se acorta la lista. Sin «pero» el conflicto queda como estaba.
+ * «Dormí bien PERO descansé poco»: cuando un mismo campo trae valores a los dos lados del «pero», se PREGUNTA con todas las
+ * opciones y las de después del «pero» van primero (decisión de Bryan, 9-nov: no se presume qué pesa más, se resalta).
+ * Sin «pero» el conflicto queda como estaba.
  */
 function pesaLoDeDespuesDelPero(s: Salida, texto: string): void {
   const n = normalizarTexto(texto)
@@ -170,8 +170,9 @@ function pesaLoDeDespuesDelPero(s: Salida, texto: string): void {
     const despues = d.candidatos.filter((_, i) => pos[i] > iPero)
     const antes = d.candidatos.filter((_, i) => pos[i] >= 0 && pos[i] < iPero)
     if (despues.length > 0 && antes.length > 0) {
-      d.candidatos = despues
-      d.motivo = 'dijo una cosa y después del «pero» otra: que la persona confirme cuál vale'
+      const resto = d.candidatos.filter((c) => !despues.includes(c) && !antes.includes(c))
+      d.candidatos = [...despues, ...antes, ...resto]
+      d.motivo = 'dijo una cosa y después del «pero» otra: la de después va primero; que la persona confirme cuál vale'
     }
   }
 }

@@ -50,12 +50,12 @@ describe('«me cayó pesado» + un alimento, sin palabra de comida', () => {
   })
 })
 
-describe('«X pero Y» sobre el mismo campo: pesa lo de después del «pero»', () => {
-  it('«dormí bien pero descansé poco» ya no ofrece las tres opciones', () => {
-    expect(ver('dormí bien pero descansé poco').campos).toEqual({ calidadSueno: ['REGULAR', 'MALA'] })
+describe('«X pero Y» sobre el mismo campo: se pregunta con todo y lo de después del «pero» va primero', () => {
+  it('«dormí bien pero descansé poco» ofrece las tres, con REGULAR y MALA (lo de después) primero', () => {
+    expect(ver('dormí bien pero descansé poco').campos).toEqual({ calidadSueno: ['REGULAR', 'MALA', 'BUENA'] })
   })
-  it('«ayer dormí mal pero hoy descansé bien» = BUENA', () => {
-    expect(ver('ayer dormí mal pero hoy descansé bien').campos).toEqual({ calidadSueno: ['BUENA'] })
+  it('«ayer dormí mal pero hoy descansé bien»: se pregunta, BUENA primero', () => {
+    expect(ver('ayer dormí mal pero hoy descansé bien').campos).toEqual({ calidadSueno: ['BUENA', 'MALA'] })
   })
   it('sin «pero» el conflicto se queda como estaba (las tres opciones)', () => {
     expect(ver('dormí bien y descansé poco').campos.calidadSueno).toHaveLength(3)
