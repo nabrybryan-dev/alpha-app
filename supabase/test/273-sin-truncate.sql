@@ -27,6 +27,8 @@ select pruebas.afirmar(
   and not has_table_privilege('authenticated', 'public.aprobaciones', 'delete')
   and not has_table_privilege('authenticated', 'public.aprobaciones', 'truncate')
   and not has_table_privilege('anon', 'public.aprobaciones', 'insert')
+  and not has_table_privilege('anon', 'public.aprobaciones', 'update')
+  and not has_table_privilege('anon', 'public.aprobaciones', 'delete')
   and not has_table_privilege('anon', 'public.aprobaciones', 'truncate'),
   'aprobaciones sigue dando escritura a anon o authenticated');
 
@@ -43,7 +45,7 @@ select pruebas.afirmar(
 
 -- 3 · Mutante: se devuelven los privilegios y se reaplica la 0177.
 grant truncate on public.prueba_0177_nueva to anon, authenticated;
-grant insert, update, delete, truncate on public.aprobaciones to authenticated;
+grant insert, update, delete, truncate on public.aprobaciones to anon, authenticated;
 alter default privileges for role postgres in schema public grant truncate on tables to anon, authenticated;
 
 -- Control positivo: la misma comprobación de (1) tiene que ver el TRUNCATE devuelto.
@@ -76,9 +78,10 @@ select pruebas.afirmar(
                       or has_table_privilege('authenticated', c.oid, 'truncate'))),
   'reaplicar la 0177 no quitó el TRUNCATE devuelto');
 select pruebas.afirmar(
-  not has_table_privilege('authenticated', 'public.aprobaciones', 'insert')
-  and not has_table_privilege('authenticated', 'public.aprobaciones', 'truncate'),
-  'reaplicar la 0177 no quitó la escritura devuelta en aprobaciones');
+  not exists (select 1 from (values ('anon'), ('authenticated')) r(rol),
+                            (values ('insert'), ('update'), ('delete'), ('truncate')) p(priv)
+               where has_table_privilege(r.rol, 'public.aprobaciones', p.priv)),
+  'reaplicar la 0177 no quitó la escritura devuelta en aprobaciones (anon o authenticated)');
 
 create table public.prueba_0177_otra (id int);
 select pruebas.afirmar(

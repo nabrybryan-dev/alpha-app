@@ -3728,6 +3728,8 @@ select '0177 - nadie con sesion vacia una tabla ni escribe la tabla vieja aproba
                                  or has_table_privilege('authenticated', c.oid, 'truncate'))) then 'NO'
             when to_regclass('public.aprobaciones') is not null
              and (has_table_privilege('anon', 'public.aprobaciones', 'insert')
+                  or has_table_privilege('anon', 'public.aprobaciones', 'update')
+                  or has_table_privilege('anon', 'public.aprobaciones', 'delete')
                   or has_table_privilege('authenticated', 'public.aprobaciones', 'insert')
                   or has_table_privilege('authenticated', 'public.aprobaciones', 'update')
                   or has_table_privilege('authenticated', 'public.aprobaciones', 'delete')) then 'NO'
