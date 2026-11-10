@@ -115,7 +115,7 @@ const SALON = 'src/features/entrenar/salon/SalonEntrenar.tsx'
  */
 export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   // ---- Entrenar ----
-  { id: 'entrenar.salon', tipo: 'tarjeta', pantalla: '/entrenar', nombreHablado: 'el salón', sinonimos: ['el cuerpo 3d', 'el salon 3d', 'el sujeto'], nivel: 'asignada', fuente: SALON, enCodigo: 'export function SalonEntrenar', porConfirmar: true },
+  { id: 'entrenar.salon', tipo: 'tarjeta', pantalla: '/entrenar', nombreHablado: 'el salón', sinonimos: ['el cuerpo 3d', 'el salon 3d', 'el sujeto'], nivel: 'fija', fuente: SALON, enCodigo: 'export function SalonEntrenar' },
   { id: 'entrenar.tambor', tipo: 'tarjeta', pantalla: '/entrenar', nombreHablado: 'el tambor de la semana', sinonimos: ['mis dias de entreno', 'el tambor'], nivel: 'libre', fuente: SALON, enCodigo: '<TamborDeLaSemana', porConfirmar: true },
   { id: 'entrenar.camara', tipo: 'tarjeta', pantalla: '/entrenar', nombreHablado: 'la cámara del salón', sinonimos: ['la camara del encuadre'], nivel: 'libre', fuente: SALON, enCodigo: '<CamaraDelSalon', porConfirmar: true },
   // ---- Nutrición: el diario ----
