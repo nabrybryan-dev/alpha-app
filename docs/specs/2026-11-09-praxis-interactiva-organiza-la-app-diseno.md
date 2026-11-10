@@ -220,6 +220,8 @@ Decididas: (1) traer sin confirmación; fijar, ocultar, mover, deshacer y restab
 
 (6) Hoy y Praxis del núcleo de la barra NO se mueven, quedan en su puesto (Bryan, 9-nov). (7) El catálogo completo y la tabla de datos van en los anexos A y B de este documento.
 
+(8) Tema aparte, decidido por Bryan el 9-nov: el ranking del equipo de Logros (`RankingEquipo`) ya muestra a cada asesorado las posiciones del equipo, y choca con «el asesorado ve solo lo suyo». El catálogo lo registra como libre y no lo cambia; si un asesorado debe ver a otros se decide fuera de este diseño.
+
 Siguen abiertas:
 
 1. Lista de lo `fija` (qué piezas jamás se ocultan). Mi propuesta está en §5.1.
