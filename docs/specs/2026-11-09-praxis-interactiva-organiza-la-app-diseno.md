@@ -222,6 +222,8 @@ Decididas: (1) traer sin confirmación; fijar, ocultar, mover, deshacer y restab
 
 (8) Tema aparte, decidido por Bryan el 9-nov: el ranking del equipo de Logros (`RankingEquipo`) ya muestra a cada asesorado las posiciones del equipo, y choca con «el asesorado ve solo lo suyo». El catálogo lo registra como libre y no lo cambia; si un asesorado debe ver a otros se decide fuera de este diseño.
 
+(9) Tope de piezas ocultas a la vez: 6 (Bryan, 9-nov). (10) La sombra de la decisión de organización se registra desde el cliente, sin tocar la Edge Function (Bryan, 9-nov). (11) Se mide con una muestra de 20 frases que Bryan etiqueta a ciegas; las frases las escribe Claude y no cuentan para aprobar.
+
 Siguen abiertas:
 
 1. Lista de lo `fija` (qué piezas jamás se ocultan). Mi propuesta está en §5.1.
