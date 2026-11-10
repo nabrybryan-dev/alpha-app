@@ -54,7 +54,7 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
   '/semana': ['mi semana'],
   '/progreso': ['mi progreso', 'como voy'],
   '/nutricion': ['mi nutricion', 'mi diario de comidas'],
-  '/nutricion/plan': ['mi plan de comida'],
+  '/nutricion/plan': ['mi plan de comida', 'el plan de comida'],
   '/bienestar': ['mi bienestar', 'mi check in diario'],
   '/chat': ['mi equipo', 'mensajes'],
   '/cuestionarios': ['mis cuestionarios', 'mis encuestas'],
@@ -156,7 +156,7 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   // ---- Progreso ----
   { id: 'progreso.evolucion', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mi evolución', sinonimos: ['como he cambiado'], nivel: 'libre', fuente: PROGRESO, enCodigo: '<ProgresoEvolucion', porConfirmar: true },
   { id: 'progreso.checkins', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'el historial de check-ins', sinonimos: ['mis check ins anteriores'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="checkins"', porConfirmar: true },
-  { id: 'progreso.medidas', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="medidas"' },
+  { id: 'progreso.medidas', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas', 'las medidas'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="medidas"' },
   { id: 'progreso.logros', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis logros y nivel', sinonimos: ['mis medallas', 'mi nivel', 'mi racha'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="logros"' },
   { id: 'progreso.competencias', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis competencias', sinonimos: ['mis competencias evaluadas'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="competencias"', porConfirmar: true },
   { id: 'progreso.escala', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'la escala alfa', sinonimos: ['mis niveles de alfa'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="escala-alfa"', porConfirmar: true },
@@ -165,7 +165,7 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   // ---- Bienestar ----
   { id: 'bienestar.recordatorio', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el recordatorio de las 6 pm', sinonimos: ['el aviso de las seis'], nivel: 'fija', fuente: BIENESTAR, enCodigo: 'Recordatorio de las 6 pm', porConfirmar: true },
   { id: 'bienestar.checkin', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el formulario de check-in', sinonimos: ['mi check in diario', 'el check in'], nivel: 'fija', fuente: BIENESTAR, enCodigo: '<CheckinForm' },
-  { id: 'bienestar.medidas', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MedidasCard' },
+  { id: 'bienestar.medidas', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas', 'las medidas'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MedidasCard' },
   { id: 'bienestar.mensajes-vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'los mensajes de estilo de vida', sinonimos: ['mis mensajes de habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MensajesVidaBandeja', porConfirmar: true },
   { id: 'bienestar.vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mi estilo de vida', sinonimos: ['mis habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<TarjetaVidaCard' },
   { id: 'bienestar.historial', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el historial de check-ins', sinonimos: ['mis check ins anteriores'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<HistorialDeCheckins', porConfirmar: true },
@@ -185,8 +185,8 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   // ---- Logros ----
   { id: 'logros.nivel', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi nivel y mis puntos', sinonimos: ['mis xp', 'mi progreso de nivel'], nivel: 'libre', fuente: LOGROS, enCodigo: 'XP acumulados', porConfirmar: true },
   { id: 'logros.rachas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis rachas', sinonimos: ['mi racha'], nivel: 'libre', fuente: LOGROS, enCodigo: '<TiraDeRachas', porConfirmar: true },
-  { id: 'logros.ranking', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'el ranking del equipo', sinonimos: ['la tabla de posiciones'], nivel: 'libre', fuente: LOGROS, enCodigo: '<RankingEquipo', porConfirmar: true },
-  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['mis fichas panini', 'mis stickers'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
+  { id: 'logros.ranking', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'el ranking del equipo', sinonimos: ['el ranking', 'la tabla de posiciones'], nivel: 'libre', fuente: LOGROS, enCodigo: '<RankingEquipo', porConfirmar: true },
+  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['el album de fichas', 'mis fichas panini', 'mis stickers'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
   { id: 'logros.medallas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis medallas', sinonimos: ['mis logros desbloqueados'], nivel: 'libre', fuente: LOGROS, enCodigo: '<Medalla', porConfirmar: true },
   { id: 'logros.premios', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis premios', sinonimos: ['lo que he ganado'], nivel: 'libre', fuente: LOGROS, enCodigo: 'premio.titulo', porConfirmar: true },
 ]
@@ -226,21 +226,21 @@ function normalizarFrase(frase: string): string {
 }
 
 /**
- * Qué piezas nombra una frase. Una pieza cuyo nombre queda DENTRO del de otra que también se nombró se descarta
- * («la nutrición de hoy» gana a «Nutrición»). Si queda más de una, quien llama pregunta cuál (máximo 3), no elige.
+ * Qué piezas nombra una frase. Una pieza se descarta si lo que la nombró queda DENTRO de lo que nombró a otra
+ * («la nutrición de hoy» gana a «Nutrición»; «el check-in del día» gana a «el check-in»; «el álbum de fichas»
+ * gana a «el álbum»). Si queda más de una, quien llama pregunta cuál (máximo 3), no elige.
  * No decide nada más: no interpreta verbos ni mira riesgo; eso es de la gramática de organización (fase O2).
  */
 export function buscarPiezas(frase: string, perfil: PerfilAcceso): PiezaDeLaApp[] {
   const q = normalizarFrase(frase)
-  const nombradas = piezasPara(perfil).filter((p) => clavesDe(p).some((c) => q.includes(` ${c} `)))
-  const nombre = (p: PiezaDeLaApp) => limpiar(p.nombreHablado).replace(ARTICULO, '')
-  // Si la frase dice el nombre COMPLETO de alguna pieza, esas ganan a las que solo coinciden por un sinónimo
-  // («el check-in del día» es la tarjeta de Hoy; «el check-in» a secas cae en las dos y se pregunta).
-  const porNombre = nombradas.filter((p) => q.includes(` ${nombre(p)} `))
-  if (porNombre.length > 0 && porNombre.length < nombradas.length) return buscarEntre(porNombre, nombre)
-  return buscarEntre(nombradas, nombre)
-}
-
-function buscarEntre(nombradas: PiezaDeLaApp[], nombre: (p: PiezaDeLaApp) => string): PiezaDeLaApp[] {
-  return nombradas.filter((p) => !nombradas.some((o) => o !== p && nombre(o).length > nombre(p).length && nombre(o).includes(nombre(p))))
+  const nombradas = piezasPara(perfil)
+    .map((pieza) => ({ pieza, claves: clavesDe(pieza).filter((c) => q.includes(` ${c} `)) }))
+    .filter((n) => n.claves.length > 0)
+  const masLarga = (claves: string[]) => claves.reduce((a, b) => (b.length > a.length ? b : a), '')
+  return nombradas
+    .filter((n) => {
+      const mia = masLarga(n.claves)
+      return !nombradas.some((o) => o !== n && o.claves.some((c) => c.length > mia.length && c.includes(mia)))
+    })
+    .map((n) => n.pieza)
 }

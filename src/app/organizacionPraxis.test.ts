@@ -34,6 +34,7 @@ describe('leer el pedido: solo si la frase empieza con la orden', () => {
     ['no me muestres Logros', 'ocultar'],
     ['por favor oculta el álbum', 'ocultar'],
     ['ponme el agua arriba', 'mover_arriba'],
+    ['pon el agua de primera', 'traer'], // sin lugar es traer: así lo etiquetó Bryan el 9-nov
     ['baja el radar', 'mover_abajo'],
     ['déjame el agua siempre a la vista', 'fijar'],
     ['déjalo como estaba', 'deshacer'],
@@ -50,7 +51,7 @@ describe('leer el pedido: solo si la frase empieza con la orden', () => {
     'ayer le dije muéstrame el agua a mi prima',
     'toca ocultar el domingo',
     'me gusta el agua',
-    'ponme el agua', // sin decir dónde: no se adivina
+    'mueve el agua', // sin decir dónde: no se adivina
     'hola praxis',
     '',
   ])('«%s» no es una orden de organizar', (frase) => {

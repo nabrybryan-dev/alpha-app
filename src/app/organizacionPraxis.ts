@@ -57,6 +57,10 @@ export type DecisionDeOrganizacion =
   | { tipo: 'nada_que_deshacer' }
   | { tipo: 'propone_restablecer' }
   | { tipo: 'lista'; libres: PiezaDeLaApp[] }
+  /** «qué tengo escondido»: las piezas que la persona ya ocultó (puede ser ninguna). */
+  | { tipo: 'lista_ocultas'; piezas: PiezaDeLaApp[] }
+  /** Una queja sobre una pieza libre: Praxis OFRECE esconderla. Si la persona dice que sí, se sigue como `propone` ocultar. */
+  | { tipo: 'sugiere_ocultar'; pieza: PiezaDeLaApp }
   /** El nombre cae en varias piezas: se pregunta cuál (máximo 3). Al elegir, `decidirParaPieza`. */
   | { tipo: 'pregunta_cual'; verbo: VerboDeOrganizacion; opciones: PiezaDeLaApp[]; hayMas: boolean }
   | { tipo: 'rechaza'; motivo: MotivoDeRechazo; pieza?: PiezaDeLaApp }
@@ -93,7 +97,10 @@ export function decidirOrganizacion(frase: string, perfil: PerfilAcceso, estado:
   if (verbo === 'restablecer') return { tipo: 'propone_restablecer' }
   if (verbo === 'listar') return { tipo: 'lista', libres: piezasPara(perfil).filter((p) => p.nivel === 'libre') }
 
+  if (verbo === 'listar_ocultas') return { tipo: 'lista_ocultas', piezas: piezasPara(perfil).filter((p) => estado.ocultas.has(p.id)) }
+
   const candidatas = buscarPiezas(pedido.frase, perfil)
+  if (verbo === 'sugerir_ocultar') return decidirQueja(candidatas, estado)
   if (candidatas.length === 0) {
     const existeParaOtro = [ASESORADO_DE_REFERENCIA, EQUIPO_DE_REFERENCIA].some((ref) => buscarPiezas(pedido.frase, ref).length > 0)
     return { tipo: 'rechaza', motivo: existeParaOtro ? 'sin_acceso' : 'no_existe' }
@@ -102,4 +109,18 @@ export function decidirOrganizacion(frase: string, perfil: PerfilAcceso, estado:
     return { tipo: 'pregunta_cual', verbo, opciones: candidatas.slice(0, MAXIMO_DE_OPCIONES), hayMas: candidatas.length > MAXIMO_DE_OPCIONES }
   }
   return decidirParaPieza(verbo, candidatas[0]!, estado)
+}
+
+/**
+ * Una queja no es una orden: solo se ofrece esconder si la pieza es libre y se puede ocultar. Si no, no se hace
+ * nada (la queja la atiende la conversación, no la organización). Con varias piezas posibles, se pregunta cuál.
+ */
+function decidirQueja(candidatas: PiezaDeLaApp[], estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
+  if (candidatas.length > 1) {
+    return { tipo: 'pregunta_cual', verbo: 'ocultar', opciones: candidatas.slice(0, MAXIMO_DE_OPCIONES), hayMas: candidatas.length > MAXIMO_DE_OPCIONES }
+  }
+  const pieza = candidatas[0]
+  if (!pieza) return { tipo: 'no_es_organizacion' }
+  const puede = decidirParaPieza('ocultar', pieza, estado)
+  return puede.tipo === 'propone' ? { tipo: 'sugiere_ocultar', pieza } : { tipo: 'no_es_organizacion' }
 }
