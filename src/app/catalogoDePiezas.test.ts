@@ -5,7 +5,7 @@ import type { Capacidad } from '../data/consola/capacidadesStaff'
 import type { Rol } from '../domain/types'
 import { normalizarNombre } from '../domain/praxis/ordenes/normalizarNombre'
 import { PATRONES_DESTINO } from './destinosPraxis'
-import { PIEZAS_DE_HOY, SINONIMOS_DE_PANTALLA, buscarPiezas, piezasDePantallas, piezasPara } from './catalogoDePiezas'
+import { PIEZAS_DE_HOY, PIEZAS_DE_OTRAS_PANTALLAS, SINONIMOS_DE_PANTALLA, buscarPiezas, piezasDePantallas, piezasPara } from './catalogoDePiezas'
 import type { PerfilAcceso } from './rutas'
 
 /**
@@ -76,6 +76,43 @@ describe('inventario de las tarjetas de Hoy contra HoyPage.tsx', () => {
   })
 })
 
+describe('inventario de Entrenar, Nutrición, Semana y Progreso contra sus archivos', () => {
+  const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), 'utf8')
+
+  it('cada pieza vive en una pantalla que es destino, y su marca está en el archivo que dice', () => {
+    for (const p of PIEZAS_DE_OTRAS_PANTALLAS) {
+      expect(PATRONES_DESTINO, p.id).toContain(p.pantalla)
+      expect(p.fuente && p.enCodigo, p.id).toBeTruthy()
+      expect(leer(p.fuente!).includes(p.enCodigo!), `${p.id}: «${p.enCodigo}» ya no está en ${p.fuente}`).toBe(true)
+    }
+  })
+
+  it('todo bloque con `data-bloque` de Semana y Progreso tiene su pieza con nombre hablado', () => {
+    for (const fuente of ['src/features/semana/SemanaPage.tsx', 'src/features/progreso/ProgresoPage.tsx']) {
+      const bloques = [...leer(fuente).matchAll(/data-bloque="([\w-]+)"/g)].map((m) => m[1])
+      expect(bloques.length, fuente).toBeGreaterThanOrEqual(3)
+      const registradas = new Set(PIEZAS_DE_OTRAS_PANTALLAS.filter((p) => p.fuente === fuente).map((p) => p.enCodigo))
+      const sinNombre = bloques.filter((b) => !registradas.has(`data-bloque="${b}"`))
+      expect(sinNombre, `bloques de ${fuente} sin pieza en catalogoDePiezas.ts`).toEqual([])
+    }
+  })
+
+  it('las siete secciones del plan de nutrición están registradas', () => {
+    const secciones = [...leer('src/features/nutricion/MiPlan.tsx').match(/const SECCIONES = \[([\s\S]*?)\] as const/)![1].matchAll(/'([^']+)'/g)].map((m) => `'${m[1]}'`)
+    expect(secciones.length).toBe(7)
+    const registradas = new Set(PIEZAS_DE_OTRAS_PANTALLAS.filter((p) => p.pantalla === '/nutricion/plan').map((p) => p.enCodigo))
+    expect(secciones.filter((s) => !registradas.has(s))).toEqual([])
+  })
+
+  it('el chat con el equipo es fijo y lo que asigna el coach no es libre', () => {
+    const por = (id: string) => PIEZAS_DE_OTRAS_PANTALLAS.find((p) => p.id === id)?.nivel
+    expect(por('semana.chat')).toBe('fija')
+    expect(por('semana.responder')).toBe('asignada')
+    expect(por('nutricion.comidas')).toBe('asignada')
+    expect(PIEZAS_DE_OTRAS_PANTALLAS.filter((p) => p.pantalla === '/nutricion/plan').every((p) => p.nivel === 'asignada')).toBe(true)
+  })
+})
+
 describe('niveles y quién recibe qué', () => {
   it('lo clínico y lo que cuida a la persona es fijo (puede moverse, no ocultarse)', () => {
     const fijas = new Set(piezasPara(ASESORADO).filter((p) => p.nivel === 'fija').map((p) => p.id))
@@ -111,6 +148,17 @@ describe('buscar piezas por nombre hablado', () => {
   it('el nombre más largo gana al corto que contiene («la nutrición de hoy» no es la pantalla Nutrición)', () => {
     expect(ids('ponme la nutrición de hoy arriba')).toEqual(['hoy.nutricion'])
     expect(ids('ábreme Nutrición')).toEqual(['pantalla:/nutricion'])
+  })
+
+  it('encuentra las piezas de las otras pantallas por su nombre hablado', () => {
+    expect(ids('muéstrame mi fatiga')).toEqual(['progreso.fatiga'])
+    expect(ids('quiero ver mis medidas')).toEqual(['progreso.medidas'])
+    expect(ids('ábreme el mercado de 15 días')).toEqual(['plan.mercado'])
+    expect(ids('ponme el agua arriba')).toEqual(['nutricion.agua'])
+  })
+
+  it('un nombre que existe en dos pantallas devuelve las dos para preguntar cuál (Hoy o Semana)', () => {
+    expect(ids('muéstrame la revisión de la semana').sort()).toEqual(['hoy.semana', 'semana.revision'])
   })
 
   it('un nombre que no existe no se adivina', () => {
