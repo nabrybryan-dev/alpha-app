@@ -3720,4 +3720,25 @@ select '0175 - respuestas con seudonimo', 'codigos y lecturas con RLS sin acceso
                          and (not prosecdef or not exists (select 1 from unnest(coalesce(proconfig,'{}')) c where c like 'search_path=%'))) then 'NO'
             else 'SI' end
 
+union all
+select '0177 - nadie con sesion vacia una tabla ni escribe la tabla vieja aprobaciones', 'ninguna tabla de public da TRUNCATE a anon ni authenticated; aprobaciones sin insert/update/delete/truncate para ellos; las tablas nuevas de postgres no lo dan por defecto',
+       case when exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                          where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'f')
+                            and (has_table_privilege('anon', c.oid, 'truncate')
+                                 or has_table_privilege('authenticated', c.oid, 'truncate'))) then 'NO'
+            when to_regclass('public.aprobaciones') is not null
+             and (has_table_privilege('anon', 'public.aprobaciones', 'insert')
+                  or has_table_privilege('anon', 'public.aprobaciones', 'update')
+                  or has_table_privilege('anon', 'public.aprobaciones', 'delete')
+                  or has_table_privilege('authenticated', 'public.aprobaciones', 'insert')
+                  or has_table_privilege('authenticated', 'public.aprobaciones', 'update')
+                  or has_table_privilege('authenticated', 'public.aprobaciones', 'delete')) then 'NO'
+            when exists (select 1 from pg_default_acl d, aclexplode(d.defaclacl) a
+                          where d.defaclrole = 'postgres'::regrole
+                            and d.defaclnamespace = 'public'::regnamespace
+                            and d.defaclobjtype = 'r'
+                            and a.privilege_type = 'TRUNCATE'
+                            and a.grantee in ('anon'::regrole, 'authenticated'::regrole)) then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
