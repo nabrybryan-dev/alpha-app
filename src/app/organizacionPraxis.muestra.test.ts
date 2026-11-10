@@ -3,7 +3,7 @@ import { DE_SALUD } from '../domain/praxis/ordenes/ordenesDeVoz'
 import { filtroDeRiesgo } from '../domain/praxis/riesgo'
 import { limpiarFrase } from '../domain/praxis/organizacion/pedido'
 import type { Rol } from '../domain/types'
-import { decidirOrganizacion, type DecisionDeOrganizacion, type EstadoDeOrganizacion } from './organizacionPraxis'
+import { TOPE_DE_OCULTAS, decidirOrganizacion, type DecisionDeOrganizacion, type EstadoDeOrganizacion } from './organizacionPraxis'
 import type { PerfilAcceso } from './rutas'
 
 /**
@@ -26,6 +26,7 @@ const resumen = (x: DecisionDeOrganizacion): string => {
   if (x.tipo === 'pregunta_cual') return `pregunta:${x.opciones.map((o) => o.id).sort().join('|')}`
   if (x.tipo === 'lista_ocultas') return `lista_ocultas:${x.piezas.map((p) => p.id).join('|')}`
   if (x.tipo === 'sugiere_ocultar') return `sugiere_ocultar:${x.pieza.id}`
+  if (x.tipo === 'propone_solo_lo_importante') return `solo_lo_importante:${x.esconderia.length}`
   return x.tipo
 }
 
@@ -71,7 +72,29 @@ describe('la muestra de 20 frases etiquetada por Bryan (9-nov)', () => {
     expect(decidirOrganizacion('me aburre la sesión de hoy', ASESORADO, SIN_NADA).tipo).toBe('no_es_organizacion')
   })
 
-  // Decisiones que siguen abiertas con Bryan (no se prueban hasta que las tome):
-  it.todo('frase 4 «quita eso»: Bryan la etiquetó «esconder», pero la gramática de deshacer REGISTROS ya la usa para «quitar lo último que anoté»')
-  it.todo('frase 18 «déjame ver solo lo importante»: Bryan la etiquetó «mover», es un modo «solo lo importante» (esconder todo lo libre) que el diseño no tiene')
+  it('frase 4 «quita eso» (Bryan: esconder): choca con «quitar lo último que anoté»; Bryan decidió que Praxis pregunta cuál', () => {
+    expect(resumen(decidirOrganizacion('quita eso', ASESORADO, SIN_NADA))).toBe('pregunta_que_quitar')
+    expect(resumen(decidirOrganizacion('bórrame eso', ASESORADO, SIN_NADA))).toBe('pregunta_que_quitar')
+  })
+
+  it('«deshaz eso» y «quita lo último que anoté» siguen siendo SOLO del deshacer de registros (no se pregunta)', () => {
+    expect(resumen(decidirOrganizacion('deshaz eso', ASESORADO, SIN_NADA))).toBe('no_es_organizacion')
+    expect(resumen(decidirOrganizacion('quita lo último que anoté', ASESORADO, SIN_NADA))).toBe('no_es_organizacion')
+  })
+
+  it('frase 18 «déjame ver solo lo importante» (Bryan: mover): modo que esconde todo lo libre que está a la vista, con una tarjeta', () => {
+    const x = decidirOrganizacion('déjame ver solo lo importante', ASESORADO, SIN_NADA)
+    expect(x.tipo).toBe('propone_solo_lo_importante')
+    if (x.tipo !== 'propone_solo_lo_importante') return
+    expect(x.esconderia.length).toBeGreaterThan(TOPE_DE_OCULTAS) // salta el tope de 6 a propósito, solo en este modo
+    expect(x.esconderia.every((p) => p.nivel === 'libre')).toBe(true) // lo fijo y lo asignado se quedan
+    expect(x.esconderia.some((p) => p.id === 'hoy.checkin' || p.id === 'hoy.sesion')).toBe(false)
+  })
+
+  it('«solo lo importante» no vuelve a esconder lo que ya estaba oculto', () => {
+    const x = decidirOrganizacion('quiero ver solo lo esencial', ASESORADO, CON_ALBUM_OCULTO)
+    expect(x.tipo).toBe('propone_solo_lo_importante')
+    if (x.tipo !== 'propone_solo_lo_importante') return
+    expect(x.esconderia.some((p) => p.id === 'hoy.album')).toBe(false)
+  })
 })

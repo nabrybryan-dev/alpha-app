@@ -61,6 +61,14 @@ export type DecisionDeOrganizacion =
   | { tipo: 'lista_ocultas'; piezas: PiezaDeLaApp[] }
   /** Una queja sobre una pieza libre: Praxis OFRECE esconderla. Si la persona dice que sí, se sigue como `propone` ocultar. */
   | { tipo: 'sugiere_ocultar'; pieza: PiezaDeLaApp }
+  /** «quita eso»: no se sabe si es un registro o una parte de la pantalla; se le pregunta cuál. */
+  | { tipo: 'pregunta_que_quitar' }
+  /**
+   * «Solo lo importante»: esconder de una vez todo lo libre que sigue a la vista. Va con tarjeta que dice cuántas cosas
+   * (Bryan, 9-nov) y salta el tope de piezas ocultas A PROPÓSITO, solo en este modo; lo fijo y lo asignado se quedan.
+   * Se deshace con «déjalo como estaba» (es UN solo cambio).
+   */
+  | { tipo: 'propone_solo_lo_importante'; esconderia: PiezaDeLaApp[] }
   /** El nombre cae en varias piezas: se pregunta cuál (máximo 3). Al elegir, `decidirParaPieza`. */
   | { tipo: 'pregunta_cual'; verbo: VerboDeOrganizacion; opciones: PiezaDeLaApp[]; hayMas: boolean }
   | { tipo: 'rechaza'; motivo: MotivoDeRechazo; pieza?: PiezaDeLaApp }
@@ -97,6 +105,10 @@ export function decidirOrganizacion(frase: string, perfil: PerfilAcceso, estado:
   if (verbo === 'restablecer') return { tipo: 'propone_restablecer' }
   if (verbo === 'listar') return { tipo: 'lista', libres: piezasPara(perfil).filter((p) => p.nivel === 'libre') }
 
+  if (verbo === 'quitar_ambiguo') return { tipo: 'pregunta_que_quitar' }
+  if (verbo === 'solo_lo_importante') {
+    return { tipo: 'propone_solo_lo_importante', esconderia: piezasPara(perfil).filter((p) => p.nivel === 'libre' && !estado.ocultas.has(p.id)) }
+  }
   if (verbo === 'listar_ocultas') return { tipo: 'lista_ocultas', piezas: piezasPara(perfil).filter((p) => estado.ocultas.has(p.id)) }
 
   const candidatas = buscarPiezas(pedido.frase, perfil)

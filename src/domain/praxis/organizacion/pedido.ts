@@ -40,6 +40,10 @@ export type VerboDeOrganizacion =
   | 'listar_ocultas'
   /** Una queja («me aburre el álbum»): no manda nada, Praxis OFRECE esconderlo y la persona decide. */
   | 'sugerir_ocultar'
+  /** «déjame ver solo lo importante»: esconder de una vez todo lo libre (Bryan, 9-nov), con una tarjeta que dice cuántas cosas. */
+  | 'solo_lo_importante'
+  /** «quita eso»: puede ser quitar lo último que anotó o esconder algo de la pantalla; se le pregunta cuál (Bryan, 9-nov). */
+  | 'quitar_ambiguo'
 
 export type PedidoDeOrganizacion =
   /** Era una orden de organizar, pero habla de salud o de riesgo: no se organiza; sigue el camino de seguridad. */
@@ -65,6 +69,8 @@ const RESTABLECER =
 const LISTAR = /^que (puedo|se puede|partes puedo|cosas puedo) (ocultar|mover|ordenar|cambiar)\b/
 const LISTAR_OCULTAS =
   /^((que|cuales|cuantas)( cosas| partes| pestanas| tarjetas| piezas| pantallas)? (tengo|hay|he|tengo yo) (escondid\w+|ocult\w+)|(que|cuales)( cosas| partes| pestanas| tarjetas| piezas)? (escondi|oculte|ocultaste|escondiste)\b)/
+const SOLO_LO_IMPORTANTE = /^(dejame|deja|quiero|muestrame|ponme|pon)( ver)? solo (lo importante|lo esencial|lo necesario|lo basico)\b/
+const QUITAR_ESO = /^(quita|quitame|borra|borrame|elimina|eliminame)\b/
 const QUEJA = /^(me (aburre|aburren|estorba|estorban|sobra|sobran)|no uso|ya no uso|no me (sirve|sirven))\b/
 const MOVER = /^(ponme|pon|ponla|ponlo|sube|subeme|subela|subelo|baja|bajame|bajala|bajalo|mueve|muevela|muevelo|pasa|pasame)\b/
 const PON_SIN_LUGAR = /^(ponme|pon|ponla|ponlo)\b/
@@ -80,6 +86,7 @@ function verboDe(t: string): VerboDeOrganizacion | null {
   if (RESTABLECER.test(t)) return 'restablecer'
   if (LISTAR.test(t)) return 'listar'
   if (LISTAR_OCULTAS.test(t)) return 'listar_ocultas'
+  if (SOLO_LO_IMPORTANTE.test(t)) return 'solo_lo_importante'
   if (QUEJA.test(t)) return 'sugerir_ocultar'
   if (MOVER.test(t)) {
     if (HACIA_ARRIBA.test(t)) return 'mover_arriba'
@@ -94,9 +101,16 @@ function verboDe(t: string): VerboDeOrganizacion | null {
 }
 
 export function leerPedidoDeOrganizacion(dicho: string): PedidoDeOrganizacion {
-  if (interpretarPedidoDeshacer(dicho)) return { tipo: 'ninguno' }
   const frase = limpiarFrase(dicho)
   const t = frase.replace(SALUDO, '')
+  const registro = interpretarPedidoDeshacer(dicho)
+  if (registro) {
+    // «quita eso» sin decir qué: la gramática de registros lo lee como «quita lo último que anoté» y la de organización
+    // como «esconde algo de la pantalla». No se adivina: se pregunta. «deshaz eso» sí es solo de registros.
+    const sinObjeto = registro.referencia === 'eso' && registro.tipo === undefined && !registro.pideVarios
+    if (sinObjeto && QUITAR_ESO.test(t)) return { tipo: 'pedido', verbo: 'quitar_ambiguo', frase: t }
+    return { tipo: 'ninguno' }
+  }
   const verbo = verboDe(t)
   if (!verbo) return { tipo: 'ninguno' }
   if (filtroDeRiesgo(dicho) || DE_SALUD.test(t)) return { tipo: 'riesgo' }
