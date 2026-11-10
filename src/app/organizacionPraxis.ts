@@ -16,12 +16,12 @@ import type { PerfilAcceso } from './rutas'
  *   · lo `fija` no se oculta pero se mueve, y sus notificaciones siguen; lo `asignada` por el coach no se oculta;
  *   · el núcleo de la barra (Hoy y Praxis) no se mueve;
  *   · un nombre que cae en dos piezas se pregunta (hasta 3), no se elige;
- *   · hay un tope de piezas ocultas a la vez (propuesto: 6, falta que lo fije Bryan).
+ *   · hay un tope de piezas ocultas a la vez (6, fijado por Bryan el 9-nov).
  *
  * El llamador es quien comprueba que Praxis esté abierta a esa persona (`PRAXIS_ABIERTA_A_ASESORADOS`).
  */
 
-/** Propuesta mía, sin firma de Bryan: cuántas piezas se pueden tener ocultas a la vez. */
+/** Cuántas piezas se pueden tener ocultas a la vez. Lo fijó Bryan en 6 el 9-nov (había propuesto 6 y lo aceptó entre 3, 6 y 10). */
 export const TOPE_DE_OCULTAS = 6
 /** Pantallas que son el núcleo de la barra: se quedan en su puesto (Bryan, 4-nov y 9-nov). */
 export const NUCLEO_DE_LA_BARRA: ReadonlySet<string> = new Set(['pantalla:/'])
