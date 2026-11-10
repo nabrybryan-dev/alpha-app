@@ -66,6 +66,8 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
 
 /** Pantallas que no se ocultan por ser de cuidado o de ley. Lo demás que un asesorado abre es `libre`. */
 const PANTALLAS_FIJAS: ReadonlySet<string> = new Set(['/', '/yo', '/yo/derechos', '/chat', '/bienestar'])
+/** Pantallas que arma o asigna el equipo (microciclo, plan de nutrición, cuestionarios): se mueven, no se ocultan. */
+const PANTALLAS_ASIGNADAS: ReadonlySet<string> = new Set(['/entrenar', '/nutricion', '/nutricion/plan', '/cuestionarios'])
 
 /** Un asesorado cualquiera: el oráculo para saber si una pantalla es del equipo. */
 const ASESORADO_DE_REFERENCIA: PerfilAcceso = { rol: 'asesorado', capacidades: new Set() }
@@ -73,7 +75,8 @@ const ASESORADO_DE_REFERENCIA: PerfilAcceso = { rol: 'asesorado', capacidades: n
 function nivelDePantalla(patron: string): NivelDePieza {
   const fila = buscarRuta(patron)
   if (fila && resolverAcceso(fila, ASESORADO_DE_REFERENCIA).tipo !== 'entra') return 'equipo'
-  return PANTALLAS_FIJAS.has(patron) ? 'fija' : 'libre'
+  if (PANTALLAS_FIJAS.has(patron)) return 'fija'
+  return PANTALLAS_ASIGNADAS.has(patron) ? 'asignada' : 'libre'
 }
 
 /** Las tarjetas de Hoy del asesorado, en el orden en que `HoyPage.tsx` las compone. */
@@ -85,7 +88,7 @@ export const PIEZAS_DE_HOY: readonly PiezaDeLaApp[] = [
   { id: 'hoy.sesion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la sesión de hoy', sinonimos: ['mi sesion', 'mi entreno de hoy'], nivel: 'asignada', enCodigo: 'tarjetaSesion' },
   { id: 'hoy.carteles', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los carteles del día', sinonimos: ['los avisos de mi semana'], nivel: 'libre', enCodigo: 'carteles', porConfirmar: true },
   { id: 'hoy.pregunta-del-dia', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la pregunta del día', sinonimos: ['lo que me pregunto la cadena'], nivel: 'asignada', enCodigo: 'preguntaDeLaCadena' },
-  { id: 'hoy.checkin', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el check-in del día', sinonimos: ['mi check in', 'como amanecí'], nivel: 'fija', enCodigo: 'checkinDelAsesorado' },
+  { id: 'hoy.checkin', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el check-in del día', sinonimos: ['mi check in', 'el check in', 'como amanecí'], nivel: 'fija', enCodigo: 'checkinDelAsesorado' },
   { id: 'hoy.nutricion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la nutrición de hoy', sinonimos: ['mi comida de hoy', 'lo que como hoy'], nivel: 'asignada', enCodigo: 'MiNutricionDeHoy' },
   { id: 'hoy.pendientes', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los pendientes de hoy', sinonimos: ['lo que me falta hoy'], nivel: 'asignada', enCodigo: 'listaPendientes', porConfirmar: true },
   { id: 'hoy.semana', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la revisión de la semana', sinonimos: ['la tarjeta de la semana', 'mi semana en hoy'], nivel: 'libre', enCodigo: 'revision' },
@@ -161,7 +164,7 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   { id: 'progreso.velocidad', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mi velocidad', sinonimos: ['mi historial de velocidad'], nivel: 'libre', fuente: PROGRESO, enCodigo: '<HistorialDeVelocidad', porConfirmar: true },
   // ---- Bienestar ----
   { id: 'bienestar.recordatorio', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el recordatorio de las 6 pm', sinonimos: ['el aviso de las seis'], nivel: 'fija', fuente: BIENESTAR, enCodigo: 'Recordatorio de las 6 pm', porConfirmar: true },
-  { id: 'bienestar.checkin', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el formulario de check-in', sinonimos: ['mi check in diario'], nivel: 'fija', fuente: BIENESTAR, enCodigo: '<CheckinForm' },
+  { id: 'bienestar.checkin', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el formulario de check-in', sinonimos: ['mi check in diario', 'el check in'], nivel: 'fija', fuente: BIENESTAR, enCodigo: '<CheckinForm' },
   { id: 'bienestar.medidas', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MedidasCard' },
   { id: 'bienestar.mensajes-vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'los mensajes de estilo de vida', sinonimos: ['mis mensajes de habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MensajesVidaBandeja', porConfirmar: true },
   { id: 'bienestar.vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mi estilo de vida', sinonimos: ['mis habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<TarjetaVidaCard' },
@@ -231,5 +234,13 @@ export function buscarPiezas(frase: string, perfil: PerfilAcceso): PiezaDeLaApp[
   const q = normalizarFrase(frase)
   const nombradas = piezasPara(perfil).filter((p) => clavesDe(p).some((c) => q.includes(` ${c} `)))
   const nombre = (p: PiezaDeLaApp) => limpiar(p.nombreHablado).replace(ARTICULO, '')
+  // Si la frase dice el nombre COMPLETO de alguna pieza, esas ganan a las que solo coinciden por un sinónimo
+  // («el check-in del día» es la tarjeta de Hoy; «el check-in» a secas cae en las dos y se pregunta).
+  const porNombre = nombradas.filter((p) => q.includes(` ${nombre(p)} `))
+  if (porNombre.length > 0 && porNombre.length < nombradas.length) return buscarEntre(porNombre, nombre)
+  return buscarEntre(nombradas, nombre)
+}
+
+function buscarEntre(nombradas: PiezaDeLaApp[], nombre: (p: PiezaDeLaApp) => string): PiezaDeLaApp[] {
   return nombradas.filter((p) => !nombradas.some((o) => o !== p && nombre(o).length > nombre(p).length && nombre(o).includes(nombre(p))))
 }

@@ -173,6 +173,18 @@ describe('buscar piezas por nombre hablado', () => {
     expect(ids('muéstrame la revisión de la semana').sort()).toEqual(['hoy.semana', 'semana.revision'])
   })
 
+  it('el nombre completo gana a una coincidencia solo por sinónimo, y «el check-in» a secas cae en las dos y se pregunta', () => {
+    expect(ids('muéstrame el check-in del día')).toEqual(['hoy.checkin'])
+    expect(ids('ponme el check-in abajo').sort()).toEqual(['bienestar.checkin', 'hoy.checkin'])
+  })
+
+  it('las pantallas que arma el coach son asignadas (se mueven, no se ocultan) y las demás del asesorado no', () => {
+    const nivel = (patron: string) => piezasPara(ASESORADO).find((p) => p.id === `pantalla:${patron}`)?.nivel
+    for (const patron of ['/entrenar', '/nutricion', '/nutricion/plan', '/cuestionarios']) expect(nivel(patron), patron).toBe('asignada')
+    expect(nivel('/semana')).toBe('libre')
+    expect(nivel('/yo')).toBe('fija')
+  })
+
   it('un nombre que no existe no se adivina', () => {
     expect(ids('muéstrame el unicornio')).toEqual([])
   })
