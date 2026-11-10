@@ -59,8 +59,8 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
   '/chat': ['mi equipo', 'mensajes'],
   '/cuestionarios': ['mis cuestionarios', 'mis encuestas'],
   '/contenidos': ['mis videos', 'mis lecturas'],
-  '/logros': ['mis logros', 'mis medallas'],
-  '/yo': ['mi cuenta', 'mis avisos'],
+  '/logros': ['mis logros'],
+  '/yo': ['mi cuenta'],
   '/yo/derechos': ['mis datos', 'mis derechos'],
 }
 
@@ -103,9 +103,15 @@ const PROGRESO = 'src/features/progreso/ProgresoPage.tsx'
 const DIARIO = 'src/features/nutricion/DiarioDia.tsx'
 const PLAN = 'src/features/nutricion/MiPlan.tsx'
 const SALON = 'src/features/entrenar/salon/SalonEntrenar.tsx'
+const BIENESTAR = 'src/features/bienestar/BienestarPage.tsx'
+const YO = 'src/features/yo/YoPage.tsx'
+const CHAT = 'src/features/chat/ChatPage.tsx'
+const CUESTIONARIOS = 'src/features/cuestionarios/CuestionariosPage.tsx'
+const CONTENIDOS = 'src/features/contenidos/ContenidosPage.tsx'
+const LOGROS = 'src/features/logros/LogrosPage.tsx'
 
 /**
- * Las piezas de Entrenar, Nutrición, Semana y Progreso (O1b). Cada una dice en qué archivo vive y con qué texto
+ * Las piezas de Entrenar, Nutrición, Semana, Progreso (O1b), Bienestar, Yo, Chat, Cuestionarios, Contenidos y Logros (O1c). Cada una dice en qué archivo vive y con qué texto
  * literal se marca; las de Semana y Progreso llevan `data-bloque="…"`, la costumbre de la app para nombrar un
  * bloque, y la prueba exige que TODO `data-bloque` de esas pantallas tenga su pieza.
  *
@@ -153,6 +159,33 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   { id: 'progreso.escala', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'la escala alfa', sinonimos: ['mis niveles de alfa'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="escala-alfa"', porConfirmar: true },
   { id: 'progreso.fatiga', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'la fatiga por grupo muscular', sinonimos: ['mi fatiga', 'mi cansancio muscular'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="fatiga"' },
   { id: 'progreso.velocidad', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mi velocidad', sinonimos: ['mi historial de velocidad'], nivel: 'libre', fuente: PROGRESO, enCodigo: '<HistorialDeVelocidad', porConfirmar: true },
+  // ---- Bienestar ----
+  { id: 'bienestar.recordatorio', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el recordatorio de las 6 pm', sinonimos: ['el aviso de las seis'], nivel: 'fija', fuente: BIENESTAR, enCodigo: 'Recordatorio de las 6 pm', porConfirmar: true },
+  { id: 'bienestar.checkin', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el formulario de check-in', sinonimos: ['mi check in diario'], nivel: 'fija', fuente: BIENESTAR, enCodigo: '<CheckinForm' },
+  { id: 'bienestar.medidas', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MedidasCard' },
+  { id: 'bienestar.mensajes-vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'los mensajes de estilo de vida', sinonimos: ['mis mensajes de habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MensajesVidaBandeja', porConfirmar: true },
+  { id: 'bienestar.vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mi estilo de vida', sinonimos: ['mis habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<TarjetaVidaCard' },
+  { id: 'bienestar.historial', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el historial de check-ins', sinonimos: ['mis check ins anteriores'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<HistorialDeCheckins', porConfirmar: true },
+  // ---- Yo ----
+  { id: 'yo.avisos', tipo: 'tarjeta', pantalla: '/yo', nombreHablado: 'mis avisos', sinonimos: ['mis notificaciones'], nivel: 'fija', fuente: YO, enCodigo: '<AvisosYo' },
+  { id: 'yo.buzon', tipo: 'tarjeta', pantalla: '/yo', nombreHablado: 'el buzón de comentarios', sinonimos: ['mis comentarios sobre la app'], nivel: 'libre', fuente: YO, enCodigo: '<BuzonComentarios', porConfirmar: true },
+  { id: 'yo.clave', tipo: 'tarjeta', pantalla: '/yo', nombreHablado: 'cambiar la clave', sinonimos: ['mi contrasena', 'mi clave'], nivel: 'fija', fuente: YO, enCodigo: '<CambiarClave' },
+  { id: 'yo.derechos', tipo: 'tarjeta', pantalla: '/yo', nombreHablado: 'el enlace a mis datos y derechos', sinonimos: [], nivel: 'fija', fuente: YO, enCodigo: 'to="/yo/derechos"' },
+  // ---- Chat ----
+  { id: 'chat.remitente', tipo: 'tarjeta', pantalla: '/chat', nombreHablado: 'el selector de a quién escribo', sinonimos: ['elegir coach o nutricionista'], nivel: 'fija', fuente: CHAT, enCodigo: '<SelectorRemitente', porConfirmar: true },
+  { id: 'chat.conversacion', tipo: 'tarjeta', pantalla: '/chat', nombreHablado: 'la conversación', sinonimos: ['mis mensajes'], nivel: 'fija', fuente: CHAT, enCodigo: '<Conversacion', porConfirmar: true },
+  // ---- Cuestionarios ----
+  { id: 'cuestionarios.pendientes', tipo: 'tarjeta', pantalla: '/cuestionarios', nombreHablado: 'los cuestionarios por responder', sinonimos: ['mis cuestionarios pendientes'], nivel: 'asignada', fuente: CUESTIONARIOS, enCodigo: 'No tienes cuestionarios pendientes.', porConfirmar: true },
+  { id: 'cuestionarios.enviados', tipo: 'tarjeta', pantalla: '/cuestionarios', nombreHablado: 'los cuestionarios enviados', sinonimos: ['los que ya respondi'], nivel: 'libre', fuente: CUESTIONARIOS, enCodigo: '✓ Enviado', porConfirmar: true },
+  // ---- Contenidos ----
+  { id: 'contenidos.lista', tipo: 'tarjeta', pantalla: '/contenidos', nombreHablado: 'la lista de contenidos', sinonimos: ['mis videos y lecturas'], nivel: 'libre', fuente: CONTENIDOS, enCodigo: '<FilaContenido', porConfirmar: true },
+  // ---- Logros ----
+  { id: 'logros.nivel', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi nivel y mis puntos', sinonimos: ['mis xp', 'mi progreso de nivel'], nivel: 'libre', fuente: LOGROS, enCodigo: 'XP acumulados', porConfirmar: true },
+  { id: 'logros.rachas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis rachas', sinonimos: ['mi racha'], nivel: 'libre', fuente: LOGROS, enCodigo: '<TiraDeRachas', porConfirmar: true },
+  { id: 'logros.ranking', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'el ranking del equipo', sinonimos: ['la tabla de posiciones'], nivel: 'libre', fuente: LOGROS, enCodigo: '<RankingEquipo', porConfirmar: true },
+  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['mis fichas panini', 'mis stickers'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
+  { id: 'logros.medallas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis medallas', sinonimos: ['mis logros desbloqueados'], nivel: 'libre', fuente: LOGROS, enCodigo: '<Medalla', porConfirmar: true },
+  { id: 'logros.premios', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis premios', sinonimos: ['lo que he ganado'], nivel: 'libre', fuente: LOGROS, enCodigo: 'premio.titulo', porConfirmar: true },
 ]
 
 /** Las pantallas que esta persona puede abrir, con su nombre hablado. Salen de `destinosPara`, no de otra lista. */

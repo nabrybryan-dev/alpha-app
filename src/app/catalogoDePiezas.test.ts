@@ -76,7 +76,7 @@ describe('inventario de las tarjetas de Hoy contra HoyPage.tsx', () => {
   })
 })
 
-describe('inventario de Entrenar, Nutrición, Semana y Progreso contra sus archivos', () => {
+describe('inventario de las pantallas del asesorado (Entrenar a Logros) contra sus archivos', () => {
   const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), 'utf8')
 
   it('cada pieza vive en una pantalla que es destino, y su marca está en el archivo que dice', () => {
@@ -102,6 +102,18 @@ describe('inventario de Entrenar, Nutrición, Semana y Progreso contra sus archi
     expect(secciones.length).toBe(7)
     const registradas = new Set(PIEZAS_DE_OTRAS_PANTALLAS.filter((p) => p.pantalla === '/nutricion/plan').map((p) => p.enCodigo))
     expect(secciones.filter((s) => !registradas.has(s))).toEqual([])
+  })
+
+  it('lo de cuenta, avisos, chat y check-in es fijo; lo asignado por el coach no es libre (Bienestar, Yo, Chat, Cuestionarios)', () => {
+    const por = (id: string) => PIEZAS_DE_OTRAS_PANTALLAS.find((p) => p.id === id)?.nivel
+    for (const id of ['yo.avisos', 'yo.clave', 'yo.derechos', 'chat.remitente', 'chat.conversacion', 'bienestar.checkin', 'bienestar.recordatorio']) expect(por(id), id).toBe('fija')
+    expect(por('cuestionarios.pendientes')).toBe('asignada')
+    expect(por('entrenar.salon')).toBe('fija')
+  })
+
+  it('las pantallas Bienestar, Yo, Chat, Cuestionarios, Contenidos y Logros tienen al menos una pieza', () => {
+    for (const pantalla of ['/bienestar', '/yo', '/chat', '/cuestionarios', '/contenidos', '/logros'])
+      expect(PIEZAS_DE_OTRAS_PANTALLAS.some((p) => p.pantalla === pantalla), pantalla).toBe(true)
   })
 
   it('el chat con el equipo es fijo y lo que asigna el coach no es libre', () => {
@@ -152,7 +164,7 @@ describe('buscar piezas por nombre hablado', () => {
 
   it('encuentra las piezas de las otras pantallas por su nombre hablado', () => {
     expect(ids('muéstrame mi fatiga')).toEqual(['progreso.fatiga'])
-    expect(ids('quiero ver mis medidas')).toEqual(['progreso.medidas'])
+    expect(ids('quiero ver mis medidas').sort()).toEqual(['bienestar.medidas', 'progreso.medidas'])
     expect(ids('ábreme el mercado de 15 días')).toEqual(['plan.mercado'])
     expect(ids('ponme el agua arriba')).toEqual(['nutricion.agua'])
   })
