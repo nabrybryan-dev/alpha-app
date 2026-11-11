@@ -128,6 +128,7 @@ export function decidirOrganizacion(frase: string, perfil: PerfilAcceso, estado:
   if (verbo === 'quitar_ambiguo' && candidatas.length === 0) return { tipo: 'pregunta_que_quitar' }
   const verboFinal = verbo === 'quitar_ambiguo' ? 'ocultar' : verbo
   if (candidatas.length === 0) {
+    if (pedido.suave) return { tipo: 'no_es_organizacion' }
     const existeParaOtro = [ASESORADO_DE_REFERENCIA, EQUIPO_DE_REFERENCIA].some((ref) => buscarPiezas(pedido.frase, ref).length > 0)
     return { tipo: 'rechaza', motivo: existeParaOtro ? 'sin_acceso' : 'no_existe' }
   }

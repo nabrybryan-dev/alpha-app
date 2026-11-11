@@ -52,7 +52,7 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
   '/': ['hoy', 'mi dia', 'inicio'],
   '/entrenar': ['mi entreno', 'mi ruta de entreno', 'mi plan de entreno'],
   '/semana': ['mi semana'],
-  '/progreso': ['mi progreso', 'como voy'],
+  '/progreso': ['mi progreso', 'como voy', 'mi avance', 'que tanto he avanzado'],
   '/nutricion': ['mi nutricion', 'mi diario de comidas'],
   '/nutricion/plan': ['mi plan de comida', 'el plan de comida'],
   '/bienestar': ['mi bienestar', 'mi check in diario'],
@@ -85,7 +85,7 @@ export const PIEZAS_DE_HOY: readonly PiezaDeLaApp[] = [
   { id: 'hoy.aviso-sincronizacion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el aviso de sincronización', sinonimos: ['lo que no se ha subido'], nivel: 'fija', enCodigo: 'avisoSync', porConfirmar: true },
   { id: 'hoy.permiso-avisos', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el permiso de avisos', sinonimos: ['activar las notificaciones'], nivel: 'fija', enCodigo: 'permiso', porConfirmar: true },
   { id: 'hoy.cuestionario-de-salud', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el cuestionario de salud', sinonimos: ['mi ficha de salud'], nivel: 'fija', enCodigo: 'cribado' },
-  { id: 'hoy.sesion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la sesión de hoy', sinonimos: ['mi sesion', 'mi entreno de hoy'], nivel: 'asignada', enCodigo: 'tarjetaSesion' },
+  { id: 'hoy.sesion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la sesión de hoy', sinonimos: ['mi sesion', 'mi entreno de hoy', 'el entreno de hoy', 'la seccion de entreno de hoy'], nivel: 'asignada', enCodigo: 'tarjetaSesion' },
   { id: 'hoy.carteles', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los carteles del día', sinonimos: ['los avisos de mi semana'], nivel: 'libre', enCodigo: 'carteles', porConfirmar: true },
   { id: 'hoy.pregunta-del-dia', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la pregunta del día', sinonimos: ['lo que me pregunto la cadena'], nivel: 'asignada', enCodigo: 'preguntaDeLaCadena' },
   { id: 'hoy.checkin', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el check-in del día', sinonimos: ['mi check in', 'el check in', 'como amanecí'], nivel: 'fija', enCodigo: 'checkinDelAsesorado' },
@@ -96,7 +96,7 @@ export const PIEZAS_DE_HOY: readonly PiezaDeLaApp[] = [
   { id: 'hoy.actualizar-salud', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'actualizar mi salud', sinonimos: ['cambio en mi salud'], nivel: 'fija', enCodigo: 'volverAContarSalud', porConfirmar: true },
   { id: 'hoy.cifras', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'mis cifras', sinonimos: ['mi racha', 'racha peso y adherencia'], nivel: 'libre', enCodigo: 'cifras' },
   { id: 'hoy.bloque', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'mi bloque', sinonimos: ['el bloque actual'], nivel: 'libre', enCodigo: 'bloqueActual' },
-  { id: 'hoy.album', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el álbum', sinonimos: ['mis stickers'], nivel: 'libre', enCodigo: 'album' },
+  { id: 'hoy.album', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el álbum', sinonimos: ['mis stickers', 'el album de fichas', 'las fichas'], nivel: 'libre', enCodigo: 'album' },
   { id: 'hoy.radar', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el radar', sinonimos: ['las noticias de alpha'], nivel: 'libre', enCodigo: 'radar' },
   { id: 'hoy.contenidos', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los contenidos de hoy', sinonimos: ['tecnica y educacion'], nivel: 'libre', enCodigo: 'contenidos' },
 ]
@@ -186,7 +186,7 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   { id: 'logros.nivel', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi nivel y mis puntos', sinonimos: ['mis xp', 'mi progreso de nivel'], nivel: 'libre', fuente: LOGROS, enCodigo: 'XP acumulados', porConfirmar: true },
   { id: 'logros.rachas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis rachas', sinonimos: ['mi racha'], nivel: 'libre', fuente: LOGROS, enCodigo: '<TiraDeRachas', porConfirmar: true },
   { id: 'logros.ranking', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'el ranking del equipo', sinonimos: ['el ranking', 'la tabla de posiciones'], nivel: 'libre', fuente: LOGROS, enCodigo: '<RankingEquipo', porConfirmar: true },
-  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['el album de fichas', 'mis fichas panini', 'mis stickers'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
+  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['el album de fichas', 'mis fichas panini', 'mis stickers', 'las fichas'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
   { id: 'logros.medallas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis medallas', sinonimos: ['mis logros desbloqueados'], nivel: 'libre', fuente: LOGROS, enCodigo: '<Medalla', porConfirmar: true },
   { id: 'logros.premios', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis premios', sinonimos: ['lo que he ganado'], nivel: 'libre', fuente: LOGROS, enCodigo: 'premio.titulo', porConfirmar: true },
 ]
@@ -221,6 +221,30 @@ function clavesDe(p: PiezaDeLaApp): string[] {
   return [p.nombreHablado, ...p.sinonimos].map((n) => limpiar(n).replace(ARTICULO, '')).filter((n) => n.length > 2)
 }
 
+/** ¿Las dos palabras difieren en una sola letra (de más, de menos, cambiada o dos seguidas intercambiadas)? */
+function aUnaLetra(a: string, b: string): boolean {
+  if (a === b || Math.abs(a.length - b.length) > 1) return false
+  let i = 0
+  while (i < a.length && i < b.length && a[i] === b[i]) i++
+  const ra = a.slice(i)
+  const rb = b.slice(i)
+  if (ra.length === rb.length) return ra.slice(1) === rb.slice(1) || (ra.length > 1 && ra[0] === rb[1] && ra[1] === rb[0] && ra.slice(2) === rb.slice(2))
+  return ra.length > rb.length ? ra.slice(1) === rb : rb.slice(1) === ra
+}
+
+function corregirDictado(frase: string, piezas: PiezaDeLaApp[]): string {
+  const vocabulario = new Set(piezas.flatMap((p) => clavesDe(p).flatMap((c) => c.split(' '))).filter((w) => w.length >= 5))
+  return limpiar(frase)
+    .split(' ')
+    .map((w) => {
+      if (w.length < 5 || vocabulario.has(w)) return w
+      const sola = w.replace(/(.)\1+/g, '$1') // «hidrataccion» -> «hidratacion»
+      const candidatas = [...vocabulario].filter((v) => aUnaLetra(w, v) || aUnaLetra(sola, v) || sola === v)
+      return candidatas.length === 1 ? candidatas[0]! : w
+    })
+    .join(' ')
+}
+
 function normalizarFrase(frase: string): string {
   return ` ${limpiar(frase)} `
 }
@@ -232,10 +256,12 @@ function normalizarFrase(frase: string): string {
  * No decide nada más: no interpreta verbos ni mira riesgo; eso es de la gramática de organización (fase O2).
  */
 export function buscarPiezas(frase: string, perfil: PerfilAcceso): PiezaDeLaApp[] {
-  const q = normalizarFrase(frase)
-  const nombradas = piezasPara(perfil)
-    .map((pieza) => ({ pieza, claves: clavesDe(pieza).filter((c) => q.includes(` ${c} `)) }))
-    .filter((n) => n.claves.length > 0)
+  const piezas = piezasPara(perfil)
+  const nombrarCon = (q: string) =>
+    piezas.map((pieza) => ({ pieza, claves: clavesDe(pieza).filter((c) => q.includes(` ${c} `)) })).filter((n) => n.claves.length > 0)
+  // Dictado con una letra de más, de menos o cambiada («albun», «hidracion», «cestionarios»): solo se tocan las palabras
+  // que el catálogo no conoce, y solo hacia una palabra del catálogo que sea la ÚNICA a esa distancia.
+  const nombradas = nombrarCon(normalizarFrase(corregirDictado(frase, piezas)))
   const masLarga = (claves: string[]) => claves.reduce((a, b) => (b.length > a.length ? b : a), '')
   // «de hoy» no nombra la pantalla Hoy cuando la frase ya nombra una tarjeta («el agua de hoy»): «hoy» suelto es un
   // complemento de tiempo, no un destino (hallazgo de la revisión adversarial, 10-nov).

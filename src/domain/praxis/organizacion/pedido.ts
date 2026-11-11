@@ -52,7 +52,7 @@ export type PedidoDeOrganizacion =
    * `frase` es la frase limpia (sin tildes, signos, muletillas ni rodeos) para buscar la pieza con el catálogo.
    * `borrar`: dijo «borra» o «elimina»; Praxis solo esconde la tarjeta y debe decirlo («no borra tus datos»).
    */
-  | { tipo: 'pedido'; verbo: VerboDeOrganizacion; frase: string; borrar?: boolean }
+  | { tipo: 'pedido'; verbo: VerboDeOrganizacion; frase: string; borrar?: boolean; suave?: boolean }
   | { tipo: 'ninguno' }
 
 /** Sin tildes, mayúsculas ni signos, con un solo espacio entre palabras. */
@@ -65,7 +65,7 @@ export function limpiarFrase(frase: string): string {
 
 /** Lo que se dice antes de la orden sin cambiarla. Solo al principio, y varias veces seguidas. */
 const MULETILLAS =
-  /^((oye|oiga|hola|praxis|mira|uy|ay|pues|bueno|entonces|listo|dale|ojo|a ver|disculpa|porfa|porfavor|por favor|la verdad|honestamente|como que mejor|hazme el favor y|hazme el favor de|hazme el favor|me puedes|puedes|podrias|me ayudas a|ayudame a|necesito que|quiero que|quisiera que|necesito)\s+)+/
+  /^((hey|oye|oiga|hola|praxis|mira|uy|ay|pues|bueno|entonces|listo|dale|ojo|a ver|disculpa|porfa|porfavor|por favor|la verdad|honestamente|como que mejor|hazme el favor y|hazme el favor de|hazme el favor|me puedes|puedes|podrias|me ayudas a|ayudame a|necesito que|quiero que|quisiera que|necesito|revisemos si|revisa si|revisame si|a ver si|mira si|ve si|cambiemos el orden de la app y|cambia el orden de la app y)\s+)+/
 
 // ---- Intenciones, de la más específica a la más general ----
 
@@ -74,14 +74,14 @@ const CAMBIO_ATRAS =
 const CAMBIO_ATRAS_SUELTO =
   /\b(ultimo cambio|ese cambio|ese ultimo cambio)\b|^(eso|lo) que (cambiaste|hiciste)\b.*\b(regresalo|devuelvelo|quitalo|deshazlo|regresala|devuelvela)\b|^(cancela|cancelalo|anula|anulalo|revierte|reviertelo)\b|\bvolvamos a como (estaba|estaban|antes)\b|^(dejame|deja|ponme|pon) lo anterior\b/
 const RESTABLECER_A_FABRICA =
-  /\b(de fabrica|por defecto|como el primer dia|como al principio|como al comienzo|como estaba al principio|como venia|como viene|configuracion inicial|a cero|desde cero|la organizacion completa)\b/
+  /\b(de fabrica|por defecto|como el primer dia|como al principio|como al comienzo|como estaba al principio|como venia|como viene|configuracion inicial|(la )?(app|aplicacion) de siempre|como (estaba|era) antes (la app|la aplicacion|todo)|a cero|desde cero|la organizacion completa)\b/
 const RESTABLECER_VERBO = /^(restablece|restablecer|reinicia|resetea|reseteame|reinicialo|limpiame la organizacion|limpia la organizacion)\b/
 const RESTABLECER_OBJETO = /\b(todo|la app|la pantalla|ponlo|dejalo|deja|quede|quedar|este|regresa|regresalo|devuelve|devuelvelo|vuelve|vuelve a|ya la cague)\b/
 const LISTAR_PUEDO = /^que (puedo|se puede|partes puedo|cosas puedo) (ocultar|mover|ordenar|cambiar)\b/
 // «oculte» y «quite» suenan igual dichos como pasado («qué oculté») o como orden («que no se oculte»): solo cuentan
 // pegados a la pregunta («qué quité», «lo que escondí»), nunca sueltos.
 const LISTAR_ESCONDIDAS =
-  /\b(que|cuales|cuantas) (cosas |partes |pestanas |tarjetas |piezas |pantallas )?(tengo|hay|he|tengo yo|es lo que) (escondid\w+|ocult\w+|quitad\w+|guardad\w+ fuera de la vista|fuera de la vista|que no me esta apareciendo|no me esta apareciendo|no se esta viendo|no se ve)\b|^(dime |recuerdame )?(que|cuales|cuantas|lo que|fue lo que)\s+(escondi|oculte|quite|ocultaste|escondiste|quitaste)\b|\b(que|cuales) (he|has) (ocultado|escondido|quitado)\b|^(lista|listame|ensename la lista|muestrame la lista|dame la lista|dime|recuerdame)\b.*\b(escondid\w+|ocult\w+|quitad\w+|no se (esta )?viendo)\b|\bya no me acuerdo cuales\b|\bcuales (son|eran)\b.*\b(escond|ocult|quit)/
+  /\b(que|cuales|cuantas) (cosas |partes? |areas? |pestanas |tarjetas |piezas |pantallas )?(de (la|mi) (app|aplicacion) )?(tengo|hay|he|tengo yo|es lo que) (escondid\w+|ocult\w+|quitad\w+|guardad\w+ fuera de la vista|fuera de la vista|que no me esta apareciendo|no me esta apareciendo|no se esta viendo|no se ve)\b|^(dime |recuerdame )?(que|cuales|cuantas|lo que|fue lo que)\s+(escondi|oculte|quite|ocultaste|escondiste|quitaste)\b|\b(que|cuales) (he|has) (ocultado|escondido|quitado)\b|^(lista|listame|ensename la lista|muestrame la lista|dame la lista|dime|recuerdame)\b.*\b(escondid\w+|ocult\w+|quitad\w+|no se (esta )?viendo)\b|\bya no me acuerdo cuales\b|\bcuales (son|eran)\b.*\b(escond|ocult|quit)/
 // Solo cuenta si la frase TERMINA en «lo importante»: «muéstrame solo lo básico de mi nutrición» pide otra cosa y no
 // activa un modo que esconde media app (hallazgo de la revisión adversarial, 10-nov).
 const SOLO_LO_IMPORTANTE =
@@ -89,14 +89,14 @@ const SOLO_LO_IMPORTANTE =
 // Quejas de ABURRIMIENTO o de inutilidad. A propósito NO entran las emocionales («me da ansiedad», «me da rabia»):
 // eso no es un pedido de organizar y lo atiende la conversación, no esta gramática.
 const QUEJA_FIN =
-  /\b(sobra|sobran|no me sirve|no me sirven|ni lo miro|ni la miro|ni los miro|ni las miro|ni lo veo|jamas (la|lo|las|los) abro|nunca (lo|la|las|los) (abro|uso|miro)|(lo|la|las|los) (jamas|nunca) (abro|uso|miro)|no (lo|la|las|los) uso|me parece inutil|me parece una perdedera|me tiene(n)? (mamad[oa]s?|harto|hartos)|no me interesa(n)?|no (lo|la|las|los) necesito|no (me )?aporta(n)?)\b|\bme (aburre|aburren|estorba|estorban|fastidia|fastidian)\s*(porfa|por favor)?\s*$/
+  /\b(sobra|sobran|no me sirve|no me sirven|ni lo miro|ni la miro|ni los miro|ni las miro|ni lo veo|jamas (la|lo|las|los) abro|nunca (lo|la|las|los) (abro|uso|miro)|(lo|la|las|los) (jamas|nunca) (abro|uso|miro)|no (lo|la|las|los) uso|me parece inutil|me parece una perdedera|me tiene(n)? (mamad[oa]s?|harto|hartos)|no me interesa(n)?|no (lo|la|las|los) necesito|no (me )?aporta(n)?|(llena|llenan) (la app|la pantalla)|no (lo |la |los |las )?necesito ver(lo|la|los|las)?)\b|\bme (aburre|aburren|estorba|estorban|fastidia|fastidian)\s*(porfa|por favor)?\s*$/
 const QUEJA_INICIO = /^(a mi )?(me )?(aburre|aburren|estorba|estorban|fastidia|fastidian)\b|^(que pereza|que fastidio)\b/
 const FIJAR_VERBO = /^(fija|fijame|fijalo|fijala|ancla|anclame|anclalo|anclala|mantenme)\b|^(dejame|deja|dejalo|dejala)\b.*\b(a la vista|siempre|visible|fij[oa]|pegad[oa])\b/
 const FIJAR_OBJETO =
   /\bque (quede|este|se quede|siga|esta)\b.*\b(fij[oa]|siempre visible|siempre a la vista|a la vista|pegad[oa]|anclad[oa])\b|\b(no quiero que|que no) (se me |se |me )?(oculte|esconda|desaparezca|escondan|vayan a esconder|se vaya|se vayan|quite|quiten)\b|\bsiempre (visible|a la vista|ahi|ver)\b|\bque quede siempre\b|\b(dejala|dejalo|dejalas|dejalos|quede|este|esta|ponla|ponlo)\b.*\bfij[oa]s?\b|\bno (vayas a|me vayas a)\b.*\b(quitar|ocultar|esconder)\w*\b.*\b(nunca|jamas)\b|\bno (se me |me )?(quite|oculte|esconda|desaparezca)\b.*\b(nunca|jamas)\b|\bque no se me (quite|oculte|esconda|desaparezca)\b/
-const MOVER_VERBO = /^(me )?(ponme|pon|ponla|ponlo|sube|subeme|subela|subelo|baja|bajame|bajala|bajalo|mueve|muevela|muevelo|pasa|pasame|manda|mandame|mandalo|mandala|llevame|llevalo|llevala|lleva|llevate|colocame|coloca|ubica|ubicame)\b/
+const MOVER_VERBO = /^(me )?(ponme|pon|ponla|ponlo|sube|subeme|subela|subelo|baja|bajame|bajala|bajalo|mueve|muevela|muevelo|pasa|pasame|manda|mandame|mandalo|mandala|llevame|llevalo|llevala|lleva|llevate|colocame|coloca|ubica|ubicame|deja|dejame|dejalo|dejala|dejalos|dejalas|colocamos|ponemos|pongamos|coloquemos|subamos|bajemos)\b/
 const HACIA_ARRIBA = /\b(arriba|primero|de primero|de primeras|al principio|encima|mas arriba|hasta arriba|al tope|a la cabeza|en lo alto|en la cima)\b|^(sube|subeme|subela|subelo)\b|\b(subelo|subela|subeme)\b/
-const HACIA_ABAJO = /\b(abajo|ultimo|de ultimo|de ultimas|al final|al fondo|hasta el fondo|hasta el final|debajo|mas abajo|pa abajo|para abajo|hasta abajo)\b|^(baja|bajame|bajala|bajalo)\b|\b(bajalo|bajala|bajame)\b/
+const HACIA_ABAJO = /\b(abajo|ultimo|de ultimo|de ultimas|al final|al fondo|hasta el fondo|hasta el final|debajo|mas abajo|pa abajo|para abajo|hasta abajo)\b|^(baja|bajame|bajala|bajalo|bajalos|bajalas)\b|\b(bajalo|bajala|bajame|bajalos|bajalas)\b/
 const MOVER_OBJETO_PRIMERO = /^(quiero |necesito |que |el |la |los |las |lo |mi |mis |ese |esa |esos |esas )/
 const PON_SIN_LUGAR = /^(ponme|pon|ponla|ponlo)\b/
 const QUITA_FAMILIA = /^(me )?(quita|quitas|quitame|quitalo|quitala|quitalos|quitalas|borra|borras|borrame|borralo|borrala|elimina|eliminas|eliminame|saca|sacas|sacame|retira|retirame|desaparece|desapareces|desaparezca|desaparezcas|quite|quites|borre|borres|elimine|elimines|saque|saques)\b/
@@ -108,7 +108,7 @@ const OCULTAR_VERBO =
 const OCULTAR_FRASE =
   /^(no me (muestres|ensenes|pongas|saques|salga|aparezca|muestre)|no quiero que (me )?(salga|salgan|aparezca|aparezcan|muestre|muestren|ponga|pongan|se vea|se vean)|quiero (ocultar|esconder|quitar)|ya no (quiero ver|mas con|quiero que|aparezca|me muestres)|que ya no (aparezca|salga|se vea)|no quiero ver)\b|\b(ocultalo|ocultala|ocultalos|ocultalas|escondelo|escondela|escondelos|borralo|borrala|quitalo|quitala|quitalos|quitalas)\s*(porfa|por favor)?\s*$|\b(de la vista|de la pantalla)\b.*$|\bya no (aparezca|aparezcan|salga|salgan|se vea|se vean)\b/
 const VER_VERBO =
-  /^(me )?(dejame ver|dejame mirar|muestrame|muestra|muestras|muestres|muestre|ensename|ensena|ensenes|abreme|abre|abres|abras|traeme|trae|traelo|traela|traigas|quiero ver|quisiera ver|necesito ver|vamos a|ve a|ir a|ver|pasame a|pasame al|llevame a|llevame al|ponme|pon|saca|sacame|saques|aparezca|aparezcan|pongas|ponga)\b/
+  /^(me )?(dejame ver|dejame mirar|muestrame|muestra|muestras|muestres|muestre|ensename|ensena|ensenes|abreme|abre|abres|abras|traeme|trae|traelo|traela|traigas|quiero ver|quisiera ver|necesito ver|vamos a|ve a|ir a|ver|pasame a|pasame al|llevame a|llevame al|ponme|pon|saca|sacame|saques|aparezca|aparezcan|pongas|ponga|revisa|revisame|revisemos|revisar|chequea|chequeame|miremos|veamos)\b/
 const VER_FRASE = /\bcomo (hago|puedo|hago pa|hago para) (ver|encontrar|sacar)\b|\b(otra vez|de nuevo)\b.*\b(quiero ver|tr[aá]elo|traelo|mostrar)\b|\b(traelo|traela|traelos|traelas)\s*(porfa|por favor)?\s*$|\b(aparezca|aparezcan)\b.*\b(pantalla|principal)\b|\bsacame\b.*\b(aqui|aca|pantalla)\b|\bsaques\b.*\b(aqui|aca|pantalla)\b/
 /** Una pregunta de entrenamiento o de nutrición no es una orden de organizar aunque lleve «muéstrame». */
 const ES_PREGUNTA_DE_CONTENIDO = /\bcomo (se |lo |la |los |las )?(hace|hacen|hago|respiro|respirar|debo|puedo|se)\b(?!.*\b(ver|encontrar|sacar)\b)|\bpara que (sirve|es)\b|\bpor que\b|\bcuanto\b|\bcuantas\b/
@@ -116,7 +116,13 @@ const ES_PREGUNTA_DE_CONTENIDO = /\bcomo (se |lo |la |los |las )?(hace|hacen|hag
 interface Intencion {
   verbo: VerboDeOrganizacion
   borrar?: boolean
+  /**
+   * «revisa…» pide ver algo, pero también abre preguntas de contenido («revisemos qué comidas me recomiendas»): si la
+   * frase no nombra ninguna pieza, NO se contesta «eso no existe», se deja a la conversación.
+   */
+  suave?: boolean
 }
+const REVISAR = /^(me )?(revisa|revisame|revisemos|revisar|chequea|chequeame|miremos|veamos)\b/
 
 /** Hacia dónde manda mover la frase, o `null` si no manda mover nada. */
 function direccionDeMover(t: string): 'mover_arriba' | 'mover_abajo' | null {
@@ -124,7 +130,7 @@ function direccionDeMover(t: string): 'mover_arriba' | 'mover_abajo' | null {
   const abajo = HACIA_ABAJO.test(t)
   if (MOVER_VERBO.test(t) && (arriba || abajo)) return abajo && !arriba ? 'mover_abajo' : 'mover_arriba'
   if (MOVER_OBJETO_PRIMERO.test(t) && arriba !== abajo) return arriba ? 'mover_arriba' : 'mover_abajo'
-  if (/\b(bajalo|bajala|bajame)\b/.test(t)) return 'mover_abajo'
+  if (/\b(bajalo|bajala|bajame|bajalos|bajalas)\b/.test(t)) return 'mover_abajo'
   if (/\b(subelo|subela|subeme)\b/.test(t)) return 'mover_arriba'
   return null
 }
@@ -160,7 +166,7 @@ const REGLAS: readonly { si: (t: string) => boolean; da: (t: string) => Intencio
   // Una pregunta de contenido con «muéstrame» no es una orden: se corta aquí.
   { si: (t) => ES_PREGUNTA_DE_CONTENIDO.test(t) && !VER_FRASE.test(t), da: () => null },
   // Traer.
-  { si: (t) => VER_FRASE.test(t) || VER_VERBO.test(t) || PON_SIN_LUGAR.test(t), da: dice('traer') },
+  { si: (t) => VER_FRASE.test(t) || VER_VERBO.test(t) || PON_SIN_LUGAR.test(t), da: (t) => ({ verbo: 'traer', ...(REVISAR.test(t) ? { suave: true } : {}) }) },
 ]
 
 function leerIntencion(t: string): Intencion | null {
@@ -182,5 +188,5 @@ export function leerPedidoDeOrganizacion(dicho: string): PedidoDeOrganizacion {
   const intencion = leerIntencion(t)
   if (!intencion) return { tipo: 'ninguno' }
   if (filtroDeRiesgo(dicho) || DE_SALUD.test(frase)) return { tipo: 'riesgo' }
-  return { tipo: 'pedido', verbo: intencion.verbo, frase: t, ...(intencion.borrar ? { borrar: true } : {}) }
+  return { tipo: 'pedido', verbo: intencion.verbo, frase: t, ...(intencion.borrar ? { borrar: true } : {}), ...(intencion.suave ? { suave: true } : {}) }
 }

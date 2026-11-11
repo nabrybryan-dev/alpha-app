@@ -44,7 +44,7 @@ const MUESTRA: [number, string, string, string, EstadoDeOrganizacion?][] = [
   [13, 'pon el agua de primera', 'ver', 'traer:nutricion.agua'],
   [14, 'oculta la bandeja', 'esconder', 'rechaza:sin_acceso'], // es del equipo: a un asesorado no le existe
   [15, 'quita las recetas de ahí', 'esconder', 'propone:ocultar:nutricion.recetas'],
-  [16, 'me aburre el álbum de fichas', 'Praxis le propone si lo esconde', 'sugiere_ocultar:logros.album'],
+  [16, 'me aburre el álbum de fichas', 'Praxis le propone si lo esconde', 'pregunta:hoy.album|logros.album'], // 11-nov: Bryan dijo «el álbum de fichas» pensando en Hoy; hay uno en Hoy y otro en Logros, así que se pregunta cuál
   [17, 'súbeme el chat con mi coach', 'mover', 'propone:mover_arriba:pantalla:/chat'],
   [19, 'ordéname hoy como lo tenía antes', 'mover o volver atrás', 'propone_deshacer', CON_CAMBIOS],
   [20, 'quiero ver mi progreso', 'ver', 'traer:pantalla:/progreso'],
