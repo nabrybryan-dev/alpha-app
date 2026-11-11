@@ -12,7 +12,8 @@
  *  - Un check-in con alguno de los 8 vacío queda `parcial` (decisión de Bryan, 7-nov: no da puntos hasta completarlo).
  *
  * Detrás de `CONECTORES_EN_TARJETA`: con ella, la conexión real de Praxis (`conexionReal.ts`) ofrece el check-in por
- * conectores; apagada, no existe y la frase sigue el camino de siempre.
+ * conectores; apagada (volviendo la bandera a `false`), no existe y la frase sigue el camino de siempre. Hoy está
+ * ENCENDIDA (7-nov-2026).
  */
 import type { Anotacion } from './anotaciones.ts'
 import type { PreguntaDeTramo, ResultadoConectores } from './conectores.ts'

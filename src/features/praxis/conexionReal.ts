@@ -61,7 +61,7 @@ export function crearConexionPraxis(
     guardar: async (p) => {
       const r = await guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() })
       if (!r.ok) return r
-      // Agua por la RPC (apagada por defecto): fija el total que devuelve la base. Ver `data/praxis/agua.ts`.
+      // Agua por la RPC (`PRAXIS_AGUA_POR_RPC`, encendida desde el 7-nov-2026): fija el total que devuelve la base. Ver `data/praxis/agua.ts`.
       return { ok: true, resultados: await aplicarAguaDePraxis({ usuarioId, mensajeId: p.mensajeId, registros: p.registros, resultados: r.resultados }) }
     },
     deshacer: {
@@ -69,7 +69,7 @@ export function crearConexionPraxis(
       // Agua deshecha: el teléfono fija el total que quedó en la base (ver `data/praxis/deshacer.ts`).
       confirmar: async (p) => deshacerRegistro(await sesionDeFunciones(), p, (fecha, ml) => fijarTotalDelDia(db.nutricion, usuarioId, fecha, ml)),
     },
-    // Check-in desde lo que la persona cuenta: SOLO con la bandera encendida (apagada = no existe y nada cambia).
+    // Check-in desde lo que la persona cuenta: SOLO con la bandera encendida (hoy lo está; apagada = no existe y nada cambia).
     ...(CONECTORES_EN_TARJETA ? {
       checkin: {
         yaHoy: () => camposLlenosHoy(db.bienestar.byUsuario(usuarioId).find((c) => c.fecha === hoy)),

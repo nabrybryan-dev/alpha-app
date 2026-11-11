@@ -228,7 +228,7 @@ async function decirCharlaDelModelo(c: ConexionPraxis, dicho: string, tok: numbe
   await dijo(texto, tok)
 }
 
-/** Primero el check-in por conectores (bandera apagada = no hace nada); si no lo toma, el registrador de siempre. */
+/** Primero el check-in por conectores (sin `checkin` en la conexión, o bandera apagada, no hace nada); si no lo toma, el registrador de siempre. */
 async function registrarOCheckin(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
   if (!ejercicioId && (await intentarCheckin(c, frase, tok, idMensaje))) return
   return registrar(c, frase, tok, ejercicioId, ch)
