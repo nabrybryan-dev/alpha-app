@@ -24,7 +24,7 @@ export interface EstadoTarjeta {
 
 /** Cómo se lee cada anotación en la tarjeta. */
 function rotuloDeAnotacion(a: Anotacion): string {
-  return a.tipo === 'recuperacion_zona' ? `Cuaderno: ¿cómo se recupera ${a.zona ?? 'esa zona'}?` : `Cuaderno: cómo te cayó la comida (${a.momento ?? 'otro'})`
+  return a.tipo === 'recuperacion_zona' ? `Cuaderno: ¿cómo se recupera ${a.zona ?? 'esa zona'}?` : `Cuaderno: cómo te cayó la comida (${a.alimento ? `${a.alimento}, ` : ''}${a.momento ?? 'otro'})`
 }
 
 export const BOTON_CUADERNO = 'Anotar en mi cuaderno'
