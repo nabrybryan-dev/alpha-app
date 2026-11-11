@@ -136,7 +136,7 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
   'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
     'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
-  // Tarjeta del check-in de los conectores (paso 2, 7-nov-2026), detrás de una bandera apagada.
+  // Tarjeta del check-in de los conectores (paso 2, 7-nov-2026), detrás de una bandera (hoy encendida).
   'src/domain/praxis/registro/lexicoPersona.ts#aprender':
     'Espejo en TypeScript de la regla de praxis_aprender_forma (0171: igual suma 1, distinto vuelve a 1): lo usan las pruebas ' +
     'para fijar la regla; en la app quien aprende es la base.',
