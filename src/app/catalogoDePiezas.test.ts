@@ -77,7 +77,9 @@ describe('inventario de las tarjetas de Hoy contra HoyPage.tsx', () => {
 })
 
 describe('inventario de las pantallas del asesorado (Entrenar a Logros) contra sus archivos', () => {
-  const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), 'utf8')
+  // Sin comentarios: una marca que solo sigue escrita en un comentario o en código muerto no cuenta como pieza viva.
+  const sinComentarios = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1')
+  const leer = (ruta: string) => sinComentarios(readFileSync(join(process.cwd(), ruta), 'utf8'))
 
   it('cada pieza vive en una pantalla que es destino, y su marca está en el archivo que dice', () => {
     for (const p of PIEZAS_DE_OTRAS_PANTALLAS) {
@@ -191,5 +193,24 @@ describe('buscar piezas por nombre hablado', () => {
 
   it('una frase que nombra dos piezas distintas las devuelve las dos para preguntar cuál', () => {
     expect(ids('quiero el álbum y el radar').sort()).toEqual(['hoy.album', 'hoy.radar'])
+  })
+})
+
+/**
+ * EL NIVEL DE CADA PIEZA, CONGELADO. Cambiar el nivel de una pieza (por ejemplo, bajar una fija a libre) cambia lo que
+ * una persona puede esconder: tiene que ser una decisión a propósito de Bryan, no un descuido. Si esta prueba falla
+ * porque cambiaste un nivel adrede, actualiza la lista de aquí y deja escrito quién lo decidió (revisión adversarial, 10-nov).
+ */
+describe('el nivel de cada pieza está congelado', () => {
+  const NIVELES: Record<string, readonly string[]> = {
+    fija: ['bienestar.checkin', 'bienestar.recordatorio', 'chat.conversacion', 'chat.remitente', 'entrenar.salon', 'hoy.actualizar-salud', 'hoy.aviso-sincronizacion', 'hoy.checkin', 'hoy.cuestionario-de-salud', 'hoy.encabezado', 'hoy.escribir-al-coach', 'hoy.permiso-avisos', 'pantalla:/', 'pantalla:/bienestar', 'pantalla:/chat', 'pantalla:/nutricion/al-dia', 'pantalla:/yo', 'pantalla:/yo/derechos', 'semana.chat', 'yo.avisos', 'yo.clave', 'yo.derechos'],
+    asignada: ['cuestionarios.pendientes', 'hoy.nutricion', 'hoy.pendientes', 'hoy.pregunta-del-dia', 'hoy.sesion', 'nutricion.comidas', 'pantalla:/cuestionarios', 'pantalla:/entrenar', 'pantalla:/nutricion', 'pantalla:/nutricion/plan', 'plan.contexto', 'plan.intercambios', 'plan.menus', 'plan.mercado', 'plan.ondulacion', 'plan.perfil', 'plan.suplementos', 'semana.responder'],
+    libre: ['bienestar.historial', 'bienestar.medidas', 'bienestar.mensajes-vida', 'bienestar.vida', 'contenidos.lista', 'cuestionarios.enviados', 'entrenar.camara', 'entrenar.tambor', 'hoy.album', 'hoy.bloque', 'hoy.carteles', 'hoy.cifras', 'hoy.contenidos', 'hoy.radar', 'hoy.semana', 'logros.album', 'logros.medallas', 'logros.nivel', 'logros.premios', 'logros.rachas', 'logros.ranking', 'nutricion.adherencia', 'nutricion.agua', 'nutricion.calibracion', 'nutricion.micros', 'nutricion.recetas', 'nutricion.resumen', 'nutricion.tira-semana', 'pantalla:/contenidos', 'pantalla:/logros', 'pantalla:/progreso', 'pantalla:/semana', 'progreso.checkins', 'progreso.competencias', 'progreso.escala', 'progreso.evolucion', 'progreso.fatiga', 'progreso.logros', 'progreso.medidas', 'progreso.velocidad', 'semana.dias', 'semana.mensajes-vida', 'semana.notas', 'semana.resumen', 'semana.revision', 'semana.vida', 'yo.buzon'],
+  }
+
+  it('cada pieza del asesorado tiene exactamente el nivel congelado, y ninguna queda sin nivel o sin listar', () => {
+    const real: Record<string, string[]> = { fija: [], asignada: [], libre: [] }
+    for (const p of piezasPara(ASESORADO)) (real[p.nivel] ??= []).push(p.id)
+    for (const nivel of ['fija', 'asignada', 'libre']) expect([...(real[nivel] ?? [])].sort(), nivel).toEqual([...NIVELES[nivel]!].sort())
   })
 })

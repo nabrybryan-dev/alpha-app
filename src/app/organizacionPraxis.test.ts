@@ -21,6 +21,7 @@ const resumen = (x: DecisionDeOrganizacion): string => {
   if (x.tipo === 'traer') return `traer:${x.pieza.id}`
   if (x.tipo === 'propone') return `propone:${x.accion}:${x.pieza.id}`
   if (x.tipo === 'rechaza') return `rechaza:${x.motivo}`
+  if (x.tipo === 'sugiere_ocultar') return `sugiere_ocultar:${x.pieza.id}`
   if (x.tipo === 'pregunta_cual') return `pregunta:${x.opciones.map((o) => o.id).sort().join('|')}`
   return x.tipo
 }
@@ -48,6 +49,7 @@ describe('leer el pedido: solo si la frase empieza con la orden', () => {
   it.each([
     'mi hermano ocultó todo',
     'mi hermano me dijo oculta el álbum', // la orden está dentro de otra frase: no empieza con ella
+    'mi hermano me dijo que oculte el celular mientras entreno', // «que oculte» suena igual que «qué oculté»: solo vale al principio de la frase
     'ayer le dije muéstrame el agua a mi prima',
     'toca ocultar el domingo',
     'me gusta el agua',
@@ -175,5 +177,83 @@ describe('preguntar cuál, deshacer y restablecer', () => {
 describe('casos del diseño: lo que no debe dispararse', () => {
   it.each(['mi hermano ocultó todo', 'toca ocultar fotos', 'me quitaron el agua'])('«%s» no organiza nada', (frase) => {
     expect(d(frase).tipo).toBe('no_es_organizacion')
+  })
+})
+
+describe('hallazgos de la revisión adversarial (10-nov)', () => {
+  it('ocultar una pantalla libre que lleva piezas fijas o asignadas dentro se rechaza («oculta mi semana» no esconde el chat con el coach)', () => {
+    expect(resumen(d('oculta mi semana'))).toBe('rechaza:contiene_piezas_protegidas')
+    expect(resumen(d('oculta Semana'))).toBe('rechaza:contiene_piezas_protegidas')
+  })
+
+  it('una pantalla libre SIN piezas protegidas sí se oculta, y «solo lo importante» no esconde pantallas con piezas protegidas', () => {
+    expect(resumen(d('oculta Logros'))).toBe('propone:ocultar:pantalla:/logros')
+    const x = d('déjame ver solo lo importante')
+    expect(x.tipo).toBe('propone_solo_lo_importante')
+    if (x.tipo !== 'propone_solo_lo_importante') return
+    expect(x.esconderia.some((p) => p.id === 'pantalla:/semana')).toBe(false)
+  })
+
+  it('«de hoy» no nombra la pantalla Hoy cuando la frase ya nombra una tarjeta', () => {
+    expect(resumen(d('ponme el agua de hoy arriba'))).toBe('propone:mover_arriba:nutricion.agua')
+    expect(resumen(d('muéstrame el agua de hoy'))).toBe('traer:nutricion.agua')
+  })
+
+  it('«borra» y «elimina» solo esconden la tarjeta y la decisión lo marca para decir que los datos NO se borran', () => {
+    const borra = d('borra el álbum')
+    expect(borra.tipo === 'propone' && borra.quisoBorrar).toBe(true)
+    const oculta = d('oculta el álbum')
+    expect(oculta.tipo === 'propone' && oculta.quisoBorrar).toBeFalsy()
+  })
+
+  it('«quita eso» con una pieza nombrada la esconde; sin pieza, pregunta qué quitar', () => {
+    expect(resumen(d('quita eso del álbum'))).toBe('propone:ocultar:hoy.album')
+    expect(d('quita eso').tipo).toBe('pregunta_que_quitar')
+  })
+
+  it('«solo lo importante» solo cuenta si la frase TERMINA ahí: «muéstrame solo lo básico de mi nutrición» no activa el modo', () => {
+    expect(d('muéstrame solo lo básico de mi nutrición').tipo).not.toBe('propone_solo_lo_importante')
+    expect(d('quiero ver solo lo importante').tipo).toBe('propone_solo_lo_importante')
+  })
+
+  it('preguntas de entrenamiento con «muéstrame» o «enséñame» no son órdenes de organizar', () => {
+    expect(d('muéstrame cómo se hace la sentadilla').tipo).toBe('no_es_organizacion')
+    expect(d('enséñame cómo respirar en el peso muerto').tipo).toBe('no_es_organizacion')
+  })
+
+  it('una queja emocional («me da ansiedad») no se convierte en oferta de esconder: la atiende la conversación', () => {
+    expect(d('ay no mis números me dan ansiedad').tipo).toBe('no_es_organizacion')
+  })
+})
+
+describe('cómo habla la gente de verdad (frases a ciegas, 10-nov): muletillas, rodeos, subjuntivo y objeto primero', () => {
+  it.each([
+    ['oye Praxis necesito que me muestres el agua', 'traer:nutricion.agua'],
+    ['mira uy esconde el radar por favor', 'propone:ocultar:hoy.radar'],
+    ['pues como que mejor oculta el álbum', 'propone:ocultar:hoy.album'],
+    ['hazme el favor y quitas el radar', 'propone:ocultar:hoy.radar'],
+    ['quiero que el radar ya no aparezca', 'propone:ocultar:hoy.radar'],
+    ['el agua más abajo porfa', 'propone:mover_abajo:nutricion.agua'],
+    ['quiero el agua arriba del todo', 'propone:mover_arriba:nutricion.agua'],
+    ['manda el radar pa abajo', 'propone:mover_abajo:hoy.radar'],
+    ['que el agua quede siempre visible', 'propone:fijar:nutricion.agua'],
+    ['el radar me aburre', 'sugiere_ocultar:hoy.radar'],
+    ['qué pereza el radar', 'sugiere_ocultar:hoy.radar'],
+  ])('«%s» → %s', (frase, esperado) => {
+    expect(resumen(d(frase))).toBe(esperado)
+  })
+
+  it.each([
+    ['restablece toda la app', 'propone_restablecer'],
+    ['pon la app en su configuración inicial', 'propone_restablecer'],
+    ['vuelve atrás porfa', 'propone_deshacer'],
+    ['anula lo anterior', 'propone_deshacer'],
+  ])('«%s» → %s (hay cambios que deshacer)', (frase, esperado) => {
+    expect(resumen(d(frase, { ocultas: new Set(), hayCambiosParaDeshacer: true }))).toBe(esperado)
+  })
+
+  it('«qué hay oculto en mi app» lista lo escondido, y «no quiero que se oculte el agua jamás» pide dejarla a la vista (no listar)', () => {
+    expect(d('qué hay oculto en mi app').tipo).toBe('lista_ocultas')
+    expect(resumen(d('no quiero que se oculte el agua jamás'))).toBe('propone:fijar:nutricion.agua')
   })
 })

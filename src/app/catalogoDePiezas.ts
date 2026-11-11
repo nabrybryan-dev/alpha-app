@@ -65,7 +65,7 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
 }
 
 /** Pantallas que no se ocultan por ser de cuidado o de ley. Lo demás que un asesorado abre es `libre`. */
-const PANTALLAS_FIJAS: ReadonlySet<string> = new Set(['/', '/yo', '/yo/derechos', '/chat', '/bienestar'])
+const PANTALLAS_FIJAS: ReadonlySet<string> = new Set(['/', '/yo', '/yo/derechos', '/chat', '/bienestar', '/nutricion/al-dia'])
 /** Pantallas que arma o asigna el equipo (microciclo, plan de nutrición, cuestionarios): se mueven, no se ocultan. */
 const PANTALLAS_ASIGNADAS: ReadonlySet<string> = new Set(['/entrenar', '/nutricion', '/nutricion/plan', '/cuestionarios'])
 
@@ -237,7 +237,11 @@ export function buscarPiezas(frase: string, perfil: PerfilAcceso): PiezaDeLaApp[
     .map((pieza) => ({ pieza, claves: clavesDe(pieza).filter((c) => q.includes(` ${c} `)) }))
     .filter((n) => n.claves.length > 0)
   const masLarga = (claves: string[]) => claves.reduce((a, b) => (b.length > a.length ? b : a), '')
+  // «de hoy» no nombra la pantalla Hoy cuando la frase ya nombra una tarjeta («el agua de hoy»): «hoy» suelto es un
+  // complemento de tiempo, no un destino (hallazgo de la revisión adversarial, 10-nov).
+  const hayTarjeta = nombradas.some((n) => n.pieza.tipo === 'tarjeta')
   return nombradas
+    .filter((n) => !(hayTarjeta && n.pieza.tipo === 'pantalla' && n.claves.every((c) => c === 'hoy')))
     .filter((n) => {
       const mia = masLarga(n.claves)
       return !nombradas.some((o) => o !== n && o.claves.some((c) => c.length > mia.length && c.includes(mia)))
