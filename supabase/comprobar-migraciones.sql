@@ -174,11 +174,12 @@ union all
 -- comprueba sobre TODAS las políticas de la tabla, se llamen como se llamen: tiene que
 -- haber al menos una que conceda por `es_coach()`, y NINGUNA puede nombrar `es_staff()`.
 -- Así sobrevive al siguiente renombre, que es lo que esta señal no hizo.
-select '0013 · acotar nutricionista', 'ninguna politica de checkins abre por es_staff',
+select '0013 · acotar nutricionista', 'ninguna politica de checkins abre por es_staff (concede por es_coach o por capacidad)',
        case when exists (
          select 1 from pg_policies
           where schemaname = 'public' and tablename = 'checkins'
-            and coalesce(qual, '') || coalesce(with_check, '') like '%es_coach()%'
+            and (coalesce(qual, '') || coalesce(with_check, '') like '%es_coach()%'
+                 or coalesce(qual, '') || coalesce(with_check, '') like '%tiene_capacidad(%')
        ) and not exists (
          select 1 from pg_policies
           where schemaname = 'public' and tablename = 'checkins'
@@ -990,6 +991,9 @@ select '0049 - firma de sincronizacion', 'ninguna tabla viva con la columna se q
           where c.table_schema = 'public' and c.column_name = 'actualizado_en'
             and tb.table_type = 'BASE TABLE'
             and c.table_name not like 'respaldo\_%'
+            -- 10-nov-2026: solo las tablas que la firma de sincronizacion nombra de verdad
+            -- (palabra entera). Las demas con la columna no alimentan la cache.
+            and pg_get_functiondef('public.firma_de_sincronizacion'::regproc) ~ ('\m' || c.table_name || '\M')
             and not exists (
               select 1 from pg_trigger tg
                 join pg_class cl on cl.oid = tg.tgrelid
@@ -1397,12 +1401,12 @@ union all
 -- una rotulada Y que no quede ninguna sin rotulo. Y se pide el rotulo con su `caduca`, no
 -- solo un comentario cualquiera, porque un respaldo sin fecha de caducidad es justo el
 -- problema que esta migracion cierra.
-select '0071 - los respaldos dicen para que existen', 'toda tabla de respaldo lleva rotulo con caduca, y hay al menos una',
-       case when exists (
-              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
-               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
-                 and obj_description(c.oid) ~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}')
-            and not exists (
+select '0071 - los respaldos dicen para que existen', 'toda tabla de respaldo que exista lleva rotulo con caduca',
+       -- 10-nov-2026 (D-17-188H): se quita «hay al menos una». Los 23 respaldos se borraron
+       -- de la base real con orden de Bryan; la senal pasaba a NO por haber cumplido su
+       -- fin. Se acepta que una base sin respaldos de SI: el efecto de la 0071 eran solo
+       -- comentarios sobre tablas que ya no existen, y la 0072 vigila el borrado.
+       case when not exists (
               select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
                where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
                  and (obj_description(c.oid) is null
@@ -1552,7 +1556,7 @@ select '0083 - capacidades del staff', 'capacidades_staff con RLS, tiene_capacid
             when has_table_privilege('anon', 'public.capacidades_staff', 'select') then 'NO'
             when to_regprocedure('public.tiene_capacidad(text)') is null then 'NO'
             when has_function_privilege('anon', 'public.tiene_capacidad(text)', 'execute') then 'NO'
-            when pg_get_functiondef(to_regprocedure('public.tiene_capacidad(text)')) not like '%search_path = public%' then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path=public%' from pg_proc p where p.oid = to_regprocedure('public.tiene_capacidad(text)')), false) then 'NO'
             when pg_get_functiondef(to_regprocedure('public.tiene_capacidad(text)')) not like '%SECURITY DEFINER%' then 'NO'
             else 'SI' end
 
@@ -1583,7 +1587,7 @@ select '0083 - un solo plan estrategico vigente por persona', 'indice unico parc
               select 1 from pg_indexes
                where schemaname = 'public' and tablename = 'planes_estrategicos'
                  and indexname = 'planes_estrategicos_un_vigente_por_persona'
-                 and indexdef like '%WHERE (vigente)%'
+                 and (indexdef like '%WHERE (vigente)%' or indexdef like '%WHERE vigente%')
             ) then 'NO'
             else 'SI' end
 
@@ -1611,7 +1615,7 @@ select '0083 - responder_como_staff no deja falsificar el actor', 'función pres
             when has_function_privilege('anon', 'public.responder_como_staff(text,jsonb)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.responder_como_staff(text,jsonb)', 'execute') then 'NO'
             when pg_get_functiondef(to_regprocedure('public.responder_como_staff(text,jsonb)')) not like '%tiene_capacidad(''responder_por_asesorado'')%' then 'NO'
-            when pg_get_functiondef(to_regprocedure('public.responder_como_staff(text,jsonb)')) not like '%search_path = public%' then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path=public%' from pg_proc p where p.oid = to_regprocedure('public.responder_como_staff(text,jsonb)')), false) then 'NO'
             else 'SI' end
 
 union all
@@ -1723,7 +1727,7 @@ select '0084 - registrar_firma no deja falsificar el actor ni saltarse el estado
             when has_function_privilege('anon', 'public.registrar_firma(uuid)', 'execute') then 'NO'
             when not has_function_privilege('authenticated', 'public.registrar_firma(uuid)', 'execute') then 'NO'
             when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%auth.uid()%' then 'NO'
-            when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%search_path = public%' then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path=public%' from pg_proc p where p.oid = to_regprocedure('public.registrar_firma(uuid)')), false) then 'NO'
             when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%SECURITY DEFINER%' then 'NO'
             when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%listo_para_firmar%' then 'NO'
             else 'SI' end
@@ -1771,7 +1775,7 @@ select '0086 - decidir_primer_plan y vencer_primer_plan', 'RPC con auth.uid(), s
             when has_function_privilege('anon', 'public.decidir_primer_plan(uuid,text,text)', 'execute') then 'NO'
             when has_function_privilege('authenticated', 'public.vencer_primer_plan()', 'execute') then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%auth.uid()%' then 'NO'
-            when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%search_path = public%' then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path=public%' from pg_proc p where p.oid = to_regprocedure('public.decidir_primer_plan(uuid,text,text)')), false) then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%autorizar_excepcion%' then 'NO'
             else 'SI' end
 union all
@@ -1825,7 +1829,7 @@ select '0087 - decidir_plan_estrategico y vencer_plan_estrategico', 'RPC con aut
             when has_function_privilege('authenticated', 'public.vencer_plan_estrategico()', 'execute') then 'NO'
             when has_function_privilege('authenticated', 'public.encender_plan_estrategico(uuid,text)', 'execute') then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%auth.uid()%' then 'NO'
-            when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%search_path = public%' then 'NO'
+            when not coalesce((select p.proconfig::text like '%search_path=public%' from pg_proc p where p.oid = to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')), false) then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%autorizar_excepcion%' then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%clinico%' then 'NO'
             else 'SI' end
