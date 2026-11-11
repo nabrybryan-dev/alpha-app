@@ -324,3 +324,20 @@ El estado de guardado sale de `DISENO-DESHACER-REAL-20261104.md` §1 [V] (series
 | Cuerpo 3D (salón) | Entrenar | Sí (traer el salón) | No | libre | El asesorado no ve cifras mecánicas |
 | Avisos, derechos y clave | Yo | Sí | No | fija | No se ocultan |
 | Datos de otros asesorados | Equipo | Solo el equipo | No | equipo | Un asesorado jamás los ve ni por nombre |
+
+## Anexo C. Corrida intensiva del 10-nov: hallazgos y decisiones de Bryan
+
+Tres agentes de solo lectura (auditoría de notificaciones, revisión adversarial, 285 frases habladas escritas a ciegas) y una prueba de estrés propia. Detalle y cifras en el PR #472.
+
+Hallazgos corregidos en el código (#472): una pantalla libre que contiene piezas fijas o asignadas no se oculta (el contenedor hereda lo más estricto); «de hoy» no nombra la pantalla Hoy cuando la frase nombra una tarjeta; «borra» y «elimina» solo esconden la tarjeta y la decisión lo marca; «solo lo importante» solo vale si la frase termina ahí; «Al día» es fija; el nivel de cada pieza está congelado en una prueba.
+
+Notificaciones [leído por un agente, sin ejecutar]: los push salen del servidor (`avisos-plan`) y no dependen de piezas en pantalla. Dependen de que la pieza se vea: el contador de no leídos de `BarraCoach`, el aviso de datos sin subir (`AvisoSinSincronizar`) y la puerta de alta de avisos de Hoy (`PedirPermiso`). El recordatorio de las 6 pm se apaga solo si ya hay check-in del día, así que el check-in debe seguir alcanzable.
+
+Gramática por reglas: 71 % de acierto en frases libres de examen (142), 0 falsos positivos de salud o de otro tema, 0 de 5.000 combinaciones de riesgo con órdenes organizan algo. Es el camino rápido; lo demás no se resuelve con más reglas.
+
+Decisiones de Bryan (10-nov, por selector):
+- (13) Las piezas fijas con señal propia (contador de mensajes sin leer, aviso de datos sin subir) se pueden mover, pero su señal sube a la barra de abajo para que se vea siempre. Falta diseñarlo y construirlo.
+- (14) Ocultar el peso o las medidas se permite con confirmación y el coach recibe un aviso corto SIN la frase (puede ser señal de conducta alimentaria). Falta definir el canal del aviso (`praxis_avisos_coach`, 0108) y su texto, que redacta Bryan.
+- (15) Lo que la gramática no entiende se pregunta («¿qué quisiste decir?») y, cuando el modelo propio esté listo, lo toma él. Sin modelo de pago.
+
+Siguen abiertas, sin decisión: qué pasa si el coach asigna algo dentro de un contenedor que la persona ya ocultó; ids guardados de piezas que dejan de existir (cuentan para el tope y no se listan); el historial de check-ins (`progreso.checkins`, `bienestar.historial`) es libre y contiene dolor y sueño; dos dispositivos que ocultan a la vez (el servidor debe recontar el tope); y la fuga de existencia («sin acceso» frente a «no existe»).
