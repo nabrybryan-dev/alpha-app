@@ -9,7 +9,7 @@ import type { PerfilAcceso } from './rutas'
  * tarjetas 1 a 9 del formulario «Cómo le pedirías a Praxis». Son el CONJUNTO DE AJUSTE: la gramática se corrigió
  * mirándolas, así que ya no miden acierto. Las tarjetas 10 a 18 quedan selladas como examen y NO se ven aquí.
  *
- * Antes de los ajustes la gramática entendía 5 de 22 (23 %) de estas frases; ahora 18 de 22. Las cuatro que siguen
+ * Antes de los ajustes la gramática entendía 5 de 22 (23 %) de estas frases; ahora 19 de 22. Las tres que siguen
  * sin entenderse están al final, con `todavía no`, para que se vea qué falta y no se pierdan.
  */
 const ASESORADO: PerfilAcceso = { rol: 'asesorado' as Rol, capacidades: new Set() }
@@ -44,11 +44,12 @@ const ENTIENDE: [string, string][] = [
   ['coloca la app por defecto', 'propone_restablecer'],
   ['quiero ver como estaba antes la app', 'propone_restablecer'],
   ['deja la app en su orden por defecto', 'propone_restablecer'],
+  // «coloccamos» (letra doble) se corrige a «colocamos»; el agua está en Nutrición y en los menús del plan, así que pregunta cuál.
+  ['revisemos si coloccamos de primero las cosas que menos anoto creo que es el agua', 'pregunta:nutricion.agua|plan.menus'],
 ]
 
 const TODAVIA_NO: string[] = [
   'colocame la hidracion en el menu', // «en el menú» no dice arriba ni abajo
-  'revisemos si coloccamos de primero las cosas que menos anoto creo que es el agua', // verbo con letra doble
   'como ya entrene colca la parte de entreno cada que termine de llenar abajo', // pide una regla («cada que»), no un movimiento
   'como estaremos de juiciosos con el plan', // no nombra una pantalla
 ]
