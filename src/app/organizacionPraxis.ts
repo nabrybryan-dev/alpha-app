@@ -1,5 +1,8 @@
 import type { Capacidad } from '../data/consola/capacidadesStaff'
-import { leerPedidoDeOrganizacion, type VerboDeOrganizacion } from '../domain/praxis/organizacion/pedido'
+import { DE_SALUD } from '../domain/praxis/ordenes/ordenesDeVoz'
+import type { LecturaDelModelo } from '../domain/praxis/organizacion/lectorModelo'
+import { limpiarFrase, leerPedidoDeOrganizacion, type VerboDeOrganizacion } from '../domain/praxis/organizacion/pedido'
+import { filtroDeRiesgo } from '../domain/praxis/riesgo'
 import { PIEZAS_DE_HOY, PIEZAS_DE_OTRAS_PANTALLAS, buscarPiezas, piezasPara, type PiezaDeLaApp } from './catalogoDePiezas'
 import type { PerfilAcceso } from './rutas'
 
@@ -52,7 +55,8 @@ export type DecisionDeOrganizacion =
   | { tipo: 'no_es_organizacion' }
   /** Era una orden de organizar que habla de salud: gana seguridad y no se organiza nada. */
   | { tipo: 'seguridad' }
-  | { tipo: 'traer'; pieza: PiezaDeLaApp }
+  /** `confirmar`: la leyó el modelo, no la gramática; se enseña con un botón «¿te llevo ahí?» antes de abrir (nunca abre solo). */
+  | { tipo: 'traer'; pieza: PiezaDeLaApp; confirmar?: boolean }
   /** Se propone con tarjeta y dos botones; todavía no pasó nada. */
   | { tipo: 'propone'; accion: AccionDeOrganizacion; pieza: PiezaDeLaApp; quisoBorrar?: boolean }
   | { tipo: 'propone_deshacer' }
@@ -107,6 +111,37 @@ export function decidirParaPieza(verbo: VerboDeOrganizacion, pieza: PiezaDeLaApp
   return { tipo: 'no_es_organizacion' }
 }
 
+function decidirSoloLoImportante(perfil: PerfilAcceso, estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
+  return { tipo: 'propone_solo_lo_importante', esconderia: piezasPara(perfil).filter((p) => p.nivel === 'libre' && !estado.ocultas.has(p.id) && !(p.tipo === 'pantalla' && contienePiezasProtegidas(p.pantalla))) }
+}
+
+function decidirListarOcultas(perfil: PerfilAcceso, estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
+  return { tipo: 'lista_ocultas', piezas: piezasPara(perfil).filter((p) => estado.ocultas.has(p.id)) }
+}
+
+/**
+ * La decisión cuando quien leyó la frase fue el MODELO con menú cerrado (`domain/praxis/organizacion/lectorModelo.ts`),
+ * no la gramática. Los candados son los mismos que con la gramática: el modelo solo elige, nunca ejecuta ni salta un
+ * nivel. Una pieza que no existe para esta persona no organiza nada.
+ */
+export function decidirConLectura(lectura: LecturaDelModelo, perfil: PerfilAcceso, estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
+  const { verbo, pieza } = lectura
+  if (verbo === 'restablecer') return { tipo: 'propone_restablecer' }
+  if (verbo === 'solo_lo_importante') return decidirSoloLoImportante(perfil, estado)
+  if (verbo === 'listar_ocultas') return decidirListarOcultas(perfil, estado)
+  if (verbo === 'ninguno') return { tipo: 'no_es_organizacion' }
+  const elegida = piezasPara(perfil).find((p) => p.id === pieza)
+  if (!elegida) return { tipo: 'no_es_organizacion' }
+  const decision = decidirParaPieza(verbo, elegida, estado)
+  // Lo que lee el modelo nunca se ejecuta solo: ni siquiera «traer», que no cambia nada guardado, abre sin preguntar.
+  return decision.tipo === 'traer' ? { ...decision, confirmar: true } : decision
+}
+
+/** ¿Se puede consultar al modelo con esta frase? No si habla de salud o de riesgo: eso lo atiende el camino de seguridad. */
+export function sePuedeConsultarAlModelo(frase: string): boolean {
+  return !filtroDeRiesgo(frase) && !DE_SALUD.test(limpiarFrase(frase))
+}
+
 export function decidirOrganizacion(frase: string, perfil: PerfilAcceso, estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
   const pedido = leerPedidoDeOrganizacion(frase)
   if (pedido.tipo === 'ninguno') return { tipo: 'no_es_organizacion' }
@@ -117,10 +152,8 @@ export function decidirOrganizacion(frase: string, perfil: PerfilAcceso, estado:
   if (verbo === 'restablecer') return { tipo: 'propone_restablecer' }
   if (verbo === 'listar') return { tipo: 'lista', libres: piezasPara(perfil).filter((p) => p.nivel === 'libre') }
 
-  if (verbo === 'solo_lo_importante') {
-    return { tipo: 'propone_solo_lo_importante', esconderia: piezasPara(perfil).filter((p) => p.nivel === 'libre' && !estado.ocultas.has(p.id) && !(p.tipo === 'pantalla' && contienePiezasProtegidas(p.pantalla))) }
-  }
-  if (verbo === 'listar_ocultas') return { tipo: 'lista_ocultas', piezas: piezasPara(perfil).filter((p) => estado.ocultas.has(p.id)) }
+  if (verbo === 'solo_lo_importante') return decidirSoloLoImportante(perfil, estado)
+  if (verbo === 'listar_ocultas') return decidirListarOcultas(perfil, estado)
 
   const candidatas = buscarPiezas(pedido.frase, perfil)
   if (verbo === 'sugerir_ocultar') return decidirQueja(candidatas, estado)
