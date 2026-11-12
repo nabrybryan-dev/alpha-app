@@ -98,7 +98,7 @@ export type ResultadoAnotar =
 
 /**
  * Anota en el cuaderno de la persona (RPC `praxis_anotar_patron`, 0176) lo que ella tocó en la tarjeta. Una clave por
- * mensaje y posición: tocar dos veces no duplica. El alimento no se manda (queda vacío). Nunca lanza; el aviso de fallo
+ * mensaje y posición: tocar dos veces no duplica. El alimento va solo si la persona lo dijo (la tarjeta se lo muestra). Nunca lanza; el aviso de fallo
  * es de texto fijo: ni la persona ni la frase viajan en él.
  */
 export async function anotarPatron(
@@ -114,7 +114,7 @@ export async function anotarPatron(
     let anotadas = 0
     for (const [i, a] of lista.entries()) {
       const r = await d.rpc(RPC_ANOTAR_PATRON, {
-        p_tipo: a.tipo, p_zona: a.zona ?? null, p_momento: a.momento ?? null, p_alimento: null,
+        p_tipo: a.tipo, p_zona: a.zona ?? null, p_momento: a.momento ?? null, p_alimento: a.tipo === 'reaccion_comida' ? (a.alimento ?? null) : null,
         p_cita: a.cita, p_clave: `${entrada.mensajeId}:${i}`.slice(0, 80),
       })
       if (r.error?.code === 'PGRST202') return { ok: false, motivo: 'sin_migracion' }

@@ -58,7 +58,7 @@ export interface ConexionPraxis {
     confirmar: (p: { tarjeta: TarjetaFirmada; mensajeId: string }) => Promise<ResultadoDeshacer>
   }
   /**
-   * El check-in desde lo que la persona cuenta (conectores; `CONECTORES_EN_TARJETA`). AUSENTE = apagado: la frase sigue el
+   * El check-in desde lo que la persona cuenta (conectores; `CONECTORES_EN_TARJETA`). AUSENTE = apagado (la bandera hoy está encendida): la frase sigue el
    * camino de siempre. `yaHoy` = cuáles de los 8 ya están llenos hoy; `lexico` = lo aprendido de quien tiene la sesión;
    * `guardar` solo se llama tras el toque en «Anotar». Nunca lanzan.
    */

@@ -9,8 +9,8 @@ import { h } from './dom'
  * deshacer (`tarjeta-registro`, `chip`, `btn-plata`).
  *
  * Regla madre: NADA se anota sin el toque de la persona. Lo que Praxis marcó se ve marcado, pero solo cuenta lo que se
- * toca; «No anotar» deja la fila fuera. Detrás de `CONECTORES_EN_TARJETA` (apagada): nadie la monta todavía, y
- * `alConfirmar` recibe lo confirmado sin guardarlo (el guardado por el libro es el paso 4).
+ * toca; «No anotar» deja la fila fuera. Detrás de `CONECTORES_EN_TARJETA` (encendida desde el 7-nov-2026). Escrito
+ * en el paso 2, cuando aún nadie la montaba; hoy la monta `checkinConectado.ts`.
  */
 const NO_ANOTAR = 'No anotar'
 export const BOTON_ANOTAR = 'Anotar lo que marqué'
@@ -24,7 +24,7 @@ export interface EstadoTarjeta {
 
 /** Cómo se lee cada anotación en la tarjeta. */
 function rotuloDeAnotacion(a: Anotacion): string {
-  return a.tipo === 'recuperacion_zona' ? `Cuaderno: ¿cómo se recupera ${a.zona ?? 'esa zona'}?` : `Cuaderno: cómo te cayó la comida (${a.momento ?? 'otro'})`
+  return a.tipo === 'recuperacion_zona' ? `Cuaderno: ¿cómo se recupera ${a.zona ?? 'esa zona'}?` : `Cuaderno: cómo te cayó la comida (${a.alimento ? `${a.alimento}, ` : ''}${a.momento ?? 'otro'})`
 }
 
 export const BOTON_CUADERNO = 'Anotar en mi cuaderno'

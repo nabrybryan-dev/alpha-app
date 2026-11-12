@@ -56,7 +56,15 @@ describe('inventario de las tarjetas de Hoy contra HoyPage.tsx', () => {
   const cola = texto.slice(texto.indexOf(marca))
   const claves = new Set<string>()
   for (const m of cola.matchAll(/^\s*\{(\w+)\}\s*$/gm)) claves.add(m[1])
-  for (const m of cola.matchAll(/<([A-Z]\w+)/g)) if (!['Suspense', 'ElResto'].includes(m[1])) claves.add(m[1])
+  for (const m of cola.matchAll(/<([A-Z]\w+)/g)) if (!['Suspense', 'ElResto', 'Fragment'].includes(m[1])) claves.add(m[1])
+  // Las bandas que obedecen la organización guardada escriben `['id', tarjeta]`: el id tiene que ser el de esa tarjeta.
+  const parejas = [...cola.matchAll(/\[\s*'([\w.:/-]+)',\s*(?:(\w+)|<Suspense[^>]*>\s*<(\w+))/g)].map((m) => ({ id: m[1]!, clave: (m[2] ?? m[3])! }))
+  for (const p of parejas) claves.add(p.clave)
+
+  it('en las bandas que obedecen lo organizado, cada id es el de su tarjeta', () => {
+    expect(parejas.length).toBeGreaterThanOrEqual(10)
+    for (const p of parejas) expect(PIEZAS_DE_HOY.find((x) => x.id === p.id)?.enCodigo, p.id).toBe(p.clave)
+  })
 
   it('el lector de HoyPage ve la banda del asesorado (no se quedó corto)', () => {
     expect(texto.includes(marca)).toBe(true)
