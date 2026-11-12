@@ -35,6 +35,7 @@ import { RecuadroAntes } from './recuadros/RecuadroAntes'
 import { RecuadroPatron } from './recuadros/RecuadroPatron'
 import { ImplementosDelSalon } from '../implementos/ImplementosDelSalon'
 import type { ImplementosDeSesion } from '../implementos/implementosDeSesion'
+import { useDisenoFinal } from '../../../../app/organizacionViva'
 import { MuroDeCampos } from '../paredes/PanelPared'
 import { MURO_DERECHO } from '../paredes/muros'
 import { hayEncuadre, type ContenidoDePared } from '../paredes/contenidoPared'
@@ -184,7 +185,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     diaElegido = null,
     maqueta,
   } = props
-  const clases = clasesDeLaHoja(maqueta)
+  const clases = clasesDeLaHoja(useDisenoFinal(maqueta))
 
   /** Las sesiones hechas de las programadas. Sube al rótulo del tramo de «La semana». */
   const sesionesDeLaSemana = resumenSemana(semana)
