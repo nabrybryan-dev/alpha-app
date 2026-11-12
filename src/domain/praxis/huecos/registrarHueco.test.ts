@@ -75,8 +75,9 @@ describe('la tabla de huecos no guarda nada que identifique', () => {
     expect(cuerpo).not.toMatch(/user_id|usuario|persona_id|asesorado|correo|email|nombre|auth\.users|session|sesion|ip_/i)
   })
 
-  it('la migración tiene el tope de 300, RLS, solo el equipo lee, solo service_role escribe y la cabecera NO APLICADA', () => {
-    expect(sql).toMatch(/NO APLICADA/)
+  it('la migración tiene el tope de 300, RLS, solo el equipo lee, solo service_role escribe y la cabecera que dice que ya está APLICADA', () => {
+    expect(sql).toMatch(/APLICADA en la base real/)
+    expect(sql).not.toMatch(/NO APLICADA/)
     expect(sql).toMatch(/length\(frase_limpia\) <= 300/)
     expect(sql).toMatch(/enable row level security/)
     expect(sql).toMatch(/using \(\(select public\.es_staff\(\)\)\)/)

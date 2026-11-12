@@ -2,13 +2,15 @@
 -- 0180 · Praxis: la cola de huecos (preguntas que no tuvieron pieza aprobada)
 -- ============================================================================
 --
--- NO APLICADA. Escrita el 12-nov-2026 en la rama praxis/huecos-sin-ficha-apagado (PR borrador sobre #480).
--- No se aplica hasta que Bryan lo decida, con el equipo que revisa migraciones. Nada la llama hoy: la Edge Function
--- `praxis-charla` solo escribe aquí si PRAXIS_HUECOS_ENCOLAR=1 (apagada por defecto) y la función está sin desplegar.
+-- APLICADA en la base real (proyecto sbzmbiwrnvegrticatza) el 12-nov-2026 por orden escrita de Bryan, con el mismo cuerpo
+-- de esta migración. Escrita en la rama praxis/huecos-sin-ficha-apagado (PR borrador sobre #480). Verificado tras aplicar:
+-- 7 columnas sin persona, RLS activa, anon sin permisos, authenticated solo SELECT, service_role todo, 0 filas.
+-- Nada la llama hoy: la Edge Function `praxis-charla` solo escribe aquí si PRAXIS_HUECOS_ENCOLAR=1 (apagada por defecto)
+-- y la función está sin desplegar.
 --
 -- NÚMERO. 0180: la base (list_migrations, 12-nov) llega a 0179 (praxis_organizacion); en las ramas de origin, 0178 es
 -- creadores_desde_landing y 0179 es praxis_organizacion (#482 y su rama hermana). 0180 era el siguiente libre mirando ramas Y base.
--- Antes de aplicar: volver a mirar origin/* y schema_migrations por si alguien tomó 0180.
+-- Comprobado antes de aplicar (12-nov): 0180 libre en origin/* y en schema_migrations.
 --
 -- QUÉ GUARDA. Una fila por TEMA: `tema_clave` es la agrupación gruesa de `normalizarHueco` (palabras del vocabulario
 -- permitido, sin repetir, ordenadas). `frase_limpia` es UNA frase de ejemplo (la primera que llegó), ya pasada por el
