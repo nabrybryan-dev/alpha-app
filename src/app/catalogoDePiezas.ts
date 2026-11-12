@@ -1,3 +1,4 @@
+import { corregirPalabras } from '../domain/praxis/organizacion/dictado'
 import { normalizarNombre } from '../domain/praxis/ordenes/normalizarNombre'
 import { destinosPara, esEquipo } from './destinosPraxis'
 import { buscarRuta, resolverAcceso, type PerfilAcceso } from './rutas'
@@ -52,9 +53,9 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
   '/': ['hoy', 'mi dia', 'inicio'],
   '/entrenar': ['mi entreno', 'mi ruta de entreno', 'mi plan de entreno'],
   '/semana': ['mi semana'],
-  '/progreso': ['mi progreso', 'como voy'],
+  '/progreso': ['mi progreso', 'como voy', 'mi avance', 'que tanto he avanzado'],
   '/nutricion': ['mi nutricion', 'mi diario de comidas'],
-  '/nutricion/plan': ['mi plan de comida'],
+  '/nutricion/plan': ['mi plan de comida', 'el plan de comida'],
   '/bienestar': ['mi bienestar', 'mi check in diario'],
   '/chat': ['mi equipo', 'mensajes'],
   '/cuestionarios': ['mis cuestionarios', 'mis encuestas'],
@@ -65,7 +66,9 @@ export const SINONIMOS_DE_PANTALLA: Readonly<Record<string, readonly string[]>> 
 }
 
 /** Pantallas que no se ocultan por ser de cuidado o de ley. Lo demás que un asesorado abre es `libre`. */
-const PANTALLAS_FIJAS: ReadonlySet<string> = new Set(['/', '/yo', '/yo/derechos', '/chat', '/bienestar'])
+const PANTALLAS_FIJAS: ReadonlySet<string> = new Set(['/', '/yo', '/yo/derechos', '/chat', '/bienestar', '/nutricion/al-dia'])
+/** Pantallas que arma o asigna el equipo (microciclo, plan de nutrición, cuestionarios): se mueven, no se ocultan. */
+const PANTALLAS_ASIGNADAS: ReadonlySet<string> = new Set(['/entrenar', '/nutricion', '/nutricion/plan', '/cuestionarios'])
 
 /** Un asesorado cualquiera: el oráculo para saber si una pantalla es del equipo. */
 const ASESORADO_DE_REFERENCIA: PerfilAcceso = { rol: 'asesorado', capacidades: new Set() }
@@ -73,7 +76,8 @@ const ASESORADO_DE_REFERENCIA: PerfilAcceso = { rol: 'asesorado', capacidades: n
 function nivelDePantalla(patron: string): NivelDePieza {
   const fila = buscarRuta(patron)
   if (fila && resolverAcceso(fila, ASESORADO_DE_REFERENCIA).tipo !== 'entra') return 'equipo'
-  return PANTALLAS_FIJAS.has(patron) ? 'fija' : 'libre'
+  if (PANTALLAS_FIJAS.has(patron)) return 'fija'
+  return PANTALLAS_ASIGNADAS.has(patron) ? 'asignada' : 'libre'
 }
 
 /** Las tarjetas de Hoy del asesorado, en el orden en que `HoyPage.tsx` las compone. */
@@ -82,10 +86,10 @@ export const PIEZAS_DE_HOY: readonly PiezaDeLaApp[] = [
   { id: 'hoy.aviso-sincronizacion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el aviso de sincronización', sinonimos: ['lo que no se ha subido'], nivel: 'fija', enCodigo: 'avisoSync', porConfirmar: true },
   { id: 'hoy.permiso-avisos', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el permiso de avisos', sinonimos: ['activar las notificaciones'], nivel: 'fija', enCodigo: 'permiso', porConfirmar: true },
   { id: 'hoy.cuestionario-de-salud', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el cuestionario de salud', sinonimos: ['mi ficha de salud'], nivel: 'fija', enCodigo: 'cribado' },
-  { id: 'hoy.sesion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la sesión de hoy', sinonimos: ['mi sesion', 'mi entreno de hoy'], nivel: 'asignada', enCodigo: 'tarjetaSesion' },
+  { id: 'hoy.sesion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la sesión de hoy', sinonimos: ['mi sesion', 'mi entreno de hoy', 'el entreno de hoy', 'la seccion de entreno de hoy', 'la sesion de entrenamiento', 'mi sesion de entrenamiento', 'el entrenamiento de hoy'], nivel: 'asignada', enCodigo: 'tarjetaSesion' },
   { id: 'hoy.carteles', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los carteles del día', sinonimos: ['los avisos de mi semana'], nivel: 'libre', enCodigo: 'carteles', porConfirmar: true },
   { id: 'hoy.pregunta-del-dia', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la pregunta del día', sinonimos: ['lo que me pregunto la cadena'], nivel: 'asignada', enCodigo: 'preguntaDeLaCadena' },
-  { id: 'hoy.checkin', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el check-in del día', sinonimos: ['mi check in', 'como amanecí'], nivel: 'fija', enCodigo: 'checkinDelAsesorado' },
+  { id: 'hoy.checkin', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el check-in del día', sinonimos: ['mi check in', 'el check in', 'como amanecí'], nivel: 'fija', enCodigo: 'checkinDelAsesorado' },
   { id: 'hoy.nutricion', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la nutrición de hoy', sinonimos: ['mi comida de hoy', 'lo que como hoy'], nivel: 'asignada', enCodigo: 'MiNutricionDeHoy' },
   { id: 'hoy.pendientes', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los pendientes de hoy', sinonimos: ['lo que me falta hoy'], nivel: 'asignada', enCodigo: 'listaPendientes', porConfirmar: true },
   { id: 'hoy.semana', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'la revisión de la semana', sinonimos: ['la tarjeta de la semana', 'mi semana en hoy'], nivel: 'libre', enCodigo: 'revision' },
@@ -93,7 +97,7 @@ export const PIEZAS_DE_HOY: readonly PiezaDeLaApp[] = [
   { id: 'hoy.actualizar-salud', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'actualizar mi salud', sinonimos: ['cambio en mi salud'], nivel: 'fija', enCodigo: 'volverAContarSalud', porConfirmar: true },
   { id: 'hoy.cifras', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'mis cifras', sinonimos: ['mi racha', 'racha peso y adherencia'], nivel: 'libre', enCodigo: 'cifras' },
   { id: 'hoy.bloque', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'mi bloque', sinonimos: ['el bloque actual'], nivel: 'libre', enCodigo: 'bloqueActual' },
-  { id: 'hoy.album', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el álbum', sinonimos: ['mis stickers'], nivel: 'libre', enCodigo: 'album' },
+  { id: 'hoy.album', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el álbum', sinonimos: ['mis stickers', 'el album de fichas', 'las fichas'], nivel: 'libre', enCodigo: 'album' },
   { id: 'hoy.radar', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'el radar', sinonimos: ['las noticias de alpha'], nivel: 'libre', enCodigo: 'radar' },
   { id: 'hoy.contenidos', tipo: 'tarjeta', pantalla: '/', nombreHablado: 'los contenidos de hoy', sinonimos: ['tecnica y educacion'], nivel: 'libre', enCodigo: 'contenidos' },
 ]
@@ -153,7 +157,7 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   // ---- Progreso ----
   { id: 'progreso.evolucion', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mi evolución', sinonimos: ['como he cambiado'], nivel: 'libre', fuente: PROGRESO, enCodigo: '<ProgresoEvolucion', porConfirmar: true },
   { id: 'progreso.checkins', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'el historial de check-ins', sinonimos: ['mis check ins anteriores'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="checkins"', porConfirmar: true },
-  { id: 'progreso.medidas', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="medidas"' },
+  { id: 'progreso.medidas', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas', 'las medidas'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="medidas"' },
   { id: 'progreso.logros', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis logros y nivel', sinonimos: ['mis medallas', 'mi nivel', 'mi racha'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="logros"' },
   { id: 'progreso.competencias', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mis competencias', sinonimos: ['mis competencias evaluadas'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="competencias"', porConfirmar: true },
   { id: 'progreso.escala', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'la escala alfa', sinonimos: ['mis niveles de alfa'], nivel: 'libre', fuente: PROGRESO, enCodigo: 'data-bloque="escala-alfa"', porConfirmar: true },
@@ -161,8 +165,8 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   { id: 'progreso.velocidad', tipo: 'tarjeta', pantalla: '/progreso', nombreHablado: 'mi velocidad', sinonimos: ['mi historial de velocidad'], nivel: 'libre', fuente: PROGRESO, enCodigo: '<HistorialDeVelocidad', porConfirmar: true },
   // ---- Bienestar ----
   { id: 'bienestar.recordatorio', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el recordatorio de las 6 pm', sinonimos: ['el aviso de las seis'], nivel: 'fija', fuente: BIENESTAR, enCodigo: 'Recordatorio de las 6 pm', porConfirmar: true },
-  { id: 'bienestar.checkin', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el formulario de check-in', sinonimos: ['mi check in diario'], nivel: 'fija', fuente: BIENESTAR, enCodigo: '<CheckinForm' },
-  { id: 'bienestar.medidas', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MedidasCard' },
+  { id: 'bienestar.checkin', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el formulario de check-in', sinonimos: ['mi check in diario', 'el check in'], nivel: 'fija', fuente: BIENESTAR, enCodigo: '<CheckinForm' },
+  { id: 'bienestar.medidas', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mis medidas y peso', sinonimos: ['mi peso', 'mis medidas', 'las medidas'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MedidasCard' },
   { id: 'bienestar.mensajes-vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'los mensajes de estilo de vida', sinonimos: ['mis mensajes de habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<MensajesVidaBandeja', porConfirmar: true },
   { id: 'bienestar.vida', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'mi estilo de vida', sinonimos: ['mis habitos'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<TarjetaVidaCard' },
   { id: 'bienestar.historial', tipo: 'tarjeta', pantalla: '/bienestar', nombreHablado: 'el historial de check-ins', sinonimos: ['mis check ins anteriores'], nivel: 'libre', fuente: BIENESTAR, enCodigo: '<HistorialDeCheckins', porConfirmar: true },
@@ -182,8 +186,8 @@ export const PIEZAS_DE_OTRAS_PANTALLAS: readonly PiezaDeLaApp[] = [
   // ---- Logros ----
   { id: 'logros.nivel', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi nivel y mis puntos', sinonimos: ['mis xp', 'mi progreso de nivel'], nivel: 'libre', fuente: LOGROS, enCodigo: 'XP acumulados', porConfirmar: true },
   { id: 'logros.rachas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis rachas', sinonimos: ['mi racha'], nivel: 'libre', fuente: LOGROS, enCodigo: '<TiraDeRachas', porConfirmar: true },
-  { id: 'logros.ranking', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'el ranking del equipo', sinonimos: ['la tabla de posiciones'], nivel: 'libre', fuente: LOGROS, enCodigo: '<RankingEquipo', porConfirmar: true },
-  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['mis fichas panini', 'mis stickers'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
+  { id: 'logros.ranking', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'el ranking del equipo', sinonimos: ['el ranking', 'la tabla de posiciones'], nivel: 'libre', fuente: LOGROS, enCodigo: '<RankingEquipo', porConfirmar: true },
+  { id: 'logros.album', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mi álbum de fichas', sinonimos: ['el album de fichas', 'mis fichas panini', 'mis stickers', 'las fichas'], nivel: 'libre', fuente: LOGROS, enCodigo: '<FichaPanini', porConfirmar: true },
   { id: 'logros.medallas', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis medallas', sinonimos: ['mis logros desbloqueados'], nivel: 'libre', fuente: LOGROS, enCodigo: '<Medalla', porConfirmar: true },
   { id: 'logros.premios', tipo: 'tarjeta', pantalla: '/logros', nombreHablado: 'mis premios', sinonimos: ['lo que he ganado'], nivel: 'libre', fuente: LOGROS, enCodigo: 'premio.titulo', porConfirmar: true },
 ]
@@ -218,18 +222,37 @@ function clavesDe(p: PiezaDeLaApp): string[] {
   return [p.nombreHablado, ...p.sinonimos].map((n) => limpiar(n).replace(ARTICULO, '')).filter((n) => n.length > 2)
 }
 
+function corregirDictado(frase: string, piezas: PiezaDeLaApp[]): string {
+  const vocabulario = new Set(piezas.flatMap((p) => clavesDe(p).flatMap((c) => c.split(' '))).filter((w) => w.length >= 5))
+  return corregirPalabras(limpiar(frase), vocabulario)
+}
+
 function normalizarFrase(frase: string): string {
   return ` ${limpiar(frase)} `
 }
 
 /**
- * Qué piezas nombra una frase. Una pieza cuyo nombre queda DENTRO del de otra que también se nombró se descarta
- * («la nutrición de hoy» gana a «Nutrición»). Si queda más de una, quien llama pregunta cuál (máximo 3), no elige.
+ * Qué piezas nombra una frase. Una pieza se descarta si lo que la nombró queda DENTRO de lo que nombró a otra
+ * («la nutrición de hoy» gana a «Nutrición»; «el check-in del día» gana a «el check-in»; «el álbum de fichas»
+ * gana a «el álbum»). Si queda más de una, quien llama pregunta cuál (máximo 3), no elige.
  * No decide nada más: no interpreta verbos ni mira riesgo; eso es de la gramática de organización (fase O2).
  */
 export function buscarPiezas(frase: string, perfil: PerfilAcceso): PiezaDeLaApp[] {
-  const q = normalizarFrase(frase)
-  const nombradas = piezasPara(perfil).filter((p) => clavesDe(p).some((c) => q.includes(` ${c} `)))
-  const nombre = (p: PiezaDeLaApp) => limpiar(p.nombreHablado).replace(ARTICULO, '')
-  return nombradas.filter((p) => !nombradas.some((o) => o !== p && nombre(o).length > nombre(p).length && nombre(o).includes(nombre(p))))
+  const piezas = piezasPara(perfil)
+  const nombrarCon = (q: string) =>
+    piezas.map((pieza) => ({ pieza, claves: clavesDe(pieza).filter((c) => q.includes(` ${c} `)) })).filter((n) => n.claves.length > 0)
+  // Dictado con una letra de más, de menos o cambiada («albun», «hidracion», «cestionarios»): solo se tocan las palabras
+  // que el catálogo no conoce, y solo hacia una palabra del catálogo que sea la ÚNICA a esa distancia.
+  const nombradas = nombrarCon(normalizarFrase(corregirDictado(frase, piezas)))
+  const masLarga = (claves: string[]) => claves.reduce((a, b) => (b.length > a.length ? b : a), '')
+  // «de hoy» no nombra la pantalla Hoy cuando la frase ya nombra una tarjeta («el agua de hoy»): «hoy» suelto es un
+  // complemento de tiempo, no un destino (hallazgo de la revisión adversarial, 10-nov).
+  const hayTarjeta = nombradas.some((n) => n.pieza.tipo === 'tarjeta')
+  return nombradas
+    .filter((n) => !(hayTarjeta && n.pieza.tipo === 'pantalla' && n.claves.every((c) => c === 'hoy')))
+    .filter((n) => {
+      const mia = masLarga(n.claves)
+      return !nombradas.some((o) => o !== n && o.claves.some((c) => c.length > mia.length && c.includes(mia)))
+    })
+    .map((n) => n.pieza)
 }
