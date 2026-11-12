@@ -691,6 +691,90 @@ select pruebas.afirmar(
   'el aviso de E dejó de estar pendiente tras el intento de anon'
 );
 
+-- H8 por fila: bloque UUID nuevo d280..., independiente de d2/e2/c2 originales.
+-- Canal dueno como en los casos directos existentes: aislar el candado de M2/0138.
+savepoint h8_por_fila;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into auth.users (id, email)
+select ('d2800000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid,
+       'h8-fila-' || n || '@ejemplo.test'
+  from generate_series(1, 6) as g(n)
+on conflict (id) do nothing;
+insert into public.usuarios_app (id, nombre, rol, avatar_iniciales)
+select ('d2800000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid,
+       'H8 fila ' || n, 'asesorado', 'H8'
+  from generate_series(1, 6) as g(n)
+on conflict (id) do nothing;
+-- Cerrados del otro origen ocupan M8 sin interferir con el indice de unico activo.
+insert into public.microciclos (id, usuario_id, numero, estado, origen, datos)
+select 'h8-existente-' || n,
+       ('d2800000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid,
+       8, 'cerrado', 'app', '{}'::jsonb
+  from generate_series(1, 5) as g(n);
+
+-- H8-INSERT: dos personas, dos bloqueos en UNA sentencia; incluye comillas y coma.
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('h8-insert-"uno",fin', 'd2800000-0000-0000-0000-000000000001', 8, 'activo', '{}'),
+  ('h8-insert-dos', 'd2800000-0000-0000-0000-000000000002', 8, 'activo', '{}');
+select pruebas.afirmar(
+  (select count(*) = 2 from public.microciclos
+    where id in ('h8-insert-"uno",fin', 'h8-insert-dos') and estado = 'propuesto'),
+  'H8-INSERT: las dos filas bloqueadas deben quedar propuesto'
+);
+select pruebas.afirmar(
+  (select count(*) = 2 from public.microciclos_choques
+    where estado = 'pendiente' and (
+      (propuesta_id = 'h8-insert-"uno",fin' and existente_id = 'h8-existente-1') or
+      (propuesta_id = 'h8-insert-dos' and existente_id = 'h8-existente-2')))
+  and (select count(*) = 2 from public.microciclos_choques
+    where propuesta_id in ('h8-insert-"uno",fin', 'h8-insert-dos')),
+  'H8-INSERT: deben existir dos avisos, uno por propuesta con su existente correcto'
+);
+
+-- H8-UPDATE: dos estados anteriores distintos, ambos conservados en UNA sentencia.
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('h8-update-uno', 'd2800000-0000-0000-0000-000000000003', 8, 'propuesto', '{}'),
+  ('h8-update-dos', 'd2800000-0000-0000-0000-000000000004', 8, 'cerrado', '{}');
+update public.microciclos set estado = 'activo'
+ where id in ('h8-update-uno', 'h8-update-dos');
+select pruebas.afirmar(
+  (select estado = 'propuesto' from public.microciclos where id = 'h8-update-uno')
+  and (select estado = 'cerrado' from public.microciclos where id = 'h8-update-dos'),
+  'H8-UPDATE: cada fila bloqueada debe conservar su estado anterior'
+);
+select pruebas.afirmar(
+  (select count(*) = 2 from public.microciclos_choques
+    where estado = 'pendiente' and (
+      (propuesta_id = 'h8-update-uno' and existente_id = 'h8-existente-3') or
+      (propuesta_id = 'h8-update-dos' and existente_id = 'h8-existente-4')))
+  and (select count(*) = 2 from public.microciclos_choques
+    where propuesta_id in ('h8-update-uno', 'h8-update-dos')),
+  'H8-UPDATE: deben existir dos avisos, uno por propuesta con su existente correcto'
+);
+
+-- H8-MIXTO: solo la fila que choca se bloquea y deja aviso.
+insert into public.microciclos (id, usuario_id, numero, estado, datos) values
+  ('h8-mixto-choque', 'd2800000-0000-0000-0000-000000000005', 8, 'activo', '{}'),
+  ('h8-mixto-libre', 'd2800000-0000-0000-0000-000000000006', 8, 'activo', '{}');
+select pruebas.afirmar(
+  (select estado = 'propuesto' from public.microciclos where id = 'h8-mixto-choque')
+  and (select estado = 'activo' from public.microciclos where id = 'h8-mixto-libre')
+  and (select count(*) = 1 from public.microciclos_choques
+    where propuesta_id = 'h8-mixto-choque' and existente_id = 'h8-existente-5' and estado = 'pendiente')
+  and not exists (select 1 from public.microciclos_choques where propuesta_id = 'h8-mixto-libre'),
+  'H8-MIXTO: solo el choque debe quedar propuesto con aviso; la otra fila debe quedar activa'
+);
+-- Mismo id bloqueado otra vez en esta transaccion: se consume y no duplica pendiente.
+update public.microciclos set estado = 'activo' where id = 'h8-insert-"uno",fin';
+select pruebas.afirmar(
+  (select estado = 'propuesto' from public.microciclos where id = 'h8-insert-"uno",fin')
+  and (select count(*) = 1 from public.microciclos_choques where propuesta_id = 'h8-insert-"uno",fin'),
+  'H8-REINTENTO: mismo id bloqueado otra vez sin duplicar aviso'
+);
+rollback to savepoint h8_por_fila;
+release savepoint h8_por_fila;
+
 \echo 'OK · candado de microciclos (0147)'
 
 rollback;
