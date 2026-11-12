@@ -43,6 +43,9 @@ const NUM = /\d+(?:[.,]\d+)?/g
 const normalizar = (t: string): string => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const palabrasDe = (t: string): string[] => normalizar(t).match(/[a-z]+/g) ?? []
 
+/** «Las dos son…», «entre los dos hay…»: «dos» como «ambas», sin cantidad (medido en el examen A2). «Las dos series» sigue siendo cifra. */
+const AMBOS = /\b(?:las|los)\s+dos(?=\s+(?:son|se|sirven|funcionan|tienen|trabajan|hay|ejercicios|opciones|variantes|formas|casos|enfoques|estilos|ideas|versiones|metodos|tecnicas)\b|\s*[,.;:!?]|\s*$)/gi
+
 /** Dígitos y palabras-cifra de la respuesta que no están en la pregunta (ni en dígito ni en letra). */
 function hayCifraAjena(respuesta: string, pregunta: string): boolean {
   const digitosPregunta = new Set(pregunta.match(NUM) ?? [])
@@ -50,7 +53,7 @@ function hayCifraAjena(respuesta: string, pregunta: string): boolean {
   const permitidos = new Set([...digitosPregunta, ...[...palabrasPregunta].flatMap((w) => (MAPA[w] ? [MAPA[w]] : []))])
   if ((respuesta.match(NUM) ?? []).some((d) => !permitidos.has(d))) return true
   const propias = new Set([...palabrasPregunta, ...Object.entries(MAPA).filter(([, d]) => digitosPregunta.has(d)).map(([w]) => w)])
-  if (palabrasDe(respuesta).some((w) => PALABRAS_CIFRA.has(w) && !propias.has(w))) return true
+  if (palabrasDe(respuesta.replace(AMBOS, ' ')).some((w) => PALABRAS_CIFRA.has(w) && !propias.has(w))) return true
   // porcentajes: el símbolo o «por ciento» solo valen si la pregunta ya los usaba
   const pq = normalizar(pregunta)
   const rq = normalizar(respuesta)

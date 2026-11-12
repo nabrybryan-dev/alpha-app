@@ -167,3 +167,16 @@ describe('filtroProvisional: frases rotundas y «es normal / se van solas» (dec
     expect(filtrarProvisional('Te recomiendo descansar siempre.', '')).toEqual({ ok: false, motivo: 'prescripcion' })
   })
 })
+
+describe('filtroProvisional: «las dos / los dos / ambas dos» no es una cifra (afinado con el examen A2, 11-nov)', () => {
+  it('pasa: «las dos son ejercicios globales» (ambas, sin cantidad)', () => {
+    expect(filtrarProvisional('Las dos son ejercicios globales y el resto lo ajusta tu coach.', 'pregunta sin cifras')).toEqual({ ok: true })
+    expect(filtrarProvisional('Entre los dos hay diferencias de énfasis.', 'pregunta sin cifras')).toEqual({ ok: true })
+  })
+  it('controles positivos: «dos» como cantidad sigue bloqueando', () => {
+    expect(filtrarProvisional('Hacen falta dos semanas para notarlo.', 'pregunta sin cifras')).toEqual({ ok: false, motivo: 'cifras' })
+    expect(filtrarProvisional('Descansa dos minutos.', 'pregunta sin cifras')).toEqual({ ok: false, motivo: 'cifras' })
+    expect(filtrarProvisional('Con las dos series de pecho basta.', 'pregunta sin cifras')).toEqual({ ok: false, motivo: 'cifras' })
+    expect(filtrarProvisional('Con las dos semanas de pecho basta.', 'pregunta sin cifras')).toEqual({ ok: false, motivo: 'cifras' })
+  })
+})
