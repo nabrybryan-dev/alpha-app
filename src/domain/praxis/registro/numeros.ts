@@ -58,7 +58,7 @@ export function valorLiteral(token: string): number | null {
   return null
 }
 
-const ES_PALABRA_NUMERICA = (t: string): boolean =>
+export const ES_PALABRA_NUMERICA = (t: string): boolean =>
   t in UNIDADES || t in DECENAS || t in CENTENAS ||
   t === 'mil' || t === 'medio' || t === 'media' || t === 'cuarto' || t === 'cuartos' || t === 'par'
 
@@ -77,6 +77,19 @@ export interface NumeroEncontrado {
   /** Índice del primer token y del siguiente al último, en la frase normalizada. */
   desde: number
   hasta: number
+}
+
+/**
+ * ¿La «y» de la posición j une dos partes de un mismo número? Sí en «cuarenta y cinco», «uno y medio», «mil y cinco»;
+ * no entre dos cifras sueltas de una sola cifra («cinco y seis horas» son dos cifras, un rango).
+ */
+function yUneCifras(tokens: string[], j: number, visto: boolean): boolean {
+  const sig = tokens[j + 1]
+  if (!visto || sig === undefined) return false
+  if (sig === 'medio' || sig === 'media') return true
+  if (!(sig in UNIDADES)) return false
+  const ant = tokens[j - 1]
+  return !(ant in UNIDADES && UNIDADES[ant] < 10 && UNIDADES[sig] < 10 && UNIDADES[sig] > 0)
 }
 
 /** Todos los números de un texto, en orden de aparición. */
@@ -110,14 +123,15 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
       while (j < tokens.length) {
         const w = tokens[j]
         if (w === 'y') {
-          const sig = tokens[j + 1]
-          // «y» une cuarenta y cinco / uno y medio; en otro sitio corta el número.
-          if (visto && sig !== undefined && (sig in UNIDADES || sig === 'medio' || sig === 'media')) {
+          // «y» une cuarenta y cinco / uno y medio; en otro sitio corta el número («cinco y seis horas» son dos cifras).
+          if (yUneCifras(tokens, j, visto)) {
             j += 1
             continue
           }
           break
         }
+        // «cinco seis» son dos cifras (un rango dicho de corrido), no 11.
+        if (j > i && w in UNIDADES && tokens[j - 1] in UNIDADES) break
         if (w in UNIDADES) { cur += UNIDADES[w]; visto = true }
         else if (w in DECENAS) { cur += DECENAS[w]; visto = true }
         else if (w in CENTENAS) { cur += CENTENAS[w]; visto = true }

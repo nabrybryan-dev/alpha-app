@@ -1,7 +1,7 @@
-import { filtroDeRiesgo, derivarPorRiesgo } from '../../../../domain/praxis/riesgo'
-import type { Sesion } from '../../../../domain/types'
-import { NOMBRE_DE_REGION, type IdDeRegion } from '../../sujeto/regiones'
-import { normalizarNombre } from '../paredes/cargaAnterior'
+import { filtroDeRiesgo, derivarPorRiesgo } from '../riesgo'
+import type { Sesion } from '../../types'
+import { NOMBRE_DE_REGION, type IdDeRegion } from './regiones'
+import { normalizarNombre } from './normalizarNombre'
 
 /**
  * LAS ÓRDENES DE VOZ DE LA GUÍA: de lo que entendió el reconocedor a qué hacer con el sujeto.
@@ -59,7 +59,7 @@ const AMBIGUOS: readonly (readonly [RegExp, readonly IdDeRegion[]])[] = [
   [/\b(brazo|brazos)\b/, ['bic', 'tri', 'ante']],
 ]
 
-const DE_SALUD = /\b(duele|duelen|dolor|dolores|molesta|molestan|lesion|lesione|mareo|mareado|mareada)\b/
+export const DE_SALUD = /\b(duele|duelen|dolor|dolores|molesta|molestan|lesion|lesione|mareo|mareado|mareada)\b/
 const NEGADA = /\b(no|nunca|tampoco)\s+(me\s+|lo\s+|la\s+)?(muestres|ensenes|abras|abre|quiero|vayas|pongas|mires)\b/
 const PIDE_MOVIMIENTO = /\b(movimiento|como se hace|como se hacen|como lo hago|demuestra|demuestrame)\b/
 
@@ -131,11 +131,25 @@ export function interpretarOrden(dicho: string, sesion?: Pick<Sesion, 'ejercicio
   return ordenDeGiro(frase) ?? buscarEjercicio(frase, sesion) ?? ordenDeZona(frase) ?? ordenDeNavegacion(frase)
 }
 
-/** Pedir un movimiento o lo de hoy suena a pregunta, pero es una orden y no gasta nada. */
+/** Lo que se dice antes de una orden sin cambiarla: «por favor muéstrame», «quiero ver». */
+const CORTESIA = /^((por favor|porfa|porfavor|quiero|quisiera|me puedes|puedes)\s+)+/
+const ORDEN_AL_INICIO = new RegExp(`^${VERBO_DE_ORDEN.source}`)
+
+/** Una frase larga manda solo si EMPIEZA por la orden: «me da miedo ir…» lleva un verbo, pero no ordena nada. */
+function empiezaPorLaOrden(frase: string): boolean {
+  return ORDEN_AL_INICIO.test(frase.replace(SALUDO, '').replace(CORTESIA, ''))
+}
+
+/**
+ * ¿Va a las dudas de Praxis en vez de mover el salón? Pedir un movimiento o lo de hoy suena a pregunta, pero es una
+ * orden y no gasta nada, siempre que sea corta o empiece por la orden (medición F2, 4-nov-2026: «me toca» y «hoy»
+ * dentro de una frase larga de riesgo la mandaban a otra pantalla sin que nadie la leyera).
+ */
 function esPregunta(frase: string, dicho: string): boolean {
-  if (PIDE_MOVIMIENTO.test(frase) || PIDE_LO_DE_HOY.test(frase)) return false
+  const larga = frase.split(' ').length >= PALABRAS_DE_UNA_FRASE_LARGA
+  if ((PIDE_MOVIMIENTO.test(frase) || PIDE_LO_DE_HOY.test(frase)) && (!larga || empiezaPorLaOrden(frase))) return false
   if (/[¿?]/.test(dicho) || EMPIEZA_PREGUNTA.test(frase.replace(SALUDO, '')) || PREGUNTA_A_LA_MITAD.test(frase)) return true
-  return frase.split(' ').length >= PALABRAS_DE_UNA_FRASE_LARGA && !VERBO_DE_ORDEN.test(frase)
+  return larga && !empiezaPorLaOrden(frase)
 }
 
 function ordenDeGiro(frase: string): Orden | null {

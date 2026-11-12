@@ -213,8 +213,11 @@ describe('vida diaria', () => {
       { campo: 'hambre', cita: 'un 8' },
       { campo: 'estres', cita: 'como está la cosa' },
     ] }), ctx())
-    expect(r.registros[0]).toMatchObject({ parche: { cansancio: 'MUCHO', estres: 'POCO', animo: 'POCO', hambreEscala: 8 } })
-    expect(r.descartado).toHaveLength(1)
+    // El ánimo ya no se mapea (Bryan, 5-nov-2026): el check-in no tiene ese campo; queda descartado y visible.
+    expect(r.registros[0]).toMatchObject({ parche: { cansancio: 'MUCHO', estres: 'POCO', hambreEscala: 8 } })
+    expect(r.registros[0]).not.toHaveProperty('parche.animo')
+    expect(r.descartado).toHaveLength(2)
+    expect(r.descartado.some((d) => d.motivo.includes('ánimo'))).toBe(true)
   })
   it('ánimo ≠ ganas de entrenar: «sin ganas de entrenar» va a motivación, nunca a ánimo (V14, D20)', () => {
     const r = resolverVida(vida({ escalas: [{ campo: 'ganas_de_entrenar', cita: 'no tengo ganas de entrenar' }] }), ctx())

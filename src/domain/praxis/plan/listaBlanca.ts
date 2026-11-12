@@ -101,6 +101,29 @@ export interface ComidaVista {
   listaCompras: string[]
 }
 
+/** El agua de HOY. `null` en `LoQuePraxisVe` cuando no hay nada anotado (el almacén no distingue «0 ml» de «sin registro»). */
+export interface AguaVista { fecha: string; ml: number }
+
+/** De dónde salió un número del check-in de hoy: lo movió la persona, quedó el de la vez anterior, o el reporte es viejo y no lo dice. */
+export type ProcedenciaDelDia = 'anotado' | 'arrastrado' | 'sin_marca'
+
+/** El check-in de HOY. `procedencia` solo nombra los números que el formulario trae ya puestos (pasos y sueño; el peso no entra). */
+export interface CheckinHoyVisto {
+  campos: CheckinVisto
+  procedencia: { pasos?: ProcedenciaDelDia; horasSueno?: ProcedenciaDelDia }
+}
+
+/** La comida marcada en la semana en curso (lunes a hoy). Solo cuenta lo que la persona marcó; el día sin marca no es «no». */
+export interface AdherenciaSemanaVista {
+  desde: string
+  hasta: string
+  si: number
+  parcial: number
+  no: number
+  /** Días de la semana ya transcurridos (hoy incluido). */
+  diasTranscurridos: number
+}
+
 export type DatoQueFalta = 'plan_activo' | 'perfil' | 'checkins' | 'plan_de_comida'
 
 export interface LoQuePraxisVe {
@@ -111,6 +134,9 @@ export interface LoQuePraxisVe {
   checkins: CheckinVisto[]
   adherencias: { fecha: string; estado: AdherenciaNutricional['estado'] }[]
   hidratacionHoyMl: number
+  aguaHoy: AguaVista | null
+  checkinHoy: CheckinHoyVisto | null
+  adherenciaSemana: AdherenciaSemanaVista | null
   comida: ComidaVista | null
   /** Lo que Praxis no tiene de esta persona, para decirlo en vez de inventarlo. */
   falta: DatoQueFalta[]
@@ -130,7 +156,7 @@ export interface CrudoDePersona {
 
 /** Todas las rutas (sin índices) que pueden salir de `loQuePraxisVe`. La prueba compara contra esto. */
 export const CAMPOS_PERMITIDOS: readonly string[] = [
-  'activo', 'cerrados', 'perfil', 'checkins', 'adherencias', 'hidratacionHoyMl', 'comida', 'falta',
+  'activo', 'cerrados', 'perfil', 'checkins', 'adherencias', 'hidratacionHoyMl', 'aguaHoy', 'checkinHoy', 'adherenciaSemana', 'comida', 'falta',
   ...['activo', 'cerrados'].flatMap((m) => [
     `${m}.numero`, `${m}.fechaInicio`, `${m}.cadenciaDias`, `${m}.sesiones`,
     ...['id', 'nombre', 'dia', 'fecha', 'ejercicios', 'preparacion', 'bloquesCardio', 'testPost', 'testPost.duracionMin', 'testPost.rpeSesion'].map((c) => `${m}.sesiones.${c}`),
@@ -148,6 +174,13 @@ export const CAMPOS_PERMITIDOS: readonly string[] = [
     'dolorDonde', 'hambreEscala', 'alimentacion', 'estres', 'pasos', 'comentarios',
   ].map((c) => `checkins.${c}`),
   'adherencias.fecha', 'adherencias.estado',
+  'aguaHoy.fecha', 'aguaHoy.ml',
+  'checkinHoy.campos', 'checkinHoy.procedencia', 'checkinHoy.procedencia.pasos', 'checkinHoy.procedencia.horasSueno',
+  ...[
+    'fecha', 'horasSueno', 'horaAcostarse', 'horaLevantarse', 'calidadSueno', 'cansancio', 'entreno', 'rendimiento', 'motivacion', 'dolor',
+    'dolorDonde', 'hambreEscala', 'alimentacion', 'estres', 'pasos', 'comentarios',
+  ].map((c) => `checkinHoy.campos.${c}`),
+  'adherenciaSemana.desde', 'adherenciaSemana.hasta', 'adherenciaSemana.si', 'adherenciaSemana.parcial', 'adherenciaSemana.no', 'adherenciaSemana.diasTranscurridos',
   'comida.verCifras', 'comida.menus', 'comida.menus.nombre', 'comida.menus.comidas', 'comida.menus.comidas.hora', 'comida.menus.comidas.titulo',
   'comida.menus.comidas.alimentos', 'comida.menus.comidas.nota', 'comida.equivalencias', 'comida.equivalencias.grupo', 'comida.equivalencias.base',
   'comida.equivalencias.opciones', 'comida.seccionesEspeciales', 'comida.seccionesEspeciales.titulo', 'comida.seccionesEspeciales.contenido', 'comida.listaCompras',
@@ -244,6 +277,40 @@ export function fechaMenos(fecha: string, dias: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+function procedenciaDe(c: CheckinDiario, campo: 'pasos' | 'horasSueno'): ProcedenciaDelDia | undefined {
+  if (typeof c[campo] !== 'number') return undefined
+  if (!c.anotadoHoy) return 'sin_marca'
+  return c.anotadoHoy.includes(campo) ? 'anotado' : 'arrastrado'
+}
+
+function checkinHoyVisto(c: CheckinDiario): CheckinHoyVisto {
+  return { campos: checkinVisto(c), procedencia: limpio({ pasos: procedenciaDe(c, 'pasos'), horasSueno: procedenciaDe(c, 'horasSueno') }) }
+}
+
+/** El lunes de la semana de `fecha` (la semana corre de lunes a domingo). */
+export function lunesDeLaSemana(fecha: string): string {
+  const dia = new Date(`${fecha}T12:00:00Z`).getUTCDay()
+  return fechaMenos(fecha, (dia + 6) % 7)
+}
+
+function semanaVista(adherencias: AdherenciaNutricional[], usuarioId: string, hoy: string): AdherenciaSemanaVista | null {
+  const desde = lunesDeLaSemana(hoy)
+  const porDia = new Map<string, AdherenciaNutricional['estado']>()
+  for (const a of adherencias) {
+    if (a.usuarioId === usuarioId && a.fecha >= desde && a.fecha <= hoy) porDia.set(a.fecha, a.estado)
+  }
+  if (porDia.size === 0) return null
+  const estados = [...porDia.values()]
+  return {
+    desde,
+    hasta: hoy,
+    si: estados.filter((e) => e === 'si').length,
+    parcial: estados.filter((e) => e === 'parcial').length,
+    no: estados.filter((e) => e === 'no').length,
+    diasTranscurridos: Math.round((Date.parse(`${hoy}T12:00:00Z`) - Date.parse(`${desde}T12:00:00Z`)) / 86400000) + 1,
+  }
+}
+
 export function loQuePraxisVe(crudo: CrudoDePersona, hoy: string): LoQuePraxisVe {
   const mios = crudo.microciclos.filter((m) => m.usuarioId === crudo.usuarioId)
   // Solo `activo` y `cerrado`. Lo demás —`propuesto` y cualquier estado que aparezca
@@ -257,6 +324,9 @@ export function loQuePraxisVe(crudo: CrudoDePersona, hoy: string): LoQuePraxisVe
     .filter((c) => c.usuarioId === crudo.usuarioId && enVentana(c.fecha))
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
     .map(checkinVisto)
+
+  const hoyCheckin = crudo.checkins.filter((c) => c.usuarioId === crudo.usuarioId && c.fecha === hoy).at(-1)
+  const aguaMl = Math.max(0, crudo.hidratacionHoyMl ?? 0)
 
   const p = crudo.perfil && crudo.perfil.usuarioId === crudo.usuarioId ? crudo.perfil : undefined
   const perfil: PerfilVisto | null = p
@@ -281,7 +351,10 @@ export function loQuePraxisVe(crudo: CrudoDePersona, hoy: string): LoQuePraxisVe
       .filter((a) => a.usuarioId === crudo.usuarioId && enVentana(a.fecha))
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .map((a) => ({ fecha: a.fecha, estado: a.estado })),
-    hidratacionHoyMl: Math.max(0, crudo.hidratacionHoyMl ?? 0),
+    hidratacionHoyMl: aguaMl,
+    aguaHoy: aguaMl > 0 ? { fecha: hoy, ml: aguaMl } : null,
+    checkinHoy: hoyCheckin ? checkinHoyVisto(hoyCheckin) : null,
+    adherenciaSemana: semanaVista(crudo.adherencias, crudo.usuarioId, hoy),
     comida: plan ? comidaVista(plan, visibilidad) : null,
     falta: [],
   }

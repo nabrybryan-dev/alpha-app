@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
 import { movimientoReducido } from '../../../../components/ui/movimientoReducido'
+import { tituloDelDia } from '../../../../domain/sesionesDelDia'
 import { COLOR_DEL_ESTADO, estadoDelDia } from './estadoDelDia'
 import { Boton3D } from '../../../../components/ui/Boton3D'
 import {
@@ -247,7 +248,7 @@ export function TamborDeLaSemana({ semana, diaActual, onElegir, onCerrar }: Tamb
                 aria-pressed={enLectura}
                 // Marca las filas que se ven y se tocan con el tambor quieto (las demás se alcanzan girando).
                 data-al-alcance={alAlcance.includes(i) ? 'si' : 'no'}
-                aria-label={`${d.dia.toLowerCase()} ${d.numero}: ${d.titulo}, ${estado.toLowerCase()}${d.esHoy ? ', hoy' : ''}`}
+                aria-label={`${d.dia.toLowerCase()} ${d.numero}: ${tituloDelDia(d)}, ${estado.toLowerCase()}${d.esHoy ? ', hoy' : ''}`}
                 onFocus={() => irA(i)}
                 onClick={() => {
                   if (arrastro.current) return
@@ -270,7 +271,7 @@ export function TamborDeLaSemana({ semana, diaActual, onElegir, onCerrar }: Tamb
                   <span className="cifras mt-1 text-[15px] font-bold text-texto">{d.numero}</span>
                 </span>
                 <span className="min-w-0 flex-1 truncate font-display text-[14px] font-black uppercase tracking-[0.02em] text-texto">
-                  {d.titulo}
+                  {tituloDelDia(d)}
                 </span>
                 <span className={`shrink-0 text-xs font-semibold ${COLOR_DEL_ESTADO[estado]}`}>{estado}</span>
               </button>

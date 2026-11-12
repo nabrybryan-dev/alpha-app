@@ -1,10 +1,22 @@
 import type { RespuestaDeGuardar, RespuestaDelRegistrador } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { QueFalto } from '../../../domain/praxis/plan/responder'
+import type { ConsultaAlModelo } from '../../../app/clienteOrganizarPraxis'
+import type { EstadoDeOrganizacion } from '../../../app/organizacionPraxis'
+import type { CambioDeOrganizacion, ResultadoDeAplicar } from '../../../app/tarjetaDeOrganizacion'
+import type { PiezaDeLaApp } from '../../../app/catalogoDePiezas'
+import type { PerfilAcceso } from '../../../app/rutas'
 import type { ContextoCharla } from '../../../domain/praxis/charla/modelo'
 import type { MarcaDeRiesgo } from '../../../domain/praxis/riesgo'
 import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
+import type { RespuestaDeElegir } from '../../../data/praxis/deshacer'
+import type { ResultadoDeshacer, TarjetaFirmada } from '../../../domain/praxis/deshacer/pantalla'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
+import type { ResultadoAnotar, ResultadoGuardarCheckin } from '../../../data/praxis/checkin'
+import type { Anotacion } from '../../../domain/praxis/registro/anotaciones'
+import type { FormaAprendida } from '../../../domain/praxis/registro/lexicoPersona'
+import type { CampoCheckin } from '../../../domain/praxis/registro/mensajeLargo'
+import type { Confirmado } from '../../../domain/praxis/registro/tarjetaCheckin'
 
 /**
  * La conexión de la escena con los datos y el cerebro reales.
@@ -28,7 +40,7 @@ export interface ConexionPraxis {
    * ejercicio que la persona eligió con un toque cuando Praxis preguntó cuál fue: el
    * registrador lo usa para no volver a preguntar.
    */
-  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla }) => Promise<RespuestaDelRegistrador>
+  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla; memoria?: { charlaId: string; turno: number } }) => Promise<RespuestaDelRegistrador>
   /**
    * «Gana la lectura más grave»: relee con el modelo una frase que el filtro marcó como cuidado o salud y devuelve la marca
    * más grave (o `null`). AUSENTE = el interruptor de consentimiento está apagado y la frase marcada NO sale del teléfono.
@@ -37,6 +49,46 @@ export interface ConexionPraxis {
   releerRiesgo?: (frase: string) => Promise<MarcaDeRiesgo | null>
   /** Guarda lo que la persona confirmó con un toque. */
   guardar: (p: { mensajeId: string; registros: RegistroPropuesto[]; confirmaSesion: boolean }) => Promise<RespuestaDeGuardar>
+  /**
+   * «Deshacer» (apagado en el servidor con `PRAXIS_LIBRO`): `elegir` pide la tarjeta de UN candidato; `confirmar` quita, y solo se
+   * llama tras el toque en «Sí, quitar». AUSENTE = la pantalla no puede quitar nada. Nunca lanzan.
+   */
+  deshacer?: {
+    elegir: (registroId: string) => Promise<RespuestaDeElegir>
+    confirmar: (p: { tarjeta: TarjetaFirmada; mensajeId: string }) => Promise<ResultadoDeshacer>
+  }
+  /**
+   * El check-in desde lo que la persona cuenta (conectores; `CONECTORES_EN_TARJETA`). AUSENTE = apagado (la bandera hoy está encendida): la frase sigue el
+   * camino de siempre. `yaHoy` = cuáles de los 8 ya están llenos hoy; `lexico` = lo aprendido de quien tiene la sesión;
+   * `guardar` solo se llama tras el toque en «Anotar». Nunca lanzan.
+   */
+  checkin?: {
+    yaHoy: () => CampoCheckin[]
+    lexico: () => Promise<FormaAprendida[]>
+    guardar: (p: { mensajeId: string; confirmado: Confirmado; aprendizajes: { campo: CampoCheckin; forma: string; valor: string }[] }) => Promise<ResultadoGuardarCheckin>
+    /** Cuaderno de la persona (0176). AUSENTE = la tarjeta no ofrece anotaciones. Solo tras su toque. */
+    anotar?: (p: { mensajeId: string; anotaciones: Anotacion[] }) => Promise<ResultadoAnotar>
+  }
+  /**
+   * Organizar y navegar por voz (`PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL`). AUSENTE = apagado: la frase sigue el camino de
+   * siempre. Solo se consulta DESPUÉS del filtro de riesgo. `navegar` es la función del router.
+   */
+  organizar?: {
+    perfil: PerfilAcceso
+    estado: () => EstadoDeOrganizacion
+    consultar: ConsultaAlModelo
+    navegar: (ruta: string) => void
+    /**
+     * Guarda el cambio que la persona confirmó con «Sí» en la tarjeta. AUSENTE = todavía no hay organización guardada
+     * (fase O4, requiere migración): la tarjeta dice «No pude hacerlo ahora y no cambié nada». Si el cambio esconde
+     * peso o medidas (`avisaAlCoach`), avisar al coach SIN la frase es parte de aplicarlo.
+     */
+    aplicar?: (cambio: CambioDeOrganizacion) => Promise<ResultadoDeAplicar>
+    /** El botón «Deshacer» de los 10-15 s: devuelve el último cambio. AUSENTE = no se ofrece. */
+    deshacerUltimo?: () => Promise<ResultadoDeAplicar>
+    /** «Sí, avísale» (R2): deja un aviso al coach. AUSENTE = se dice que todavía no se puede. */
+    avisarAlCoach?: (pieza: PiezaDeLaApp | null) => Promise<boolean>
+  }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
   preguntar: (p: { frase: string; queFalto: QueFalto; citas: string[] }) => Promise<ResultadoDejarPregunta>
   /** Las preguntas en espera de la persona: las abiertas y las ya respondidas. */

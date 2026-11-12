@@ -24,7 +24,7 @@ const ve: LoQuePraxisVe = {
       ejercicios: [{ id: 'e1', nombre: 'SENTADILLA TRASERA', categoria: 'PIERNA', prescripcion: '40KG A 8 REPS; 3 SERIES', cargaKg: 40, sets: 3, rango: '8-10', repsDiana: 8, rirObjetivo: 2, descansoMin: 2 } as never],
     }],
   },
-  cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, comida: null, falta: [], checkins: [],
+  cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: [], checkins: [],
 }
 
 beforeEach(() => {
@@ -74,9 +74,12 @@ describe('Praxis · la espera del registrador no es silencio', () => {
     // Sigue «piensa» mientras no hay respuesta, sin ninguna frase de relleno hablada.
     expect(raiz.querySelector('#dicho')?.getAttribute('aria-busy')).toBe('true')
     expect(raiz.querySelector('#srPiensa')?.textContent).toBe('Praxis está pensando')
+    // Y se VE, no solo lo oye el lector de pantalla (Bryan, 6-nov: «no sé si me escucha… se demora»).
+    expect(raiz.querySelector('#ayuda')?.textContent).toBe('Pensando…')
 
     liberar({ ok: false, motivo: 'red' } as unknown as RespuestaDelRegistrador)
     await waitFor(() => expect(raiz.querySelector('#dicho')?.getAttribute('aria-busy')).toBeNull())
     expect(raiz.querySelector('#srPiensa')?.textContent).toBe('')
+    expect(raiz.querySelector('#ayuda')?.textContent).not.toBe('Pensando…')
   })
 })

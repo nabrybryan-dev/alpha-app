@@ -76,6 +76,35 @@ function FilaAgenda({ dia, seleccionado }: { dia: DiaRuta; seleccionado: boolean
     ? { background: 'color-mix(in srgb, var(--accion) 7%, var(--ink-700))' }
     : undefined
 
+  // Doble sesión: las dos visibles, la de la mañana primero y la de la noche debajo, cada una
+  // con su enlace para abrirla y registrarla por separado.
+  if (dia.sesiones && dia.sesiones.length > 1) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {dia.sesiones.map((s) => (
+          <Link
+            key={s.sesionId}
+            to={`/entrenar/sesion/${s.sesionId}`}
+            className={`press ${clases}`}
+            style={fondo}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-bold text-silver-100">{s.titulo}</span>
+              <span className="mt-0.5 block text-xs text-silver-400">{s.detalle}</span>
+            </span>
+            <span
+              className={`shrink-0 whitespace-nowrap text-right text-xs font-bold uppercase tracking-[0.1em] ${
+                COLOR_ESTADO[s.completada ? 'completada' : dia.estado === 'hoy' ? 'hoy' : 'programada']
+              }`}
+            >
+              {ETIQUETA[s.completada ? 'completada' : dia.estado === 'hoy' ? 'hoy' : 'programada']}
+            </span>
+          </Link>
+        ))}
+      </div>
+    )
+  }
+
   if (dia.sesionId) {
     return (
       <Link to={`/entrenar/sesion/${dia.sesionId}`} className={`press ${clases}`} style={fondo}>
