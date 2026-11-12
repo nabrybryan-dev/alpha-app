@@ -53,6 +53,8 @@ export interface PedidoDeepseek {
   max_tokens: number
   stream: false
   response_format: { type: 'json_object' }
+  /** deepseek-flash razona por defecto y el razonamiento se come max_tokens (medido con DeepSeek real: salida vacía o cortada). */
+  thinking: { type: 'disabled' }
 }
 
 /** Arma el cuerpo del POST. Recibe SOLO la frase limpia y las piezas: no hay por dónde colar nada más. */
@@ -67,6 +69,7 @@ export function armarPedidoDeepseek(fraseLimpia: string, piezas: readonly PiezaD
     max_tokens: 500,
     stream: false,
     response_format: { type: 'json_object' },
+    thinking: { type: 'disabled' },
   }
 }
 
