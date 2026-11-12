@@ -18,6 +18,11 @@ interface Opciones {
   piezas?: unknown[]
   provisional?: string | undefined
   textoProvisional?: string | (() => Promise<Response>)
+  /** Cola de huecos: bandera, clave de servicio y comportamiento de la tabla falsa. */
+  encolar?: string
+  claveServicio?: string
+  tabla?: { tema_clave: string; frase_limpia: string; conteo: number; primera_vez: string; estado: string } | null
+  tablaFalla?: 'lectura' | 'escritura' | 'red' | 'tarda'
 }
 
 function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; cuerpo: string }[] } {
@@ -25,6 +30,12 @@ function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; c
   const fetchFalso = (async (url: string | URL | Request, init?: RequestInit) => {
     const u = String(url)
     llamadas.push({ url: u, cuerpo: typeof init?.body === 'string' ? init.body : '' })
+    if (u.includes('/rest/v1/praxis_huecos')) {
+      if (o.tablaFalla === 'red') throw new Error('sin red')
+      if (o.tablaFalla === 'tarda') return new Promise<Response>(() => {}) // nunca responde
+      if (init?.method === 'POST') return o.tablaFalla === 'escritura' ? new Response('{}', { status: 500 }) : new Response(null, { status: 201 })
+      return o.tablaFalla === 'lectura' ? new Response('{}', { status: 500 }) : new Response(JSON.stringify(o.tabla ? [o.tabla] : []))
+    }
     if (u.includes('/auth/v1/user')) return o.auth === false ? new Response('{}', { status: 401 }) : new Response(JSON.stringify({ id: 'u1' }))
     if (u.includes('api.anthropic.com')) {
       if (typeof o.lector === 'function') return o.lector()
@@ -53,6 +64,8 @@ function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; c
     PORTERO_URL: 'https://portero',
     PORTERO_CLAVE: 'c',
     PRAXIS_CHARLA_PROVISIONAL: o.provisional,
+    PRAXIS_HUECOS_ENCOLAR: o.encolar,
+    SUPABASE_SERVICE_ROLE_KEY: 'claveServicio' in o ? o.claveServicio : 'srv-secreta',
   }
   return { llamadas, d: { entorno, fetch: fetchFalso, ahora: () => AHORA } }
 }
@@ -389,5 +402,96 @@ describe('praxis-charla: respuesta provisional (segunda bandera PRAXIS_CHARLA_PR
     const { d } = montar({ provisional: '1', textoProvisional: LIMPIA, deepseek: undefined })
     const j = await (await manejar(pedir(FRASE), d)).json()
     expect(j.origen).not.toBe('provisional')
+  })
+})
+
+describe('praxis-charla: cola de huecos (bandera PRAXIS_HUECOS_ENCOLAR, apagada por defecto)', () => {
+  const sinPieza = { piezas: [] as unknown[] }
+  const aHuecos = (l: { url: string }[]) => l.filter((x) => x.url.includes('/rest/v1/praxis_huecos'))
+
+  it('bandera apagada (ausente, vacía, 0, true): no se toca la tabla y la respuesta es la de siempre', async () => {
+    for (const encolar of [undefined, '', '0', 'true']) {
+      const { d, llamadas } = montar({ ...sinPieza, encolar })
+      const r = await manejar(pedir(FRASE), d)
+      expect(r.status).toBe(200)
+      expect(((await r.json()) as { hueco?: unknown }).hueco).toBeDefined()
+      expect(aHuecos(llamadas)).toEqual([])
+    }
+  })
+
+  it('bandera puesta y sin pieza: lee el tema y escribe una fila nueva con conteo 1 y la clave de servicio', async () => {
+    const { d, llamadas } = montar({ ...sinPieza, encolar: '1', tabla: null })
+    const r = await manejar(pedir(FRASE), d)
+    const cuerpo = (await r.json()) as { hueco: { temaClave: string; frase: string } }
+    const h = aHuecos(llamadas)
+    expect(h.map((x) => x.cuerpo === '' ? 'GET' : 'POST')).toEqual(['GET', 'POST'])
+    const fila = JSON.parse(h[1].cuerpo)
+    expect(fila).toMatchObject({ tema_clave: cuerpo.hueco.temaClave, frase_limpia: cuerpo.hueco.frase, conteo: 1, estado: 'nuevo' })
+    expect(h[1].url).toContain('on_conflict=tema_clave')
+  })
+
+  it('el tema ya existe: el conteo sube en uno', async () => {
+    const { d, llamadas } = montar({ ...sinPieza, encolar: '1' })
+    const primero = await manejar(pedir(FRASE), montar({ ...sinPieza }).d)
+    const { hueco } = (await primero.json()) as { hueco: { temaClave: string; frase: string } }
+    const m2 = montar({ ...sinPieza, encolar: '1', tabla: { tema_clave: hueco.temaClave, frase_limpia: hueco.frase, conteo: 4, primera_vez: '2026-11-01T00:00:00.000Z', estado: 'agrupado' } })
+    await manejar(pedir(FRASE), m2.d)
+    const post = aHuecos(m2.llamadas).find((x) => x.cuerpo !== '')!
+    expect(JSON.parse(post.cuerpo)).toMatchObject({ conteo: 5, primera_vez: '2026-11-01T00:00:00.000Z', estado: 'agrupado' })
+    expect(llamadas).toEqual([])
+    void d
+  })
+
+  it('privacidad: la fila y la llamada no llevan id de persona, token, ni la frase cruda; la clave de servicio va solo en la cabecera', async () => {
+    const cruda = '¿cuántas series por semana? soy Juan Pérez, escríbeme a juan@correo.com'
+    const m = montar({ ...sinPieza, encolar: '1' })
+    await manejar(pedir(cruda, 'jwt-del-usuario'), m.d)
+    const h = aHuecos(m.llamadas)
+    expect(h.length).toBeGreaterThan(0)
+    for (const x of h) {
+      expect(x.url + x.cuerpo).not.toMatch(/bu1b|jwt-del-usuario|srv-secreta|juan|p[eé]rez|correo.com|@/i)
+    }
+    const fila = JSON.parse(h.find((x) => x.cuerpo !== '')!.cuerpo)
+    expect(Object.keys(fila).sort()).toEqual(['conteo', 'estado', 'frase_limpia', 'primera_vez', 'tema_clave', 'ultima_vez'])
+  })
+
+  it('salud en la frase (sin hueco): no se encola nada', async () => {
+    const { d, llamadas } = montar({ ...sinPieza, encolar: '1', provisional: '1' })
+    const r = await manejar(pedir('me duele la rodilla cuando hago sentadilla'), d)
+    expect(((await r.json()) as { salida: string }).salida).toBe('coach')
+    expect(aHuecos(llamadas)).toEqual([])
+  })
+
+  it('con piezas no hay hueco y no se encola', async () => {
+    const { d, llamadas } = montar({ encolar: '1' })
+    await manejar(pedir(FRASE), d)
+    expect(aHuecos(llamadas)).toEqual([])
+  })
+
+  it('sin clave de servicio no se intenta nada', async () => {
+    const { d, llamadas } = montar({ ...sinPieza, encolar: '1', claveServicio: undefined })
+    expect((await manejar(pedir(FRASE), d)).status).toBe(200)
+    expect(aHuecos(llamadas)).toEqual([])
+  })
+
+  it('falla cerrado: si el encolado falla (lectura, escritura, red o tarda), la respuesta al usuario es idéntica a la de la bandera apagada', async () => {
+    const base = montar({ ...sinPieza })
+    const esperado = await (await manejar(pedir(FRASE), base.d)).json()
+    for (const tablaFalla of ['lectura', 'escritura', 'red', 'tarda'] as const) {
+      const m = montar({ ...sinPieza, encolar: '1', tablaFalla })
+      vistoCharla.clear()
+      const r = await manejar(pedir(FRASE), m.d)
+      expect(r.status).toBe(200)
+      expect(await r.json()).toEqual(esperado)
+    }
+  }, 15000)
+
+  it('también con la rama provisional: la respuesta no cambia y el hueco se encola', async () => {
+    const sin = montar({ ...sinPieza, provisional: '1', textoProvisional: 'Depende de tu nivel y de tu tiempo; tu coach lo ajusta contigo.' })
+    const esperado = await (await manejar(pedir(FRASE), sin.d)).json()
+    const con = montar({ ...sinPieza, provisional: '1', textoProvisional: 'Depende de tu nivel y de tu tiempo; tu coach lo ajusta contigo.', encolar: '1' })
+    vistoCharla.clear()
+    expect(await (await manejar(pedir(FRASE), con.d)).json()).toEqual(esperado)
+    expect(aHuecos(con.llamadas).length).toBe(2)
   })
 })

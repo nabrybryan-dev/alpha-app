@@ -31,6 +31,7 @@
 // crearlo. El vocabulario sale de `vocabularioCharla.generado.ts` (scripts/generar-vocabulario-charla.mts); si cambian las piezas, regenerar.
 // Pendiente: H3/H6 abogado. H5 provisional: rama construida APAGADA tras una segunda bandera `PRAXIS_CHARLA_PROVISIONAL=1` (sin ella, la frase fija);
 // sin pieza, DeepSeek con prompt de conocimiento general -> filtro de salida -> rótulo (TEXTO PENDIENTE DE APROBACION DEL DUENO) o al coach.
+// Tercera bandera `PRAXIS_HUECOS_ENCOLAR=1` (apagada): tras contestar, encola el hueco en `praxis_huecos` (0180, NO aplicada) con la clave de servicio; falla cerrado.
 // Siempre devuelve `hueco` ({temaClave, frase limpia}) para que quien llama lo encole; aquí no se escribe en ninguna tabla.
 // Pendiente antes de encender (no hecho aquí): revisión del abogado por la transferencia a un proveedor extranjero, saldo del
 // lector de riesgo, desplegar con la CLI. El nombre `deepseek-flash` lo dio el dueño: no se comprobó contra la documentación
@@ -53,6 +54,7 @@ import { normalizarHueco, type Hueco } from '../../../src/domain/praxis/charla/h
 import { armarPedidoProvisional, decidirProvisional, tieneContenido } from '../../../src/domain/praxis/charla/provisional.ts'
 import { saludAntesDeDeepseek } from '../../../src/domain/praxis/charla/saludEnFrase.ts'
 import { conTope, decidirSalida, lecturaDesdeNivel, respaldoSinModelo, type LecturaDeRiesgo } from '../../../src/domain/praxis/charla/salidaCharla.ts'
+import { registrarHueco, type HuecoExistente } from '../../../src/domain/praxis/huecos/registrarHueco.ts'
 import { excedeLimite } from '../praxis-registro/cupo.ts'
 import { CORS, json } from '../praxis-registro/http.ts'
 
@@ -71,6 +73,10 @@ export interface Entorno {
   PORTERO_CLAVE: string | undefined
   /** Segunda bandera: solo '1' enciende la respuesta provisional sin pieza. Por defecto apagada (se conserva la frase fija). */
   PRAXIS_CHARLA_PROVISIONAL: string | undefined
+  /** Tercera bandera: solo '1' encola el hueco en `praxis_huecos` (migración 0180, NO aplicada). Por defecto apagada. */
+  PRAXIS_HUECOS_ENCOLAR?: string | undefined
+  /** Clave de servicio: SOLO para escribir la cola de huecos. Sin ella no se encola. */
+  SUPABASE_SERVICE_ROLE_KEY?: string | undefined
 }
 export interface Dependencias {
   entorno: Entorno
@@ -88,6 +94,7 @@ export const TOPE_LECTOR_MS = 3000
 export const TOPE_DEEPSEEK_MS = 4000
 const TIMEOUT_VECTOR_MS = 1500
 const TIMEOUT_BUSQUEDA_MS = 1500
+export const TOPE_ENCOLAR_MS = 1500
 const DIMENSION = 768
 const MODELO_LECTOR = 'claude-haiku-4-5'
 
@@ -239,6 +246,46 @@ async function responderSinPiezas(d: Dependencias, frase: string, limpia: Result
   return json({ salida: 'coach', motivo: `provisional_${motivo}`, hueco })
 }
 
+/**
+ * Cola de huecos (APAGADA salvo PRAXIS_HUECOS_ENCOLAR=1; tabla de la migración 0180, NO aplicada). Lee la fila del tema, calcula el upsert con
+ * `registrarHueco` y lo escribe con la clave de servicio. FALLA CERRADO: cualquier error o demora se traga y la respuesta al usuario no cambia.
+ * Solo viaja el hueco ya limpio (tema y frase limpia): ni id de persona, ni token, ni la frase cruda.
+ */
+async function encolarHueco(d: Dependencias, hueco: Hueco): Promise<void> {
+  const clave = d.entorno.SUPABASE_SERVICE_ROLE_KEY
+  if (!clave || !d.entorno.SUPABASE_URL) return
+  const base = `${d.entorno.SUPABASE_URL}/rest/v1/praxis_huecos`
+  const cab = { apikey: clave, authorization: `Bearer ${clave}`, 'content-type': 'application/json' }
+  const rl = await d.fetch(`${base}?tema_clave=eq.${encodeURIComponent(hueco.temaClave)}&select=tema_clave,frase_limpia,conteo,primera_vez,estado&limit=1`, {
+    headers: cab,
+    signal: AbortSignal.timeout(TOPE_ENCOLAR_MS),
+  })
+  if (!rl.ok) return
+  const filas = (await rl.json()) as HuecoExistente[]
+  const fila = registrarHueco(hueco, Array.isArray(filas) && filas.length > 0 ? filas[0] : null, d.ahora())
+  if (!fila) return
+  await d.fetch(`${base}?on_conflict=tema_clave`, {
+    method: 'POST',
+    headers: { ...cab, prefer: 'resolution=merge-duplicates,return=minimal' },
+    signal: AbortSignal.timeout(TOPE_ENCOLAR_MS),
+    body: JSON.stringify(fila),
+  })
+}
+
+/** Después de contestar: si la respuesta lleva hueco y la bandera está puesta, lo encola. Nunca lanza ni cambia la respuesta. */
+async function encolarSiCorresponde(d: Dependencias, resp: Response): Promise<void> {
+  if (d.entorno.PRAXIS_HUECOS_ENCOLAR !== '1') return
+  try {
+    const cuerpo = (await resp.clone().json()) as { hueco?: Partial<Hueco> }
+    const h = cuerpo?.hueco
+    if (!h || typeof h.temaClave !== 'string' || typeof h.frase !== 'string') return
+    const r = await conTope(() => encolarHueco(d, { temaClave: h.temaClave as string, frase: h.frase as string }), TOPE_ENCOLAR_MS)
+    if (!r.ok) registrar({ cola_huecos: 'no_encolado', motivo: r.motivo })
+  } catch {
+    registrar({ cola_huecos: 'no_encolado', motivo: 'error' }) // sin el texto
+  }
+}
+
 /** Puertas 1 y 2: autenticación, frase y límite por persona. Devuelve la respuesta de rechazo o la frase y el token. */
 async function puertasPrevias(req: Request, d: Dependencias): Promise<Response | { frase: string; token: string }> {
   let cuerpo: { frase?: unknown }
@@ -320,7 +367,11 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
 
   // 6. piezas aprobadas, buscadas con la frase limpia
   const piezas = await buscarPiezas(d, token, limpia.texto)
-  if (piezas.length === 0) return responderSinPiezas(d, frase, limpia, normalizarHueco(limpia.texto))
+  if (piezas.length === 0) {
+    const resp = await responderSinPiezas(d, frase, limpia, normalizarHueco(limpia.texto))
+    await encolarSiCorresponde(d, resp)
+    return resp
+  }
   return responderConDeepseek(d, frase, limpia, piezas)
 }
 
@@ -337,6 +388,8 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         PORTERO_URL: entorno('PORTERO_URL'),
         PORTERO_CLAVE: entorno('PORTERO_CLAVE'),
         PRAXIS_CHARLA_PROVISIONAL: entorno('PRAXIS_CHARLA_PROVISIONAL'),
+        PRAXIS_HUECOS_ENCOLAR: entorno('PRAXIS_HUECOS_ENCOLAR'),
+        SUPABASE_SERVICE_ROLE_KEY: entorno('SUPABASE_SERVICE_ROLE_KEY'),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),
