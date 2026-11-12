@@ -6,7 +6,8 @@
  *   · Tono MEZCLA: cálido (A) donde hay una razón que explicar (R1, R2, R4, R7, P2, P7) y en las demás confirmaciones;
  *     seco (B) en los avisos de un solo dato (R3, R5, R6, R8, I1, I3b).
  *   · Cada texto con «tu» tiene su versión de «usted» cambiando solo el trato, como el deshacer de registros.
- *   · Lo marcado «SIN APROBAR» no está en el diseño aprobado: lo completó quien construyó la tarjeta y espera a Bryan.
+ *   · Los textos que el diseño no traía (marcados «aprobado aparte») los escribió quien construyó la tarjeta y Bryan
+ *     los aprobó uno por uno el 11-nov-2026, en la misma sesión.
  *
  * Nunca se pinta un id ni un nombre técnico: solo `nombreHablado` de la pieza, entre comillas.
  */
@@ -47,7 +48,7 @@ export const BOTON = {
   deshacer: 'Deshacer',
   reintentar: 'Reintentar',
   cerrar: 'Cerrar',
-  /** SIN APROBAR: los dos sentidos tras «Muévelo» (R1). */
+  /** Aprobado aparte (11-nov): los dos sentidos tras «Muévelo» (R1). */
   masArriba: 'Más arriba',
   masAbajo: 'Más abajo',
 } as const
@@ -87,7 +88,7 @@ export const TEXTO = {
   soloLoImportante: (_t: TratoDeTarjeta, n: number) => `Esto esconde ${cosas(n)} y deja solo lo esencial. ¿Seguimos?`,
   soloLoImportanteVacio: 'Ya está todo lo que se puede esconder. No hay nada más que quitar.',
   traerConfirmar: (t: TratoDeTarjeta, n: string) => de(t, [`¿Te llevo a ${q(n)}?`, `¿Lo llevo a ${q(n)}?`]),
-  /** SIN APROBAR en lo genérico: el diseño trae el ejemplo «el álbum te aburre»; aquí no se repite la queja. */
+  /** Aprobado aparte (11-nov): el diseño traía el ejemplo «el álbum te aburre»; aquí no se repite la queja. */
   queja: (t: TratoDeTarjeta, n: string) => de(t, [`Entiendo. ¿Escondo ${q(n)} de tu pantalla?`, `Entiendo. ¿Escondo ${q(n)} de su pantalla?`]),
 } as const
 
@@ -99,9 +100,9 @@ export const PREGUNTA = {
     'Hay más de tres con ese nombre. ¿Es alguna de estas? Si no, dime otro nombre.',
     'Hay más de tres con ese nombre. ¿Es alguna de estas? Si no, dígame otro nombre.',
   ]),
-  /** SIN APROBAR: tras «Una parte de la pantalla» (Q2) el diseño dice «Dime cuál». */
+  /** Aprobado aparte (11-nov): tras «Una parte de la pantalla» (Q2). */
   dimeCual: (t: TratoDeTarjeta) => de(t, ['Dime cuál parte de la pantalla.', 'Dígame cuál parte de la pantalla.']),
-  /** SIN APROBAR: tras «Muévelo» (R1). */
+  /** Aprobado aparte (11-nov): tras «Muévelo» (R1). */
   haciaDonde: (n: string) => `¿Hacia dónde muevo ${q(n)}?`,
 } as const
 
@@ -141,7 +142,7 @@ export const RECHAZO = {
 /** Lo que pasa después del toque (estados de la §4). */
 export const RESULTADO = {
   aplicando: 'Un momento…',
-  /** Aprobado «Listo, lo escondí.»; los demás verbos son SIN APROBAR (mismo molde). */
+  /** «Listo, lo escondí.» del diseño; los demás verbos, aprobados aparte (11-nov), mismo molde. */
   aplicada: { ocultar: 'Listo, lo escondí.', fijar: 'Listo, lo fijé.', mover_arriba: 'Listo, lo subí.', mover_abajo: 'Listo, lo bajé.', deshacer: 'Listo, lo devolví.', restablecer: 'Listo, la dejé como viene de fábrica.', solo_lo_importante: 'Listo, lo escondí.' },
   noCambio: 'Listo, no cambié nada.',
   noCambioQueja: 'Listo, lo dejo.',
@@ -151,7 +152,7 @@ export const RESULTADO = {
     'Tu pantalla cambió en otro aparato, así que no toqué nada. Pídemelo de nuevo.',
     'Su pantalla cambió en otro aparato, así que no toqué nada. Pídamelo de nuevo.',
   ]),
-  /** SIN APROBAR: el aviso al coach (R2) no está construido; se dice la verdad. */
+  /** Aprobado aparte (11-nov): el aviso al coach (R2) no está construido; se dice la verdad. */
   avisoNoDisponible: 'Todavía no puedo avisarle desde aquí. No cambié nada.',
   avisoDejado: 'Listo, le dejé el aviso.',
   /** Tras «Ver»: cuando no hay ninguna pieza para enseñar. */
