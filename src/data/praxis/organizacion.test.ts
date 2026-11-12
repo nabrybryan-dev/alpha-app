@@ -5,15 +5,15 @@ const sinError = (data: unknown) => async () => ({ data, error: null })
 
 describe('organización guardada (0179)', () => {
   it('lee la fila propia y si hay algo que deshacer', async () => {
-    const leerFila = vi.fn(sinError({ version: 3, ocultas: ['hoy.cifras', 7] }))
+    const leerFila = vi.fn(sinError({ version: 3, ocultas: ['hoy.cifras', 7], movidas: { 'hoy.radar': -1, malo: 'x' } }))
     const o = await leerOrganizacion('u1', { leerFila, hayCambioSinDeshacer: sinError([{ id: 1 }]) })
-    expect(o).toEqual({ version: 3, ocultas: ['hoy.cifras'], hayCambiosParaDeshacer: true })
+    expect(o).toEqual({ version: 3, ocultas: ['hoy.cifras'], movidas: { 'hoy.radar': -1 }, hayCambiosParaDeshacer: true })
     expect(leerFila).toHaveBeenCalledWith('u1')
   })
 
   it('sin fila o con error: nada escondido, nada que deshacer (nunca lanza)', async () => {
-    expect(await leerOrganizacion('u1', { leerFila: sinError(null), hayCambioSinDeshacer: sinError([]) })).toEqual({ version: 0, ocultas: [], hayCambiosParaDeshacer: false })
-    expect(await leerOrganizacion('u1', { leerFila: async () => { throw new Error('red') }, hayCambioSinDeshacer: sinError([]) })).toEqual({ version: 0, ocultas: [], hayCambiosParaDeshacer: false })
+    expect(await leerOrganizacion('u1', { leerFila: sinError(null), hayCambioSinDeshacer: sinError([]) })).toEqual({ version: 0, ocultas: [], movidas: {}, hayCambiosParaDeshacer: false })
+    expect(await leerOrganizacion('u1', { leerFila: async () => { throw new Error('red') }, hayCambioSinDeshacer: sinError([]) })).toEqual({ version: 0, ocultas: [], movidas: {}, hayCambiosParaDeshacer: false })
   })
 
   it('guarda con la función y la versión, y solo «aplicado» con versión es aplicado', async () => {

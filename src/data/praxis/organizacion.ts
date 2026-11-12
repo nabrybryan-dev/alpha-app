@@ -15,6 +15,8 @@ export const RPC_DESHACER_ORGANIZACION = 'praxis_organizacion_deshacer'
 export interface OrganizacionGuardada {
   version: number
   ocultas: string[]
+  /** { id: lugares movidos } (negativo = hacia arriba). */
+  movidas: Record<string, number>
   hayCambiosParaDeshacer: boolean
 }
 
@@ -41,7 +43,7 @@ const porDefecto = (): DependenciasOrganizacion => ({
   // Filtra por la persona: el equipo puede leer todas las filas (soporte), y aquí solo cuenta la propia.
   leerFila: async (usuarioId) => {
     if (!modoNube) return { data: null, error: null }
-    return supabase().from('praxis_organizacion').select('version,ocultas').eq('usuario_id', usuarioId).maybeSingle()
+    return supabase().from('praxis_organizacion').select('version,ocultas,movidas').eq('usuario_id', usuarioId).maybeSingle()
   },
   hayCambioSinDeshacer: async (usuarioId) => {
     if (!modoNube) return { data: [], error: null }
@@ -49,7 +51,7 @@ const porDefecto = (): DependenciasOrganizacion => ({
   },
 })
 
-const VACIA: OrganizacionGuardada = { version: 0, ocultas: [], hayCambiosParaDeshacer: false }
+const VACIA: OrganizacionGuardada = { version: 0, ocultas: [], movidas: {}, hayCambiosParaDeshacer: false }
 
 /** La organización de la persona; sin fila (nunca organizó) o ante cualquier error, la vacía. Nunca lanza. */
 export async function leerOrganizacion(usuarioId: string, deps: Partial<DependenciasOrganizacion> = {}): Promise<OrganizacionGuardada> {
@@ -57,14 +59,19 @@ export async function leerOrganizacion(usuarioId: string, deps: Partial<Dependen
   try {
     const [fila, cambios] = await Promise.all([d.leerFila(usuarioId), d.hayCambioSinDeshacer(usuarioId)])
     if (fila.error) return VACIA
-    const f = fila.data as { version?: unknown; ocultas?: unknown } | null
+    const f = fila.data as { version?: unknown; ocultas?: unknown; movidas?: unknown } | null
     const ocultas = Array.isArray(f?.ocultas) ? f.ocultas.filter((x): x is string => typeof x === 'string') : []
     const version = typeof f?.version === 'number' ? f.version : 0
     const hay = !cambios.error && Array.isArray(cambios.data) && cambios.data.length > 0
-    return { version, ocultas, hayCambiosParaDeshacer: hay }
+    return { version, ocultas, movidas: leerMovidas(f?.movidas), hayCambiosParaDeshacer: hay }
   } catch {
     return VACIA
   }
+}
+
+function leerMovidas(x: unknown): Record<string, number> {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return {}
+  return Object.fromEntries(Object.entries(x).filter((e): e is [string, number] => typeof e[1] === 'number' && Number.isFinite(e[1])))
 }
 
 function leerResultado(data: unknown): ResultadoDeGuardar {

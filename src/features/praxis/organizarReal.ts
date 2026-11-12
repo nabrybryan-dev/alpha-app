@@ -7,6 +7,7 @@ import {
   type CambioParaGuardar, type DependenciasOrganizacion, type OrganizacionGuardada, type ResultadoDeGuardar,
 } from '../../data/praxis/organizacion'
 import { sesionDeFunciones } from '../../data/supabase'
+import { fijarOrganizacionViva } from '../../app/organizacionViva'
 import type { ConexionPraxis } from './motor/conexion'
 
 /**
@@ -27,9 +28,10 @@ export function crearOrganizarReal(
   entorno: { perfil: PerfilAcceso; navegar: (ruta: string) => void },
   deps: Partial<DependenciasOrganizacion> = {},
 ): NonNullable<ConexionPraxis['organizar']> {
-  let guardada: OrganizacionGuardada = { version: 0, ocultas: [], hayCambiosParaDeshacer: false }
+  let guardada: OrganizacionGuardada = { version: 0, ocultas: [], movidas: {}, hayCambiosParaDeshacer: false }
   let leida = false
-  const releer = async (): Promise<void> => { guardada = await leerOrganizacion(usuarioId, deps); leida = true }
+  // Al releer se avisa a Hoy y a la barra: lo que se escondió desaparece de la pantalla en el acto.
+  const releer = async (): Promise<void> => { guardada = await leerOrganizacion(usuarioId, deps); leida = true; fijarOrganizacionViva(usuarioId, guardada) }
   void releer()
 
   const tras = async (r: ResultadoDeGuardar): Promise<ResultadoDeAplicar> => {
