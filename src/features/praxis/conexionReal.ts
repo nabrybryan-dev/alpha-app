@@ -8,6 +8,7 @@ import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/prax
 import { anotarPatron, camposLlenosHoy, guardarCheckinDePraxis, leerMiLexico } from '../../data/praxis/checkin'
 import type { Anotacion } from '../../domain/praxis/registro/anotaciones'
 import { CONECTORES_EN_TARJETA } from '../../domain/praxis/registro/tarjetaCheckin'
+import { proponerVidaLocal } from '../../domain/praxis/registro/rapidoVida'
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
@@ -44,6 +45,10 @@ export function crearConexionPraxis(
     leer,
     proponer: async (frase, mensajeId, contexto) => {
       const ve = leer()
+      // Agua, sueño y pasos simples se leen en el teléfono, sin viajar (bandera `VIDA_LOCAL_ENCENDIDA`, APAGADA por defecto).
+      // Lo que la gramática no acepta, y todo lo de salud o riesgo, sigue al servidor igual que siempre; el servidor valida al guardar.
+      const local = proponerVidaLocal(frase, { ahora: horaLocalIso(), hidratacionHoyMl: ve.hidratacionHoyMl, verComposicion: ve.comida ? ve.comida.verCifras : false }, mensajeId)
+      if (local) return { ok: true, propuesta: local.propuesta, tarjeta: local.tarjeta, mensajeId }
       return proponerRegistro(await sesionDeFunciones(), {
         frase,
         mensajeId,
