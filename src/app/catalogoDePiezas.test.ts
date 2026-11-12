@@ -56,7 +56,8 @@ describe('inventario de las tarjetas de Hoy contra HoyPage.tsx', () => {
   const cola = texto.slice(texto.indexOf(marca))
   const claves = new Set<string>()
   for (const m of cola.matchAll(/^\s*\{(\w+)\}\s*$/gm)) claves.add(m[1])
-  for (const m of cola.matchAll(/<([A-Z]\w+)/g)) if (!['Suspense', 'ElResto', 'Fragment'].includes(m[1])) claves.add(m[1])
+  // AnilloDeHoy (C1) es adorno fijo detrás de la bandera HOY_CON_ANILLO, no una tarjeta organizable: no entra al catálogo ni a la migración 0179.
+  for (const m of cola.matchAll(/<([A-Z]\w+)/g)) if (!['Suspense', 'ElResto', 'Fragment', 'AnilloDeHoy'].includes(m[1])) claves.add(m[1])
   // Las bandas que obedecen la organización guardada escriben `['id', tarjeta]`: el id tiene que ser el de esa tarjeta.
   const parejas = [...cola.matchAll(/\[\s*'([\w.:/-]+)',\s*(?:(\w+)|<Suspense[^>]*>\s*<(\w+))/g)].map((m) => ({ id: m[1]!, clave: (m[2] ?? m[3])! }))
   for (const p of parejas) claves.add(p.clave)
