@@ -332,10 +332,8 @@ describe('aCandidato', () => {
     expect(aCandidato(filaBase)?.origen).toBe('importador')
   })
   it('una fila de la landing (land:, sin seguidores, con las métricas del PRAXIS) se acomoda sin perder nada', () => {
-    const metricas = {
-      nicho: 'fitness', ciudad: 'Ciudad', rango_seguidores: '10k_50k', ya_crea_contenido: true,
-      contacto_tipo: 'whatsapp', contacto: '+570000000',
-    }
+    // Lo que escribe la 0178: sin el contacto, que va a creadores_contactos.
+    const metricas = { nicho: 'fitness', ciudad: 'Ciudad', rango_seguidores: '10k_50k', ya_crea_contenido: true }
     const c = aCandidato({
       ...filaBase, creador_id: 'land:cuenta_de_prueba', usuario_ig: 'cuenta_de_prueba', seguidores: null,
       carril: 'encuesta', motivos: ['interesado vía PRAXIS de la landing'], nota_a: null, version_rubrica: null,

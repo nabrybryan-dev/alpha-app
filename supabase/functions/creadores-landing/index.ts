@@ -4,13 +4,15 @@
 // importador de casa (`bola-de-nieve/tablero/subir_creadores.py`), que descubre creadores en
 // Instagram. La landing pública va a tener su propio PRAXIS (agente conversacional) para que un
 // creador se postule solo; cuando complete ese formulario conversado, la landing llama a esta
-// función para que el candidato entre al MISMO tablero, con `origen = 'landing-praxis'`, sin
-// tocar el importador. Mismo patrón que `cadena-agentes`: HTTPS, una clave en cabecera y una
-// sola RPC de la migración (`creadores_landing_registrar`, 0178) — sin SQL libre.
+// función para que el candidato entre al MISMO tablero, sin tocar el importador. Mismo patrón
+// que `cadena-agentes`: HTTPS, una clave en cabecera y una sola RPC de la migración
+// (`creadores_landing_registrar`, 0178) — sin SQL libre.
 //
 // POST { usuario_ig, nicho?, ciudad?, rango_seguidores?, ya_crea_contenido?, contacto_tipo,
 //        contacto, mayor_edad }   cabecera obligatoria x-alpha-clave = ALPHA_CREADORES_SECRET
 //   -> 200 { ok: true, datos: { creador_id, es_nuevo } }
+//        `creador_id` es `ig:<id>` si el radar ya tenía ese @ (es_nuevo = false), o
+//        `land:<usuario_ig>` si entró por aquí.
 //   -> 400 / 401 / 500 { ok: false, error }
 //
 // LO QUE NO DEJA HACER, a propósito:
@@ -18,7 +20,8 @@
 //   · `mayor_edad` tiene que ser literalmente `true`: cualquier otra cosa (ausente, `false`,
 //     `"true"`…) se rechaza con 400 antes de llamar a la base. La función de la base repite el
 //     candado como última línea de defensa.
-//   · Un @ que ya existe no se duplica ni se pisa: la RPC solo anota el contacto nuevo.
+//   · Un @ que ya está en el tablero (del radar o de la landing) no se duplica ni se pisa: la
+//     RPC guarda el contacto en `creadores_contactos` y deja un evento con actor `landing`.
 //   · No hay límite de tasa propio aquí: Supabase Edge Functions no lo trae de fábrica y no es
 //     tarea de esta función — el límite lo pone el lado de la landing antes de llamar.
 //

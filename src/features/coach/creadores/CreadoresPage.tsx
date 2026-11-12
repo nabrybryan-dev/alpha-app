@@ -19,6 +19,7 @@ import {
 import { Cifra3D } from '../../../components/ui/Cifra3D'
 import { EntradaMiPlan } from '../../plan/EntradaMiPlan'
 import { BuzonMercadeo } from './BuzonMercadeo'
+import { ContactoReciente } from './ContactoReciente'
 import { embudoDe, type Embudo } from './embudo'
 import { criteriosAplicados, escribirFiltros, filtrarCandidatos, leerFiltros, SIN_FILTROS, type Filtros } from './filtros'
 
@@ -364,6 +365,7 @@ function TarjetaCandidato({
           ))}
         </ul>
       )}
+      {abierta && <ContactoReciente creadorId={candidato.creadorId} />}
       {abierta && <DetalleRevisiones creadorId={candidato.creadorId} />}
     </li>
   )
