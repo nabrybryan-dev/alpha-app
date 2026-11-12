@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
+import { useOrganizacionVisible } from './organizacionViva'
 import { TopBar } from '../components/ui/TopBar'
 import { db } from '../data/dbInstance'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
@@ -104,6 +105,8 @@ export function AsesoradoLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
+  // Lo que la persona escondió o movió hablando con Praxis (0179); solo con la prueba encendida, si no, nada cambia.
+  const organizacion = useOrganizacionVisible(usuario.id)
 
   // El recordatorio de las 6 pm del check-in ya no se dispara aquí: sale del servidor (Edge Function `avisos-plan`), así
   // llega aunque la app esté cerrada. Se enciende en «Yo» (decisión de Bryan, 28-oct).
@@ -128,7 +131,7 @@ export function AsesoradoLayout() {
       <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
         <Outlet />
       </main>
-      {esCoach ? barraDelStaff() : <BottomNav espacios={espaciosDe(usuario.rol)} />}
+      {esCoach ? barraDelStaff() : <BottomNav espacios={espaciosDe(usuario.rol)} organizacion={organizacion} />}
       <CapaDeUnToque />
     </div>
   )
