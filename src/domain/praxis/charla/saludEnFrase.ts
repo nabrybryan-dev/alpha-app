@@ -32,6 +32,27 @@ const LEXICO: readonly (readonly [string, RegExp])[] = [
   ['pastillas', /\bpastill\w+|\bpildora\w*/],
   ['receta', /\brecet(?:a|as|ado|ada|o)\b/],
   ['diagnostico', /\bdiagnostic\w*/],
+  // 12-nov-2026: poblaciones sensibles, condiciones cronicas, farmacos/sustancias, TCA y edad (hallazgo medido C17: posparto a los
+  // 3 meses paso el filtro y la respuesta dio luz verde clinica). Sobre-bloquea a proposito (falla seguro): «parto» tambien corta
+  // «yo parto de cero», «anabolico» corta «ventana anabolica», «tengo 12 años entrenando» corta aunque no sea un menor.
+  ['embarazo', /\bembaraz\w*|\bgestaci\w+|\bgestante\w*/],
+  ['posparto', /\bpos?t?[- ]?parto\b|\bpuerper\w*|\bparto\b|\bpartos\b/],
+  ['cesarea', /\bcesare\w*/],
+  ['cirugia', /\bcirug\w+|\bquirurg\w*|\boperacion(?:es)?\b|\boperad[oa]s?\b|\boperaron\b|\bpos?t?[- ]?operat\w*|\bpos?t?[- ]?quirurg\w*/],
+  ['lactancia', /\blactanc\w*|\blactand\w*|\bamamant\w*|\bdando\s+(?:el\s+)?(?:pecho|teta)\b/],
+  ['menopausia', /\b(?:peri|post|pos)?menopaus\w*/],
+  ['tiroides', /\btiroid\w*|\bhipotiroid\w*|\bhipertiroid\w*|\blevotiroxin\w*/],
+  ['diabetes', /\bdiabet\w*|\binsulin\w*|\bglucemi\w*/],
+  ['hipertension', /\bhipertens\w*|\b(?:presion|tension)\s+(?:arterial\s+)?alta\b|\balta\s+(?:presion|tension)\b/],
+  ['anemia', /\banemi\w*/],
+  ['asma', /\basma\b|\basmatic\w*/],
+  ['anticonceptivo', /\banticonceptiv\w*|\banticoncep\w*/],
+  ['farmaco de bajada de peso', /\bozempic\b|\bsemaglutid\w*|\bwegovy\b|\btirzepatid\w*/],
+  ['sustancia', /\bclembuterol\b|\bquemagras\w*|\bquema\s+grasas?\b|\besteroid\w*|\banabolic\w*|\banabolizant\w*/],
+  ['trastorno alimentario', /\banorexi\w*|\bbulimi\w*|\batrac(?:on|ones)\b|\bpurga\w*|\bpurgar\w*/],
+  ['menor de edad', /\bmenor(?:es)?\s+de\s+edad\b|\bsoy\s+menor\b|\bmenor\s+de\s+18\b|\b(?:tengo|tiene|tenia|cumpli|cumplo|con)\s+(?:solo\s+|apenas\s+)?1[0-7]\s*anos\b/],
+  ['mayor de 65', /\bmayor(?:es)?\s+de\s+(?:6[5-9]|[7-9]\d)\b|\bmas\s+de\s+65\b|\badult[oa]s?\s+mayor(?:es)?\b|\b(?:tengo|tiene|tenia|cumpli|cumplo|con)\s+(?:6[5-9]|[7-9]\d)\s*anos\b/],
+  ['abuelo', /\b(?:mi|mis)\s+abuel[oa]s?\b|\bmi\s+abuelit[oa]\b/],
 ]
 
 /** El término del léxico que la frase trae, o null. Sin tildes ni mayúsculas. */
