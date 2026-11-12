@@ -12,7 +12,9 @@ import { intentarCheckin } from './checkinConectado'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
-import { decidirOrganizarONavegar, textoProvisionalDeOrganizar } from './organizar'
+import { decidirOrganizarONavegar } from './organizar'
+import { mostrarPasoDeOrganizar } from './tarjetaOrganizar'
+import { tarjetaDeOrganizacion } from '../../../app/tarjetaDeOrganizacion'
 import { guardar, leer, trato, tu } from './entorno'
 import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
@@ -333,7 +335,12 @@ async function intentarOrganizar(c: ConexionPraxis, frase: string, paso: string,
     c.organizar?.navegar(o.resultado.patron)
     return true
   }
-  if (o?.paso === 'organiza') { await dijo(textoProvisionalDeOrganizar(), tok); return true }
+  if (o?.paso === 'organiza' && c.organizar) {
+    const paso = tarjetaDeOrganizacion(o.decision, { trato: trato(), perfil: c.organizar.perfil, estado: c.organizar.estado() })
+    if (paso.tipo === 'nada') return false
+    await mostrarPasoDeOrganizar({ c, tok, pensando, dijo }, paso)
+    return true
+  }
   return false
 }
 

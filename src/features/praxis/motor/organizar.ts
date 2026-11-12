@@ -45,12 +45,3 @@ export async function decidirOrganizarONavegar(frase: string, turno: 'plan' | 'r
     return null
   }
 }
-
-/**
- * TODO (apagado): la tarjeta de confirmación de organizar («propone», «traer» con confirmar, «pregunta_cual»…) todavía no
- * existe y los textos los aprueba Bryan aparte. Mientras tanto la decisión queda conectada y esto solo avisa; no guarda ni
- * mueve nada.
- */
-export function textoProvisionalDeOrganizar(): string {
-  return 'Entendí que quieres organizar la app, pero todavía no puedo hacerlo desde aquí. No cambié nada.'
-}
