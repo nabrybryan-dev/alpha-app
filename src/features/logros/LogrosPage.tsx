@@ -13,6 +13,7 @@ import { FichaPanini } from './FichaPanini'
 import { RankingEquipo } from './RankingEquipo'
 import { TiraDeRachas } from './TiraDeRachas'
 import { useGamificacion } from './useGamificacion'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 export default function LogrosPage() {
   const { usuario } = useSesion()
@@ -32,45 +33,49 @@ export default function LogrosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section
-        className="entrada entrada-1 tarjeta-foto p-5 pt-24 text-center"
-        // Los agujeros numerados del rack: la escalera que `DIRECCION-C-ASCENSO.md` llama
-        // «los peldaños». Los logros de esta app son niveles, y la metáfora ya estaba en la
-        // dirección visual. La foto anterior (`atleta-sonrisa.jpeg`) no fallaba por
-        // resolución —iba a 1:1— sino por sistema: turquesa y amarillo cálido contra una
-        // paleta de tinta y rojo, con focos de techo asomando bajo la tipografía blanca.
-        // Medido en la zona del texto: 24,0 de media antes, 10,2 ahora, con un umbral de 18.
-        style={{ '--foto': 'url(/fondos/logros-peldanos.jpg)', '--foto-pos': 'center 25%' } as React.CSSProperties}
-      >
-        <div className="mb-2 flex justify-center">
-          <AguilaInteractiva className="h-16 w-16" />
-        </div>
-        <p className="kicker">Tu nivel de disciplina</p>
-        {/* En 390 px «DISCIPLINADO» se salía del borde derecho (H-11): el nombre
-            nunca se recorta, baja de tamaño y puede partirse. */}
-        <h2 className="mt-1 break-words font-display text-3xl leading-none sm:text-4xl">
-          {juego.nivel.nombre}
-        </h2>
-        <p className="cifras mt-1 text-sm text-white/70">
-          <CifraAnimada valor={juego.xp} /> XP acumulados
-        </p>
-        <div className="mt-3">
-          <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
-          <p className="mt-1.5 text-xs text-white/70">
-            {juego.siguiente
-              ? `${juego.siguiente.xpMinimo - juego.xp} XP para ser ${juego.siguiente.nombre}`
-              : 'Nivel máximo alcanzado: eres Heracles'}
+      <PiezaOrganizable id="logros.nivel">
+        <section
+          className="entrada entrada-1 tarjeta-foto p-5 pt-24 text-center"
+          // Los agujeros numerados del rack: la escalera que `DIRECCION-C-ASCENSO.md` llama
+          // «los peldaños». Los logros de esta app son niveles, y la metáfora ya estaba en la
+          // dirección visual. La foto anterior (`atleta-sonrisa.jpeg`) no fallaba por
+          // resolución —iba a 1:1— sino por sistema: turquesa y amarillo cálido contra una
+          // paleta de tinta y rojo, con focos de techo asomando bajo la tipografía blanca.
+          // Medido en la zona del texto: 24,0 de media antes, 10,2 ahora, con un umbral de 18.
+          style={{ '--foto': 'url(/fondos/logros-peldanos.jpg)', '--foto-pos': 'center 25%' } as React.CSSProperties}
+        >
+          <div className="mb-2 flex justify-center">
+            <AguilaInteractiva className="h-16 w-16" />
+          </div>
+          <p className="kicker">Tu nivel de disciplina</p>
+          {/* En 390 px «DISCIPLINADO» se salía del borde derecho (H-11): el nombre
+              nunca se recorta, baja de tamaño y puede partirse. */}
+          <h2 className="mt-1 break-words font-display text-3xl leading-none sm:text-4xl">
+            {juego.nivel.nombre}
+          </h2>
+          <p className="cifras mt-1 text-sm text-white/70">
+            <CifraAnimada valor={juego.xp} /> XP acumulados
           </p>
-        </div>
-      </section>
+          <div className="mt-3">
+            <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
+            <p className="mt-1.5 text-xs text-white/70">
+              {juego.siguiente
+                ? `${juego.siguiente.xpMinimo - juego.xp} XP para ser ${juego.siguiente.nombre}`
+                : 'Nivel máximo alcanzado: eres Heracles'}
+            </p>
+          </div>
+        </section>
+      </PiezaOrganizable>
 
       {/* Las tres rachas ya no son tres cristales sueltos: son tres ventanas a la
           misma calle, con la pieza F corriendo por detrás y cada celda
           descubriendo hasta donde llegó su racha. El porqué está en
           `TiraDeRachas.tsx` y en el spec del 25-08. */}
-      <section className="entrada entrada-2 min-w-0">
-        <TiraDeRachas celdas={rachas} />
-      </section>
+      <PiezaOrganizable id="logros.rachas">
+        <section className="entrada entrada-2 min-w-0">
+          <TiraDeRachas celdas={rachas} />
+        </section>
+      </PiezaOrganizable>
 
       {/* La evolución (peso, carga, volumen y medidas) vive en la pestaña
           Progreso: aquí solo se enlaza para no tener los mismos gráficos en
@@ -88,24 +93,28 @@ export default function LogrosPage() {
         </span>
       </Link>
 
-      <section className="entrada entrada-3">
-        <p className="kicker mb-2">Ranking Equipo Alpha</p>
-        <RankingEquipo usuarioActualId={usuario.id} />
-      </section>
+      <PiezaOrganizable id="logros.ranking">
+        <section className="entrada entrada-3">
+          <p className="kicker mb-2">Ranking Equipo Alpha</p>
+          <RankingEquipo usuarioActualId={usuario.id} />
+        </section>
+      </PiezaOrganizable>
 
-      <section className="entrada entrada-3">
-        <p className="kicker">Historias Alpha</p>
-        <p className="mb-2 mt-0.5 text-xs text-tenue">
-          Siempre hay un dónde, un cómo y un cuándo. Toca una ficha y muévela.
-        </p>
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
-          {ASESORADOS_DESTACADOS.filter((a) => a.foto).map((a) => (
-            <div key={a.id} className="snap-center">
-              <FichaPanini ficha={a} />
-            </div>
-          ))}
-        </div>
-      </section>
+      <PiezaOrganizable id="logros.album">
+        <section className="entrada entrada-3">
+          <p className="kicker">Historias Alpha</p>
+          <p className="mb-2 mt-0.5 text-xs text-tenue">
+            Siempre hay un dónde, un cómo y un cuándo. Toca una ficha y muévela.
+          </p>
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+            {ASESORADOS_DESTACADOS.filter((a) => a.foto).map((a) => (
+              <div key={a.id} className="snap-center">
+                <FichaPanini ficha={a} />
+              </div>
+            ))}
+          </div>
+        </section>
+      </PiezaOrganizable>
 
       {rachaRota && (
         <Card>
@@ -117,33 +126,37 @@ export default function LogrosPage() {
         </Card>
       )}
 
-      <section>
-        <p className="kicker">Logros</p>
-        <div className="mt-2 grid grid-cols-2 gap-2.5">
-          {juego.logros.map((logro, i) => (
-            <Revelar key={logro.id} retrasoMs={(i % 4) * 60}>
-              <Medalla logro={logro} />
-            </Revelar>
-          ))}
-        </div>
-      </section>
-
-      {premiaciones.length > 0 && (
+      <PiezaOrganizable id="logros.medallas">
         <section>
-          <p className="kicker">Reconocimientos del coach</p>
-          <div className="mt-2 flex flex-col gap-2">
-            {premiaciones.map((premio) => (
-              <Card key={premio.id} destacada className="flex items-start gap-3">
-                <IconoEstrella className="h-6 w-6 shrink-0 text-rojo" />
-                <div>
-                  <h3 className="font-display text-base text-texto">{premio.titulo}</h3>
-                  <p className="text-xs text-tenue">{premio.fecha}</p>
-                  {premio.nota && <p className="mt-1 text-sm text-texto/90">{premio.nota}</p>}
-                </div>
-              </Card>
+          <p className="kicker">Logros</p>
+          <div className="mt-2 grid grid-cols-2 gap-2.5">
+            {juego.logros.map((logro, i) => (
+              <Revelar key={logro.id} retrasoMs={(i % 4) * 60}>
+                <Medalla logro={logro} />
+              </Revelar>
             ))}
           </div>
         </section>
+      </PiezaOrganizable>
+
+      {premiaciones.length > 0 && (
+        <PiezaOrganizable id="logros.premios">
+          <section>
+            <p className="kicker">Reconocimientos del coach</p>
+            <div className="mt-2 flex flex-col gap-2">
+              {premiaciones.map((premio) => (
+                <Card key={premio.id} destacada className="flex items-start gap-3">
+                  <IconoEstrella className="h-6 w-6 shrink-0 text-rojo" />
+                  <div>
+                    <h3 className="font-display text-base text-texto">{premio.titulo}</h3>
+                    <p className="text-xs text-tenue">{premio.fecha}</p>
+                    {premio.nota && <p className="mt-1 text-sm text-texto/90">{premio.nota}</p>}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </section>
+        </PiezaOrganizable>
       )}
     </div>
   )
