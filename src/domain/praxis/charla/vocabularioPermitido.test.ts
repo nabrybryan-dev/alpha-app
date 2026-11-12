@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { limpiarFrase, NOMBRES_COMUNES } from './limpiador.ts'
 import { VOCABULARIO_CHARLA } from './vocabularioCharla.generado.ts'
@@ -102,5 +103,34 @@ describe('(e) el vocabulario no contiene nombres de persona', () => {
   it('el módulo generado lleva la cabecera de no editar', async () => {
     const { readFileSync } = await import('node:fs')
     expect(readFileSync('src/domain/praxis/charla/vocabularioCharla.generado.ts', 'utf8').startsWith('// GENERADO: no editar a mano')).toBe(true)
+  })
+})
+
+describe('(f) ampliación aprobada con el vocabulario de entrenamiento (11-nov)', () => {
+  const ampliacion = JSON.parse(readFileSync('scripts/vocabulario-charla-AMPLIACION.json', 'utf8')) as string[]
+  it('la lista trae 534 palabras y todas están en el vocabulario', () => {
+    expect(ampliacion).toHaveLength(534)
+    // el limpiador parte por letras: «pre-entreno» vale si «pre» y «entreno» están
+    const faltan = ampliacion.flatMap((p) => normalizarPalabra(p).match(/\p{L}+/gu) ?? []).filter((p) => p.length >= 2 && !VOCAB.has(p))
+    expect(faltan).toEqual([])
+  })
+  it('ninguna palabra de la ampliación es un nombre de NOMBRES_COMUNES', () => {
+    const nombres = new Set(NOMBRES_COMUNES.map(normalizarPalabra))
+    expect(ampliacion.map(normalizarPalabra).filter((p) => nombres.has(p))).toEqual([])
+  })
+  it('armarVocabulario suma la ampliación y sigue excluyendo nombres (positivo: un nombre dentro de la ampliación se quita)', () => {
+    const v = armarVocabulario([], ['el'], ['Zulema'], ['creatina', 'Zulema', 'tempo'])
+    expect(v).toContain('creatina')
+    expect(v).toContain('tempo')
+    expect(v).not.toContain('zulema')
+  })
+  it('una frase de dominio con creatina, cafeína, tempo y agarre sale casi intacta', () => {
+    const sale = filtrar('¿La creatina y la cafeína ayudan con el tempo y el agarre?')
+    expect(sale).not.toContain('[…]')
+  })
+  it('los nombres sembrados siguen tapados con el vocabulario ampliado', () => {
+    for (const [f, n] of [['creatina con zulema', 'zulema'], ['Zacarias pregunta por el agarre', 'zacarias'], ['vivo en el barrio las acacias', 'acacias']]) {
+      expect(filtrar(f!)).not.toContain(n)
+    }
   })
 })

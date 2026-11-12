@@ -12,6 +12,8 @@
  *  - `prescripcion`: «te recomiendo», «debes», «tu dieta/plan/rutina…», kilos, gramos, calorías, y series o repeticiones
  *    pedidas con número o con orden («haz series…»);
  *  - `salud`: diagnóstico, medicación, síntoma, lesión, tratamiento, dolor y afines;
+ *  - `rotunda`: absolutos y tranquilizaciones sin matiz («nunca», «jamás», «siempre» en afirmación, «no pasa nada», «es normal»,
+ *    «se van solas», «seguro que», «nunca es tarde», «no vuelve»…). «A veces», «no siempre», «casi siempre» y «depende» pasan;
  *  - `vacio`: no es texto o está en blanco.
  * El motivo devuelto es el PRIMERO que salta, en ese orden de arriba abajo salvo `vacio` y `largo`, que van primero.
  *
@@ -24,7 +26,7 @@
  */
 export const MAX_PALABRAS_PROVISIONAL = 120
 
-export type MotivoFiltro = 'vacio' | 'largo' | 'autores_estudios' | 'cifras' | 'prescripcion' | 'salud'
+export type MotivoFiltro = 'vacio' | 'largo' | 'autores_estudios' | 'cifras' | 'prescripcion' | 'salud' | 'rotunda'
 export type ResultadoFiltro = { ok: true } | { ok: false; motivo: MotivoFiltro }
 
 const MAPA: Record<string, string> = {
@@ -108,6 +110,25 @@ const SALUD =
   /\b(?:diagnostic\w*|enfermedad\w*|medic\w*|farmac\w*|dosis|sintoma\w*|lesion\w*|lesionad\w*|patolog\w*|tratamiento\w*|terapia\w*|dolor\w*|receta\w*|hipertens\w*|diabet\w*|embaraz\w*|cardiac\w*|infarto|depresion|ansiedad|anorexia|bulimia|esteroid\w*|anabolic\w*|cirugia|fractura|tendinitis|hernia)\b/
 
 /**
+ * Rotundas (decisión del dueño, 11-nov; examen B: «nunca es tarde para empezar», «no vuelve masculina»). Sobre texto normalizado.
+ * «Siempre» solo bloquea en afirmación: antes se quitan «no/casi/tampoco siempre» y «siempre que», que son matiz.
+ */
+const MATIZ_DE_SIEMPRE = /\b(?:no|casi|tampoco|ni)\s+siempre\b|\bsiempre que\b/g
+const ROTUNDA: RegExp[] = [
+  /\b(?:nunca|jamas)\b/,
+  /\bno pasa nada\b/,
+  /\bsin (?:ningun )?(?:problemas?|riesgos?)\b/,
+  /\bes (?:totalmente|completamente|absolutamente)\b/,
+  /\bes seguro\b/,
+  /\bes normal\b/,
+  /\bse (?:van|va|pasa|pasan|quita|quitan|quitara|quitaran) (?:solos?|solas?|solito|solita|solitos|solitas)\b/,
+  /\b100\s*%|\bcien por ciento\b/,
+  /\bno hay (?:ningun )?riesgos?\b/,
+  /\bseguro que\b/,
+  /\bno (?:te )?vuelve\b/,
+]
+
+/**
  * Decide si el texto de DeepSeek (sin pieza) puede mostrarse como respuesta provisional.
  * `pregunta` es la frase LIMPIA con que se preguntó: las cifras que ya traía no cuentan como ajenas.
  */
@@ -120,5 +141,7 @@ export function filtrarProvisional(texto: unknown, pregunta = ''): ResultadoFilt
   const sinRemision = n.replace(REMISION, ' ')
   if (PRESCRIPCION.some((r) => r.test(sinRemision))) return { ok: false, motivo: 'prescripcion' }
   if (SALUD.test(n)) return { ok: false, motivo: 'salud' }
+  const sinMatiz = n.replace(MATIZ_DE_SIEMPRE, ' ')
+  if (/\bsiempre\b/.test(sinMatiz) || ROTUNDA.some((r) => r.test(n))) return { ok: false, motivo: 'rotunda' }
   return { ok: true }
 }

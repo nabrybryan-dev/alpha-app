@@ -51,6 +51,7 @@ import {
 } from '../../../src/domain/praxis/charla/pedidoCharla.ts'
 import { normalizarHueco, type Hueco } from '../../../src/domain/praxis/charla/hueco.ts'
 import { armarPedidoProvisional, decidirProvisional, tieneContenido } from '../../../src/domain/praxis/charla/provisional.ts'
+import { saludAntesDeDeepseek } from '../../../src/domain/praxis/charla/saludEnFrase.ts'
 import { conTope, decidirSalida, lecturaDesdeNivel, respaldoSinModelo, type LecturaDeRiesgo } from '../../../src/domain/praxis/charla/salidaCharla.ts'
 import { excedeLimite } from '../praxis-registro/cupo.ts'
 import { CORS, json } from '../praxis-registro/http.ts'
@@ -208,6 +209,13 @@ async function responderSinPiezas(d: Dependencias, frase: string, limpia: Result
   if (d.entorno.PRAXIS_CHARLA_PROVISIONAL !== '1') {
     registrar({ largo: frase.length, salida: 'respuesta', origen: 'respaldo', motivo: 'sin_piezas', campos: [] })
     return json({ salida: 'respuesta', ...respaldoSinModelo([]), hueco })
+  }
+  // Salud en la FRASE (11-nov): filtro local de la app + léxico de la charla, con la frase cruda y ANTES de llamar a DeepSeek.
+  // Sin hueco: la frase de un síntoma no se guarda como pregunta pendiente.
+  const salud = saludAntesDeDeepseek(frase)
+  if (salud) {
+    registrar({ largo: frase.length, salida: 'coach', motivo: `provisional_${salud}`, campos: [] })
+    return json({ salida: 'coach', motivo: `provisional_${salud}` })
   }
   const clave = d.entorno.DEEPSEEK_API_KEY
   let motivo: string

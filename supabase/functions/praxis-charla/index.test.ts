@@ -295,6 +295,38 @@ describe('praxis-charla: respuesta provisional (segunda bandera PRAXIS_CHARLA_PR
     expect(j.hueco).toBeUndefined()
   })
 
+  it('salud en la frase: al coach SIN llamar a DeepSeek y sin hueco (la frase de un síntoma no se guarda)', async () => {
+    const frases = [
+      'tengo un pinchazo en el codo cuando hago dominadas',
+      'agujetas fuertes en el cuello y hombro, es grave?',
+      'tomo medicacion para la tension, puedo entrenar piernas?',
+      'me da hormigueo en la mano al hacer press',
+      'me salio una hinchazon en la rodilla despues de sentadilla',
+      'si tengo una molestia en el hombro, sigo con las series?',
+    ]
+    for (const frase of frases) {
+      const { d, llamadas } = montar({ piezas: [], provisional: '1', textoProvisional: LIMPIA })
+      const j = await (await manejar(pedir(frase), d)).json()
+      expect(j.salida, frase).toBe('coach')
+      expect(aDeepseek(llamadas), frase).toEqual([])
+      expect(j.hueco, frase).toBeUndefined()
+    }
+  })
+
+  it('salud en la frase que SOLO ve el léxico de la charla (el lector la da por «sin riesgo»): motivo provisional_salud_en_frase', async () => {
+    const { d, llamadas } = montar({ piezas: [], provisional: '1', textoProvisional: LIMPIA })
+    const j = await (await manejar(pedir('agujetas fuertes en el cuello y hombro, es grave?'), d)).json()
+    expect(j.motivo).toBe('provisional_salud_en_frase')
+    expect(aDeepseek(llamadas)).toEqual([])
+  })
+
+  it('control positivo: una pregunta de entrenamiento sin síntoma sigue llegando a DeepSeek', async () => {
+    const { d, llamadas } = montar({ piezas: [], provisional: '1', textoProvisional: LIMPIA })
+    const j = await (await manejar(pedir('¿cuántas series por semana para el pecho?'), d)).json()
+    expect(aDeepseek(llamadas)).toHaveLength(1)
+    expect(j.origen).toBe('provisional')
+  })
+
   it('bandera puesta y salida con cifra: al coach, sin el texto del modelo, con hueco', async () => {
     const { d } = montar({ piezas: [], provisional: '1', textoProvisional: 'Suele subir un 40 % con el tiempo.' })
     const r = await (await manejar(pedir(FRASE), d)).text()

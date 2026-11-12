@@ -121,3 +121,49 @@ describe('filtroProvisional: remisión al coach no es prescripción (afinado con
     bloquea('Según tu plan, te recomiendo descansar.')
   })
 })
+
+describe('filtroProvisional: frases rotundas y «es normal / se van solas» (decisión del dueño, 11-nov)', () => {
+  const rotunda = (t: string, pregunta = 'pregunta sin cifras') => expect(filtrarProvisional(t, pregunta), t).toEqual({ ok: false, motivo: 'rotunda' })
+  const pasa = (t: string, pregunta = 'pregunta sin cifras') => expect(filtrarProvisional(t, pregunta), t).toEqual({ ok: true })
+
+  it('positivos sembrados: uno por cada expresión', () => {
+    rotunda('Nunca es tarde para empezar a entrenar.') // examen B
+    rotunda('Eso no vuelve masculina a nadie.') // examen B
+    rotunda('Jamás se pierde el músculo por descansar.')
+    rotunda('Hay que entrenar siempre con la misma técnica.')
+    rotunda('Siempre ayuda dormir bien.')
+    rotunda('Tranquilo, no pasa nada si fallas una sesión.')
+    rotunda('Eso se hace sin problema en cualquier día.')
+    rotunda('Entrenar así es sin ningún riesgo.')
+    rotunda('Ese ejercicio es seguro para todos.')
+    rotunda('Es normal sentir cansancio después.')
+    rotunda('Es totalmente adecuado hacerlo así.')
+    rotunda('Las agujetas se van solas con el tiempo.')
+    rotunda('Eso se pasa solo en unos días.')
+    rotunda('Rinde al 100 % de su capacidad.', 'rinde al 100 % de su capacidad?')
+    rotunda('En este caso no hay riesgo de perder músculo.')
+    rotunda('Seguro que mejoras con constancia.')
+    rotunda('Nunca es tarde para mejorar.')
+    rotunda('Eso no te vuelve voluminosa de golpe.')
+  })
+  it('variantes de mayúscula y tilde no la esquivan', () => {
+    rotunda('JAMÁS pasa eso.')
+    rotunda('Sin ningun riesgo de nada.')
+    rotunda('NO PASA NADA con eso.')
+  })
+  it('negativos: los matices NO se bloquean («a veces», «no siempre», «depende»)', () => {
+    pasa('A veces conviene bajar un poco el ritmo; tu coach lo ajusta.')
+    pasa('No siempre hace falta subir la carga cada semana.')
+    pasa('Depende de tu nivel y de cómo te recuperes; tu coach lo ajusta.')
+    pasa('Casi siempre ayuda calentar antes; depende de cada persona.')
+    pasa('Puede ser útil descansar entre sesiones, siempre que la técnica se mantenga.')
+  })
+  it('control positivo del matiz: la misma frase sin «no» sí se bloquea', () => {
+    pasa('No siempre hace falta subir la carga.')
+    rotunda('Siempre hace falta subir la carga.')
+  })
+  it('los demás motivos tienen prioridad y siguen igual (no se pisan)', () => {
+    expect(filtrarProvisional('Según Schoenfeld 2016 nunca falla.', '')).toEqual({ ok: false, motivo: 'autores_estudios' })
+    expect(filtrarProvisional('Te recomiendo descansar siempre.', '')).toEqual({ ok: false, motivo: 'prescripcion' })
+  })
+})
