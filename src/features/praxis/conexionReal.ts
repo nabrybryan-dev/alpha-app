@@ -11,7 +11,7 @@ import { CONECTORES_EN_TARJETA } from '../../domain/praxis/registro/tarjetaCheck
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
-import { consultarLecturaDeOrganizacion } from '../../app/clienteOrganizarPraxis'
+import { crearOrganizarReal } from './organizarReal'
 import type { PerfilAcceso } from '../../app/rutas'
 import { PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL } from '../../domain/praxis/rapidezLocal'
 
@@ -84,18 +84,9 @@ export function crearConexionPraxis(
         anotar: (p: { mensajeId: string; anotaciones: Anotacion[] }) => anotarPatron({ usuarioId, ...p }),
       },
     } : {}),
-    // Organizar y navegar: SOLO con la bandera encendida (apagada = no existe y nada cambia). Todavía no hay organización guardada (fase O4).
+    // Organizar y navegar: SOLO con la bandera encendida (apagada = no existe y nada cambia). Guarda por la 0179.
     ...(organizarEncendido && entornoDeOrganizar ? {
-      organizar: {
-        perfil: entornoDeOrganizar.perfil,
-        estado: () => ({ ocultas: new Set<string>(), hayCambiosParaDeshacer: false }),
-        consultar: async (frase: string) => {
-          const sesion = await sesionDeFunciones()
-          if (!sesion) return null
-          return consultarLecturaDeOrganizacion(frase, { token: sesion.access_token, urlFunciones: `${sesion.url}/functions/v1`, fetch: (...a) => fetch(...a), perfil: entornoDeOrganizar.perfil })
-        },
-        navegar: entornoDeOrganizar.navegar,
-      },
+      organizar: crearOrganizarReal(usuarioId, entornoDeOrganizar),
     } : {}),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),

@@ -45,7 +45,8 @@ function claveDeAplicada(cambio: CambioDeOrganizacion): keyof typeof RESULTADO.a
 function pintarAplicada(a: AyudasOrganizar, cambio: CambioDeOrganizacion): void {
   decirCorto(RESULTADO.aplicada[claveDeAplicada(cambio)])
   const deshacer = a.c.organizar?.deshacerUltimo
-  if (!deshacer) { limpiarControles(); return }
+  // Tras un «déjalo como estaba» no se ofrece otro Deshacer: no sería deshacerlo, sino ir un cambio más atrás.
+  if (!deshacer || cambio.tipo === 'deshacer') { limpiarControles(); return }
   const estado = { ocupado: false }
   const cuantas = cambio.tipo === 'solo_lo_importante' ? cambio.piezas.length : 1
   const alDeshacer = async (): Promise<void> => {
