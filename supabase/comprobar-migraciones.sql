@@ -3741,4 +3741,40 @@ select '0177 - nadie con sesion vacia una tabla ni escribe la tabla vieja aproba
                             and a.grantee in ('anon'::regrole, 'authenticated'::regrole)) then 'NO'
             else 'SI' end
 
+union all
+-- La 0178: el tablero de creadores acepta candidatos de la landing. Antes de aplicarla dice NO:
+-- no existe la columna origen y los checks no conocen 'land:' ni 'landing'.
+select '0178 - creadores desde la landing: esquema', 'creadores_candidatos.origen (default importador); el check de creador_id acepta land:; el de actor de creadores_eventos acepta landing',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'creadores_candidatos'
+                                and column_name = 'origen' and is_nullable = 'NO'
+                                and column_default like '%importador%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.creadores_candidatos'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%creador_id%'
+                                and pg_get_constraintdef(oid) like '%ig:%'
+                                and pg_get_constraintdef(oid) like '%land:%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.creadores_candidatos'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%origen%'
+                                and pg_get_constraintdef(oid) like '%landing-praxis%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.creadores_eventos'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%actor%'
+                                and pg_get_constraintdef(oid) like '%importador%'
+                                and pg_get_constraintdef(oid) like '%''landing''%') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0178: la única puerta de escritura del camino de la landing la ejecuta solo service_role.
+select '0178 - creadores desde la landing: creadores_landing_registrar', 'existe, security definer con search_path fijo; anon y authenticated sin execute; service_role con execute',
+       case when to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean)') is null then 'NO'
+            when exists (select 1 from pg_proc
+                          where oid = to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean)')
+                            and (not prosecdef or not exists (select 1 from unnest(coalesce(proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when has_function_privilege('anon', 'public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean)', 'execute')
+              or has_function_privilege('authenticated', 'public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean)', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
