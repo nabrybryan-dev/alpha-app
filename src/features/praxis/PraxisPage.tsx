@@ -3,6 +3,9 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { puedeVerPraxis } from '../../domain/praxis/acceso'
+import { CAPACIDADES, type Capacidad } from '../../data/consola/capacidadesStaff'
+import type { PerfilAcceso } from '../../app/rutas'
+import { CUENTAS_DE_PRUEBA_ORGANIZAR, organizarEncendidoPara } from '../../domain/praxis/rapidezLocal'
 import { ComprobandoAcceso } from './ComprobandoAcceso'
 import { crearConexionPraxis } from './conexionReal'
 import type { Trato } from './motor/entorno'
@@ -41,7 +44,24 @@ export default function PraxisPage() {
 /** Va aparte para que la conexión solo se cree DESPUÉS de pasar la guarda. */
 function PraxisConectada({ usuarioId, nombre, trato, salida, conFormulario }: { usuarioId: string; nombre: string; trato: Trato; salida: string; conFormulario: boolean }) {
   const navegar = useNavigate()
+  const { usuario } = useSesion()
+  const { cargando, tiene } = usePuestoCoach(usuario.rol)
+  // Solo con organizar encendido (la bandera, o las cuentas de prueba de Bryan). Apagado, `perfil` es siempre `undefined` y la
+  // conexión no cambia entre renders (si cambiara, la escena se remontaría). Mientras se saben las capacidades no se ofrece organizar.
+  // Las cuentas de prueba ven el menú de un ASESORADO («tal cual lo verá un asesorado», Bryan 11-nov).
+  const encendido = organizarEncendidoPara(usuarioId)
+  const comoAsesorado = CUENTAS_DE_PRUEBA_ORGANIZAR.has(usuarioId)
+  const capacidadesTexto = CAPACIDADES.filter((c) => tiene(c)).join(',')
+  const perfil = useMemo<PerfilAcceso | undefined>(
+    () => (!encendido || cargando ? undefined
+      : comoAsesorado ? { rol: 'asesorado', capacidades: new Set<Capacidad>() }
+        : { rol: usuario.rol, capacidades: new Set(capacidadesTexto ? (capacidadesTexto.split(',') as Capacidad[]) : []) }),
+    [encendido, comoAsesorado, cargando, usuario.rol, capacidadesTexto],
+  )
   // Estable entre renders: si cambiara, la escena se remontaría y la conversación se perdería.
-  const conexion = useMemo(() => crearConexionPraxis(usuarioId, conFormulario ? () => navegar('/bienestar') : null, nombre), [usuarioId, nombre, navegar, conFormulario])
+  const conexion = useMemo(
+    () => crearConexionPraxis(usuarioId, conFormulario ? () => navegar('/bienestar') : null, nombre, undefined, perfil ? { perfil, navegar: (ruta) => navegar(ruta) } : undefined, encendido),
+    [usuarioId, nombre, navegar, conFormulario, perfil, encendido],
+  )
   return <PraxisCosmos trato={trato} salida={salida} conexion={conexion} />
 }

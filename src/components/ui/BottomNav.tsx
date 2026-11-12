@@ -151,10 +151,18 @@ const pestanasStaff = [
 
 export type EspaciosNav = 'asesorado' | 'staff'
 
+/** Lo que la persona escondió o movió (ids `pantalla:<ruta>`). Hoy (`/`) se queda primero siempre. */
+export interface OrganizacionDeLaBarra {
+  ocultas: ReadonlySet<string>
+  movidas: Readonly<Record<string, number>>
+}
+
 export function BottomNav({
   espacios = 'asesorado',
-}: { espacios?: EspaciosNav } = {}) {
-  const pestanas = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+  organizacion,
+}: { espacios?: EspaciosNav; organizacion?: OrganizacionDeLaBarra } = {}) {
+  const base = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+  const pestanas = organizacion ? organizarPestanas(base, organizacion) : base
   return (
     <nav
       aria-label="Navegación principal"
@@ -203,4 +211,16 @@ export function BottomNav({
       </div>
     </nav>
   )
+}
+
+/** Hoy se queda primero; las demás pestañas se esconden o se corren según lo guardado. Sin lógica de negocio: solo ordena. */
+function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], org: OrganizacionDeLaBarra): T[] {
+  const [primera, ...resto] = pestanas
+  const visibles = resto.filter((p) => !org.ocultas.has(`pantalla:${p.ruta}`))
+  const clave = (p: T, i: number) => {
+    const k = Math.trunc(org.movidas[`pantalla:${p.ruta}`] ?? 0)
+    return k === 0 ? i : i + k + (k < 0 ? -0.5 : 0.5)
+  }
+  const ordenadas = visibles.map((p, i) => ({ p, c: clave(p, i), i })).sort((a, b) => a.c - b.c || a.i - b.i).map((e) => e.p)
+  return primera ? [primera, ...ordenadas] : ordenadas
 }

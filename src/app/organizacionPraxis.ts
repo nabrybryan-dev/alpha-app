@@ -115,7 +115,7 @@ function decidirSoloLoImportante(perfil: PerfilAcceso, estado: EstadoDeOrganizac
   return { tipo: 'propone_solo_lo_importante', esconderia: piezasPara(perfil).filter((p) => p.nivel === 'libre' && !estado.ocultas.has(p.id) && !(p.tipo === 'pantalla' && contienePiezasProtegidas(p.pantalla))) }
 }
 
-function decidirListarOcultas(perfil: PerfilAcceso, estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
+export function decidirListarOcultas(perfil: PerfilAcceso, estado: EstadoDeOrganizacion): DecisionDeOrganizacion {
   return { tipo: 'lista_ocultas', piezas: piezasPara(perfil).filter((p) => estado.ocultas.has(p.id)) }
 }
 

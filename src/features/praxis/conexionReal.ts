@@ -11,6 +11,9 @@ import { CONECTORES_EN_TARJETA } from '../../domain/praxis/registro/tarjetaCheck
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
+import { crearOrganizarReal } from './organizarReal'
+import type { PerfilAcceso } from '../../app/rutas'
+import { PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL } from '../../domain/praxis/rapidezLocal'
 
 /**
  * La conexión real de Praxis: une la escena con la capa de datos.
@@ -34,6 +37,9 @@ export function crearConexionPraxis(
   usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null,
   /** El interruptor de consentimiento (`masGrave.ts`). Solo las pruebas lo cambian. */
   lecturaDelModeloSobreMarcadas: boolean = LECTURA_DEL_MODELO_SOBRE_MARCADAS,
+  /** Organizar y navegar por voz: solo cuenta con `PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL` encendido (apagado: se ignora). */
+  entornoDeOrganizar?: { perfil: PerfilAcceso; navegar: (ruta: string) => void },
+  organizarEncendido: boolean = PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL,
 ): ConexionPraxis {
   const hoy = hoyIso()
   const leer = () => leerLoQuePraxisVe(db, usuarioId, hoy)
@@ -77,6 +83,10 @@ export function crearConexionPraxis(
         guardar: (p: Parameters<NonNullable<ConexionPraxis['checkin']>['guardar']>[0]) => guardarCheckinDePraxis({ usuarioId, ...p }),
         anotar: (p: { mensajeId: string; anotaciones: Anotacion[] }) => anotarPatron({ usuarioId, ...p }),
       },
+    } : {}),
+    // Organizar y navegar: SOLO con la bandera encendida (apagada = no existe y nada cambia). Guarda por la 0179.
+    ...(organizarEncendido && entornoDeOrganizar ? {
+      organizar: crearOrganizarReal(usuarioId, entornoDeOrganizar),
     } : {}),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),

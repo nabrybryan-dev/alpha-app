@@ -29,7 +29,9 @@ const ENTIENDE: [string, string][] = [
   ['hey praxis revisa como va la hidrataccion de hoy', 'traer:nutricion.agua'],
   ['esconde el albun de fichas', 'pregunta:hoy.album|logros.album'],
   ['deja abajo el albun de fichas', 'pregunta:hoy.album|logros.album'],
-  ['esas fichas llenan la app y  no necesito verlas ahora', 'pregunta:hoy.album|logros.album'],
+  // «esas fichas llenan la app y no necesito verlas ahora»: dejó de resolverse en local el 11-nov-2026 (orden pura: la «y no necesito»
+  // es una segunda cláusula en primera persona y esa frase sigue al servidor).
+  ['esas fichas llenan la app y  no necesito verlas ahora', 'no_es_organizacion'],
   ['cambiemos el orden de la app y colocame hidrataccion primero', 'propone:mover_arriba:nutricion.agua'],
   ['coloca la seccion de entreno de hoy al final', 'propone:mover_abajo:hoy.sesion'],
   ['revisemos como vamos esta semana', 'traer:pantalla:/semana'],

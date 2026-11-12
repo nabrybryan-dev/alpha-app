@@ -10,6 +10,7 @@ import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { FilaContenido } from './FilaContenido'
 import { TarjetaPatron } from './TarjetaPatron'
 import { VisorContenido } from './VisorContenido'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 /**
  * La categoría que se pinta como rejilla de patrones y no como lista.
@@ -118,22 +119,24 @@ export default function ContenidosPage() {
         </section>
       )}
 
-      {gruposDelResto.map((grupo) => (
-        <section key={grupo}>
-          <p className="kicker">{grupo}</p>
-          <div className="mt-2 flex flex-col gap-2.5">
-            {resto
-              .filter((c) => c.categoria === grupo)
-              .map((contenido) => (
-                <FilaContenido
-                  key={contenido.id}
-                  contenido={contenido}
-                  onAbrir={() => setAbierto(contenido)}
-                />
-              ))}
-          </div>
-        </section>
-      ))}
+      <PiezaOrganizable id="contenidos.lista">
+        {gruposDelResto.map((grupo) => (
+          <section key={grupo}>
+            <p className="kicker">{grupo}</p>
+            <div className="mt-2 flex flex-col gap-2.5">
+              {resto
+                .filter((c) => c.categoria === grupo)
+                .map((contenido) => (
+                  <FilaContenido
+                    key={contenido.id}
+                    contenido={contenido}
+                    onAbrir={() => setAbierto(contenido)}
+                  />
+                ))}
+            </div>
+          </section>
+        ))}
+      </PiezaOrganizable>
 
       <Sheet
         abierto={abierto !== undefined}
