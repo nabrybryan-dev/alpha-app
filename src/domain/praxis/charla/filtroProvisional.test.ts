@@ -102,3 +102,22 @@ describe('filtroProvisional: tasa de bloqueo medida con 12 salidas escritas a ma
     expect(bloqueadasMalas.length, 'malas bloqueadas').toBe(MALAS.length)
   })
 })
+
+describe('filtroProvisional: remisión al coach no es prescripción (afinado con el examen A, 11-nov)', () => {
+  const pasa = (t: string) => expect(filtrarProvisional(t, 'pregunta sin cifras'), t).toEqual({ ok: true })
+  const bloquea = (t: string) => expect(filtrarProvisional(t, 'pregunta sin cifras'), t).toEqual({ ok: false, motivo: 'prescripcion' })
+  it('pasa: «depende de / según / ajuste de tu …»', () => {
+    pasa('Cuánto encaja depende de tu objetivo y tu fatiga; eso lo ajusta tu coach.')
+    pasa('La técnica y el rango los ajusta tu coach según tu objetivo.')
+    pasa('No hay cantidad fija: depende de tu cuerpo, tu actividad y tu entrenamiento.')
+    pasa('Cualquier ajuste concreto de tu rutina lo decide tu coach.')
+  })
+  it('controles positivos: sin la fórmula de remisión sigue bloqueando', () => {
+    bloquea('Tu dieta debería cambiar.')
+    bloquea('Tu rutina necesita más volumen.')
+    bloquea('Lo mejor es tu objetivo de volumen alto.')
+    bloquea('Depende de tu nivel, y tu plan es comer más.')
+    bloquea('Según tu nivel, haz series de pecho.')
+    bloquea('Según tu plan, te recomiendo descansar.')
+  })
+})

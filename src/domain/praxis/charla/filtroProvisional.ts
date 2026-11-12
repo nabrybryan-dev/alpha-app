@@ -93,6 +93,17 @@ const PRESCRIPCION: RegExp[] = [
   new RegExp(String.raw`\b(?:realiza|ejecuta|levanta|usa|sube|baja|mete)\b(?:\s+[a-z]+){0,3}\s+${UNIDADES}\b`),
 ]
 
+/**
+ * «Depende de tu objetivo», «según tu nivel y tu rutina», «el ajuste concreto de tu rutina»: el texto REMITE al coach, no
+ * prescribe. Se quitan antes de buscar «tu plan/rutina/objetivo…» (medido en el examen A del 11-nov: 4 de 20 salidas inocentes
+ * caían por esta frase). Solo vale justo detrás de la fórmula de remisión; «tu dieta debería…» sigue bloqueando.
+ */
+const POSESIVO = String.raw`tus?\s+[a-z]+`
+const REMISION = new RegExp(
+  String.raw`\b(?:segun|depende de|dependiendo de|de acuerdo con|en funcion de|ajustes?(?: concretos?)? de)\s+${POSESIVO}(?:(?:\s*,\s*|\s+[ye]\s+)${POSESIVO})*`,
+  'g',
+)
+
 const SALUD =
   /\b(?:diagnostic\w*|enfermedad\w*|medic\w*|farmac\w*|dosis|sintoma\w*|lesion\w*|lesionad\w*|patolog\w*|tratamiento\w*|terapia\w*|dolor\w*|receta\w*|hipertens\w*|diabet\w*|embaraz\w*|cardiac\w*|infarto|depresion|ansiedad|anorexia|bulimia|esteroid\w*|anabolic\w*|cirugia|fractura|tendinitis|hernia)\b/
 
@@ -106,7 +117,8 @@ export function filtrarProvisional(texto: unknown, pregunta = ''): ResultadoFilt
   const n = normalizar(texto)
   if (/\bseg[uú]n\s+\p{Lu}/u.test(texto) || AUTORES_ESTUDIOS.some((r) => r.test(n)) || hayNombrePropio(texto)) return { ok: false, motivo: 'autores_estudios' }
   if (hayCifraAjena(texto, pregunta)) return { ok: false, motivo: 'cifras' }
-  if (PRESCRIPCION.some((r) => r.test(n))) return { ok: false, motivo: 'prescripcion' }
+  const sinRemision = n.replace(REMISION, ' ')
+  if (PRESCRIPCION.some((r) => r.test(sinRemision))) return { ok: false, motivo: 'prescripcion' }
   if (SALUD.test(n)) return { ok: false, motivo: 'salud' }
   return { ok: true }
 }

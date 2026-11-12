@@ -30,6 +30,8 @@ export interface PedidoProvisional {
   temperature: number
   max_tokens: number
   stream: false
+  /** deepseek-flash razona por defecto y el razonamiento gasta max_tokens: la salida salia vacia o cortada (medido 11-nov). */
+  thinking: { type: 'disabled' }
 }
 
 const VOCAB: ReadonlySet<string> = new Set(VOCABULARIO_CHARLA)
@@ -53,6 +55,7 @@ export function armarPedidoProvisional(fraseLimpia: string): PedidoProvisional {
     temperature: 0,
     max_tokens: MAX_TOKENS_PROVISIONAL,
     stream: false,
+    thinking: { type: 'disabled' },
   }
 }
 

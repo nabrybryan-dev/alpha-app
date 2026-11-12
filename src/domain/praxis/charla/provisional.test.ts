@@ -9,6 +9,7 @@ describe('armarPedidoProvisional', () => {
     const p = armarPedidoProvisional(FRASE)
     expect(p.max_tokens).toBe(200)
     expect(p.stream).toBe(false)
+    expect(p.thinking).toEqual({ type: 'disabled' }) // sin esto deepseek-flash gasta los 200 tokens razonando y devuelve vacio o cortado
     expect(p.messages.map((m) => m.role)).toEqual(['system', 'user'])
     expect(p.messages[0].content).toBe(PROMPT_PROVISIONAL)
     expect(p.messages[1].content).toContain('series')

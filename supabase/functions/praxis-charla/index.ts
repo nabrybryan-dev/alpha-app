@@ -194,7 +194,8 @@ async function preguntarProvisional(d: Dependencias, clave: string, fraseLimpia:
     body: JSON.stringify(armarPedidoProvisional(fraseLimpia)),
   })
   if (!r.ok) return null
-  const cuerpo = (await r.json()) as { choices?: { message?: { content?: unknown } }[] }
+  const cuerpo = (await r.json()) as { choices?: { message?: { content?: unknown }; finish_reason?: unknown }[] }
+  if (cuerpo.choices?.[0]?.finish_reason === 'length') return null // texto cortado a mitad: no se muestra
   const c = cuerpo.choices?.[0]?.message?.content
   return typeof c === 'string' ? c : null
 }
