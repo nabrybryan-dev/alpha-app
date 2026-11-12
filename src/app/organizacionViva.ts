@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { leerOrganizacion, type OrganizacionGuardada } from '../data/praxis/organizacion'
 import { SIN_ORGANIZACION, type OrganizacionVisible } from '../domain/praxis/organizacion/aplicarOrganizacion'
-import { organizarEncendidoPara } from '../domain/praxis/rapidezLocal'
+import { disenoFinalEncendidoPara, organizarEncendidoPara } from '../domain/praxis/rapidezLocal'
 
 /**
  * La organización guardada de la persona con sesión, compartida entre Hoy, la barra y Praxis. Se lee una vez y se
@@ -49,4 +49,16 @@ export function useOrganizacionDeLaSesion(): OrganizacionVisible {
     (f) => { oyentes.add(f); return () => { oyentes.delete(f) } },
     () => (vigente && organizarEncendidoPara(vigente) && actual?.usuarioId === vigente ? actual.org : SIN_ORGANIZACION),
   )
+}
+
+/**
+ * ¿Esta persona ve el diseño final encendido? `forzado` (una prueba o una pantalla que lo pide) manda; si no, es la persona
+ * con sesión que marcó el layout. Para quien no está en la lista (`CUENTAS_CON_DISENO_FINAL`) siempre es `false`.
+ */
+export function useDisenoFinal(forzado?: boolean): boolean {
+  const deLaSesion = useSyncExternalStore(
+    (f) => { oyentes.add(f); return () => { oyentes.delete(f) } },
+    () => disenoFinalEncendidoPara(vigente),
+  )
+  return forzado ?? deLaSesion
 }

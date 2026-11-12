@@ -22,3 +22,14 @@ export const CUENTAS_DE_PRUEBA_ORGANIZAR: ReadonlySet<string> = new Set([
 export function organizarEncendidoPara(usuarioId: string, global: boolean = PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL): boolean {
   return global || CUENTAS_DE_PRUEBA_ORGANIZAR.has(usuarioId)
 }
+
+/**
+ * El DISEÑO FINAL (maqueta 7, «Diseño final 3») encendido SOLO para la cuenta personal de Bryan (orden del dueño,
+ * 12-nov-2026: «lánzalo todo y déjalo desplegado en mi cuenta personal; probamos ahí y si está bien lo lanzamos a todos»).
+ * Es «Bryan (prueba)», la cuenta de asesorado con el puesto de coach. Enciende las piezas que seguían apagadas por
+ * bandera: la hoja del salón al estilo de la maqueta y «Mi mercado». Para cualquier otra persona nada cambia.
+ * Vaciar esta lista lo apaga; lanzarlo a todos es cambiar las banderas de cada pieza, con su PR.
+ */
+export const CUENTAS_CON_DISENO_FINAL: ReadonlySet<string> = new Set(['87f3c420-f2fb-4b5f-986c-95535bbac9dd'])
+
+export const disenoFinalEncendidoPara = (usuarioId: string | null): boolean => usuarioId !== null && CUENTAS_CON_DISENO_FINAL.has(usuarioId)

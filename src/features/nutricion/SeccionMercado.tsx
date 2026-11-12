@@ -1,4 +1,5 @@
 import { MiMercado } from './MiMercado'
+import { useDisenoFinal } from '../../app/organizacionViva'
 import { MI_MERCADO_MAQUETA } from './banderas'
 
 /**
@@ -9,13 +10,15 @@ import { MI_MERCADO_MAQUETA } from './banderas'
 export function SeccionMercado({
   asesoradoId,
   lineas,
-  maqueta = MI_MERCADO_MAQUETA,
+  maqueta,
 }: {
   asesoradoId: string
   lineas: string[]
   maqueta?: boolean
 }) {
-  if (maqueta) return <MiMercado asesoradoId={asesoradoId} lineas={lineas} />
+  const disenoFinal = useDisenoFinal()
+  // Sin argumento manda la bandera de código; encendida también para las cuentas con el diseño final (rapidezLocal.ts).
+  if (maqueta ?? (MI_MERCADO_MAQUETA || disenoFinal)) return <MiMercado asesoradoId={asesoradoId} lineas={lineas} />
   return (
     <section className="rounded-2xl border border-linea bg-surface-1 p-4">
       <h2 className="font-display text-base text-texto">Mercado de 15 días</h2>
