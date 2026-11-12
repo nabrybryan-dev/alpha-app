@@ -12,9 +12,11 @@
 //   2. límite por persona y hora
 //   3. filtro local de salud (`filtroDeRiesgo`): si marca algo, va al coach
 //   4. lector de riesgo con modelo, ANTES y FALLA CERRADO: solo un «sin riesgo» explícito sigue; si falla, tarda o
-//      dice otra cosa, va al coach
-//   5. búsqueda de piezas aprobadas (`buscar_conceptos_vector`, luego su fila de `praxis_conceptos`)
-//   6. limpiador (nombres, correos, teléfonos, peso, edad, medidas)
+//      dice otra cosa, va al coach. Recibe la frase CRUDA a propósito (el limpiador podría tapar una palabra de riesgo);
+//      eso manda texto sin limpiar a Anthropic: es H3 del informe del custodio y lo decide el abogado, no se cambia aquí.
+//   5. limpiador (nombres, correos, teléfonos, peso, edad, medidas, usuario, cédula, dirección), UNA vez, justo después
+//      del lector: de aquí en adelante solo circula la frase LIMPIA (H4)
+//   6. búsqueda de piezas aprobadas con la frase limpia (`buscar_conceptos_vector`, luego su fila de `praxis_conceptos`)
 //   7. DeepSeek (POST https://api.deepseek.com/chat/completions, modelo `deepseek-flash`, clave DEEPSEEK_API_KEY)
 //   8. respaldo sin modelo: si DeepSeek falla, tarda o devuelve algo inválido, la pieza tal cual; nunca vacío
 //
@@ -22,13 +24,16 @@
 // perfil, plan ni historial. La clave vive solo en el servidor. Cada envío deja una línea de registro con los NOMBRES de los
 // campos que salieron y los tipos de cosa que se tapó, sin el texto de la frase.
 //
-// Pendiente antes de encender (no hecho aquí): barrido del custodio, revisión del abogado por la transferencia a un proveedor
-// extranjero, saldo del lector de riesgo, desplegar con la CLI. El nombre `deepseek-flash` lo dio el dueño: no se comprobó
-// contra la documentación del proveedor. La búsqueda de piezas manda la frase tal cual al servicio de vectores propio (el mismo
-// de `praxis-registro/biblioteca.ts`), no a DeepSeek.
+// Corregido tras el informe del custodio (11-nov): H1 limpiador más estricto, H2 frase de hasta 200 caracteres, H4 la búsqueda
+// de piezas y DeepSeek reciben la frase limpia, H9 sin secreto PRAXIS_CHARLA_NOMBRES.
+// Pendiente: H3/H6 abogado, H5 provisional (respuesta del modelo sin filtro ni rótulo; espera decisiones del dueño).
+// Pendiente antes de encender (no hecho aquí): revisión del abogado por la transferencia a un proveedor extranjero, saldo del
+// lector de riesgo, desplegar con la CLI. El nombre `deepseek-flash` lo dio el dueño: no se comprobó contra la documentación
+// del proveedor. La búsqueda de piezas manda la frase LIMPIA al servicio de vectores propio (el mismo de
+// `praxis-registro/biblioteca.ts`), no a DeepSeek; que ese servicio no guarde texto: NO MEDIDO.
 import { filtroDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
 import { PROMPT_RIESGO, leerSalidaRiesgo } from '../../../src/domain/praxis/riesgoModelo.ts'
-import { limpiarFrase } from '../../../src/domain/praxis/charla/limpiador.ts'
+import { limpiarFrase, type ResultadoLimpieza } from '../../../src/domain/praxis/charla/limpiador.ts'
 import {
   CAMPOS_DEL_ENVIO,
   URL_DEEPSEEK,
@@ -54,8 +59,6 @@ export interface Entorno {
   ANTHROPIC_API_KEY: string | undefined
   PORTERO_URL: string | undefined
   PORTERO_CLAVE: string | undefined
-  /** Nombres propios de personas y equipo, separados por coma, que el limpiador debe tapar además de su lista. */
-  PRAXIS_CHARLA_NOMBRES: string | undefined
 }
 export interface Dependencias {
   entorno: Entorno
@@ -63,7 +66,8 @@ export interface Dependencias {
   ahora: () => Date
 }
 
-const MAX_FRASE = 400
+/** H2 (informe del custodio): menos texto libre hacia fuera. */
+const MAX_FRASE = 200
 export const MAX_CHARLA_POR_HORA = 30
 export const vistoCharla = new Map<string, number[]>()
 export const TOPE_LECTOR_MS = 3000
@@ -192,12 +196,8 @@ async function puertasPrevias(req: Request, d: Dependencias): Promise<Response |
   return { frase, token }
 }
 
-/** Pasos 6 a 8: limpiador, DeepSeek y respaldo sin modelo. */
-async function responderConDeepseek(d: Dependencias, frase: string, piezas: PiezaDeLaBiblioteca[]): Promise<Response> {
-  // 6. limpiador
-  const nombres = (d.entorno.PRAXIS_CHARLA_NOMBRES ?? '').split(',').map((n) => n.trim()).filter(Boolean)
-  const limpia = limpiarFrase(frase, nombres)
-
+/** Pasos 7 y 8: DeepSeek (con la frase ya limpia) y respaldo sin modelo. */
+async function responderConDeepseek(d: Dependencias, frase: string, limpia: ResultadoLimpieza, piezas: PiezaDeLaBiblioteca[]): Promise<Response> {
   // 7. DeepSeek, y 8. respaldo
   const clave = d.entorno.DEEPSEEK_API_KEY
   let respuesta: RespuestaCharla | null = null
@@ -245,13 +245,16 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
     return json({ salida: 'coach', motivo: decision.motivo })
   }
 
-  // 5. piezas aprobadas
-  const piezas = await buscarPiezas(d, token, frase)
+  // 5. limpiador, una sola vez: la frase cruda no sale de aquí hacia el vector ni hacia DeepSeek
+  const limpia = limpiarFrase(frase)
+
+  // 6. piezas aprobadas, buscadas con la frase limpia
+  const piezas = await buscarPiezas(d, token, limpia.texto)
   if (piezas.length === 0) {
     registrar({ largo: frase.length, salida: 'respuesta', origen: 'respaldo', motivo: 'sin_piezas', campos: [] })
     return json({ salida: 'respuesta', ...respaldoSinModelo([]) })
   }
-  return responderConDeepseek(d, frase, piezas)
+  return responderConDeepseek(d, frase, limpia, piezas)
 }
 
 if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
@@ -266,7 +269,6 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
         PORTERO_URL: entorno('PORTERO_URL'),
         PORTERO_CLAVE: entorno('PORTERO_CLAVE'),
-        PRAXIS_CHARLA_NOMBRES: entorno('PRAXIS_CHARLA_NOMBRES'),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),

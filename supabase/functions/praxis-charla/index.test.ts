@@ -41,7 +41,6 @@ function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; c
     ANTHROPIC_API_KEY: 'sk-a',
     PORTERO_URL: 'https://portero',
     PORTERO_CLAVE: 'c',
-    PRAXIS_CHARLA_NOMBRES: undefined,
   }
   return { llamadas, d: { entorno, fetch: fetchFalso, ahora: () => AHORA } }
 }
@@ -197,5 +196,26 @@ describe('praxis-charla: el camino feliz y el respaldo', () => {
     const { d } = montar({ piezas: [{ ...PIEZA, estudios: '' }] })
     const j = await (await manejar(pedir(FRASE), d)).json()
     expect(j.piezas[0].estudios).toBeNull()
+  })
+
+  // ---- H4 (informe del custodio): la frase limpia es la que va a la búsqueda de piezas y a DeepSeek ----
+  it('H4: el cuerpo enviado a /vector y a DeepSeek no contiene el nombre sembrado (el lector sí recibe la frase cruda: es H3)', async () => {
+    const { d, llamadas } = montar()
+    await manejar(pedir('entreno con Tiburcio Zambrano, ¿cuántas series por músculo a la semana?'), d)
+    const vector = llamadas.find((l) => l.url.endsWith('/vector'))
+    expect(vector?.cuerpo).toBeTruthy()
+    expect(vector!.cuerpo).not.toMatch(/Tiburcio|Zambrano/)
+    expect(vector!.cuerpo).toContain('[NOMBRE]')
+    expect(aDeepseek(llamadas)[0].cuerpo).not.toMatch(/Tiburcio|Zambrano/)
+    const lector = llamadas.find((l) => l.url.includes('anthropic'))
+    expect(lector!.cuerpo).toContain('Tiburcio') // H3 (abogado): el lector sigue con la frase cruda, a propósito
+  })
+
+  it('H2: la frase pasa de 200 caracteres se rechaza con 400 antes de cualquier modelo', async () => {
+    const ok = montar()
+    expect((await manejar(pedir('a'.repeat(200)), ok.d)).status).toBe(200)
+    const largo = montar()
+    expect((await manejar(pedir('a'.repeat(201)), largo.d)).status).toBe(400)
+    expect(largo.llamadas.every((l) => l.url.includes('/auth/v1/user'))).toBe(true)
   })
 })
