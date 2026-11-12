@@ -69,6 +69,9 @@ as $$
     'nutricion.recetas',
     'nutricion.resumen',
     'nutricion.tira-semana',
+    'pantalla:/contenidos',
+    'pantalla:/logros',
+    'pantalla:/progreso',
     'progreso.checkins',
     'progreso.competencias',
     'progreso.escala',
@@ -140,6 +143,19 @@ as $$
     'nutricion.recetas',
     'nutricion.resumen',
     'nutricion.tira-semana',
+    'pantalla:/bienestar',
+    'pantalla:/chat',
+    'pantalla:/contenidos',
+    'pantalla:/cuestionarios',
+    'pantalla:/entrenar',
+    'pantalla:/logros',
+    'pantalla:/nutricion',
+    'pantalla:/nutricion/al-dia',
+    'pantalla:/nutricion/plan',
+    'pantalla:/progreso',
+    'pantalla:/semana',
+    'pantalla:/yo',
+    'pantalla:/yo/derechos',
     'plan.contexto',
     'plan.intercambios',
     'plan.menus',
@@ -178,6 +194,8 @@ set search_path = public, pg_temp
 as $$
   select p_id = any(array[
     'bienestar.medidas',
+    'pantalla:/bienestar',
+    'pantalla:/progreso',
     'progreso.medidas'
   ]::text[]);
 $$;

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { PIEZAS_DE_HOY, PIEZAS_DE_OTRAS_PANTALLAS } from './catalogoDePiezas'
+import { CAPACIDADES } from '../data/consola/capacidadesStaff'
+import { piezasDePantallas, piezasPara } from './catalogoDePiezas'
 import { decidirParaPieza } from './organizacionPraxis'
 import { escondePesoOMedidas } from './tarjetaDeOrganizacion'
 
@@ -14,7 +15,10 @@ const RUTA = 'supabase/migrations/0179_praxis_organizacion.sql'
 const INICIO = '-- INICIO LISTAS GENERADAS'
 const FIN = '-- FIN LISTAS GENERADAS'
 
-const TODAS = [...PIEZAS_DE_HOY, ...PIEZAS_DE_OTRAS_PANTALLAS]
+// Todo lo que alguien puede nombrar: las piezas y pantallas de un asesorado y las pantallas del equipo (que nunca se esconden).
+const ASESORADO = { rol: 'asesorado' as const, capacidades: new Set<never>() }
+const EQUIPO = { rol: 'coach' as const, capacidades: new Set(CAPACIDADES) }
+const TODAS = [...new Map([...piezasPara(ASESORADO), ...piezasDePantallas(EQUIPO)].map((p) => [p.id, p])).values()]
 const vacio = { ocultas: new Set<string>(), hayCambiosParaDeshacer: false }
 const ordenadas = (ids: string[]) => [...new Set(ids)].sort()
 
@@ -62,6 +66,7 @@ describe('listas del catálogo dentro de la migración 0179', () => {
       if (p.nivel !== 'libre') expect(OCULTABLES, p.id).not.toContain(p.id)
     }
     expect(ORGANIZABLES).not.toContain('pantalla:/')
+    expect(OCULTABLES.some((id) => id.startsWith('pantalla:'))).toBe(true)
     expect(OCULTABLES.length).toBeGreaterThan(5)
   })
 
