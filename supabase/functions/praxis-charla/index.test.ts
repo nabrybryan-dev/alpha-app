@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MAX_CHARLA_POR_HORA, manejar, vistoCharla, type Dependencias, type Entorno } from './index.ts'
+import { ROTULO_PROVISIONAL } from '../../../src/domain/praxis/charla/provisional.ts'
+import { SIN_PIEZA_PROVISIONAL } from '../../../src/domain/praxis/charla/salidaCharla.ts'
+import { MAX_CHARLA_POR_HORA, TOPE_DEEPSEEK_MS, manejar, vistoCharla, type Dependencias, type Entorno } from './index.ts'
 
 const AHORA = new Date('2026-11-11T20:00:00Z')
 const FRASE = '¿cuántas series por músculo a la semana?'
@@ -12,6 +14,8 @@ interface Opciones {
   deepseek?: unknown | (() => Promise<Response>)
   deepseekClave?: string | undefined
   piezas?: unknown[]
+  provisional?: string | undefined
+  textoProvisional?: string | (() => Promise<Response>)
 }
 
 function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; cuerpo: string }[] } {
@@ -28,6 +32,10 @@ function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; c
     if (u.includes('buscar_conceptos_vector')) return new Response(JSON.stringify((o.piezas ?? [PIEZA]).map((p) => ({ id: (p as { id: string }).id, coseno: 0.9 }))))
     if (u.includes('/rest/v1/praxis_conceptos')) return new Response(JSON.stringify(o.piezas ?? [PIEZA]))
     if (u.includes('api.deepseek.com')) {
+      if (o.textoProvisional !== undefined) {
+        if (typeof o.textoProvisional === 'function') return o.textoProvisional()
+        return new Response(JSON.stringify({ choices: [{ message: { content: o.textoProvisional } }] }))
+      }
       if (typeof o.deepseek === 'function') return (o.deepseek as () => Promise<Response>)()
       return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(o.deepseek ?? { respuesta: 'Redacción del modelo', piezas_usadas: ['vol-01'] }) } }] }))
     }
@@ -41,6 +49,7 @@ function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; c
     ANTHROPIC_API_KEY: 'sk-a',
     PORTERO_URL: 'https://portero',
     PORTERO_CLAVE: 'c',
+    PRAXIS_CHARLA_PROVISIONAL: o.provisional,
   }
   return { llamadas, d: { entorno, fetch: fetchFalso, ahora: () => AHORA } }
 }
@@ -227,5 +236,93 @@ describe('praxis-charla: el camino feliz y el respaldo', () => {
     const largo = montar()
     expect((await manejar(pedir('a'.repeat(201)), largo.d)).status).toBe(400)
     expect(largo.llamadas.every((l) => l.url.includes('/auth/v1/user'))).toBe(true)
+  })
+})
+
+describe('praxis-charla: respuesta provisional (segunda bandera PRAXIS_CHARLA_PROVISIONAL, apagada por defecto)', () => {
+  const LIMPIA = 'El volumen es el trabajo total sobre un músculo en la semana.'
+
+  it('bandera apagada: comportamiento actual (frase fija, sin llamar a DeepSeek) y devuelve el hueco', async () => {
+    for (const provisional of [undefined, '', '0', 'true']) {
+      const { d, llamadas } = montar({ piezas: [], provisional, textoProvisional: LIMPIA })
+      const j = await (await manejar(pedir(FRASE), d)).json()
+      expect(aDeepseek(llamadas)).toEqual([])
+      expect(j.origen).toBe('respaldo')
+      expect(j.respuesta).toBe(SIN_PIEZA_PROVISIONAL)
+      expect(j.hueco.temaClave.length).toBeGreaterThan(0)
+      expect(Object.keys(j.hueco).sort()).toEqual(['frase', 'temaClave'])
+    }
+  })
+
+  it('bandera puesta y el lector dice riesgo: NO se llama a DeepSeek y no hay hueco', async () => {
+    const { d, llamadas } = montar({ piezas: [], provisional: '1', textoProvisional: LIMPIA, lector: '{"nivel":"ALTO","cita":"x"}' })
+    const j = await (await manejar(pedir(FRASE), d)).json()
+    expect(j.salida).toBe('coach')
+    expect(aDeepseek(llamadas)).toEqual([])
+    expect(j.hueco).toBeUndefined()
+  })
+
+  it('bandera puesta y salida con cifra: al coach, sin el texto del modelo, con hueco', async () => {
+    const { d } = montar({ piezas: [], provisional: '1', textoProvisional: 'Suele subir un 40 % con el tiempo.' })
+    const r = await (await manejar(pedir(FRASE), d)).text()
+    const j = JSON.parse(r)
+    expect(j.salida).toBe('coach')
+    expect(j.motivo).toBe('provisional_cifras')
+    expect(r).not.toContain('40')
+    expect(j.hueco.temaClave.length).toBeGreaterThan(0)
+  })
+
+  it('bandera puesta y salida limpia: provisional con rótulo, origen y exclusión; DeepSeek recibe solo frase limpia y max_tokens 200', async () => {
+    const { d, llamadas } = montar({ piezas: [], provisional: '1', textoProvisional: LIMPIA })
+    const j = await (await manejar(pedir('Soy zulema, ¿cuántas series por semana para el pecho?'), d)).json()
+    expect(j).toMatchObject({ salida: 'respuesta', origen: 'provisional', excluirEntrenamiento: true, piezas: [], piezas_usadas: [] })
+    expect(j.respuesta.startsWith(ROTULO_PROVISIONAL)).toBe(true)
+    expect(j.respuesta).toContain(LIMPIA)
+    expect(j.hueco.temaClave.length).toBeGreaterThan(0)
+    const env = aDeepseek(llamadas)
+    expect(env).toHaveLength(1)
+    expect(JSON.parse(env[0].cuerpo).max_tokens).toBe(200)
+    expect(env[0].cuerpo.toLowerCase()).not.toContain('zulema')
+    expect(JSON.stringify(j).toLowerCase()).not.toContain('zulema')
+  })
+
+  it('bandera puesta y DeepSeek cae, falla o no hay clave: al coach, sin texto del modelo', async () => {
+    const caidas: Opciones[] = [
+      { textoProvisional: async () => new Response('x', { status: 500 }) },
+      {
+        textoProvisional: async () => {
+          throw new Error('red')
+        },
+      },
+      { textoProvisional: LIMPIA, deepseekClave: undefined },
+    ]
+    for (const c of caidas) {
+      const { d } = montar({ piezas: [], provisional: '1', ...c })
+      const j = await (await manejar(pedir(FRASE), d)).json()
+      expect(j.salida).toBe('coach')
+      expect(String(j.motivo)).toMatch(/^provisional_/)
+      expect(j.respuesta).toBeUndefined()
+      expect(j.hueco.temaClave.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('bandera puesta y DeepSeek tarda más del tope: al coach', async () => {
+    vi.useFakeTimers()
+    try {
+      const { d } = montar({ piezas: [], provisional: '1', textoProvisional: () => new Promise<Response>(() => {}) })
+      const p = manejar(pedir(FRASE), d)
+      await vi.advanceTimersByTimeAsync(TOPE_DEEPSEEK_MS + 100)
+      const j = await (await p).json()
+      expect(j.salida).toBe('coach')
+      expect(j.motivo).toBe('provisional_deepseek_tarda')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('con piezas, la bandera no cambia nada: sale el flujo normal y no hay respuesta provisional', async () => {
+    const { d } = montar({ provisional: '1', textoProvisional: LIMPIA, deepseek: undefined })
+    const j = await (await manejar(pedir(FRASE), d)).json()
+    expect(j.origen).not.toBe('provisional')
   })
 })
