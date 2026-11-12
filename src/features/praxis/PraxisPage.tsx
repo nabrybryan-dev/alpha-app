@@ -3,6 +3,9 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { puedeVerPraxis } from '../../domain/praxis/acceso'
+import { CAPACIDADES, type Capacidad } from '../../data/consola/capacidadesStaff'
+import type { PerfilAcceso } from '../../app/rutas'
+import { PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL } from '../../domain/praxis/rapidezLocal'
 import { ComprobandoAcceso } from './ComprobandoAcceso'
 import { crearConexionPraxis } from './conexionReal'
 import type { Trato } from './motor/entorno'
@@ -41,7 +44,19 @@ export default function PraxisPage() {
 /** Va aparte para que la conexión solo se cree DESPUÉS de pasar la guarda. */
 function PraxisConectada({ usuarioId, nombre, trato, salida, conFormulario }: { usuarioId: string; nombre: string; trato: Trato; salida: string; conFormulario: boolean }) {
   const navegar = useNavigate()
+  const { usuario } = useSesion()
+  const { cargando, tiene } = usePuestoCoach(usuario.rol)
+  // Solo con PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL encendido. Apagado, `perfil` es siempre `undefined` y la conexión
+  // no cambia entre renders (si cambiara, la escena se remontaría). Mientras se saben las capacidades no se ofrece organizar.
+  const capacidadesTexto = CAPACIDADES.filter((c) => tiene(c)).join(',')
+  const perfil = useMemo<PerfilAcceso | undefined>(
+    () => (!PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL || cargando ? undefined : { rol: usuario.rol, capacidades: new Set(capacidadesTexto ? (capacidadesTexto.split(',') as Capacidad[]) : []) }),
+    [cargando, usuario.rol, capacidadesTexto],
+  )
   // Estable entre renders: si cambiara, la escena se remontaría y la conversación se perdería.
-  const conexion = useMemo(() => crearConexionPraxis(usuarioId, conFormulario ? () => navegar('/bienestar') : null, nombre), [usuarioId, nombre, navegar, conFormulario])
+  const conexion = useMemo(
+    () => crearConexionPraxis(usuarioId, conFormulario ? () => navegar('/bienestar') : null, nombre, undefined, perfil ? { perfil, navegar: (ruta) => navegar(ruta) } : undefined),
+    [usuarioId, nombre, navegar, conFormulario, perfil],
+  )
   return <PraxisCosmos trato={trato} salida={salida} conexion={conexion} />
 }

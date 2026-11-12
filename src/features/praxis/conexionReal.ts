@@ -11,6 +11,9 @@ import { CONECTORES_EN_TARJETA } from '../../domain/praxis/registro/tarjetaCheck
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso, horaLocalIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
+import { consultarLecturaDeOrganizacion } from '../../app/clienteOrganizarPraxis'
+import type { PerfilAcceso } from '../../app/rutas'
+import { PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL } from '../../domain/praxis/rapidezLocal'
 
 /**
  * La conexión real de Praxis: une la escena con la capa de datos.
@@ -34,6 +37,9 @@ export function crearConexionPraxis(
   usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null,
   /** El interruptor de consentimiento (`masGrave.ts`). Solo las pruebas lo cambian. */
   lecturaDelModeloSobreMarcadas: boolean = LECTURA_DEL_MODELO_SOBRE_MARCADAS,
+  /** Organizar y navegar por voz: solo cuenta con `PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL` encendido (apagado: se ignora). */
+  entornoDeOrganizar?: { perfil: PerfilAcceso; navegar: (ruta: string) => void },
+  organizarEncendido: boolean = PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL,
 ): ConexionPraxis {
   const hoy = hoyIso()
   const leer = () => leerLoQuePraxisVe(db, usuarioId, hoy)
@@ -76,6 +82,19 @@ export function crearConexionPraxis(
         lexico: () => leerMiLexico(),
         guardar: (p: Parameters<NonNullable<ConexionPraxis['checkin']>['guardar']>[0]) => guardarCheckinDePraxis({ usuarioId, ...p }),
         anotar: (p: { mensajeId: string; anotaciones: Anotacion[] }) => anotarPatron({ usuarioId, ...p }),
+      },
+    } : {}),
+    // Organizar y navegar: SOLO con la bandera encendida (apagada = no existe y nada cambia). Todavía no hay organización guardada (fase O4).
+    ...(organizarEncendido && entornoDeOrganizar ? {
+      organizar: {
+        perfil: entornoDeOrganizar.perfil,
+        estado: () => ({ ocultas: new Set<string>(), hayCambiosParaDeshacer: false }),
+        consultar: async (frase: string) => {
+          const sesion = await sesionDeFunciones()
+          if (!sesion) return null
+          return consultarLecturaDeOrganizacion(frase, { token: sesion.access_token, urlFunciones: `${sesion.url}/functions/v1`, fetch: (...a) => fetch(...a), perfil: entornoDeOrganizar.perfil })
+        },
+        navegar: entornoDeOrganizar.navegar,
       },
     } : {}),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),

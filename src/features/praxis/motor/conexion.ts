@@ -1,6 +1,9 @@
 import type { RespuestaDeGuardar, RespuestaDelRegistrador } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { QueFalto } from '../../../domain/praxis/plan/responder'
+import type { ConsultaAlModelo } from '../../../app/clienteOrganizarPraxis'
+import type { EstadoDeOrganizacion } from '../../../app/organizacionPraxis'
+import type { PerfilAcceso } from '../../../app/rutas'
 import type { ContextoCharla } from '../../../domain/praxis/charla/modelo'
 import type { MarcaDeRiesgo } from '../../../domain/praxis/riesgo'
 import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
@@ -63,6 +66,16 @@ export interface ConexionPraxis {
     guardar: (p: { mensajeId: string; confirmado: Confirmado; aprendizajes: { campo: CampoCheckin; forma: string; valor: string }[] }) => Promise<ResultadoGuardarCheckin>
     /** Cuaderno de la persona (0176). AUSENTE = la tarjeta no ofrece anotaciones. Solo tras su toque. */
     anotar?: (p: { mensajeId: string; anotaciones: Anotacion[] }) => Promise<ResultadoAnotar>
+  }
+  /**
+   * Organizar y navegar por voz (`PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL`). AUSENTE = apagado: la frase sigue el camino de
+   * siempre. Solo se consulta DESPUÉS del filtro de riesgo. `navegar` es la función del router.
+   */
+  organizar?: {
+    perfil: PerfilAcceso
+    estado: () => EstadoDeOrganizacion
+    consultar: ConsultaAlModelo
+    navegar: (ruta: string) => void
   }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
   preguntar: (p: { frase: string; queFalto: QueFalto; citas: string[] }) => Promise<ResultadoDejarPregunta>
