@@ -17,9 +17,12 @@ export type CuerpoRegistro = {
   ciudad: string | null;
   rango_seguidores: RangoSeguidores | null;
   ya_crea_contenido: boolean | null;
-  contacto_tipo: ContactoTipo;
-  contacto: string;
+  // Con declina = true, contacto_tipo y contacto son null: declinar es "lo mínimo", sin
+  // contacto. La RPC los ignora aunque lleguen, pero esta función ya no los exige.
+  contacto_tipo: ContactoTipo | null;
+  contacto: string | null;
   mayor_edad: true;
+  declina: boolean;
 };
 
 type Validacion = { ok: true; datos: CuerpoRegistro } | { ok: false; error: string };
@@ -72,13 +75,20 @@ export function validarCuerpo(cuerpo: unknown): Validacion {
   const usuario_ig = normalizarUsuarioIg(c.usuario_ig);
   if (!USUARIO_IG.test(usuario_ig)) return { ok: false, error: "usuario_ig inválido" };
 
-  if (typeof c.contacto_tipo !== "string" || !CONTACTOS.includes(c.contacto_tipo as ContactoTipo)) {
-    return { ok: false, error: "contacto_tipo inválido" };
-  }
-  const contacto_tipo = c.contacto_tipo as ContactoTipo;
+  // Declina = true: "se guarda solo lo mínimo y no se vuelve a contactar" — sin contacto.
+  const declina = c.declina === true;
 
-  const contacto = recortar(c.contacto, 200);
-  if (!contacto) return { ok: false, error: "contacto obligatorio" };
+  let contacto_tipo: ContactoTipo | null = null;
+  let contacto: string | null = null;
+  if (!declina) {
+    if (typeof c.contacto_tipo !== "string" || !CONTACTOS.includes(c.contacto_tipo as ContactoTipo)) {
+      return { ok: false, error: "contacto_tipo inválido" };
+    }
+    contacto_tipo = c.contacto_tipo as ContactoTipo;
+
+    contacto = recortar(c.contacto, 200);
+    if (!contacto) return { ok: false, error: "contacto obligatorio" };
+  }
 
   if (c.mayor_edad !== true) return { ok: false, error: "se requiere mayor_edad" };
 
@@ -96,13 +106,15 @@ export function validarCuerpo(cuerpo: unknown): Validacion {
     ok: true,
     datos: {
       usuario_ig,
-      nicho: recortar(c.nicho, 120),
-      ciudad: recortar(c.ciudad, 120),
-      rango_seguidores,
-      ya_crea_contenido,
+      // Declina: ni nicho, ni ciudad, ni rango, ni ya_crea_contenido — "lo mínimo" es el @.
+      nicho: declina ? null : recortar(c.nicho, 120),
+      ciudad: declina ? null : recortar(c.ciudad, 120),
+      rango_seguidores: declina ? null : rango_seguidores,
+      ya_crea_contenido: declina ? null : ya_crea_contenido,
       contacto_tipo,
       contacto,
       mayor_edad: true,
+      declina,
     },
   };
 }
@@ -121,6 +133,7 @@ export async function despachar(cuerpo: unknown, rpc: Rpc): Promise<Respuesta> {
     p_contacto_tipo: d.contacto_tipo,
     p_contacto: d.contacto,
     p_mayor_edad: d.mayor_edad,
+    p_declina: d.declina,
   });
   return bien(data);
 }

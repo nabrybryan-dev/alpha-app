@@ -39,6 +39,7 @@ describe('validarCuerpo', () => {
         contacto_tipo: 'whatsapp',
         contacto: '+570000000',
         mayor_edad: true,
+        declina: false,
       },
     })
   })
@@ -56,7 +57,60 @@ describe('validarCuerpo', () => {
         contacto_tipo: 'correo',
         contacto: 'a@b.test',
         mayor_edad: true,
+        declina: false,
       },
+    })
+  })
+
+  describe('declina (no se le vuelve a contactar, se guarda solo lo mínimo)', () => {
+    it('con declina: true no exige contacto_tipo ni contacto, y limpia el resto del perfil', () => {
+      const r = validarCuerpo({
+        usuario_ig: '@Cuenta_De_Prueba',
+        nicho: 'fitness',
+        ciudad: 'Bogotá',
+        rango_seguidores: '10k_50k',
+        ya_crea_contenido: true,
+        mayor_edad: true,
+        declina: true,
+      })
+      expect(r).toEqual({
+        ok: true,
+        datos: {
+          usuario_ig: 'cuenta_de_prueba',
+          nicho: null,
+          ciudad: null,
+          rango_seguidores: null,
+          ya_crea_contenido: null,
+          contacto_tipo: null,
+          contacto: null,
+          mayor_edad: true,
+          declina: true,
+        },
+      })
+    })
+
+    it('con declina: true SIGUE exigiendo mayor_edad === true', () => {
+      expect(validarCuerpo({ usuario_ig: 'cuenta_de_prueba', mayor_edad: false, declina: true })).toEqual({
+        ok: false,
+        error: 'se requiere mayor_edad',
+      })
+    })
+
+    it('un declina que además manda contacto lo ignora (queda null en los datos validados)', () => {
+      const r = validarCuerpo({ ...CUERPO_VALIDO, declina: true })
+      expect(r.ok).toBe(true)
+      if (r.ok) {
+        expect(r.datos.contacto).toBeNull()
+        expect(r.datos.contacto_tipo).toBeNull()
+      }
+    })
+
+    it('declina ausente o con cualquier valor que no sea true === false', () => {
+      for (const declina of [undefined, null, 'true', 1, false]) {
+        const r = validarCuerpo({ ...CUERPO_VALIDO, declina })
+        expect(r.ok).toBe(true)
+        if (r.ok) expect(r.datos.declina).toBe(false)
+      }
     })
   })
 
@@ -171,6 +225,27 @@ describe('despachar', () => {
         p_contacto_tipo: 'whatsapp',
         p_contacto: '+570000000',
         p_mayor_edad: true,
+        p_declina: false,
+      },
+    }])
+  })
+
+  it('con declina: true manda p_declina: true y p_contacto(_tipo) en null', async () => {
+    const { rpc, llamadas } = rpcFalso({ creadores_landing_registrar: { creador_id: 'land:cuenta_de_prueba', es_nuevo: true, no_contactar: true } })
+    const r = await despachar({ usuario_ig: 'cuenta_de_prueba', mayor_edad: true, declina: true }, rpc)
+    expect(r).toEqual({ estado: 200, cuerpo: { ok: true, datos: { creador_id: 'land:cuenta_de_prueba', es_nuevo: true, no_contactar: true } } })
+    expect(llamadas).toEqual([{
+      nombre: 'creadores_landing_registrar',
+      args: {
+        p_usuario_ig: 'cuenta_de_prueba',
+        p_nicho: null,
+        p_ciudad: null,
+        p_rango_seguidores: null,
+        p_ya_crea_contenido: null,
+        p_contacto_tipo: null,
+        p_contacto: null,
+        p_mayor_edad: true,
+        p_declina: true,
       },
     }])
   })
