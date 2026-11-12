@@ -35,6 +35,10 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'Reparto entre músculos de la sentadilla: tanda A detenida (licencia de Rajagopal 2016 no verificada), ' +
     'así que se abstiene y el salón no lo dibuja (plan §10, tanda B reducida). Se enchufa si hay datos verificados.',
 
+  'src/domain/praxis/tarjetaOptimista.ts':
+    'Tarjeta optimista de Praxis: máquina pura, apagada (TARJETA_OPTIMISTA = false). La conexión al cliente queda ' +
+    'pendiente porque armar la propuesta local exige el microciclo crudo, que la lista blanca LoQuePraxisVe no deja pasar.',
+
   'src/domain/etapaDeLaBarra.ts':
     'Barra por etapa (pieza C6 del rediseño): nace apagada (BARRA_POR_ETAPA_ACTIVA = false) y sin conectar; ' +
     'se enchufa a la barra cuando Bryan decida encenderla.',

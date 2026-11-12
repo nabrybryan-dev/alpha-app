@@ -96,51 +96,73 @@ export function guardarDisponible(e: EstadoTarjeta): boolean {
   return e.estado === 'confirmada' && !e.guardadoPedido
 }
 
+type Evento<T extends EventoTarjeta['tipo']> = Extract<EventoTarjeta, { tipo: T }>
+
+const retiraPorError = (motivo: MotivoRetiroPorError): Transicion => ({
+  estado: { estado: 'retirada_por_error', motivo },
+  efectos: ['retirar_tarjeta', 'mostrar_camino_de_siempre'],
+})
+
+function alProponerLocal(e: EstadoTarjeta, ev: Evento<'propuesta_local'>): Transicion {
+  return {
+    estado: { estado: 'optimista_bloqueada', mensajeId: ev.mensajeId, desdeMs: ev.ahoraMs },
+    efectos: [...(hayTarjeta(e) ? ['retirar_tarjeta' as const] : []), 'mostrar_tarjeta_bloqueada'],
+  }
+}
+
+function alConfirmarElServidor(e: EstadoTarjeta, ev: Evento<'confirmacion_servidor'>): Transicion {
+  if (e.estado !== 'optimista_bloqueada' || e.mensajeId !== ev.mensajeId) return quieto(e) // tardía, vieja o ya retirada
+  if (!ev.coincide) return retiraPorError('distinta')
+  return { estado: { estado: 'confirmada', mensajeId: e.mensajeId, guardadoPedido: false }, efectos: ['desbloquear_guardar'] }
+}
+
+/** Siempre retira, en cualquier estado y con cualquier mensajeId: una urgencia no caduca. */
+function alMarcarRiesgo(e: EstadoTarjeta): Transicion {
+  return {
+    estado: { estado: 'retirada_por_riesgo' },
+    efectos: [
+      ...(hayTarjeta(e) ? ['retirar_tarjeta' as const] : []),
+      ...(e.estado === 'retirada_por_riesgo' ? [] : ['mostrar_camino_seguro' as const]),
+    ],
+  }
+}
+
+function alFallarElServidor(e: EstadoTarjeta, ev: Evento<'error_servidor'>): Transicion {
+  if (e.estado !== 'optimista_bloqueada' || e.mensajeId !== ev.mensajeId) return quieto(e)
+  return retiraPorError(ev.motivo)
+}
+
+function alPasarElTiempo(e: EstadoTarjeta, ev: Evento<'tic'>): Transicion {
+  if (e.estado !== 'optimista_bloqueada' || ev.ahoraMs - e.desdeMs < TOPE_TARJETA_OPTIMISTA_MS) return quieto(e)
+  return retiraPorError('tope')
+}
+
+function alSeguirLaPersona(e: EstadoTarjeta): Transicion {
+  return { estado: { estado: 'sin_tarjeta' }, efectos: hayTarjeta(e) ? ['retirar_tarjeta'] : [] }
+}
+
+/** Único camino a guardar. Fuera de `confirmada` el botón no existe; con el guardado ya pedido, el doble toque no hace nada. */
+function alTocarGuardar(e: EstadoTarjeta): Transicion {
+  if (e.estado !== 'confirmada' || e.guardadoPedido) return quieto(e)
+  return { estado: { ...e, guardadoPedido: true }, efectos: ['pedir_guardado'] }
+}
+
+function alTerminarElGuardado(e: EstadoTarjeta, ev: Evento<'guardado_terminado'>): Transicion {
+  if (e.estado !== 'confirmada' || !e.guardadoPedido) return quieto(e) // la tarjeta ya se retiró: el resultado se ignora
+  return ev.ok
+    ? { estado: { estado: 'sin_tarjeta' }, efectos: ['retirar_tarjeta'] }
+    : { estado: { ...e, guardadoPedido: false }, efectos: [] }
+}
+
 export function transicionar(e: EstadoTarjeta, ev: EventoTarjeta): Transicion {
   switch (ev.tipo) {
-    case 'propuesta_local':
-      return {
-        estado: { estado: 'optimista_bloqueada', mensajeId: ev.mensajeId, desdeMs: ev.ahoraMs },
-        efectos: [...(hayTarjeta(e) ? ['retirar_tarjeta' as const] : []), 'mostrar_tarjeta_bloqueada'],
-      }
-
-    case 'confirmacion_servidor':
-      if (e.estado !== 'optimista_bloqueada' || e.mensajeId !== ev.mensajeId) return quieto(e) // tardía, vieja o ya retirada
-      if (!ev.coincide) {
-        return { estado: { estado: 'retirada_por_error', motivo: 'distinta' }, efectos: ['retirar_tarjeta', 'mostrar_camino_de_siempre'] }
-      }
-      return { estado: { estado: 'confirmada', mensajeId: e.mensajeId, guardadoPedido: false }, efectos: ['desbloquear_guardar'] }
-
-    case 'riesgo_marco':
-      // Siempre retira, en cualquier estado y con cualquier mensajeId: una urgencia no caduca.
-      return {
-        estado: { estado: 'retirada_por_riesgo' },
-        efectos: [
-          ...(hayTarjeta(e) ? ['retirar_tarjeta' as const] : []),
-          ...(e.estado === 'retirada_por_riesgo' ? [] : ['mostrar_camino_seguro' as const]),
-        ],
-      }
-
-    case 'error_servidor':
-      if (e.estado !== 'optimista_bloqueada' || e.mensajeId !== ev.mensajeId) return quieto(e)
-      return { estado: { estado: 'retirada_por_error', motivo: ev.motivo }, efectos: ['retirar_tarjeta', 'mostrar_camino_de_siempre'] }
-
-    case 'tic':
-      if (e.estado !== 'optimista_bloqueada' || ev.ahoraMs - e.desdeMs < TOPE_TARJETA_OPTIMISTA_MS) return quieto(e)
-      return { estado: { estado: 'retirada_por_error', motivo: 'tope' }, efectos: ['retirar_tarjeta', 'mostrar_camino_de_siempre'] }
-
-    case 'persona_siguio':
-      return { estado: { estado: 'sin_tarjeta' }, efectos: hayTarjeta(e) ? ['retirar_tarjeta'] : [] }
-
-    case 'toque_guardar':
-      // Único camino a guardar. Fuera de `confirmada` el botón no existe; con el guardado ya pedido, el doble toque no hace nada.
-      if (e.estado !== 'confirmada' || e.guardadoPedido) return quieto(e)
-      return { estado: { ...e, guardadoPedido: true }, efectos: ['pedir_guardado'] }
-
-    case 'guardado_terminado':
-      if (e.estado !== 'confirmada' || !e.guardadoPedido) return quieto(e) // la tarjeta ya se retiró: el resultado se ignora
-      return ev.ok
-        ? { estado: { estado: 'sin_tarjeta' }, efectos: ['retirar_tarjeta'] }
-        : { estado: { ...e, guardadoPedido: false }, efectos: [] }
+    case 'propuesta_local': return alProponerLocal(e, ev)
+    case 'confirmacion_servidor': return alConfirmarElServidor(e, ev)
+    case 'riesgo_marco': return alMarcarRiesgo(e)
+    case 'error_servidor': return alFallarElServidor(e, ev)
+    case 'tic': return alPasarElTiempo(e, ev)
+    case 'persona_siguio': return alSeguirLaPersona(e)
+    case 'toque_guardar': return alTocarGuardar(e)
+    case 'guardado_terminado': return alTerminarElGuardado(e, ev)
   }
 }
