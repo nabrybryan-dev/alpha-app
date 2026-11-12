@@ -4432,3 +4432,35 @@ body.praxis-sala-abierta { overflow:hidden; }
 .hoy-con-anillo .rounded-bloque {
   border-radius: 22px;
 }
+
+/* ---------- LA HOJA DE LA PORTADA DEL SALÓN (maqueta 7, pieza C2) ----------
+   Solo la piel de la hoja arrastrable de `PanelInferior`, detrás de
+   `SALON_PORTADA_MAQUETA` (apagada): radio 22, relleno alzado, sombra hacia arriba,
+   asa de 38 x 5 y título de 19 px (`1f-v7.css` `.sl-hoja`, `.slh-grip`, `.slh-t`).
+   No mueve nada: el desplazamiento sigue siendo el `transform` del gesto. */
+.hoja-portada {
+  border-radius: 22px 22px 0 0;
+  background-color: rgb(var(--ink-900-rgb) / 0.95);
+  background-image: var(--relleno-alzado);
+  box-shadow:
+    0 -1px 0 rgb(var(--salon-3d-filete-rgb) / 0.1),
+    0 -10px 30px rgba(0, 0, 0, 0.16);
+}
+.hoja-portada-asa {
+  display: block;
+  width: 38px;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--tenue);
+  opacity: 0.55;
+}
+.hoja-portada-titulo {
+  font-size: 19px;
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* La transición de la hoja es del estilo en línea; aquí se quita con prioridad. */
+  .hoja-portada {
+    transition: none !important;
+  }
+}

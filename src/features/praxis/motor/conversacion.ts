@@ -12,6 +12,9 @@ import { intentarCheckin } from './checkinConectado'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
+import { decidirOrganizarONavegar } from './organizar'
+import { mostrarPasoDeOrganizar } from './tarjetaOrganizar'
+import { tarjetaDeOrganizacion } from '../../../app/tarjetaDeOrganizacion'
 import { guardar, leer, trato, tu } from './entorno'
 import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
@@ -228,7 +231,7 @@ async function decirCharlaDelModelo(c: ConexionPraxis, dicho: string, tok: numbe
   await dijo(texto, tok)
 }
 
-/** Primero el check-in por conectores (bandera apagada = no hace nada); si no lo toma, el registrador de siempre. */
+/** Primero el check-in por conectores (sin `checkin` en la conexión, o bandera apagada, no hace nada); si no lo toma, el registrador de siempre. */
 async function registrarOCheckin(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
   if (!ejercicioId && (await intentarCheckin(c, frase, tok, idMensaje))) return
   return registrar(c, frase, tok, ejercicioId, ch)
@@ -319,6 +322,28 @@ function subirSiHaceFalta(c: ConexionPraxis, frase: string, filtro: 'cuidado' | 
   }, () => undefined)
 }
 
+/** Organizar o navegar por voz (solo con `c.organizar`). ¿La frase quedó atendida? Va DESPUÉS del filtro de riesgo (`decidirTurno`). */
+async function intentarOrganizar(c: ConexionPraxis, frase: string, paso: string, tok: number, conEleccion: boolean): Promise<boolean> {
+  // Un ejercicio elegido con un toque y la charla local de 0 ms no se organizan.
+  if (conEleccion || !c.organizar || (paso !== 'plan' && paso !== 'registrar' && paso !== 'charlaModelo')) return false
+  pensando(true)
+  const o = await decidirOrganizarONavegar(frase, paso, c).finally(() => { if (tok === S.tok) pensando(false) })
+  vigilar(tok)
+  if (o?.paso === 'navega') {
+    if (o.resultado.tipo === 'sin_acceso') { await dijo(o.resultado.frase, tok); return true }
+    await dijo('Te llevo ahí.', tok)
+    c.organizar?.navegar(o.resultado.patron)
+    return true
+  }
+  if (o?.paso === 'organiza' && c.organizar) {
+    const paso = tarjetaDeOrganizacion(o.decision, { trato: trato(), perfil: c.organizar.perfil, estado: c.organizar.estado() })
+    if (paso.tipo === 'nada') return false
+    await mostrarPasoDeOrganizar({ c, tok, pensando, dijo }, paso)
+    return true
+  }
+  return false
+}
+
 async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?: { ejercicioId: string; eco: string }): Promise<void> {
   limpiarControles()
   const previos = limpiarTurnos(historial) // lo de ANTES de esta frase: máximo 6
@@ -338,6 +363,8 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
   mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
   if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
   if (!eleccion) anotar('persona', frase) // ya pasó el filtro de riesgo; el saneador vuelve a descartar lo marcado
+  // Organizar y navegar (apagado: `c.organizar` solo existe con PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL). Va DESPUÉS del filtro de riesgo.
+  if (await intentarOrganizar(c, frase, turno.paso, tok, !!eleccion)) return
   if (turno.paso === 'charla') { // 0 ms, 0 tokens: nada va al servidor ni se guarda, y se dice con la misma voz que todo lo demás
     animoPendiente = turno.respuesta.esperaAnimo
     await dijo(turno.respuesta.texto, tok)

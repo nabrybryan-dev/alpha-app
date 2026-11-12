@@ -19,6 +19,7 @@ import { normalizarTexto } from './numeros.ts'
 import { REGULAR_ES_FRECUENCIA } from './vida.ts'
 import { respuestaCorta, type ValorCorto } from './respuestaCorta.ts'
 import { palabraNueva } from './palabrasNuevas.ts'
+import { anotacionDeTrozo, type Anotacion } from './anotaciones.ts'
 import {
   proponerDesdeMensajeLargo, trozosDeMensaje,
   type AreaDudosa, type CampoCheckin, type TrozoDescartado, type ValorPropuesto,
@@ -106,6 +107,8 @@ export type ResultadoConectores =
   | {
     tipo: 'propuesta'; propuestas: PropuestaConectada[]; dudosas: AreaDudosa[]
     preguntas: PreguntaDeTramo[]; habituales: Habitual[]; descartado: TrozoDescartado[]
+    /** Para el cuaderno de la persona (0176): no llenan el check-in. Se guardan solo si ella toca la tarjeta. */
+    anotaciones: Anotacion[]
   }
 
 /** Texto de cada tramo del hambre, el mismo que enseña el formulario (CheckinForm, DESCRIPCION_TRAMO). */
@@ -138,7 +141,7 @@ function colocarVago(campo: CampoCheckin, cita: string, grado: Grado, s: Salida)
 }
 
 /** Un mismo campo con dos valores distintos (tabla y vago) no se elige: queda dudoso. */
-function resolverChoques(s: Salida): void {
+function resolverChoques(s: Salida, texto: string): void {
   const porCampo = new Map<CampoCheckin, PropuestaConectada[]>()
   for (const p of s.propuestas) porCampo.set(p.campo, [...(porCampo.get(p.campo) ?? []), p])
   const finales: PropuestaConectada[] = []
@@ -150,6 +153,28 @@ function resolverChoques(s: Salida): void {
     } else finales.push(lista.find((p) => p.origen === 'tabla') ?? lista[0])
   }
   s.propuestas = finales
+  pesaLoDeDespuesDelPero(s, texto)
+}
+
+/**
+ * «Dormí bien PERO descansé poco»: cuando un mismo campo trae valores a los dos lados del «pero», se PREGUNTA con todas las
+ * opciones y las de después del «pero» van primero (decisión de Bryan, 9-nov: no se presume qué pesa más, se resalta).
+ * Sin «pero» el conflicto queda como estaba.
+ */
+function pesaLoDeDespuesDelPero(s: Salida, texto: string): void {
+  const n = normalizarTexto(texto)
+  const iPero = n.search(/\bpero\b/)
+  if (iPero < 0) return
+  for (const d of s.dudosas) {
+    const pos = d.candidatos.map((c) => n.indexOf(normalizarTexto(c.cita)))
+    const despues = d.candidatos.filter((_, i) => pos[i] > iPero)
+    const antes = d.candidatos.filter((_, i) => pos[i] >= 0 && pos[i] < iPero)
+    if (despues.length > 0 && antes.length > 0) {
+      const resto = d.candidatos.filter((c) => !despues.includes(c) && !antes.includes(c))
+      d.candidatos = [...despues, ...antes, ...resto]
+      d.motivo = 'dijo una cosa y después del «pero» otra: la de después va primero; que la persona confirme cuál vale'
+    }
+  }
 }
 
 const esClinico = (cita: string) => marcarSaludPorDiccionario(cita).marcas.length > 0
@@ -174,7 +199,16 @@ function colocarDeTabla(p: ValorPropuesto, s: Salida): void {
 export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): ResultadoConectores {
   const base = proponerDesdeMensajeLargo(texto)
   if (base.tipo === 'riesgo') return base
-  const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [] }
+  const s: Salida = { tipo: 'propuesta', propuestas: [], dudosas: base.dudosas.map((d) => ({ ...d, candidatos: [...d.candidatos] })), preguntas: [], habituales: [], descartado: [], anotaciones: [] }
+
+  // 0. Lo que no llena el check-in pero va al cuaderno de la persona (recuperación de una zona, reacción a una comida).
+  const trozos = trozosDeMensaje(texto)
+  let seguidaDeZona = false
+  trozos.forEach((t, i) => {
+    const a = anotacionDeTrozo(t, esClinico, trozos[i - 1], seguidaDeZona)
+    seguidaDeZona = a?.tipo === 'recuperacion_zona'
+    if (a) s.anotaciones.push(a)
+  })
 
   // 1. Lo que la tabla ya convirtió: lo habitual sale aparte.
   for (const p of base.propuestas) colocarDeTabla(p, s)
@@ -186,16 +220,19 @@ export function conectarMensaje(texto: string, ctx: ContextoConectores = {}): Re
   // 3. Trozos sin área: heredan el área del trozo de antes («5 horas y mal») o la de la pregunta anterior.
   colocarSueltos(texto, ctx, vistas, campoDeCadaCita(base), s)
 
-  resolverChoques(s)
+  resolverChoques(s, texto)
   return s
 }
 
 /** Las palabras que solo NOMBRAN el área («el entreno estuvo …»): lo que sobra se lee como respuesta corta. */
 const PALABRAS_DE_AREA = /\b(el|la|los|las|mi|mis|de|hoy|entreno|entrenamiento|rutina|sesion|gym|gimnasio|comida|alimentacion|dieta|sueno|estres|energia|cansancio|ganas|estuvo|esta|fue|me fue|anda|ando|estoy)\b/g
 
+const CON_TODA_AL_ENTRENO = /\bcon toda\b.*\b(gym|gimnasio|entreno|entrenamiento|rutina|entrenar)\b/
+
 /** Lo que la tabla descartó en un área conocida: vago, «<área> ahí» o «<área> + respuesta corta»; si no, queda descartado. */
 function colocarDescartado(d: TrozoDescartado, s: Salida): void {
-  const campo = CAMPO_DE_AREA[d.area]
+  // «Voy con toda al gym» nombra el gimnasio, pero habla de las GANAS de ir: es motivación, no rendimiento.
+  const campo = CON_TODA_AL_ENTRENO.test(normalizarTexto(d.cita)) ? 'motivacion' : CAMPO_DE_AREA[d.area]
   if (!campo || esClinico(d.cita) || tiempoDe(d.cita) === 'habitual') { s.descartado.push(d); return }
   const grado = gradoConArea(d.cita)
   if (grado) { colocarVago(campo, d.cita, grado, s); return }

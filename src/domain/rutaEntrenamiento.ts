@@ -1,7 +1,7 @@
 import { diaDeSesion, diaSemanaDe, type DiaSemana } from './calendario'
 import { estimarUnRm } from './cargas'
-import { sesionCompleta } from './cumplimiento'
 import { duracionTotalSeg, formatoDuracion } from './ritmoSesion'
+import { agruparPorDia, sesionesDeDia, type SesionDeDia } from './sesionesDelDia'
 import type { Microciclo, Sesion, ValoracionCompetencia } from './types'
 
 /**
@@ -31,9 +31,16 @@ export interface DiaRuta {
   numero: string
   estado: EstadoDiaRuta
   esHoy: boolean
+  /** Id, título y detalle de la PRIMERA sesión del día (la de la mañana). Los consumidores de una sola sesión por día siguen leyendo estos. */
   sesionId?: string
   titulo: string
   detalle: string
+  /**
+   * TODAS las sesiones del día, por `orden` (mañana primero, repaso de noche después).
+   * Solo existe si el día tiene sesión; con una sola trae un elemento. `estado` del día =
+   * `completada` solo si todas lo están.
+   */
+  sesiones?: SesionDeDia[]
 }
 
 /** El primer día de la rejilla depende de la persona, no de una constante. */
@@ -258,13 +265,8 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
   const desplazamiento = inicio === 'DOMINGO' ? dowAncla : (dowAncla + 6) % 7
   const primerDia = sumarDias(ancla, -desplazamiento)
 
-  const conDia = new Map<DiaSemana, Sesion>()
-  const sinDia: Sesion[] = []
-  for (const sesion of [...microciclo.sesiones].sort((a, b) => a.orden - b.orden)) {
-    const dia = diaDeSesion(sesion)
-    if (dia && !conDia.has(dia)) conDia.set(dia, sesion)
-    else sinDia.push(sesion)
-  }
+  // Doble sesión (mañana + repaso de noche): las que casan un día caen juntas en él.
+  const { conDia, sinDia } = agruparPorDia(microciclo)
 
   /**
    * Si esta fecha cae DENTRO del microciclo.
@@ -300,7 +302,10 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
     const dia = diaSemanaDe(fechaIso)
     // Antes del arranque no se reparte nada — y en particular no se consume de
     // `sueltas`, que si no se gastarían en días que el microciclo no cubre.
-    const sesion = yaEmpezo(fechaIso) ? (conDia.get(dia) ?? sueltas.shift()) : undefined
+    const delDia = yaEmpezo(fechaIso)
+      ? (conDia.get(dia) ?? (sueltas.length > 0 ? [sueltas.shift() as Sesion] : undefined))
+      : undefined
+    const sesion = delDia?.[0]
     const esHoy = fechaIso === hoyIso
 
     const base = {
@@ -320,81 +325,17 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
       }
     }
 
-    const estado: EstadoDiaRuta = sesionCompleta(sesion) ? 'completada' : esHoy ? 'hoy' : 'programada'
-    return { ...base, estado, sesionId: sesion.id, titulo: sesion.nombre, detalle: detalleDeSesion(sesion) }
+    const sesiones = sesionesDeDia(delDia ?? [], detalleDeSesion)
+    const estado: EstadoDiaRuta = sesiones.every((s) => s.completada) ? 'completada' : esHoy ? 'hoy' : 'programada'
+    return { ...base, estado, sesionId: sesion.id, titulo: sesion.nombre, detalle: detalleDeSesion(sesion), sesiones }
   })
 }
 
-/**
- * Las sesiones del microciclo que `armarSemana` NO consiguió meter en la
- * rejilla de 7 días que devolvió para ese mismo `hoyIso`.
- *
- * `armarSemana` SIEMPRE pinta 7 días —es una rejilla semanal— pero un
- * microciclo puede durar 8 o 15 (`cadenciaDias`, heredados de antes de la
- * regla de Bryan del 19-sep-2026: «todo microciclo nuevo son 7»). Con más
- * sesiones «con día» que huecos libres, o con dos sesiones que casan el mismo
- * nombre de día (`diaDeSesion` solo se queda con la primera; ver el mapa
- * `conDia` de `armarSemana`), algunas sesiones se quedan sin fecha en ESTA
- * semana. Antes esto no se decía en ningún sitio: la sesión sencillamente no
- * aparecía, y no había manera de distinguir «no tiene nada programado» de
- * «tiene algo que la rejilla no pudo colocar».
- *
- * Nunca reescribe ni descarta nada — es de solo lectura, para que la interfaz
- * pueda avisar en vez de ocultar (regla de aceptación #3 del contrato de
- * Bryan). Con `cadenciaDias: 7` y sesiones sin días repetidos —el caso normal
- * desde la regla nueva— siempre devuelve `[]`.
- */
-export function sesionesFueraDeLaSemana(
-  microciclo: Microciclo,
-  dias: readonly DiaRuta[],
-): Sesion[] {
-  const enLaRejilla = new Set(dias.map((d) => d.sesionId).filter((id): id is string => id !== undefined))
-  return microciclo.sesiones.filter((s) => !enLaRejilla.has(s.id))
-}
-
-export interface SesionDestacada {
-  sesionId: string
-  titulo: string
-  esDeHoy: boolean
-}
-
-/**
- * La sesión que propone el botón grande de la Ruta.
- *
- * Sale de la MISMA semana que pinta el calendario, a propósito: cuando el CTA
- * se calculaba aparte, el botón decía "sesión de hoy · UPPER A" mientras la
- * agenda ponía otra sesión en el día de hoy. Dos respuestas distintas a la
- * misma pregunta en la misma pantalla.
- *
- * Orden: la de hoy si está pendiente; si no, la siguiente de la semana; y si
- * tampoco, una pendiente que quedó atrás.
- */
-export function sesionDestacada(dias: readonly DiaRuta[]): SesionDestacada | undefined {
-  const hoy = dias.find((d) => d.estado === 'hoy')
-  if (hoy?.sesionId) return { sesionId: hoy.sesionId, titulo: hoy.titulo, esDeHoy: true }
-
-  const indiceHoy = dias.findIndex((d) => d.esHoy)
-  const pendiente =
-    dias.slice(indiceHoy + 1).find((d) => d.estado === 'programada') ??
-    dias.slice(0, Math.max(0, indiceHoy)).find((d) => d.estado === 'programada')
-
-  if (!pendiente?.sesionId) return undefined
-  return { sesionId: pendiente.sesionId, titulo: pendiente.titulo, esDeHoy: false }
-}
-
-export interface ResumenSemana {
-  completadas: number
-  programadas: number
-}
-
-/** "2/5 sesiones" de la cabecera del calendario. */
-export function resumenSemana(dias: readonly DiaRuta[]): ResumenSemana {
-  const conSesion = dias.filter((d) => d.sesionId !== undefined)
-  return {
-    completadas: conSesion.filter((d) => d.estado === 'completada').length,
-    programadas: conSesion.length,
-  }
-}
+// Las funciones que leen la semana ya armada (fuera de la rejilla, sesión destacada, resumen)
+// viven en `sesionesDelDia.ts` junto con el agrupado de la doble sesión; se re-exportan aquí
+// para que quien importa de `rutaEntrenamiento` no cambie.
+export { resumenSemana, sesionDestacada, sesionesFueraDeLaSemana } from './sesionesDelDia'
+export type { ResumenSemana, SesionDestacada, SesionDeDia } from './sesionesDelDia'
 
 // ---------- Nivel, competencias y requisitos ----------
 

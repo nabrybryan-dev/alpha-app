@@ -1,5 +1,5 @@
 import { nombreDelMicrociclo, palabraMicrociclo, siglaDelMicrociclo } from '../../domain/palabrasLlanas'
-import { lazy, Suspense, useState } from 'react'
+import { Fragment, lazy, Suspense, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Cifra3D } from '../../components/ui/Cifra3D'
@@ -30,6 +30,8 @@ import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AnilloDeHoy } from './AnilloDeHoy'
 import { hoyConAnillo, marcoDeHoy } from './reglasDelAnillo'
+import { useOrganizacionVisible } from '../../app/organizacionViva'
+import { aplicarOrganizacion, type OrganizacionVisible } from '../../domain/praxis/organizacion/aplicarOrganizacion'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
 import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
 import { PedirPermiso } from '../avisos/PedirPermiso'
@@ -63,6 +65,8 @@ export default function HoyPage() {
   // el 28-sep. Lo que ve un asesorado normal no cambia: cada pieza nueva va tras esta marca.
   const esStaff = usuario.rol === 'nutricionista'
   const juego = useGamificacion(usuario.id)
+  // Lo que la persona escondió o movió hablando con Praxis (0179). Solo con la prueba encendida; si no, nada cambia.
+  const organizacion = useOrganizacionVisible(usuario.id)
 
   // El VIGENTE por fecha, no «el primer `activo` que aparezca» (Bryan, 19-sep):
   // si la invariante de un único `activo` se rompe, `microcicloVigente` elige el
@@ -546,14 +550,14 @@ export default function HoyPage() {
           pregunta del día va justo detrás porque es de dolor. */}
       <section aria-label="Lo de hoy" className="flex flex-col gap-4">
         <AnilloDeHoy visible={conAnillo} />
-        {tarjetaSesion}
-        {carteles}
-        {preguntaDeLaCadena}
-        {checkinDelAsesorado}
-        <Suspense fallback={null}>
-          <MiNutricionDeHoy usuarioId={usuario.id} hoy={hoy} variante="mini" />
-        </Suspense>
-        {listaPendientes}
+        {segunOrganizacion(organizacion, [
+          ['hoy.sesion', tarjetaSesion],
+          ['hoy.carteles', carteles],
+          ['hoy.pregunta-del-dia', preguntaDeLaCadena],
+          ['hoy.checkin', checkinDelAsesorado],
+          ['hoy.nutricion', <Suspense fallback={null}><MiNutricionDeHoy usuarioId={usuario.id} hoy={hoy} variante="mini" /></Suspense>],
+          ['hoy.pendientes', listaPendientes],
+        ])}
       </section>
 
       {/* Banda 2: la semana. */}
@@ -561,19 +565,28 @@ export default function HoyPage() {
         <h3 id="hoy-la-semana" className="hoy-banda-titulo !mb-0 !mt-2">
           La semana
         </h3>
-        {revision}
-        {barraCoach}
-        {volverAContarSalud}
+        {segunOrganizacion(organizacion, [
+          ['hoy.semana', revision],
+          ['hoy.escribir-al-coach', barraCoach],
+          ['hoy.actualizar-salud', volverAContarSalud],
+        ])}
       </section>
 
       {/* Banda 3: el resto, plegado. */}
       <ElResto>
-        {cifras}
-        {bloqueActual}
-        {album}
-        {radar}
-        {contenidos}
+        {segunOrganizacion(organizacion, [
+          ['hoy.cifras', cifras],
+          ['hoy.bloque', bloqueActual],
+          ['hoy.album', album],
+          ['hoy.radar', radar],
+          ['hoy.contenidos', contenidos],
+        ])}
       </ElResto>
     </div>
   )
+}
+
+/** Las piezas de una banda de Hoy en el orden de fábrica, con lo escondido fuera y lo movido en su nuevo lugar. */
+function segunOrganizacion(org: OrganizacionVisible, piezas: [string, ReactNode][]): ReactNode {
+  return aplicarOrganizacion(piezas.map(([id, nodo]) => ({ id, nodo })), org).map((p) => <Fragment key={p.id}>{p.nodo}</Fragment>)
 }

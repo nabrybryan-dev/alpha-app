@@ -44,7 +44,7 @@ const SEPARADOR = /[.,;!?\n]+|\s+(?:pero|aunque|y(?!\s+medi[ao]\b)|ademas|tambie
 
 /** Negaciones que la tabla de vida.ts SÍ entiende como frase completa. */
 // «no dormí (muy) bien/mal» también: `calidadDeSueno` (vida.ts) ya las lee (MALA / REGULAR, arreglo del 5-nov).
-const NEGACION_EN_TABLA = /\b(sin (estres|energia|ganas|fuerza)|no tengo (muchas |pocas )?ganas|no (dormi|he dormido)( [a-z]+){0,2} (bien|mal|rico|profundo|de corrido)|no pude dormir|no me duele(n)? (nada|ni))\b/g
+const NEGACION_EN_TABLA = /\b(sin (estres|energia|ganas|fuerza)|no tengo (muchas |pocas )?ganas|no (dormi|he dormido)( [a-z]+){0,2} (bien|mal|rico|profundo|de corrido)|no pude dormir|no me duele(n)? (nada|ni)|no (me )?salio (muy |tan |nada )?bien)\b/g
 const NEGACION = /\b(no|ni|nunca|tampoco|nada|nadie|ningun\w*)\b/
 
 /** Valoraciones que la tabla no conoce (salvo las de sueño, que tienen tabla propia). */

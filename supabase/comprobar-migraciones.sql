@@ -3678,4 +3678,80 @@ select '0171b - lexicón por persona de Praxis', 'praxis_aprender_forma y praxis
             when not has_function_privilege('authenticated', 'public.praxis_aprender_forma(text,text,text)', 'execute') then 'NO'
             else 'SI' end
 
+union all
+select '0176 - cuaderno de anotaciones de Praxis', 'praxis_anotaciones_persona con RLS, una sola política (lee el dueño), authenticated solo lee, anon nada',
+       case when to_regclass('public.praxis_anotaciones_persona') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_anotaciones_persona')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'praxis_anotaciones_persona') <> 1 then 'NO'
+            when has_table_privilege('anon', 'public.praxis_anotaciones_persona', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_anotaciones_persona', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_anotaciones_persona', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_anotaciones_persona', 'delete') then 'NO'
+            else 'SI' end
+
+union all
+select '0176 - cuaderno de anotaciones de Praxis', 'praxis_anotar_patron y praxis_olvidar_mis_anotaciones existen, security definer, las ejecuta authenticated y no anon',
+       case when to_regprocedure('public.praxis_anotar_patron(text,text,text,text,text,text,date)') is null
+              or to_regprocedure('public.praxis_olvidar_mis_anotaciones()') is null then 'NO'
+            when not (select bool_and(p.prosecdef) from pg_proc p
+                       where p.oid in (to_regprocedure('public.praxis_anotar_patron(text,text,text,text,text,text,date)'), to_regprocedure('public.praxis_olvidar_mis_anotaciones()'))) then 'NO'
+            when has_function_privilege('anon', 'public.praxis_anotar_patron(text,text,text,text,text,text,date)', 'execute')
+              or has_function_privilege('anon', 'public.praxis_olvidar_mis_anotaciones()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.praxis_anotar_patron(text,text,text,text,text,text,date)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+select '0175 - respuestas con seudonimo', 'codigos y lecturas con RLS sin acceso directo; RPC con codigo, sin usuario_id, solo service_role',
+       case when to_regclass('public.codigos_cadena') is null or to_regclass('public.lecturas_cadena') is null then 'NO'
+            when not (select bool_and(relrowsecurity) from pg_class where oid in (to_regclass('public.codigos_cadena'),to_regclass('public.lecturas_cadena'))) then 'NO'
+            when exists (select 1 from pg_policies where schemaname='public' and tablename in ('codigos_cadena','lecturas_cadena')) then 'NO'
+            when exists (select 1 from unnest(array['anon','authenticated','service_role']) r,
+                         unnest(array['public.codigos_cadena','public.lecturas_cadena']) t
+                         where has_table_privilege(r,t,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')) then 'NO'
+            when to_regprocedure('public.cadena_respuestas_preg()') is null or to_regprocedure('public.cadena_codigo_interno(uuid)') is null then 'NO'
+            when pg_get_function_result(to_regprocedure('public.cadena_respuestas_preg()')) not like '%codigo text%'
+              or pg_get_function_result(to_regprocedure('public.cadena_respuestas_preg()')) like '%usuario_id%' then 'NO'
+            when exists (select 1 from unnest(array['anon','authenticated','service_role']) r
+                         where has_function_privilege(r,'public.cadena_codigo_interno(uuid)','execute')) then 'NO'
+            when has_function_privilege('anon','public.cadena_respuestas_preg()','execute')
+              or has_function_privilege('authenticated','public.cadena_respuestas_preg()','execute')
+              or not has_function_privilege('service_role','public.cadena_respuestas_preg()','execute') then 'NO'
+            when exists (select 1 from pg_proc where oid in (to_regprocedure('public.cadena_respuestas_preg()'),to_regprocedure('public.cadena_codigo_interno(uuid)'))
+                         and (not prosecdef or not exists (select 1 from unnest(coalesce(proconfig,'{}')) c where c like 'search_path=%'))) then 'NO'
+            else 'SI' end
+
+union all
+select '0177 - nadie con sesion vacia una tabla ni escribe la tabla vieja aprobaciones', 'ninguna tabla de public da TRUNCATE a anon ni authenticated; aprobaciones sin insert/update/delete/truncate para ellos; las tablas nuevas de postgres no lo dan por defecto',
+       case when exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                          where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'f')
+                            and (has_table_privilege('anon', c.oid, 'truncate')
+                                 or has_table_privilege('authenticated', c.oid, 'truncate'))) then 'NO'
+            when to_regclass('public.aprobaciones') is not null
+             and (has_table_privilege('anon', 'public.aprobaciones', 'insert')
+                  or has_table_privilege('anon', 'public.aprobaciones', 'update')
+                  or has_table_privilege('anon', 'public.aprobaciones', 'delete')
+                  or has_table_privilege('authenticated', 'public.aprobaciones', 'insert')
+                  or has_table_privilege('authenticated', 'public.aprobaciones', 'update')
+                  or has_table_privilege('authenticated', 'public.aprobaciones', 'delete')) then 'NO'
+            when exists (select 1 from pg_default_acl d, aclexplode(d.defaclacl) a
+                          where d.defaclrole = 'postgres'::regrole
+                            and d.defaclnamespace = 'public'::regnamespace
+                            and d.defaclobjtype = 'r'
+                            and a.privilege_type = 'TRUNCATE'
+                            and a.grantee in ('anon'::regrole, 'authenticated'::regrole)) then 'NO'
+            else 'SI' end
+
+union all
+select '0179 - organizacion de la app por persona', 'dos tablas con RLS, sin escritura directa; aplicar/deshacer solo con sesion; anon no lee',
+       case when to_regclass('public.praxis_organizacion') is null or to_regclass('public.praxis_organizacion_cambios') is null then 'NO'
+            when not (select bool_and(relrowsecurity) from pg_class where oid in (to_regclass('public.praxis_organizacion'),to_regclass('public.praxis_organizacion_cambios'))) then 'NO'
+            when exists (select 1 from unnest(array['public.praxis_organizacion','public.praxis_organizacion_cambios']) t
+                         where has_table_privilege('authenticated',t,'INSERT,UPDATE,DELETE,TRUNCATE') or has_table_privilege('anon',t,'SELECT')) then 'NO'
+            when to_regprocedure('public.praxis_organizacion_aplicar(jsonb,integer)') is null or to_regprocedure('public.praxis_organizacion_deshacer()') is null then 'NO'
+            when has_function_privilege('anon','public.praxis_organizacion_aplicar(jsonb,integer)','execute')
+              or has_function_privilege('anon','public.praxis_organizacion_deshacer()','execute')
+              or not has_function_privilege('authenticated','public.praxis_organizacion_aplicar(jsonb,integer)','execute') then 'NO'
+            when not public.praxis_organizacion_es_ocultable('progreso.medidas') or public.praxis_organizacion_es_ocultable('hoy.sesion') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

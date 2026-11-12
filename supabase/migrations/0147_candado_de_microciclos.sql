@@ -176,9 +176,11 @@ grant execute on function public.pisada_microciclo_autorizada(text) to authentic
 -- choque queda registrado». Así que el candado BLOQUEA y REGISTRA:
 --   · BEFORE (b_candado): si activar chocaría, el estado nuevo no se aplica (INSERT -> 'propuesto';
 --     UPDATE -> se queda el estado que tenía) y se anota en una variable local de la transacción
---     qué microciclo quedó bloqueado. Un `raise notice` lo dice a quien corra el SQL a mano.
+--     la lista JSON de ids bloqueados (GUC local, restaurado al deshacer un savepoint).
+--     Un `raise notice` lo dice a quien corra el SQL a mano.
 --   · AFTER (c_registrar_choque): ya existe la fila (la tabla de avisos la referencia), así que
---     llama a `registrar_choque_microciclo`. La carga de la cadena termina SIN error y SIN activar;
+--     consume su id de la lista y llama a `registrar_choque_microciclo_interno`.
+--     La carga de la cadena termina SIN error y SIN activar;
 --     la plantilla lo comprueba antes de cerrar nada y devuelve «CHOQUE · ...» (ver allí).
 create or replace function public.microciclos_candado()
 returns trigger
@@ -193,7 +195,10 @@ begin
       select * into v_ch from public.microciclo_choque(new.usuario_id, new.id, new.numero, new.origen);
       if found then
         new.estado := case when tg_op = 'INSERT' then 'propuesto' else old.estado end;
-        perform set_config('alpha.choque_bloqueado', new.id, true);
+        -- H8: acumular cada fila; todos los BEFORE pueden preceder a los AFTER.
+        perform set_config('alpha.choque_bloqueado',
+          (coalesce(nullif(current_setting('alpha.choque_bloqueado', true), '')::jsonb,
+                    '[]'::jsonb) || jsonb_build_array(new.id))::text, true);
         raise notice
           'candado_microciclo: la semana M% de esta persona ya la cargó "%" (%, microciclo %, %). '
           'M% (%) NO se activó y queda un aviso para el coach. Pisar a propósito: '
@@ -223,9 +228,19 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_bloqueados jsonb := coalesce(
+    nullif(current_setting('alpha.choque_bloqueado', true), '')::jsonb, '[]'::jsonb);
+  v_posicion int;
 begin
-  if coalesce(current_setting('alpha.choque_bloqueado', true), '') = new.id then
-    perform set_config('alpha.choque_bloqueado', '', true);
+  -- Consumir una sola ocurrencia: otro id (o repeticion) conserva su aviso.
+  select (e.posicion - 1)::int into v_posicion
+    from jsonb_array_elements_text(v_bloqueados) with ordinality as e(id, posicion)
+   where e.id = new.id
+   order by e.posicion
+   limit 1;
+  if v_posicion is not null then
+    perform set_config('alpha.choque_bloqueado', (v_bloqueados - v_posicion)::text, true);
     perform public.registrar_choque_microciclo_interno(new.id);
   end if;
   return null;

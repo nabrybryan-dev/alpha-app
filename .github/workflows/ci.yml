@@ -210,6 +210,9 @@ jobs:
       - name: El candado de microciclos - la app y la cadena no se pisan en silencio, y confirmar es del coach
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216-candado-de-microciclos.sql
 
+      - name: El candado de microciclos - la lista de bloqueados no se filtra a la transaccion siguiente de la misma conexion (H8, tras COMMIT)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216b-h8-sesion-tras-commit.sql
+
       - name: Las alertas nutricionales no se encienden sin firma completa y su detalle solo lo lee la nutricionista
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/221-alertas-nutricion.sql
 
@@ -251,3 +254,12 @@ jobs:
 
       - name: Los latidos de la cadena avisan una vez cuando el ASUS calla mas de 30 min y otra cuando vuelve; solo service_role los escribe y los lee
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/271-latidos-cadena.sql
+
+      - name: El cuaderno de anotaciones de cada persona (recuperación de una zona, reacción a una comida) lo lee solo ella, solo se escribe por la función (idempotente, sin días futuros), y ella lo borra entero
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/272-praxis-anotaciones-persona.sql
+
+      - name: Nadie con sesion (ni anon) vacia una tabla con TRUNCATE, y la tabla vieja aprobaciones no se escribe desde el navegador
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/273-sin-truncate.sql
+
+      - name: La organizacion de la app de cada persona se guarda solo por la funcion (solo lo libre se esconde, tope de 6, choque entre aparatos, deshacer de a uno), la lee ella y el equipo, y esconder peso avisa al coach sin la frase
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/274-praxis-organizacion.sql

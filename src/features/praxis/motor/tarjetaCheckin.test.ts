@@ -10,7 +10,7 @@ import { BOTON_ANOTAR, nodoTarjetaCheckin, type EstadoTarjeta } from './tarjetaC
 
 function preparar(texto: string) {
   const t = armarTarjeta(conectarMensaje(texto)) as TarjetaCheckin
-  const estado: EstadoTarjeta = { elecciones: new Map() }
+  const estado: EstadoTarjeta = { elecciones: new Map(), anotaciones: new Set() }
   const alAnotar = vi.fn()
   let nodo = nodoTarjetaCheckin(t, estado, () => { nodo = nodoTarjetaCheckin(t, estado, () => {}, alAnotar) }, alAnotar)
   const boton = (k: string) => nodo.querySelector(`[data-k="${k}"]`) as HTMLButtonElement

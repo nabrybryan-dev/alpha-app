@@ -12,8 +12,10 @@
  *  - Un check-in con alguno de los 8 vacío queda `parcial` (decisión de Bryan, 7-nov: no da puntos hasta completarlo).
  *
  * Detrás de `CONECTORES_EN_TARJETA`: con ella, la conexión real de Praxis (`conexionReal.ts`) ofrece el check-in por
- * conectores; apagada, no existe y la frase sigue el camino de siempre.
+ * conectores; apagada (volviendo la bandera a `false`), no existe y la frase sigue el camino de siempre. Hoy está
+ * ENCENDIDA (7-nov-2026).
  */
+import type { Anotacion } from './anotaciones.ts'
 import type { PreguntaDeTramo, ResultadoConectores } from './conectores.ts'
 import type { CampoCheckin } from './mensajeLargo.ts'
 
@@ -56,7 +58,11 @@ export interface FilaTarjeta {
   origen: 'tabla' | 'vago' | 'dudosa'
 }
 
-export interface TarjetaCheckin { filas: FilaTarjeta[]; tramos: PreguntaDeTramo[]; faltantes: CampoCheckin[] }
+export interface TarjetaCheckin {
+  filas: FilaTarjeta[]; tramos: PreguntaDeTramo[]; faltantes: CampoCheckin[]
+  /** Para el cuaderno de la persona (0176): no llenan el check-in; se guardan solo si ella las toca. */
+  anotaciones: Anotacion[]
+}
 
 /** Arma la tarjeta. `null` si el mensaje fue a la ruta de riesgo: ahí no hay tarjeta. `yaHoy` = campos ya llenos hoy. */
 export function armarTarjeta(r: ResultadoConectores, yaHoy: readonly CampoCheckin[] = []): TarjetaCheckin | null {
@@ -77,7 +83,7 @@ export function armarTarjeta(r: ResultadoConectores, yaHoy: readonly CampoChecki
     })),
   ]
   const cubiertos = new Set<CampoCheckin>([...filas.map((f) => f.campo), ...yaHoy])
-  return { filas, tramos: r.preguntas, faltantes: OBLIGATORIOS.filter((c) => !cubiertos.has(c)) }
+  return { filas, tramos: r.preguntas, faltantes: OBLIGATORIOS.filter((c) => !cubiertos.has(c)), anotaciones: r.anotaciones ?? [] }
 }
 
 export type Eleccion = { campo: CampoCheckin; valor: string | number } | { campo: CampoCheckin; noAnotar: true }

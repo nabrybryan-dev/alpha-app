@@ -35,6 +35,10 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'Reparto entre músculos de la sentadilla: tanda A detenida (licencia de Rajagopal 2016 no verificada), ' +
     'así que se abstiene y el salón no lo dibuja (plan §10, tanda B reducida). Se enchufa si hay datos verificados.',
 
+  'src/domain/etapaDeLaBarra.ts':
+    'Barra por etapa (pieza C6 del rediseño): nace apagada (BARRA_POR_ETAPA_ACTIVA = false) y sin conectar; ' +
+    'se enchufa a la barra cuando Bryan decida encenderla.',
+
   // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
@@ -126,13 +130,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Segunda capa de la organización por voz (11-nov-2026): la leen el script de medición y las pruebas; la Edge
+  // Function que consultaría al modelo no existe todavía (saldo de Anthropic en cero y fase O2b sin abrir).
+  'src/domain/praxis/organizacion/lectorModelo.ts#promptDeOrganizacion':
+    'Prompt del menú cerrado; lo usa scripts/praxis-eval/organizacion-modelo.mts. Apagado, fase O2b: el cliente deja el prompt al servidor; solo se usa en la medición.',
   // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
   // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
   'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
     'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
   'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
     'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
-  // Tarjeta del check-in de los conectores (paso 2, 7-nov-2026), detrás de una bandera apagada.
+  // Tarjeta del check-in de los conectores (paso 2, 7-nov-2026), detrás de una bandera (hoy encendida).
   'src/domain/praxis/registro/lexicoPersona.ts#aprender':
     'Espejo en TypeScript de la regla de praxis_aprender_forma (0171: igual suma 1, distinto vuelve a 1): lo usan las pruebas ' +
     'para fijar la regla; en la app quien aprende es la base.',

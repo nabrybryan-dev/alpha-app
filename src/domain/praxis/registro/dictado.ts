@@ -5,14 +5,44 @@
  * que la medición encontró mal o perdidas. Reglas de Bryan (7-nov): un RANGO se pregunta con los dos números (nunca
  * se anota el primero), los minutos del sueño se suman con un decimal, y lo vago o «y pico» queda visible, no se guarda.
  */
-import { escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, type NumeroEncontrado } from './numeros.ts'
+import {
+  ES_PALABRA_NUMERICA, escanearNumeros, horaDeCita, normalizarTexto, numeroDeCita, redondear1, valorLiteral,
+  type NumeroEncontrado,
+} from './numeros.ts'
+import { articuloSuelto, clausulasDeReloj, conflictoDeCifras, esCota, numeroMalDictadoAntesDeMil, quitarRelojes, rangoSinConector, unidadAjena } from './guardas.ts'
 import type { Pregunta } from './tipos.ts'
 
 export type Lectura<T = number> =
   | { tipo: 'valor'; valor: T; aproximado: boolean }
   | { tipo: 'rango'; etiquetas: [string, string] }
+  /** Se entendió algo pero hay que confirmarlo (p. ej. «7:30» sin unidad): se pregunta, no se guarda. */
+  | { tipo: 'confirmar'; texto: string; opciones: string[] }
   | { tipo: 'vago' }
+  /** La cifra trae otra unidad («5 km», «25 años»): no se anota; `ofrecer` pide el dato en la unidad del campo. */
+  | { tipo: 'ajena'; unidad: string; ofrecer: boolean }
   | null
+
+const esCifra = (t: string): boolean => valorLiteral(t) !== null || ES_PALABRA_NUMERICA(t) || /^(minutos?|mins?)$/.test(t)
+const esNumeroOUnidad = (t: string): boolean => esCifra(t) || /^(horas?|pasos?)$/.test(t)
+
+/**
+ * Tras un número, «y» + una palabra que no es cifra ni fracción («y pico», «y algo», «y poquito», «y tanto») es vago:
+ * no se inventa el resto. «y media», «y cuarto», «y 30 minutos», «y treinta», «y 500» son cifra y se siguen leyendo.
+ */
+function yConPalabraVaga(n: string): boolean {
+  const tk = n.split(' ')
+  return tk.some((t, i) => {
+    if (t !== 'y' || i === 0 || !esNumeroOUnidad(tk[i - 1])) return false
+    const resto = tk.slice(i + 1)
+    // Solo un resto de una o dos palabras cuya primera (tras «un/una») es vaga: «y algo», «y un poco».
+    // «y me desperté 3 veces» o «y mal» no son vagos: la cifra de antes se conserva.
+    if (resto.length < 1 || resto.length > 2) return false
+    const p = resto[0] === 'un' || resto[0] === 'una' ? resto[1] : resto[0]
+    return PALABRAS_VAGAS.has(p ?? '')
+  })
+}
+
+const PALABRAS_VAGAS = new Set(['pico', 'piquito', 'algo', 'poco', 'poquito', 'poquitico', 'tanto', 'tantico', 'tantito', 'monedas'])
 
 /** Separa lo pegado: «4h» → «4 h», «250ml» → «250 ml», «9pm» → «9 pm». */
 export function separarPegado(texto: string): string {
@@ -71,8 +101,15 @@ function sinNumero(n: string): Lectura<never> {
 const PALABRAS_HORA = 'un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce'
 
 function textoDeSueno(cita: string): string {
-  const t = separarPegado(cita.replace(/(\d)\s*(?:hrs?|hs|h)\b/gi, '$1 horas'))
+  const t = separarPegado(
+    cita
+      // «7:30 horas» y «7h30»: la hora y los minutos van pegados; se separan para que los minutos se sumen.
+      .replace(/\b(\d{1,2}):(\d{2})\s*(?:horas?|hrs?|hs|h)\b/gi, '$1 horas $2')
+      .replace(/(\d)\s*(?:hrs?|hs|h)(?=\d)/gi, '$1 horas ')
+      .replace(/(\d)\s*(?:hrs?|hs|h)\b/gi, '$1 horas'),
+  )
   return normalizarTexto(t)
+    .replace(new RegExp(`\\b(${PALABRAS_HORA})\\s+(?:hrs?|hs|h)\\b`, 'g'), '$1 horas')
     .replace(new RegExp(`\\b(${PALABRAS_HORA})(horas?)\\b`, 'g'), '$1 $2')
     // «siete y veinte»: el escáner las sumaría (27); son 7 h y 20 min.
     .replace(new RegExp(`\\b(${PALABRAS_HORA}) y (${Object.keys(MINUTOS_EN_PALABRAS).join('|')})\\b`, 'g'), (_m, h: string, mi: string) => `${h} y ${MINUTOS_EN_PALABRAS[mi]}`)
@@ -102,6 +139,9 @@ function horasConMinutos(n: string): number | null {
   const horas = m[1].trim() ? numeroDeCita(m[1])?.valor ?? null : 1
   if (horas === null) return null
   let resto = m[2].replace(/^y\s+/, '')
+  // «siete horas y media aunque con 2 despertadas»: lo que sigue a «media» o «cuarto» es ruido, no minutos.
+  if (/^media\b/.test(resto)) resto = 'media'
+  else if (/^(un )?cuarto\b/.test(resto)) resto = 'cuarto'
   const signo = /^menos\b/.test(resto) ? -1 : 1
   resto = resto.replace(/^menos\s+/, '')
   const min = resto ? minutosSueltos(resto, false) ?? 0 : 0
@@ -125,10 +165,28 @@ function valorDeSueno(n: string, primero: number): number {
 }
 
 export function leerSueno(cita: string): Lectura {
-  const n = textoDeSueno(cita)
-  if (/\by pico\b/.test(n)) return { tipo: 'vago' }
-  const r = buscarRango(n)
+  const completo = textoDeSueno(cita)
+  // Las horas de reloj de la frase («a las 2 me desperté y dormí 4 horas») no son horas dormidas.
+  const n = quitarRelojes(completo)
+  if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
+  const ajena = unidadAjena(n, 'sueno')
+  if (ajena) return { tipo: 'ajena', ...ajena }
+  if (articuloSuelto(n, /^(horas?|hrs?|h|minutos?|mins?)$/)) return { tipo: 'vago' }
+  if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
+  const r = buscarRango(n) ?? rangoSinConector(n)
   if (r) return { tipo: 'rango', etiquetas: [`${fmt(r.a.valor)} horas`, `${fmt(r.b.valor)} horas`] }
+  const choque = conflictoDeCifras(n)
+  if (choque) return { tipo: 'rango', etiquetas: [`${fmt(choque[0].valor)} horas`, `${fmt(choque[1].valor)} horas`] }
+  // «a las 2 me desperté y dormí otras 4 horas»: son dos tramos y no se sabe el total.
+  if (/\botr[ao]s?\b/.test(n) && escanearNumeros(n).length > 0) return { tipo: 'vago' }
+  // «7:30» sin unidad puede ser 7 h 30 min o una hora de reloj: antes daba 7 en silencio; ahora se pregunta.
+  const reloj = cita.match(/\b(\d{1,2}):([0-5]\d)\b(?!\s*(?:horas?|hrs?|hs|h\b|min))/i)
+  if (reloj) {
+    const h = Number(reloj[1])
+    const m = Number(reloj[2])
+    const dicho = m === 0 ? `${h} horas` : `${h} horas y ${m} minutos`
+    return { tipo: 'confirmar', texto: `¿Dormiste ${dicho}?`, opciones: [dicho] }
+  }
   const base = numeroDeCita(n)
   if (!base) return sinNumero(n)
   return { tipo: 'valor', valor: valorDeSueno(n, base.valor), aproximado: base.aproximado }
@@ -153,13 +211,21 @@ function textoDePasos(cita: string): string {
   const t = cita
     .replace(/(\d+(?:[.,]\d+)?)\s*k\b/gi, (_m, x: string) => String(Math.round(Number(x.replace(',', '.')) * 1000)))
     .replace(/\b(\d{1,3})[, ](\d{3})\b/g, '$1$2')
-  return juntarMil(normalizarTexto(separarPegado(t)).replace(/\bmil y medio\b/g, 'mil quinientos'))
+  // «8 mil pasos y 500»: la «y» y la palabra «pasos» estorban a «N mil» + resto (daba 8.000 y perdía los 500).
+  return juntarMil(normalizarTexto(separarPegado(t)).replace(/\bmil y medio\b/g, 'mil quinientos').replace(/\bmil pasos y (?=\d)/g, 'mil '))
 }
 
 export function leerPasos(cita: string): Lectura {
-  const n = textoDePasos(cita)
-  if (/\by pico\b/.test(n)) return { tipo: 'vago' }
-  const r = buscarRango(n)
+  const completo = textoDePasos(cita)
+  const n = quitarRelojes(completo)
+  if (n !== completo && escanearNumeros(n).length === 0) return { tipo: 'vago' }
+  const ajena = unidadAjena(n, 'pasos')
+  if (ajena) return { tipo: 'ajena', ...ajena }
+  if (articuloSuelto(n, /^(pasos?|mil)$/) || numeroMalDictadoAntesDeMil(n)) return { tipo: 'vago' }
+  if (yConPalabraVaga(n) || esCota(n)) return { tipo: 'vago' }
+  const choque = conflictoDeCifras(n)
+  if (choque) return { tipo: 'rango', etiquetas: [`${conMiles(choque[0].valor)} pasos`, `${conMiles(choque[1].valor)} pasos`] }
+  const r = buscarRango(n) ?? rangoSinConector(n)
   if (r) {
     const { a, b } = r
     const mil = a.valor < 1000 && b.valor >= 1000 && b.valor % 1000 === 0
@@ -189,13 +255,28 @@ export function leerHora(cita: string | null | undefined, contexto: 'acostarse' 
   const n = normalizarTexto(crudo)
   if (/\bmedianoche\b/.test(n)) return { tipo: 'valor', valor: '00:00', aproximado: false }
   if (/\bmediodia\b/.test(n)) return { tipo: 'valor', valor: '12:00', aproximado: false }
+  // «a las 12 y pico de la noche»: el «y pico» deja la hora abierta; no se inventa la hora en punto.
+  if (/\by (pico|piquito)\b/.test(n)) return { tipo: 'vago' }
   const r = buscarRango(n)
   if (r) {
     const [a, b] = variantesDeRango(r).map((x) => horaUna(x, contexto))
     return a && b ? { tipo: 'rango', etiquetas: [a, b] } : null
   }
+  // Dos horas de reloj en la cita («a las 5 pero me levanté a las 6», «no a las 10 sino a las 11»): no se mezclan
+  // (daba 05:06); se pregunta cuál. Si alguna no se puede leer, queda visible como vago.
+  const ajena = unidadAjena(n, 'hora')
+  if (ajena) return { tipo: 'ajena', ...ajena }
+  const clausulas = clausulasDeReloj(n)
+  if (clausulas.length >= 2) {
+    const a = horaUna(clausulas[0], contexto)
+    const b = horaUna(clausulas[clausulas.length - 1], contexto)
+    if (a && b && a !== b) return { tipo: 'rango', etiquetas: [a, b] }
+    return a && b ? { tipo: 'valor', valor: a, aproximado: false } : { tipo: 'vago' }
+  }
   const hora = horaUna(crudo, contexto)
-  return hora ? { tipo: 'valor', valor: hora, aproximado: false } : null
+  if (hora) return { tipo: 'valor', valor: hora, aproximado: false }
+  // «a las 25», «a las onze»: dijo una hora y no se pudo leer; no se calla, queda a la vista con el campo ofrecido.
+  return /\d/.test(n) || /\b(?:a|desde|hasta)\s+l(?:as|a)\s+\S+/.test(n) ? { tipo: 'vago' } : null
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +293,10 @@ const PEDIR: Record<CampoDictado, string> = {
   agua_cantidad: '¿Cuánta agua fue?',
 }
 
+const UNIDAD_DEL_CAMPO: Record<CampoDictado, string> = {
+  horasSueno: 'horas de sueño', pasos: 'pasos', horaAcostarse: 'una hora del reloj', horaLevantarse: 'una hora del reloj', agua_cantidad: 'agua',
+}
+
 export interface Duda {
   /** Lo que la persona dijo, para mostrarlo si esta duda no cabe en la pregunta del momento. */
   cita?: string
@@ -224,6 +309,16 @@ export function dudaDe(l: Lectura<unknown>, cita: string | null | undefined, cam
   if (!cita || !l) return {}
   if (l.tipo === 'rango') {
     return { cita, seguimiento: { texto: `Dijiste «${cita}»: ¿cuál fue?`, opciones: [...l.etiquetas], campo_bloqueante: campo } }
+  }
+  if (l.tipo === 'confirmar') {
+    return { cita, seguimiento: { texto: l.texto, opciones: l.opciones, campo_bloqueante: campo } }
+  }
+  if (l.tipo === 'ajena') {
+    return {
+      cita,
+      descartado: { cita, motivo: `está en ${l.unidad}, no en ${UNIDAD_DEL_CAMPO[campo]}, así que no se guardó` },
+      ...(l.ofrecer ? { seguimiento: { texto: PEDIR[campo], opciones: [], campo_bloqueante: campo } } : {}),
+    }
   }
   if (l.tipo === 'vago') {
     return {

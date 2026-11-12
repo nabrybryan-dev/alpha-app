@@ -1,4 +1,5 @@
 import type { DiaRuta } from '../../../../domain/rutaEntrenamiento'
+import type { SesionDeDia } from '../../../../domain/sesionesDelDia'
 import type { Sesion } from '../../../../domain/types'
 import { diaEnPantalla, relacionConHoy } from './diaEnPantalla'
 
@@ -40,6 +41,9 @@ export interface BarraDeSesionProps {
   diaElegido?: number | null
   /** Si la semana está desplegada: el botón lo dice (`aria-expanded`) y gira su punta. */
   semanaAbierta?: boolean
+  /** Las sesiones del día en pantalla. Con más de una (mañana + repaso de noche) se ofrece elegir. */
+  sesionesDelDia?: readonly SesionDeDia[]
+  onElegirSesion?: (sesionId: string) => void
 }
 
 export function BarraDeSesion({
@@ -48,6 +52,8 @@ export function BarraDeSesion({
   onAbrirSemana,
   diaElegido = null,
   semanaAbierta = false,
+  sesionesDelDia = [],
+  onElegirSesion,
 }: BarraDeSesionProps) {
   // El día de la SESIÓN QUE SE VE, no el de hoy: con la de hoy hecha el salón abre la
   // próxima, y decir «domingo» encima de la sesión del lunes es decir dos cosas a la vez.
@@ -64,10 +70,31 @@ export function BarraDeSesion({
       {/* UNA LÍNEA, SIEMPRE. Un nombre de sesión largo («PIERNA · PESO MUERTO Y SENTADILLA»)
           partía la banda en dos y la segunda línea caía sobre el tablón del muro. Se
           recorta con puntos: la banda dice dónde estás, no es para leerla entera. */}
+      <div className="min-w-0">
       <p className="min-w-0 truncate font-display text-[15px] font-black uppercase leading-none tracking-[0.04em] text-texto">
         Sesión{' '}
         <span className="text-silver-300">{sesion?.nombre ?? 'Sin sesión'}</span>
       </p>
+      {/* DÍA DOBLE: una pastilla por sesión, la de la mañana primero. Solo existe con 2 o más. */}
+      {sesionesDelDia.length > 1 && (
+        <div className="mt-2 flex gap-1.5" role="group" aria-label="Sesiones del día">
+          {sesionesDelDia.map((s, i) => (
+            <button
+              key={s.sesionId}
+              type="button"
+              aria-pressed={s.sesionId === sesion?.id}
+              onClick={() => onElegirSesion?.(s.sesionId)}
+              className={`press pointer-events-auto min-h-[44px] max-w-[48%] truncate rounded-boton border px-3 text-xs font-bold ${
+                s.sesionId === sesion?.id ? 'border-accion/40 bg-accion/10 text-texto' : 'border-ink-500 bg-ink-900/70 text-silver-300'
+              }`}
+            >
+              {i === 0 ? 'Mañana' : 'Noche'}
+              {s.completada ? ' · hecha' : ''}
+            </button>
+          ))}
+        </div>
+      )}
+      </div>
       {mirando && (
         <button
           type="button"

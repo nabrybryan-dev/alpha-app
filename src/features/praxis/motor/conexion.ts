@@ -1,13 +1,19 @@
 import type { RespuestaDeGuardar, RespuestaDelRegistrador } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { QueFalto } from '../../../domain/praxis/plan/responder'
+import type { ConsultaAlModelo } from '../../../app/clienteOrganizarPraxis'
+import type { EstadoDeOrganizacion } from '../../../app/organizacionPraxis'
+import type { CambioDeOrganizacion, ResultadoDeAplicar } from '../../../app/tarjetaDeOrganizacion'
+import type { PiezaDeLaApp } from '../../../app/catalogoDePiezas'
+import type { PerfilAcceso } from '../../../app/rutas'
 import type { ContextoCharla } from '../../../domain/praxis/charla/modelo'
 import type { MarcaDeRiesgo } from '../../../domain/praxis/riesgo'
 import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
 import type { RespuestaDeElegir } from '../../../data/praxis/deshacer'
 import type { ResultadoDeshacer, TarjetaFirmada } from '../../../domain/praxis/deshacer/pantalla'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
-import type { ResultadoGuardarCheckin } from '../../../data/praxis/checkin'
+import type { ResultadoAnotar, ResultadoGuardarCheckin } from '../../../data/praxis/checkin'
+import type { Anotacion } from '../../../domain/praxis/registro/anotaciones'
 import type { FormaAprendida } from '../../../domain/praxis/registro/lexicoPersona'
 import type { CampoCheckin } from '../../../domain/praxis/registro/mensajeLargo'
 import type { Confirmado } from '../../../domain/praxis/registro/tarjetaCheckin'
@@ -52,7 +58,7 @@ export interface ConexionPraxis {
     confirmar: (p: { tarjeta: TarjetaFirmada; mensajeId: string }) => Promise<ResultadoDeshacer>
   }
   /**
-   * El check-in desde lo que la persona cuenta (conectores; `CONECTORES_EN_TARJETA`). AUSENTE = apagado: la frase sigue el
+   * El check-in desde lo que la persona cuenta (conectores; `CONECTORES_EN_TARJETA`). AUSENTE = apagado (la bandera hoy está encendida): la frase sigue el
    * camino de siempre. `yaHoy` = cuáles de los 8 ya están llenos hoy; `lexico` = lo aprendido de quien tiene la sesión;
    * `guardar` solo se llama tras el toque en «Anotar». Nunca lanzan.
    */
@@ -60,6 +66,28 @@ export interface ConexionPraxis {
     yaHoy: () => CampoCheckin[]
     lexico: () => Promise<FormaAprendida[]>
     guardar: (p: { mensajeId: string; confirmado: Confirmado; aprendizajes: { campo: CampoCheckin; forma: string; valor: string }[] }) => Promise<ResultadoGuardarCheckin>
+    /** Cuaderno de la persona (0176). AUSENTE = la tarjeta no ofrece anotaciones. Solo tras su toque. */
+    anotar?: (p: { mensajeId: string; anotaciones: Anotacion[] }) => Promise<ResultadoAnotar>
+  }
+  /**
+   * Organizar y navegar por voz (`PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL`). AUSENTE = apagado: la frase sigue el camino de
+   * siempre. Solo se consulta DESPUÉS del filtro de riesgo. `navegar` es la función del router.
+   */
+  organizar?: {
+    perfil: PerfilAcceso
+    estado: () => EstadoDeOrganizacion
+    consultar: ConsultaAlModelo
+    navegar: (ruta: string) => void
+    /**
+     * Guarda el cambio que la persona confirmó con «Sí» en la tarjeta. AUSENTE = todavía no hay organización guardada
+     * (fase O4, requiere migración): la tarjeta dice «No pude hacerlo ahora y no cambié nada». Si el cambio esconde
+     * peso o medidas (`avisaAlCoach`), avisar al coach SIN la frase es parte de aplicarlo.
+     */
+    aplicar?: (cambio: CambioDeOrganizacion) => Promise<ResultadoDeAplicar>
+    /** El botón «Deshacer» de los 10-15 s: devuelve el último cambio. AUSENTE = no se ofrece. */
+    deshacerUltimo?: () => Promise<ResultadoDeAplicar>
+    /** «Sí, avísale» (R2): deja un aviso al coach. AUSENTE = se dice que todavía no se puede. */
+    avisarAlCoach?: (pieza: PiezaDeLaApp | null) => Promise<boolean>
   }
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
   preguntar: (p: { frase: string; queFalto: QueFalto; citas: string[] }) => Promise<ResultadoDejarPregunta>
