@@ -76,8 +76,10 @@ describe('inventario de las tarjetas de Hoy contra HoyPage.tsx', () => {
   })
 })
 
-describe('inventario de Entrenar, Nutrición, Semana y Progreso contra sus archivos', () => {
-  const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), 'utf8')
+describe('inventario de las pantallas del asesorado (Entrenar a Logros) contra sus archivos', () => {
+  // Sin comentarios: una marca que solo sigue escrita en un comentario o en código muerto no cuenta como pieza viva.
+  const sinComentarios = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1')
+  const leer = (ruta: string) => sinComentarios(readFileSync(join(process.cwd(), ruta), 'utf8'))
 
   it('cada pieza vive en una pantalla que es destino, y su marca está en el archivo que dice', () => {
     for (const p of PIEZAS_DE_OTRAS_PANTALLAS) {
@@ -102,6 +104,18 @@ describe('inventario de Entrenar, Nutrición, Semana y Progreso contra sus archi
     expect(secciones.length).toBe(7)
     const registradas = new Set(PIEZAS_DE_OTRAS_PANTALLAS.filter((p) => p.pantalla === '/nutricion/plan').map((p) => p.enCodigo))
     expect(secciones.filter((s) => !registradas.has(s))).toEqual([])
+  })
+
+  it('lo de cuenta, avisos, chat y check-in es fijo; lo asignado por el coach no es libre (Bienestar, Yo, Chat, Cuestionarios)', () => {
+    const por = (id: string) => PIEZAS_DE_OTRAS_PANTALLAS.find((p) => p.id === id)?.nivel
+    for (const id of ['yo.avisos', 'yo.clave', 'yo.derechos', 'chat.remitente', 'chat.conversacion', 'bienestar.checkin', 'bienestar.recordatorio']) expect(por(id), id).toBe('fija')
+    expect(por('cuestionarios.pendientes')).toBe('asignada')
+    expect(por('entrenar.salon')).toBe('fija')
+  })
+
+  it('las pantallas Bienestar, Yo, Chat, Cuestionarios, Contenidos y Logros tienen al menos una pieza', () => {
+    for (const pantalla of ['/bienestar', '/yo', '/chat', '/cuestionarios', '/contenidos', '/logros'])
+      expect(PIEZAS_DE_OTRAS_PANTALLAS.some((p) => p.pantalla === pantalla), pantalla).toBe(true)
   })
 
   it('el chat con el equipo es fijo y lo que asigna el coach no es libre', () => {
@@ -152,7 +166,7 @@ describe('buscar piezas por nombre hablado', () => {
 
   it('encuentra las piezas de las otras pantallas por su nombre hablado', () => {
     expect(ids('muéstrame mi fatiga')).toEqual(['progreso.fatiga'])
-    expect(ids('quiero ver mis medidas')).toEqual(['progreso.medidas'])
+    expect(ids('quiero ver mis medidas').sort()).toEqual(['bienestar.medidas', 'progreso.medidas'])
     expect(ids('ábreme el mercado de 15 días')).toEqual(['plan.mercado'])
     expect(ids('ponme el agua arriba')).toEqual(['nutricion.agua'])
   })
@@ -161,11 +175,42 @@ describe('buscar piezas por nombre hablado', () => {
     expect(ids('muéstrame la revisión de la semana').sort()).toEqual(['hoy.semana', 'semana.revision'])
   })
 
+  it('el nombre completo gana a una coincidencia solo por sinónimo, y «el check-in» a secas cae en las dos y se pregunta', () => {
+    expect(ids('muéstrame el check-in del día')).toEqual(['hoy.checkin'])
+    expect(ids('ponme el check-in abajo').sort()).toEqual(['bienestar.checkin', 'hoy.checkin'])
+  })
+
+  it('las pantallas que arma el coach son asignadas (se mueven, no se ocultan) y las demás del asesorado no', () => {
+    const nivel = (patron: string) => piezasPara(ASESORADO).find((p) => p.id === `pantalla:${patron}`)?.nivel
+    for (const patron of ['/entrenar', '/nutricion', '/nutricion/plan', '/cuestionarios']) expect(nivel(patron), patron).toBe('asignada')
+    expect(nivel('/semana')).toBe('libre')
+    expect(nivel('/yo')).toBe('fija')
+  })
+
   it('un nombre que no existe no se adivina', () => {
     expect(ids('muéstrame el unicornio')).toEqual([])
   })
 
   it('una frase que nombra dos piezas distintas las devuelve las dos para preguntar cuál', () => {
     expect(ids('quiero el álbum y el radar').sort()).toEqual(['hoy.album', 'hoy.radar'])
+  })
+})
+
+/**
+ * EL NIVEL DE CADA PIEZA, CONGELADO. Cambiar el nivel de una pieza (por ejemplo, bajar una fija a libre) cambia lo que
+ * una persona puede esconder: tiene que ser una decisión a propósito de Bryan, no un descuido. Si esta prueba falla
+ * porque cambiaste un nivel adrede, actualiza la lista de aquí y deja escrito quién lo decidió (revisión adversarial, 10-nov).
+ */
+describe('el nivel de cada pieza está congelado', () => {
+  const NIVELES: Record<string, readonly string[]> = {
+    fija: ['bienestar.checkin', 'bienestar.recordatorio', 'chat.conversacion', 'chat.remitente', 'entrenar.salon', 'hoy.actualizar-salud', 'hoy.aviso-sincronizacion', 'hoy.checkin', 'hoy.cuestionario-de-salud', 'hoy.encabezado', 'hoy.escribir-al-coach', 'hoy.permiso-avisos', 'pantalla:/', 'pantalla:/bienestar', 'pantalla:/chat', 'pantalla:/nutricion/al-dia', 'pantalla:/yo', 'pantalla:/yo/derechos', 'semana.chat', 'yo.avisos', 'yo.clave', 'yo.derechos'],
+    asignada: ['cuestionarios.pendientes', 'hoy.nutricion', 'hoy.pendientes', 'hoy.pregunta-del-dia', 'hoy.sesion', 'nutricion.comidas', 'pantalla:/cuestionarios', 'pantalla:/entrenar', 'pantalla:/nutricion', 'pantalla:/nutricion/plan', 'plan.contexto', 'plan.intercambios', 'plan.menus', 'plan.mercado', 'plan.ondulacion', 'plan.perfil', 'plan.suplementos', 'semana.responder'],
+    libre: ['bienestar.historial', 'bienestar.medidas', 'bienestar.mensajes-vida', 'bienestar.vida', 'contenidos.lista', 'cuestionarios.enviados', 'entrenar.camara', 'entrenar.tambor', 'hoy.album', 'hoy.bloque', 'hoy.carteles', 'hoy.cifras', 'hoy.contenidos', 'hoy.radar', 'hoy.semana', 'logros.album', 'logros.medallas', 'logros.nivel', 'logros.premios', 'logros.rachas', 'logros.ranking', 'nutricion.adherencia', 'nutricion.agua', 'nutricion.calibracion', 'nutricion.micros', 'nutricion.recetas', 'nutricion.resumen', 'nutricion.tira-semana', 'pantalla:/contenidos', 'pantalla:/logros', 'pantalla:/progreso', 'pantalla:/semana', 'progreso.checkins', 'progreso.competencias', 'progreso.escala', 'progreso.evolucion', 'progreso.fatiga', 'progreso.logros', 'progreso.medidas', 'progreso.velocidad', 'semana.dias', 'semana.mensajes-vida', 'semana.notas', 'semana.resumen', 'semana.revision', 'semana.vida', 'yo.buzon'],
+  }
+
+  it('cada pieza del asesorado tiene exactamente el nivel congelado, y ninguna queda sin nivel o sin listar', () => {
+    const real: Record<string, string[]> = { fija: [], asignada: [], libre: [] }
+    for (const p of piezasPara(ASESORADO)) (real[p.nivel] ??= []).push(p.id)
+    for (const nivel of ['fija', 'asignada', 'libre']) expect([...(real[nivel] ?? [])].sort(), nivel).toEqual([...NIVELES[nivel]!].sort())
   })
 })
