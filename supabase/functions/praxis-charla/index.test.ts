@@ -205,10 +205,20 @@ describe('praxis-charla: el camino feliz y el respaldo', () => {
     const vector = llamadas.find((l) => l.url.endsWith('/vector'))
     expect(vector?.cuerpo).toBeTruthy()
     expect(vector!.cuerpo).not.toMatch(/Tiburcio|Zambrano/)
-    expect(vector!.cuerpo).toContain('[NOMBRE]')
+    expect(vector!.cuerpo).toContain('[…]')
     expect(aDeepseek(llamadas)[0].cuerpo).not.toMatch(/Tiburcio|Zambrano/)
     const lector = llamadas.find((l) => l.url.includes('anthropic'))
     expect(lector!.cuerpo).toContain('Tiburcio') // H3 (abogado): el lector sigue con la frase cruda, a propósito
+  })
+
+  it('vocabulario: un nombre en minúscula y un barrio no llegan a /vector ni a DeepSeek; el lector sí recibe la cruda', async () => {
+    const { d, llamadas } = montar()
+    await manejar(pedir('entreno con zulema en el barrio las acacias, ¿cuántas series por músculo a la semana?'), d)
+    const vector = llamadas.find((l) => l.url.endsWith('/vector'))
+    expect(vector!.cuerpo).not.toMatch(/zulema|acacias/i)
+    expect(vector!.cuerpo).toContain('series')
+    expect(aDeepseek(llamadas)[0].cuerpo).not.toMatch(/zulema|acacias/i)
+    expect(llamadas.find((l) => l.url.includes('anthropic'))!.cuerpo).toContain('zulema')
   })
 
   it('H2: la frase pasa de 200 caracteres se rechaza con 400 antes de cualquier modelo', async () => {

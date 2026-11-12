@@ -51,8 +51,8 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   'src/domain/praxis/charla/memoria.ts':
     'Qué se guarda de cada turno en la memoria de la charla (0166, 7-nov-2026); lo consume la Edge Function ' +
     'praxis-registro (memoria.ts, con PRAXIS_GUARDAR_CHARLA=1), no la app: el teléfono solo manda charla_id y turno.',
-  'src/domain/praxis/charla/limpiador.ts':
-    'Limpiador de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function praxis-charla (APAGADA, sin desplegar), no la app.',
+  'src/domain/praxis/charla/vocabularioPermitido.ts':
+    'Limpiador por vocabulario permitido de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function praxis-charla (APAGADA, sin desplegar), no la app.',
   'src/domain/praxis/charla/salidaCharla.ts':
     'Decisión de salida que falla cerrado y respaldo sin modelo de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function ' +
     'praxis-charla (APAGADA, sin desplegar), no la app.',

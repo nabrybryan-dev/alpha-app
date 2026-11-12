@@ -14,8 +14,9 @@
 //   4. lector de riesgo con modelo, ANTES y FALLA CERRADO: solo un «sin riesgo» explícito sigue; si falla, tarda o
 //      dice otra cosa, va al coach. Recibe la frase CRUDA a propósito (el limpiador podría tapar una palabra de riesgo);
 //      eso manda texto sin limpiar a Anthropic: es H3 del informe del custodio y lo decide el abogado, no se cambia aquí.
-//   5. limpiador (nombres, correos, teléfonos, peso, edad, medidas, usuario, cédula, dirección), UNA vez, justo después
-//      del lector: de aquí en adelante solo circula la frase LIMPIA (H4)
+//   5. limpiador de patrones (nombres de la lista, correos, teléfonos, peso, edad, medidas, usuario, cédula, dirección) Y DESPUÉS
+//      `soloVocabulario`: solo salen palabras del vocabulario permitido (piezas aprobadas + español común); lo demás pasa a «[…]».
+//      UNA vez, justo después del lector: de aquí en adelante solo circula la frase FILTRADA (H4 y cierre estructural de H1)
 //   6. búsqueda de piezas aprobadas con la frase limpia (`buscar_conceptos_vector`, luego su fila de `praxis_conceptos`)
 //   7. DeepSeek (POST https://api.deepseek.com/chat/completions, modelo `deepseek-flash`, clave DEEPSEEK_API_KEY)
 //   8. respaldo sin modelo: si DeepSeek falla, tarda o devuelve algo inválido, la pieza tal cual; nunca vacío
@@ -24,8 +25,10 @@
 // perfil, plan ni historial. La clave vive solo en el servidor. Cada envío deja una línea de registro con los NOMBRES de los
 // campos que salieron y los tipos de cosa que se tapó, sin el texto de la frase.
 //
-// Corregido tras el informe del custodio (11-nov): H1 limpiador más estricto, H2 frase de hasta 200 caracteres, H4 la búsqueda
-// de piezas y DeepSeek reciben la frase limpia, H9 sin secreto PRAXIS_CHARLA_NOMBRES.
+// Corregido tras el informe del custodio (11-nov): H1 limpiador más estricto y luego vocabulario permitido, H2 frase de hasta 200
+// caracteres, H4 la búsqueda de piezas y DeepSeek reciben la frase limpia, H9 sin secreto PRAXIS_CHARLA_NOMBRES.
+// PRAXIS_CHARLA_NOMBRES YA NO SE LEE en esta función (comprobado: ninguna referencia a esa variable en praxis-charla); no hace falta
+// crearlo. El vocabulario sale de `vocabularioCharla.generado.ts` (scripts/generar-vocabulario-charla.mts); si cambian las piezas, regenerar.
 // Pendiente: H3/H6 abogado, H5 provisional (respuesta del modelo sin filtro ni rótulo; espera decisiones del dueño).
 // Pendiente antes de encender (no hecho aquí): revisión del abogado por la transferencia a un proveedor extranjero, saldo del
 // lector de riesgo, desplegar con la CLI. El nombre `deepseek-flash` lo dio el dueño: no se comprobó contra la documentación
@@ -34,6 +37,8 @@
 import { filtroDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
 import { PROMPT_RIESGO, leerSalidaRiesgo } from '../../../src/domain/praxis/riesgoModelo.ts'
 import { limpiarFrase, type ResultadoLimpieza } from '../../../src/domain/praxis/charla/limpiador.ts'
+import { soloVocabulario } from '../../../src/domain/praxis/charla/vocabularioPermitido.ts'
+import { VOCABULARIO_CHARLA } from '../../../src/domain/praxis/charla/vocabularioCharla.generado.ts'
 import {
   CAMPOS_DEL_ENVIO,
   URL_DEEPSEEK,
@@ -65,6 +70,8 @@ export interface Dependencias {
   fetch: typeof fetch
   ahora: () => Date
 }
+
+const VOCABULARIO: ReadonlySet<string> = new Set(VOCABULARIO_CHARLA)
 
 /** H2 (informe del custodio): menos texto libre hacia fuera. */
 const MAX_FRASE = 200
@@ -246,7 +253,10 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   }
 
   // 5. limpiador, una sola vez: la frase cruda no sale de aquí hacia el vector ni hacia DeepSeek
-  const limpia = limpiarFrase(frase)
+  // El lector de riesgo de arriba SIGUE con la frase cruda a propósito (H3, del abogado): si recibiera la filtrada podría perder una
+  // palabra de riesgo. Aquí, en cambio, el vocabulario es el cierre estructural de lo que sale a /vector y a DeepSeek.
+  const patrones = limpiarFrase(frase, [], { mayusculas: false })
+  const limpia: ResultadoLimpieza = { ...patrones, texto: soloVocabulario(patrones.texto, VOCABULARIO) }
 
   // 6. piezas aprobadas, buscadas con la frase limpia
   const piezas = await buscarPiezas(d, token, limpia.texto)

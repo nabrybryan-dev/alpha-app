@@ -171,7 +171,7 @@ function tapar(texto: string, spans: [number, number][], marca: string): { texto
 }
 
 /** Quita nombres (por lista, por patrón y por mayúscula inicial; ver la cabecera). Sin importar mayúsculas ni tildes. Si la normalización cambiara el largo, busca sin normalizar. */
-function quitarNombres(texto: string, nombres: readonly string[]): { texto: string; n: number } {
+function quitarNombres(texto: string, nombres: readonly string[], mayusculas: boolean): { texto: string; n: number } {
   const norm = normalizar(texto)
   const igualLargo = norm.length === texto.length
   const base = igualLargo ? norm : texto
@@ -189,11 +189,20 @@ function quitarNombres(texto: string, nombres: readonly string[]): { texto: stri
   for (const re of [SOY, DE_MI]) {
     for (const m of texto.matchAll(re)) spans.push([m.index + m[0].length - m[1].length, m.index + m[0].length])
   }
-  spans.push(...spansDeMayusculas(texto))
+  if (mayusculas) spans.push(...spansDeMayusculas(texto))
   return tapar(texto, spans, '[NOMBRE]')
 }
 
-export function limpiarFrase(frase: string, nombresExtra: readonly string[] = []): ResultadoLimpieza {
+export interface OpcionesDeLimpieza {
+  /**
+   * Regla (a) de la cabecera: tapar toda palabra con mayúscula inicial. Por omisión SÍ. La función `praxis-charla` la apaga
+   * porque tras este limpiador pasa por `soloVocabulario`, que cierra los nombres de forma estructural (solo salen palabras
+   * del vocabulario permitido) y no tapa de más términos de pieza como «Sentadilla» o «Schoenfeld».
+   */
+  mayusculas?: boolean
+}
+
+export function limpiarFrase(frase: string, nombresExtra: readonly string[] = [], opciones: OpcionesDeLimpieza = {}): ResultadoLimpieza {
   const quitado: Record<TipoQuitado, number> = { correo: 0, telefono: 0, peso: 0, edad: 0, medida: 0, nombre: 0, usuario: 0, documento: 0, direccion: 0 }
   let texto = frase
   for (const regla of REGLAS) {
@@ -203,7 +212,7 @@ export function limpiarFrase(frase: string, nombresExtra: readonly string[] = []
     texto = r.texto
     quitado[regla.tipo] += r.n
   }
-  const r = quitarNombres(texto, [...NOMBRES_COMUNES, ...nombresExtra])
+  const r = quitarNombres(texto, [...NOMBRES_COMUNES, ...nombresExtra], opciones.mayusculas !== false)
   texto = r.texto
   quitado.nombre += r.n
   const tipos = (Object.keys(quitado) as TipoQuitado[]).filter((t) => quitado[t] > 0)
