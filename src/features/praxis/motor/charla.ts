@@ -1,5 +1,6 @@
 import { decidirTurno, type Turno } from '../../../domain/praxis/conversacion'
 import { PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL } from '../../../domain/praxis/rapidezLocal'
+import { esOrdenPura } from '../../../domain/praxis/ordenPura'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { Trato } from '../../../domain/praxis/plan/responder'
 import { limpiarDictado } from './dictado'
@@ -326,7 +327,8 @@ export function decidirTurnoConCharla(
   if (turno.paso !== 'plan' && turno.paso !== 'registrar') return turno
   const respuesta = charla(frase, ctx)
   if (respuesta) {
-    if (!saludoLocal && AL_MODELO.has(respuesta.intencion)) {
+    // El saludo local solo contesta una frase limpia de una cláusula; con otra pegada sigue al modelo y al servidor.
+    if ((!saludoLocal || !esOrdenPura(frase)) && AL_MODELO.has(respuesta.intencion)) {
       return {
         paso: 'charlaModelo', apertura: respuesta.apertura ?? null, alFallar: respuesta.cola ?? respuesta.texto,
         plan: null, abreAnimo: true, vaAlModelo: true,

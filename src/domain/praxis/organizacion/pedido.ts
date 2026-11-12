@@ -2,6 +2,7 @@ import { normalizarNombre } from '../ordenes/normalizarNombre'
 import { DE_SALUD } from '../ordenes/ordenesDeVoz'
 import { interpretarPedidoDeshacer } from '../deshacer/pedido'
 import { filtroDeRiesgo } from '../riesgo'
+import { esOrdenPura } from '../ordenPura'
 import { VOCABULARIO_DE_ORDENES, corregirPalabras } from './dictado'
 
 /**
@@ -179,6 +180,8 @@ function leerIntencion(t: string): Intencion | null {
 }
 
 export function leerPedidoDeOrganizacion(dicho: string): PedidoDeOrganizacion {
+  // Solo una orden limpia de una cláusula se resuelve aquí; con una segunda cláusula pegada sigue al servidor (lector de riesgo).
+  if (!esOrdenPura(dicho)) return { tipo: 'ninguno' }
   const frase = limpiarFrase(dicho)
   const t = corregirPalabras(frase, VOCABULARIO_DE_ORDENES).replace(MULETILLAS, '')
   const registro = interpretarPedidoDeshacer(dicho)

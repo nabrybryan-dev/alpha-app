@@ -1,6 +1,7 @@
 import { decidirConGramaticaYModelo } from '../../../app/clienteOrganizarPraxis'
 import { sePuedeConsultarAlModelo, type DecisionDeOrganizacion } from '../../../app/organizacionPraxis'
 import { navegarPorFrase, type ResultadoDeNavegar } from '../../../app/navegarPraxis'
+import { esOrdenPura } from '../../../domain/praxis/ordenPura'
 import { normalizarCharla } from './charla'
 import type { ConexionPraxis } from './conexion'
 
@@ -28,6 +29,8 @@ export async function decidirOrganizarONavegar(frase: string, turno: 'plan' | 'r
   const o = c.organizar
   if (!o) return null
   if (!sePuedeConsultarAlModelo(frase)) return null
+  // Orden pura: con una segunda cláusula pegada no se organiza, no se navega y ni siquiera se consulta al modelo de organizar.
+  if (!esOrdenPura(frase)) return null
   try {
     // El modelo solo se consulta cuando la frase iba a un modelo de todos modos; un turno del plan es local y no espera 3 s.
     const consultar = turno === 'plan' ? async () => null : o.consultar

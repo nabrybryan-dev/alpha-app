@@ -44,6 +44,42 @@ describe('el filtro de riesgo va SIEMPRE antes (bandera encendida)', () => {
   })
 })
 
+/** Una orden válida con una segunda cláusula de riesgo pegada: ni organiza, ni navega, ni saluda en local (bandera encendida). */
+const ORDEN_MAS_RIESGO = [
+  'pon el agua arriba, me quiero hacer daño',
+  'oculta los logros, me quiero morir',
+  'sube el agua, no le encuentro sentido a nada',
+  'hola, tengo ganas de acabar con todo',
+  'muéstrame mi semana, me quiero hacer daño',
+  'ábreme el progreso, ya no quiero seguir',
+  'baja el entreno al final, tengo ganas de acabar con todo',
+  'llévame a hoy; quiero dejar de existir',
+  'oye, sube el agua porque me siento muy mal conmigo',
+  'oculta el álbum pero no quiero estar en este mundo',
+  'hola, ¿cómo estás? me quiero hacer daño',
+  'me toca, ganas de acabar con todo',
+  'hola. no tengo ganas de nada',
+  'pon el agua arriba y me siento desesperado',
+]
+
+describe('orden pura: una segunda cláusula pegada nunca se resuelve en el teléfono', () => {
+  it.each(ORDEN_MAS_RIESGO)('«%s»', async (frase) => {
+    const turno = decidirTurnoConCharla(frase, ve, HOY, ctx, undefined, true)
+    expect(turno.paso).not.toBe('charla')
+    const { c, consultar, navegar } = conexionCon()
+    expect(await decidirOrganizarONavegar(frase, 'registrar', c)).toBeNull()
+    expect(consultar).not.toHaveBeenCalled()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('sin segunda cláusula, el rodeo de entrada sigue resolviéndose en local', async () => {
+    const { c } = conexionCon()
+    expect((await decidirOrganizarONavegar('oye, ponme el agua arriba', 'registrar', c))?.paso).toBe('organiza')
+    expect((await decidirOrganizarONavegar('a ver, muéstrame mi semana', 'registrar', c))?.paso).toBe('organiza')
+    expect(decidirTurnoConCharla('hola, ¿cómo estás?', ve, HOY, ctx, undefined, true).paso).toBe('charla')
+  })
+})
+
 describe('saludo local', () => {
   it('encendido: «hola» y «¿cómo estás?» se contestan con el libreto local, sin modelo', () => {
     for (const frase of ['hola', '¿cómo estás?']) {
