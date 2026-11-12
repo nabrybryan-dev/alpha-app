@@ -237,9 +237,13 @@ describe('0147: estructura que no puede perderse', () => {
     const d = cuerpoDe(SQL, 'decidir_primer_plan')
     expect(d.indexOf('activar_microciclo')).toBeLessThan(d.indexOf("estado = 'aprobado'"))
     expect(d).toContain("estado = 'espera_bryan'")
+    // 7-nov (D-17-167H): vencer_primer_plan parte de M2 (0141). Activa por la regla de ventana, y el
+    // choque se mira ANTES: si choca, avisa y queda en espera_bryan, sin contar como aprobado.
     const v = cuerpoDe(SQL, 'vencer_primer_plan')
-    expect(v.indexOf('activar_microciclo')).toBeLessThan(v.indexOf("estado = 'vencido_aprobado'"))
-    expect(v).toContain("v_estado_mc = 'activo'")
+    expect(v.indexOf('microciclo_choque')).toBeGreaterThan(-1)
+    expect(v.indexOf('microciclo_choque')).toBeLessThan(v.indexOf('perform public.activar_por_regla_ventana'))
+    expect(v).toContain("clasificado_por is distinct from 'sistema'")
+    expect(v).toContain("estado = 'espera_bryan'")
   })
 
   it('la plantilla de la cadena comprueba el choque ANTES de cerrar el activo, y avisa en vez de fallar', () => {

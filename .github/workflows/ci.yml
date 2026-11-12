@@ -210,6 +210,9 @@ jobs:
       - name: El candado de microciclos - la app y la cadena no se pisan en silencio, y confirmar es del coach
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216-candado-de-microciclos.sql
 
+      - name: El candado de microciclos - la lista de bloqueados no se filtra a la transaccion siguiente de la misma conexion (H8, tras COMMIT)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/216b-h8-sesion-tras-commit.sql
+
       - name: Las alertas nutricionales no se encienden sin firma completa y su detalle solo lo lee la nutricionista
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/221-alertas-nutricion.sql
 
@@ -224,3 +227,39 @@ jobs:
 
       - name: Los mensajes del equipo a Praxis solo los guarda y lee el equipo, a su nombre, sin etiquetas desde fuera
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/259-praxis-mensajes-equipo.sql
+
+      - name: El libro de lo que Praxis guardó es de cada persona, nadie lo escribe directo y el agua de una tarjeta se suma una sola vez, en el día de Bogotá
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/261-praxis-registros-aplicados.sql
+
+      - name: Series y adherencia de Praxis llenan el libro una sola vez por tarjeta, y deshacer solo lo propio, del mismo día de Bogotá, con confirmación
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/262-praxis-libro-series-adherencia.sql
+
+      - name: Deshacer el agua de Praxis solo lo propio, del mismo día de Bogotá, con confirmación, y avisa si el total cambió después
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/263-praxis-deshacer-agua.sql
+
+      - name: La memoria de la charla de Praxis la leen solo quien tiene la capacidad y los agentes, la escriben solo los agentes y se borra a 30 días de atendida (tope 90)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/264-praxis-memoria-de-charla.sql
+
+      - name: Praxis guarda en el check-in de hoy solo lo propio y lo confirmado, en la escala del formulario, una vez por tarjeta, marca a medias y el ranking no lo cuenta
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/265-praxis-aplicar-checkin.sql
+
+      - name: El lexicón de cada persona lo lee solo ella, solo se escribe por la función (campos y escalas válidos, forma corta), y ella lo borra entero
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/266-praxis-lexico-persona.sql
+
+      - name: Los guiones de llamada los lee quien entra a la consola (coach o leer_entrenamiento), tambien a los prospectos sin cuenta, no la persona; solo service_role escribe, el upsert por persona y version es idempotente y el enlace a la cuenta ata todas las versiones
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/253-guiones-llamada.sql
+
+      - name: El interruptor de la regla de ventana lo leen todos los del staff, lo encienden y apagan solo quienes tienen la capacidad, y cada cambio queda anotado con quien
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/270-interruptor-regla-ventana.sql
+
+      - name: Los latidos de la cadena avisan una vez cuando el ASUS calla mas de 30 min y otra cuando vuelve; solo service_role los escribe y los lee
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/271-latidos-cadena.sql
+
+      - name: El cuaderno de anotaciones de cada persona (recuperación de una zona, reacción a una comida) lo lee solo ella, solo se escribe por la función (idempotente, sin días futuros), y ella lo borra entero
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/272-praxis-anotaciones-persona.sql
+
+      - name: Nadie con sesion (ni anon) vacia una tabla con TRUNCATE, y la tabla vieja aprobaciones no se escribe desde el navegador
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/273-sin-truncate.sql
+
+      - name: La organizacion de la app de cada persona se guarda solo por la funcion (solo lo libre se esconde, tope de 6, choque entre aparatos, deshacer de a uno), la lee ella y el equipo, y esconder peso avisa al coach sin la frase
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/274-praxis-organizacion.sql

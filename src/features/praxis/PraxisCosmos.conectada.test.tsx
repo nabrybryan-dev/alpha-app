@@ -29,13 +29,13 @@ const ve: LoQuePraxisVe = {
       ejercicios: [{ id: 'e1', nombre: 'SENTADILLA TRASERA', categoria: 'PIERNA', prescripcion: '40KG A 8 REPS; 3 SERIES', cargaKg: 40, sets: 3, rango: '8-10', repsDiana: 8, rirObjetivo: 2, descansoMin: 2, cues: '', series: [] }],
     }],
   },
-  cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_de_comida'],
+  cerrados: [], perfil: { objetivos: 'Ganar fuerza' }, adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_de_comida'],
   checkins: [
     { fecha: fechaMenos(HOY, 1), horasSueno: 6, calidadSueno: 'MALA', cansancio: 'MUCHO', estres: 'MUCHO', dolor: 0, comentarios: 'frase real de ayer' },
     { fecha: fechaMenos(HOY, 3), horasSueno: 8, calidadSueno: 'BUENA', dolor: 0 },
   ],
 }
-const veVacio: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo', 'perfil', 'checkins', 'plan_de_comida'] }
+const veVacio: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, aguaHoy: null, checkinHoy: null, adherenciaSemana: null, comida: null, falta: ['plan_activo', 'perfil', 'checkins', 'plan_de_comida'] }
 
 const propuestaSeries = {
   ok: true as const, mensajeId: 'm-1',

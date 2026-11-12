@@ -57,6 +57,8 @@ export const CAPACIDADES = [
   // 0106: la cuenta PERSONAL de Bryan (sigue siendo asesorado) ocupa el puesto de coach: `es_coach()` y
   // `es_staff()` la reconocen. Ver usePuestoCoach.
   'puesto_de_coach',
+  // 0143: encender (y desde la 0170 apagar) la regla de ventana del primer plan (Bryan y Manuela).
+  'encender_regla_ventana',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]

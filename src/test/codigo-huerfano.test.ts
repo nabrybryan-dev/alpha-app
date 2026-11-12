@@ -35,10 +35,22 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'Reparto entre músculos de la sentadilla: tanda A detenida (licencia de Rajagopal 2016 no verificada), ' +
     'así que se abstiene y el salón no lo dibuja (plan §10, tanda B reducida). Se enchufa si hay datos verificados.',
 
+  'src/domain/etapaDeLaBarra.ts':
+    'Barra por etapa (pieza C6 del rediseño): nace apagada (BARRA_POR_ETAPA_ACTIVA = false) y sin conectar; ' +
+    'se enchufa a la barra cuando Bryan decida encenderla.',
+
   // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+  // lexicoPersona.ts, mensajeLargo.ts y conectores.ts salieron de esta lista el 7-nov-2026: los importan conectores.ts y la tarjeta
+  // del check-in (motor/tarjetaCheckin.ts); fuera de src/, sombra.ts importa mensajeLargo.ts.
+  'src/domain/praxis/enrutarPraxis.ts':
+    'Enrutador de la Praxis única por reglas (F1, 4-nov-2026), en sombra: lo consume la Edge Function praxis-registro ' +
+    '(sombra.ts → meta.decision), no la app. La app lo enchufa en el paso F3, cuando Praxis navegue.',
+  'src/domain/praxis/charla/memoria.ts':
+    'Qué se guarda de cada turno en la memoria de la charla (0166, 7-nov-2026); lo consume la Edge Function ' +
+    'praxis-registro (memoria.ts, con PRAXIS_GUARDAR_CHARLA=1), no la app: el teléfono solo manda charla_id y turno.',
   'src/domain/praxis/consultas/portero.ts':
     'Consultas del equipo contestadas con una ficha (Bryan, 25-oct-2026); lo consume la Edge Function praxis-registro, no la app.',
 
@@ -118,6 +130,24 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Segunda capa de la organización por voz (11-nov-2026): la leen el script de medición y las pruebas; la Edge
+  // Function que consultaría al modelo no existe todavía (saldo de Anthropic en cero y fase O2b sin abrir).
+  'src/domain/praxis/organizacion/lectorModelo.ts#promptDeOrganizacion':
+    'Prompt del menú cerrado; lo usa scripts/praxis-eval/organizacion-modelo.mts. Apagado, fase O2b: el cliente deja el prompt al servidor; solo se usa en la medición.',
+  // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
+  // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
+  'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
+    'Filtro por rol de la lista del laboratorio: falta la pantalla que reciba el archivo de salida del laboratorio (fila B4).',
+  'src/domain/praxis/laboratorio/sello.ts#puedeEntrarAPrescripcion':
+    'Cerrojo para que nada del laboratorio entre a una prescripcion apagado: se usa cuando haya datos del laboratorio (fila B4).',
+  // Tarjeta del check-in de los conectores (paso 2, 7-nov-2026), detrás de una bandera (hoy encendida).
+  'src/domain/praxis/registro/lexicoPersona.ts#aprender':
+    'Espejo en TypeScript de la regla de praxis_aprender_forma (0171: igual suma 1, distinto vuelve a 1): lo usan las pruebas ' +
+    'para fijar la regla; en la app quien aprende es la base.',
+  // Deshacer por frase (paso D1, 5-nov-2026): selector y mensajes puros sobre un libro SIMULADO.
+  'src/domain/praxis/deshacer/proponer.ts#proponerDeshacer':
+    'Espera la migración del libro praxis_registros_aplicados (paso D2) y la ruta /deshacer (D3); mientras tanto ' +
+    'solo lo ejercita proponer.test.ts con un libro en memoria. Lo consumirá la Edge Function praxis-registro.',
   // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
   'src/domain/sujeto/reparto.ts#bandasDeReparto':
     'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',

@@ -548,8 +548,12 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
   if (ext.intencion.includes('deshacer')) {
     return {
       ...vacia(citasInvalidas),
-      motivo: 'no_soportado',
-      respuesta: 'Borrar una serie no lo puedo hacer desde aquí. Si me dices el valor correcto de esa serie, la corrijo con tu confirmación; o quítala en la pantalla de la sesión.',
+      // D3 (5-nov-2026): antes decía «no_soportado». Deshacer ya existe, pero por otro camino: la función lo atiende por
+      // una gramática cerrada y con el libro de lo aplicado (`praxis-registro/deshacer.ts`), con confirmación. Si el modelo
+      // etiqueta «deshacer» es que la frase no siguió esa gramática: no se adivina qué quitar, se pide la orden clara.
+      motivo: 'deshacer_sin_orden_clara',
+      // El texto vale con el libro encendido o apagado: no enseña una orden que quizá no se atienda (revisión de #424).
+      respuesta: 'No tengo claro qué quieres quitar, así que no toqué nada. Si me dices el valor correcto, lo corrijo con tu confirmación; o quítalo en la pantalla de la sesión.',
     }
   }
 

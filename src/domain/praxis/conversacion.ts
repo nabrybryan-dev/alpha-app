@@ -1,6 +1,7 @@
 import type { QueFalto, RespuestaDelPlan, Trato } from './plan/responder'
 import { esPregunta, responderDelPlan } from './plan/responder'
 import type { LoQuePraxisVe } from './plan/listaBlanca'
+import type { PropuestaDeshacerPantalla } from './deshacer/pantalla'
 import type { Propuesta } from './registro/tipos'
 import type { Tarjeta } from './registro/tarjeta'
 import type { FiltroClinico } from './registro/filtroClinico'
@@ -59,6 +60,8 @@ export function sinNombres(texto: string, trato: Trato): string {
 export type FalloDelRegistrador = 'no_desplegada' | 'sin_sesion' | 'red' | 'limite' | 'no_entendi' | 'frase'
 
 export type RespuestaDelRegistrador =
+  /** La frase pedía deshacer y el libro está encendido: no hay tarjeta de guardar, hay una propuesta de quitar (nunca ejecuta). */
+  | { ok: true; deshacer: PropuestaDeshacerPantalla; mensajeId: string }
   | {
     ok: true; propuesta: Propuesta; tarjeta: Tarjeta; mensajeId: string
     /** La respuesta de charla del modelo; solo llega cuando no hay nada que guardar. */ charla?: string
@@ -66,7 +69,13 @@ export type RespuestaDelRegistrador =
   }
   | { ok: false; motivo: FalloDelRegistrador }
 
+/** La respuesta trae una propuesta de guardar (no la de deshacer). */
+export function tienePropuesta(r: RespuestaDelRegistrador): r is Extract<RespuestaDelRegistrador, { propuesta: Propuesta }> {
+  return r.ok && 'propuesta' in r
+}
+
 export type PasoTrasProponer =
+  | { paso: 'deshacer'; propuesta: PropuestaDeshacerPantalla; mensajeId: string }
   | { paso: 'confirmar'; tarjeta: Tarjeta; propuesta: Propuesta; mensajeId: string }
   | { paso: 'aclarar'; texto: string; opciones: string[] }
   | { paso: 'salud'; texto: string }
@@ -95,12 +104,25 @@ const FALLOS: Record<FalloDelRegistrador, Record<Trato, string>> = {
     usted: 'Van muchos mensajes en la última hora. No anoté este; por ahora use el formulario.',
   },
   // 502 = algo falló de MI lado (el modelo no contestó o su respuesta no se pudo leer): no es que la persona se explicara mal.
-  no_entendi: { tu: 'Se me enredó algo de mi lado y no anoté nada. ¿Me lo repites o lo pasas por el formulario?', usted: 'Se me enredó algo de mi lado y no anoté nada. ¿Me lo repite o lo pasa por el formulario?' },
+  // Bryan, 6-nov: el texto viejo («¿Me lo repites?») invitaba a repetir algo que, sin saldo del modelo, iba a fallar igual.
+  no_entendi: { tu: 'Algo falló de mi lado, no en lo que dijiste, y no anoté nada. Si vuelve a pasar, usa el formulario: puede que no pueda responder por un rato.', usted: 'Algo falló de mi lado, no en lo que dijo, y no anoté nada. Si vuelve a pasar, use el formulario: puede que no pueda responder por un rato.' },
   frase: { tu: 'Esa frase es muy larga para anotarla de una vez. Dímela por partes.', usted: 'Esa frase es muy larga para anotarla de una vez. Dígamela por partes.' },
 }
 
+/**
+ * El servidor filtra con el MISMO filtro que la pantalla y dice qué marcó: se respeta tal
+ * cual, para que una frase de pareja lleve a la 155 y una ambigua a la pregunta de cuidado.
+ */
+function pasoDeDerivacion(propuesta: Propuesta, trato: Trato): PasoTrasProponer {
+  if (propuesta.riesgo?.tipo === 'quieta') return { paso: 'quieta', linea: propuesta.riesgo.linea }
+  if (propuesta.riesgo?.tipo === 'cuidado') return { paso: 'cuidado' }
+  // El servidor filtró algo que la pantalla dejó pasar: gana el más protector.
+  if (propuesta.filtro === 'crisis' || (propuesta.urgencia === 'alta' && propuesta.filtro === 'sintoma')) return { paso: 'quieta', linea: 'vida' }
+  return { paso: 'salud', texto: SALUD_SIN_REGISTRO[trato] }
+}
+
 /** Una consulta se contesta solo si el portero trajo su ficha: lo demás es el relleno de la función. */
-function pasoDeConsulta(r: Extract<RespuestaDelRegistrador, { ok: true }>, noSe: string, trato: Trato): PasoTrasProponer {
+function pasoDeConsulta(r: Extract<RespuestaDelRegistrador, { propuesta: Propuesta }>, noSe: string, trato: Trato): PasoTrasProponer {
   if (r.fichas?.length && r.tarjeta.mensaje) return { paso: 'dicho', texto: sinNombres(r.tarjeta.mensaje, trato) }
   return { paso: 'no_se', texto: noSe, queFalto: 'sin_dato' }
 }
@@ -108,6 +130,7 @@ function pasoDeConsulta(r: Extract<RespuestaDelRegistrador, { ok: true }>, noSe:
 /** Qué se muestra con lo que devolvió el registrador. Nada de aquí guarda. */
 export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): PasoTrasProponer {
   if (!r.ok) return { paso: 'fallo', texto: FALLOS[r.motivo][trato] }
+  if ('deshacer' in r) return { paso: 'deshacer', propuesta: r.deshacer, mensajeId: r.mensajeId }
   const { propuesta, tarjeta } = r
   const t = (tu: string, usted: string) => (trato === 'usted' ? usted : tu)
 
@@ -116,15 +139,7 @@ export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): Paso
     return { paso: 'charla', texto: r.charla }
   }
 
-  if (propuesta.accion === 'derivar' || tarjeta.tipo === 'derivacion') {
-    // El servidor filtra con el MISMO filtro que la pantalla y dice qué marcó: se respeta tal
-    // cual, para que una frase de pareja lleve a la 155 y una ambigua a la pregunta de cuidado.
-    if (propuesta.riesgo?.tipo === 'quieta') return { paso: 'quieta', linea: propuesta.riesgo.linea }
-    if (propuesta.riesgo?.tipo === 'cuidado') return { paso: 'cuidado' }
-    // El servidor filtró algo que la pantalla dejó pasar: gana el más protector.
-    if (propuesta.filtro === 'crisis' || (propuesta.urgencia === 'alta' && propuesta.filtro === 'sintoma')) return { paso: 'quieta', linea: 'vida' }
-    return { paso: 'salud', texto: SALUD_SIN_REGISTRO[trato] }
-  }
+  if (propuesta.accion === 'derivar' || tarjeta.tipo === 'derivacion') return pasoDeDerivacion(propuesta, trato)
 
   if (tarjeta.tipo === 'pregunta' && tarjeta.pregunta) {
     return { paso: 'aclarar', texto: sinNombres(tarjeta.pregunta.texto, trato), opciones: tarjeta.pregunta.opciones.map((o) => sinNombres(o, trato)) }

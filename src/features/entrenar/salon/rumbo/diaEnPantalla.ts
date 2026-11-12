@@ -14,7 +14,7 @@ export function diaEnPantalla(
   diaElegido: number | null,
 ): number {
   if (diaElegido !== null) return diaElegido
-  const deLaSesion = sesionId ? semana.findIndex((d) => d.sesionId === sesionId) : -1
+  const deLaSesion = sesionId ? semana.findIndex((d) => d.sesionId === sesionId || d.sesiones?.some((s) => s.sesionId === sesionId)) : -1
   return deLaSesion !== -1 ? deLaSesion : semana.findIndex((d) => d.esHoy)
 }
 

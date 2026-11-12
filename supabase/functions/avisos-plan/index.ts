@@ -24,8 +24,13 @@ declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: 
 const env = (k: string) => Deno.env.get(k)
 
 const USUARIOS: Record<Dueno, string> = {
-  bryan: env('AVISOS_USUARIO_BRYAN') ?? '28c3cfe8-13ef-4f3e-95cc-f23c4f260bce',
-  manuela: env('AVISOS_USUARIO_MANUELA') ?? 'aa202ff5-74c1-4b76-9140-8ba44dc62f17',
+  // Sin valor por defecto: el repo es público y no lleva ids de personas. Si falta un secreto,
+  // ese dueño no recibe avisos y el log lo dice.
+  bryan: env('AVISOS_USUARIO_BRYAN') ?? '',
+  manuela: env('AVISOS_USUARIO_MANUELA') ?? '',
+}
+for (const [dueno, id] of Object.entries(USUARIOS)) {
+  if (!id) console.error(`avisos-plan: falta el secreto AVISOS_USUARIO_${dueno.toUpperCase()}; ${dueno} no recibe avisos`)
 }
 
 interface Suscripcion {

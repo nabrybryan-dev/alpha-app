@@ -1,4 +1,4 @@
-import { decidirTurno, pasoTrasProponer, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
+import { decidirTurno, pasoTrasProponer, tienePropuesta, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
 import { gravedad, permisoCubreLaRelectura } from '../../../domain/praxis/masGrave'
 import { cabeCharla, limpiarTurnos, sinSaludoRepetido, type TurnoPrevio } from '../../../domain/praxis/charla/modelo'
 import { destinatarioDe, estadoDeLaEspera, ofertaDePregunta, type Destinatario } from '../../../domain/praxis/enEspera'
@@ -7,10 +7,15 @@ import type { RespuestaDelRegistrador } from '../../../domain/praxis/conversacio
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
 import { Cab, compactar, enfocarControles, limpiarControles, montar, refrescar } from './cabecera'
 import { charlaSuelta, decidirTurnoConCharla, pareceCharla, type CharlaConModelo } from './charla'
+import { mostrarDeshacer } from './deshacer'
+import { intentarCheckin } from './checkinConectado'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
-import { guardar, leer, reducido, trato, tu } from './entorno'
+import { decidirOrganizarONavegar } from './organizar'
+import { mostrarPasoDeOrganizar } from './tarjetaOrganizar'
+import { tarjetaDeOrganizacion } from '../../../app/tarjetaDeOrganizacion'
+import { guardar, leer, trato, tu } from './entorno'
 import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
 import { Penta } from './penta'
@@ -29,7 +34,8 @@ import { Cancelado, Dia, S, cancelar, emitir, esperaCon, vigilar } from './sesio
  *      (`charla.ts`). Los saludos, el «¿cómo estás?» y lo que el plan no puede contestar van al modelo (la
  *      misma llamada del registrador), con una APERTURA corta que Praxis dice al instante mientras piensa.
  *      Si el modelo tarda o falla, cae al libreto local: nunca un silencio y nunca un «no te entendí».
- *      La charla es solo texto: no guarda nada y no crea tarjetas.
+ *      La charla es solo texto: no crea tarjetas. Desde la 0166 (7-nov) el SERVIDOR puede guardar la frase y su
+ *      respuesta como memoria entre días (interruptor PRAXIS_GUARDAR_CHARLA); la charla local de 0 ms no sale de aquí.
  *   2. Una pregunta por el plan se contesta con lo que Praxis ve (lista blanca), sin modelo.
  *   3. Lo demás va al registrador (Edge Function `praxis-registro`): vuelve una PROPUESTA,
  *      se enseña en una tarjeta y se guarda solo si la persona toca «Guardar».
@@ -47,7 +53,7 @@ function idMensaje(): string {
 
 function pensando(si: boolean): void {
   const dicho = $('#dicho')
-  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; if (reducido()) $('#ayuda').textContent = 'Pensando…' }
+  if (si) { Onda.estado('piensa'); dicho.setAttribute('aria-busy', 'true'); $('#srPiensa').textContent = 'Praxis está pensando'; $('#ayuda').textContent = 'Pensando…' } // se lee siempre, no solo con movimiento reducido (Bryan, 6-nov)
   else { if (Onda.estadoActual === 'piensa') Onda.estado('reposo'); dicho.removeAttribute('aria-busy'); $('#srPiensa').textContent = ''; if ($('#ayuda').textContent === 'Pensando…') $('#ayuda').textContent = '' }
 }
 
@@ -206,6 +212,31 @@ async function alFallarLaCharla(c: ConexionPraxis, frase: string, tok: number, c
   return false
 }
 
+/** Las opciones de «¿cuál fue?»: un toque y la frase vuelve al filtro de riesgo, como cualquier frase. */
+function mostrarAclarar(c: ConexionPraxis, frase: string, opciones: string[]): void {
+  montar(() => [h('div', { class: 'grupo', 'data-k': 'aclarar' }, chips<string>([...opciones.map((o): [string, string] => [o, o]), ['Descartar', DESCARTAR]], (v) => {
+    limpiarControles()
+    if (v === DESCARTAR) { decirCorto('Listo, no anoté nada.'); return }
+    const id = ejercicioDeLaOpcion(c, v)
+    if (id) emitir({ tipo: 'texto', txt: frase, fuente: 'toque', ejercicioId: id, eco: v }) // la frase de antes, con el ejercicio elegido
+    else emitir({ tipo: 'texto', txt: `${frase}. ${v}`, fuente: 'toque' })
+  }, null, 'aclarar'))])
+  enfocarControles()
+}
+
+async function decirCharlaDelModelo(c: ConexionPraxis, dicho: string, tok: number, ch: TurnoDeCharla): Promise<void> {
+  // Si Praxis ya saludó en voz alta, un saludo repetido por el modelo se quita (defensa en profundidad: el servidor ya lo quita).
+  const texto = ch.apertura ? (sinSaludoRepetido(dicho, c.nombre ?? null) || dicho) : dicho
+  animoPendiente = ch.abreAnimo && /\?\s*$/.test(texto)
+  await dijo(texto, tok)
+}
+
+/** Primero el check-in por conectores (sin `checkin` en la conexión, o bandera apagada, no hace nada); si no lo toma, el registrador de siempre. */
+async function registrarOCheckin(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
+  if (!ejercicioId && (await intentarCheckin(c, frase, tok, idMensaje))) return
+  return registrar(c, frase, tok, ejercicioId, ch)
+}
+
 async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercicioId: string | undefined, ch: TurnoDeCharla): Promise<void> {
   let r: RespuestaDelRegistrador | null
   pensando(true)
@@ -213,6 +244,7 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
     const pedido = c.proponer(frase, idMensaje(), {
       ...(ejercicioId ? { pantallaEjercicioId: ejercicioId } : {}),
       charla: { trato: trato(), nombre: c.nombre ?? null, turnos: ch.previos, apertura: ch.apertura },
+      memoria: { charlaId, turno: turnosHablados }, // 0166: el servidor la guarda solo con su interruptor encendido
     })
     const esperado = ch.esCharla ? conLimite(pedido, limitesDeCharla.esperaMs) : pedido
     if (ch.apertura) { // la entrada corta sale ya; el modelo sigue pensando
@@ -224,32 +256,22 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
   vigilar(tok)
   if ((r === null || !r.ok) && (await alFallarLaCharla(c, frase, tok, ch))) return
   // Sin nada que guardar y sin respuesta del modelo: el libreto, no el mensaje genérico.
-  if (r && r.ok && !r.charla && ch.alFallar !== null && cabeCharla(r.propuesta)) { await alFallarLaCharla(c, frase, tok, ch); return }
+  if (r && tienePropuesta(r) && !r.charla && ch.alFallar !== null && cabeCharla(r.propuesta)) { await alFallarLaCharla(c, frase, tok, ch); return }
   const p: PasoTrasProponer = pasoTrasProponer(r ?? { ok: false, motivo: 'red' }, trato())
   switch (p.paso) {
-    case 'charla': {
-      // Si Praxis ya saludó en voz alta, un saludo repetido por el modelo se quita (defensa en profundidad: el servidor ya lo quita).
-      const texto = ch.apertura ? (sinSaludoRepetido(p.texto, c.nombre ?? null) || p.texto) : p.texto
-      animoPendiente = ch.abreAnimo && /\?\s*$/.test(texto)
-      await dijo(texto, tok)
+    case 'charla':
+      await decirCharlaDelModelo(c, p.texto, tok, ch)
       return
-    }
+    case 'deshacer':
+      await mostrarDeshacer({ c, mensajeId: p.mensajeId, tok, pensando }, p.propuesta)
+      return
     case 'confirmar':
       await decir('Esto entendí. ¿Lo guardo?', tok)
       mostrarTarjeta(c, p)
       return
     case 'aclarar': {
       await decir(p.texto, tok)
-      const opciones = p.opciones
-      montar(() => [h('div', { class: 'grupo', 'data-k': 'aclarar' }, chips<string>([...opciones.map((o): [string, string] => [o, o]), ['Descartar', DESCARTAR]], (v) => {
-        limpiarControles()
-        if (v === DESCARTAR) { decirCorto('Listo, no anoté nada.'); return }
-        // Las dos vuelven a pasar por el filtro de riesgo, como cualquier frase.
-        const id = ejercicioDeLaOpcion(c, v)
-        if (id) emitir({ tipo: 'texto', txt: frase, fuente: 'toque', ejercicioId: id, eco: v }) // la frase de antes, con el ejercicio elegido
-        else emitir({ tipo: 'texto', txt: `${frase}. ${v}`, fuente: 'toque' })
-      }, null, 'aclarar'))])
-      enfocarControles()
+      mostrarAclarar(c, frase, p.opciones)
       return
     }
     case 'quieta':
@@ -274,6 +296,8 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
 
 /* Lo último que dijo Praxis: ¿fue una pregunta de ánimo? Y cuántas veces habló ya la persona en esta sesión. Solo sirven a la charla. */
 let animoPendiente = false, turnosHablados = 0
+/* La charla de esta sesión (0166): un id nuevo cada vez que arranca la conversación; con el turno ordena la memoria. */
+let charlaId = idMensaje()
 
 /* ——— «Gana la lectura más grave» ———
    La respuesta del filtro (cuidado o salud) se muestra YA, sin esperar. En paralelo, y solo si el interruptor de consentimiento
@@ -298,6 +322,28 @@ function subirSiHaceFalta(c: ConexionPraxis, frase: string, filtro: 'cuidado' | 
   }, () => undefined)
 }
 
+/** Organizar o navegar por voz (solo con `c.organizar`). ¿La frase quedó atendida? Va DESPUÉS del filtro de riesgo (`decidirTurno`). */
+async function intentarOrganizar(c: ConexionPraxis, frase: string, paso: string, tok: number, conEleccion: boolean): Promise<boolean> {
+  // Un ejercicio elegido con un toque y la charla local de 0 ms no se organizan.
+  if (conEleccion || !c.organizar || (paso !== 'plan' && paso !== 'registrar' && paso !== 'charlaModelo')) return false
+  pensando(true)
+  const o = await decidirOrganizarONavegar(frase, paso, c).finally(() => { if (tok === S.tok) pensando(false) })
+  vigilar(tok)
+  if (o?.paso === 'navega') {
+    if (o.resultado.tipo === 'sin_acceso') { await dijo(o.resultado.frase, tok); return true }
+    await dijo('Te llevo ahí.', tok)
+    c.organizar?.navegar(o.resultado.patron)
+    return true
+  }
+  if (o?.paso === 'organiza' && c.organizar) {
+    const paso = tarjetaDeOrganizacion(o.decision, { trato: trato(), perfil: c.organizar.perfil, estado: c.organizar.estado() })
+    if (paso.tipo === 'nada') return false
+    await mostrarPasoDeOrganizar({ c, tok, pensando, dijo }, paso)
+    return true
+  }
+  return false
+}
+
 async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?: { ejercicioId: string; eco: string }): Promise<void> {
   limpiarControles()
   const previos = limpiarTurnos(historial) // lo de ANTES de esta frase: máximo 6
@@ -317,6 +363,8 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
   mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
   if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
   if (!eleccion) anotar('persona', frase) // ya pasó el filtro de riesgo; el saneador vuelve a descartar lo marcado
+  // Organizar y navegar (apagado: `c.organizar` solo existe con PRAXIS_ORGANIZAR_NAVEGAR_Y_SALUDO_LOCAL). Va DESPUÉS del filtro de riesgo.
+  if (await intentarOrganizar(c, frase, turno.paso, tok, !!eleccion)) return
   if (turno.paso === 'charla') { // 0 ms, 0 tokens: nada va al servidor ni se guarda, y se dice con la misma voz que todo lo demás
     animoPendiente = turno.respuesta.esperaAnimo
     await dijo(turno.respuesta.texto, tok)
@@ -330,10 +378,10 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
     return
   }
   if (turno.paso === 'charlaModelo') {
-    await registrar(c, frase, tok, undefined, { previos, apertura: turno.apertura, alFallar: turno.alFallar, plan: turno.plan, abreAnimo: turno.abreAnimo, esCharla: true })
+    await registrarOCheckin(c, frase, tok, undefined, { previos, apertura: turno.apertura, alFallar: turno.alFallar, plan: turno.plan, abreAnimo: turno.abreAnimo, esCharla: true })
     return
   }
-  await registrar(c, frase, tok, eleccion?.ejercicioId, { previos, apertura: null, alFallar: null, plan: null, abreAnimo: false, esCharla: !eleccion && pareceCharla(frase) })
+  await registrarOCheckin(c, frase, tok, eleccion?.ejercicioId, { previos, apertura: null, alFallar: null, plan: null, abreAnimo: false, esCharla: !eleccion && pareceCharla(frase) })
 }
 
 /* ——— Las preguntas en espera: «te aviso cuando responda» se cumple al abrir la sala ——— */
@@ -370,7 +418,7 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
   try {
     if (!S.t0) S.t0 = performance.now()
     S.turno = 'conversa'; S.enFirma = false; S.cola = []
-    animoPendiente = false; turnosHablados = 0; historial = []
+    animoPendiente = false; turnosHablados = 0; historial = []; charlaId = idMensaje()
     Cab.pendiente = false // conectada no se compacta: el agujero se queda en el centro, que es por donde se habla (Bryan, 2-oct)
     Onda.soltarFirma(); Onda.estado('reposo')
     Penta.cerrar(); $('#penta').hidden = true; $('#muelle').hidden = false; $('#editor').hidden = true

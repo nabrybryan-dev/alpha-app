@@ -8,12 +8,15 @@ import { XP_POR_ACCION } from '../../domain/gamification'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { leerEstadoAvisos, type EstadoAvisos } from '../avisos/estadoAvisos'
+import { checkinCompleto } from '../../domain/checkinCompleto'
+import { AvisoAMedias } from './AvisoAMedias'
 import { CheckinForm } from './CheckinForm'
 import { filasCheckin } from './filasCheckin'
 import { HistorialDeCheckins } from './HistorialDeCheckins'
 import { MedidasCard } from './MedidasCard'
 import { MensajesVidaBandeja } from './MensajesVidaBandeja'
 import { TarjetaVidaCard } from './TarjetaVidaCard'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 export default function BienestarPage() {
   const { usuario } = useSesion()
@@ -34,7 +37,10 @@ export default function BienestarPage() {
   }, [])
 
   const checkins = db.bienestar.byUsuario(usuario.id)
-  const deHoy = checkins.find((c) => c.fecha === hoy)
+  const filaDeHoy = checkins.find((c) => c.fecha === hoy)
+  // Uno a medias no está «Registrado»: el formulario sigue abierto con lo ya anotado (Bryan, 7-nov-2026).
+  const deHoy = filaDeHoy && checkinCompleto(filaDeHoy) ? filaDeHoy : undefined
+  const aMedias = filaDeHoy && !deHoy ? filaDeHoy : undefined
   // Arranca los steppers cerca del último valor real registrado.
   const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
   const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
@@ -95,7 +101,10 @@ export default function BienestarPage() {
         </Card>
       ) : (
         <Card className="entrada entrada-2">
+          {aMedias && <AvisoAMedias />}
           <CheckinForm
+            key={aMedias ? 'a-medias' : 'nuevo'}
+            inicial={aMedias}
             usuarioId={usuario.id}
             fecha={hoy}
             pesoInicial={pesoInicial}
@@ -112,16 +121,24 @@ export default function BienestarPage() {
         {/* La cuarta superficie de peso, y la última. `MedidaCorporal.pesoKg`
             pasó a ser opcional para poder llegar hasta aquí: sin báscula pero
             con perímetros, que es justo la métrica que su plan sí le pide. */}
-        <MedidasCard usuarioId={usuario.id} verPeso={verPeso} />
+        <PiezaOrganizable id="bienestar.medidas">
+          <MedidasCard usuarioId={usuario.id} verPeso={verPeso} />
+        </PiezaOrganizable>
         {/* Estilo de vida (fase 2, 0088): mensajes de la cola y la tarjeta semanal.
             Las dos se pintan solas o no se pintan nada — sin bandeja vacía ni
             tarjeta fuera de su semana. */}
-        <MensajesVidaBandeja usuarioId={usuario.id} />
-        <TarjetaVidaCard usuarioId={usuario.id} />
+        <PiezaOrganizable id="bienestar.mensajes-vida">
+          <MensajesVidaBandeja usuarioId={usuario.id} />
+        </PiezaOrganizable>
+        <PiezaOrganizable id="bienestar.vida">
+          <TarjetaVidaCard usuarioId={usuario.id} />
+        </PiezaOrganizable>
       </div>
 
       <div className="entrada entrada-4">
-        <HistorialDeCheckins checkins={checkins} verPeso={verPeso} />
+        <PiezaOrganizable id="bienestar.historial">
+          <HistorialDeCheckins checkins={checkins} verPeso={verPeso} />
+        </PiezaOrganizable>
       </div>
     </div>
   )
