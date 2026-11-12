@@ -3720,4 +3720,18 @@ select '0175 - respuestas con seudonimo', 'codigos y lecturas con RLS sin acceso
                          and (not prosecdef or not exists (select 1 from unnest(coalesce(proconfig,'{}')) c where c like 'search_path=%'))) then 'NO'
             else 'SI' end
 
+
+union all
+select '0179 - organizacion de la app por persona', 'dos tablas con RLS, sin escritura directa; aplicar/deshacer solo con sesion; anon no lee',
+       case when to_regclass('public.praxis_organizacion') is null or to_regclass('public.praxis_organizacion_cambios') is null then 'NO'
+            when not (select bool_and(relrowsecurity) from pg_class where oid in (to_regclass('public.praxis_organizacion'),to_regclass('public.praxis_organizacion_cambios'))) then 'NO'
+            when exists (select 1 from unnest(array['public.praxis_organizacion','public.praxis_organizacion_cambios']) t
+                         where has_table_privilege('authenticated',t,'INSERT,UPDATE,DELETE,TRUNCATE') or has_table_privilege('anon',t,'SELECT')) then 'NO'
+            when to_regprocedure('public.praxis_organizacion_aplicar(jsonb,integer)') is null or to_regprocedure('public.praxis_organizacion_deshacer()') is null then 'NO'
+            when has_function_privilege('anon','public.praxis_organizacion_aplicar(jsonb,integer)','execute')
+              or has_function_privilege('anon','public.praxis_organizacion_deshacer()','execute')
+              or not has_function_privilege('authenticated','public.praxis_organizacion_aplicar(jsonb,integer)','execute') then 'NO'
+            when not public.praxis_organizacion_es_ocultable('progreso.medidas') or public.praxis_organizacion_es_ocultable('hoy.sesion') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

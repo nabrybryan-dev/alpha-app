@@ -254,3 +254,6 @@ jobs:
 
       - name: El cuaderno de anotaciones de cada persona (recuperación de una zona, reacción a una comida) lo lee solo ella, solo se escribe por la función (idempotente, sin días futuros), y ella lo borra entero
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/272-praxis-anotaciones-persona.sql
+
+      - name: La organizacion de la app de cada persona se guarda solo por la funcion (solo lo libre se esconde, tope de 6, choque entre aparatos, deshacer de a uno), la lee ella y el equipo, y esconder peso avisa al coach sin la frase
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/273-praxis-organizacion.sql
