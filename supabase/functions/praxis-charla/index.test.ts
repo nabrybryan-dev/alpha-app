@@ -11,6 +11,8 @@ interface Opciones {
   lector?: string | (() => Promise<Response>)
   deepseek?: unknown | (() => Promise<Response>)
   deepseekClave?: string | undefined
+  /** Cuerpo completo de la respuesta de DeepSeek (para probar finish_reason y contenido vacío). */
+  deepseekCrudo?: unknown
   piezas?: unknown[]
 }
 
@@ -28,6 +30,7 @@ function montar(o: Opciones = {}): { d: Dependencias; llamadas: { url: string; c
     if (u.includes('buscar_conceptos_vector')) return new Response(JSON.stringify((o.piezas ?? [PIEZA]).map((p) => ({ id: (p as { id: string }).id, coseno: 0.9 }))))
     if (u.includes('/rest/v1/praxis_conceptos')) return new Response(JSON.stringify(o.piezas ?? [PIEZA]))
     if (u.includes('api.deepseek.com')) {
+      if (o.deepseekCrudo !== undefined) return new Response(JSON.stringify(o.deepseekCrudo))
       if (typeof o.deepseek === 'function') return (o.deepseek as () => Promise<Response>)()
       return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(o.deepseek ?? { respuesta: 'Redacción del modelo', piezas_usadas: ['vol-01'] }) } }] }))
     }
@@ -168,6 +171,36 @@ describe('praxis-charla: el camino feliz y el respaldo', () => {
       expect(j.respuesta).toBe('Texto firmado uno')
       expect(j.piezas[0]).toEqual({ id: 'vol-01', estudios: 'Estudios uno', criterio_de_practica: 'Criterio uno' })
     }
+  })
+
+  it('el cuerpo a DeepSeek lleva thinking disabled (si no, deepseek-flash gasta los max_tokens razonando y vuelve vacío)', async () => {
+    const { d, llamadas } = montar()
+    await manejar(pedir(FRASE), d)
+    const cuerpo = JSON.parse(aDeepseek(llamadas)[0].cuerpo) as { thinking?: unknown }
+    expect(cuerpo.thinking).toEqual({ type: 'disabled' })
+  })
+
+  it('finish_reason «length»: respaldo, aunque el contenido cortado fuera un JSON válido', async () => {
+    const valido = JSON.stringify({ respuesta: 'Redacción del modelo', piezas_usadas: ['vol-01'] })
+    const { d } = montar({ deepseekCrudo: { choices: [{ finish_reason: 'length', message: { content: valido } }] } })
+    const j = await (await manejar(pedir(FRASE), d)).json()
+    expect(j.origen).toBe('respaldo')
+    expect(j.respuesta).toBe('Texto firmado uno')
+  })
+
+  it('contenido vacío (el razonamiento se comió los tokens): respaldo', async () => {
+    for (const content of ['', null, '   ']) {
+      const { d } = montar({ deepseekCrudo: { choices: [{ finish_reason: 'stop', message: { content } }] } })
+      const j = await (await manejar(pedir(FRASE), d)).json()
+      expect(j.origen).toBe('respaldo')
+      expect(j.respuesta).toBe('Texto firmado uno')
+    }
+  })
+
+  it('control positivo: finish_reason «stop» con JSON válido sigue saliendo del modelo', async () => {
+    const valido = JSON.stringify({ respuesta: 'Redacción del modelo', piezas_usadas: ['vol-01'] })
+    const { d } = montar({ deepseekCrudo: { choices: [{ finish_reason: 'stop', message: { content: valido } }] } })
+    expect((await (await manejar(pedir(FRASE), d)).json()).origen).toBe('modelo')
   })
 
   it('DeepSeek tarda más del tope: respaldo', async () => {

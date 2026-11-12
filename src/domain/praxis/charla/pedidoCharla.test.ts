@@ -9,9 +9,13 @@ describe('pedido a DeepSeek: campo por campo', () => {
   const usuario = JSON.parse(p.messages[1].content) as { frase: string; piezas: Record<string, string>[] }
 
   it('el cuerpo tiene solo las claves esperadas y el modelo pedido', () => {
-    expect(Object.keys(p).sort()).toEqual(['max_tokens', 'messages', 'model', 'response_format', 'stream', 'temperature'])
+    expect(Object.keys(p).sort()).toEqual(['max_tokens', 'messages', 'model', 'response_format', 'stream', 'temperature', 'thinking'])
     expect(p.model).toBe(MODELO_CHARLA)
     expect(p.messages.map((m) => m.role)).toEqual(['system', 'user'])
+  })
+
+  it('lleva thinking disabled: deepseek-flash razona por defecto y el razonamiento se come max_tokens', () => {
+    expect(p.thinking).toEqual({ type: 'disabled' })
   })
 
   it('el mensaje del usuario lleva solo frase y piezas', () => {

@@ -173,8 +173,11 @@ async function preguntarADeepseek(d: Dependencias, clave: string, fraseLimpia: s
     body: JSON.stringify(armarPedidoDeepseek(fraseLimpia, piezas)),
   })
   if (!r.ok) return null
-  const cuerpo = (await r.json()) as { choices?: { message?: { content?: unknown } }[] }
-  return validarRespuestaCharla(cuerpo.choices?.[0]?.message?.content, piezas)
+  const cuerpo = (await r.json()) as { choices?: { message?: { content?: unknown }; finish_reason?: unknown }[] }
+  if (cuerpo.choices?.[0]?.finish_reason === 'length') return null // cortado a mitad de camino: no se muestra, va el respaldo
+  const c = cuerpo.choices?.[0]?.message?.content
+  if (typeof c !== 'string' || !c.trim()) return null // vacío: va el respaldo
+  return validarRespuestaCharla(c, piezas)
 }
 
 const registrar = (datos: Record<string, unknown>) => console.log('praxis-charla:', JSON.stringify(datos)) // nunca la frase
