@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { useDisenoFinal } from '../../app/organizacionViva'
 import { PRAXIS_UN_TOQUE_ACTIVO } from '../../features/praxis/unToque/banderas'
 import { BotonPraxisUnToque } from '../../features/praxis/unToque/BotonPraxisUnToque'
 
@@ -164,6 +165,8 @@ export function BottomNav({
   organizacion,
 }: { espacios?: EspaciosNav; organizacion?: OrganizacionDeLaBarra } = {}) {
   const base = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+  // «Praxis a un toque»: la bandera global, o la cuenta con el diseño final (la personal de Bryan).
+  const unToque = useDisenoFinal() || PRAXIS_UN_TOQUE_ACTIVO
   const pestanas = organizacion ? organizarPestanas(base, organizacion) : base
   return (
     <nav
@@ -180,7 +183,7 @@ export function BottomNav({
           la profundidad se nota donde se toca, que es donde sirve. */}
       <div className="glass glass-blur flex w-full max-w-[24rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
         {pestanas.map((p) =>
-          PRAXIS_UN_TOQUE_ACTIVO && p.ruta === '/praxis' ? (
+          unToque && p.ruta === '/praxis' ? (
             <BotonPraxisUnToque key={p.ruta} etiqueta={p.etiqueta} />
           ) : (
           <NavLink

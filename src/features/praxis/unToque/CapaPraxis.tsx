@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { piezasPara } from '../../../app/catalogoDePiezas'
+import { piezasPara, type PiezaDeLaApp } from '../../../app/catalogoDePiezas'
+import type { AccionDeOrganizacion } from '../../../app/organizacionPraxis'
 import { navegarA } from '../../../app/navegarPraxis'
 import {
   aplicarCambio,
@@ -45,7 +46,23 @@ type Item =
 
 type ItemSinId = Item extends infer T ? (T extends { id: number } ? Omit<T, 'id'> : never) : never
 
+/**
+ * Dónde se guarda de verdad (migración 0179). Con él, aceptar una tarjeta guarda en la base y la capa solo dice «Hecho» si la
+ * base contestó `aplicado`; sin él (o apagado) la capa sigue siendo solo memoria de la sesión. Las ocultas guardadas mandan
+ * sobre las locales, para que los candados (ya escondida, tope de 6) se calculen con lo real.
+ */
+export interface PuertoDeGuardado {
+  guardar: (accion: AccionDeOrganizacion, pieza: PiezaDeLaApp) => Promise<'aplicado' | 'choque' | 'no_se_pudo'>
+  deshacer: () => Promise<'aplicado' | 'choque' | 'no_se_pudo'>
+  ocultasGuardadas: ReadonlySet<string>
+}
+
+export const TEXTO_NO_GUARDO = 'No pude hacerlo ahora y no cambié nada.'
+export const TEXTO_CAMBIO_EN_OTRO_APARATO = 'Tu pantalla cambió en otro aparato, así que no toqué nada. Pídemelo de nuevo.'
+
 export interface CapaPraxisProps {
+  /** Guardado real; ausente = solo memoria de la sesión. */
+  guardado?: PuertoDeGuardado
   perfil: PerfilAcceso
   /** Patrón de la pantalla donde está la persona. */
   pantallaActual: string
@@ -69,7 +86,7 @@ export function CapaPraxis(props: CapaPraxisProps) {
   const { perfil, pantallaActual, navegar, charlaActiva = PRAXIS_UN_TOQUE_CHARLA, alAvisarCoachDePieza, alAvisarCoachDeSalud, alAbrirCheckin } = props
   const abierta = useCapaAbierta()
   const [items, setItems] = useState<Item[]>([])
-  const [estado, setEstado] = useState<EstadoLocal>(ESTADO_INICIAL)
+  const [estadoLocal, setEstado] = useState<EstadoLocal>(ESTADO_INICIAL)
   const [pildora, setPildora] = useState<Pildora | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [entro, setEntro] = useState(false)
@@ -80,6 +97,11 @@ export function CapaPraxis(props: CapaPraxisProps) {
   const hilo = useRef<HTMLDivElement>(null)
   const quienAbrio = useRef<HTMLElement | null>(null)
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  const guardado = props.guardado
+  const guardadas = guardado?.ocultasGuardadas
+  // Lo guardado manda: si Praxis (u otro aparato) escondió algo, la capa lo sabe antes de proponer. Se deriva, no se copia a un estado.
+  const estado = useMemo<EstadoLocal>(() => (guardadas ? { ...estadoLocal, ocultas: [...guardadas] } : estadoLocal), [estadoLocal, guardadas])
 
   const ctx: ContextoDelTurno = useMemo(
     () => ({ perfil, estado, pantallaActual, charlaActiva, puedeAvisarAlCoach: Boolean(alAvisarCoachDePieza) }),
@@ -138,29 +160,52 @@ export function CapaPraxis(props: CapaPraxisProps) {
     [perfil, navegar, mostrarPildora, poner],
   )
 
+  /**
+   * Con guardado real, pide a la base y solo sigue si contestó `aplicado`; si no, lo cuenta y NO cambia nada (nunca «Hecho» sin
+   * haber guardado). Sin guardado real (apagado o prueba), sigue directo.
+   */
+  const confirmarEnLaBase = useCallback(
+    async (pedir: (() => Promise<'aplicado' | 'choque' | 'no_se_pudo'>) | null): Promise<boolean> => {
+      if (!pedir) return true
+      setOcupado(true)
+      const r = await pedir().catch(() => 'no_se_pudo' as const)
+      setOcupado(false)
+      if (r === 'aplicado') return true
+      poner({ k: 'px', texto: r === 'choque' ? TEXTO_CAMBIO_EN_OTRO_APARATO : TEXTO_NO_GUARDO })
+      return false
+    },
+    [poner],
+  )
+
   const ejecutarTarjeta = useCallback(
     (accion: AccionDeTarjeta) => {
       switch (accion.t) {
         case 'aplicar': {
           const pieza = piezas.find((p) => p.id === accion.piezaId)
           if (!pieza) return
-          const nuevo = aplicarCambio(estado, accion.accion, pieza, descripcionDelCambio(accion.accion, pieza))
-          setEstado(nuevo)
-          poner({ k: 'px', texto: accion.accion === 'ocultar' ? A.hechoOcultar(nuevo.ocultas.length) : P.hechoMover })
-          const nombre = pieza.nombreHablado
-          mostrarPildora({
-            texto: accion.accion === 'ocultar' ? P.pildoraOculte(nombre) : accion.accion === 'fijar' ? P.pildoraFije(nombre) : P.pildoraMovi(nombre),
-            sub: accion.accion === 'ocultar' ? P.ocultasCuenta(nuevo.ocultas.length) : undefined,
-            conDeshacer: true,
-          })
-          cerrarCapa()
+          const seguir = () => {
+            const nuevo = aplicarCambio(estado, accion.accion, pieza, descripcionDelCambio(accion.accion, pieza))
+            setEstado(nuevo)
+            poner({ k: 'px', texto: accion.accion === 'ocultar' ? A.hechoOcultar(nuevo.ocultas.length) : P.hechoMover })
+            const nombre = pieza.nombreHablado
+            mostrarPildora({
+              texto: accion.accion === 'ocultar' ? P.pildoraOculte(nombre) : accion.accion === 'fijar' ? P.pildoraFije(nombre) : P.pildoraMovi(nombre),
+              sub: accion.accion === 'ocultar' ? P.ocultasCuenta(nuevo.ocultas.length) : undefined,
+              conDeshacer: true,
+            })
+            cerrarCapa()
+          }
+          void confirmarEnLaBase(guardado ? () => guardado.guardar(accion.accion, pieza) : null).then((ok) => ok && seguir())
           return
         }
         case 'deshacer':
-          setEstado(deshacerUltimo(estado))
-          poner({ k: 'px', texto: P.hechoDeshacer })
-          mostrarPildora({ texto: P.pildoraDeshecho, conDeshacer: false })
-          cerrarCapa()
+          void confirmarEnLaBase(guardado ? () => guardado.deshacer() : null).then((ok) => {
+            if (!ok) return
+            setEstado(deshacerUltimo(estado))
+            poner({ k: 'px', texto: P.hechoDeshacer })
+            mostrarPildora({ texto: P.pildoraDeshecho, conDeshacer: false })
+            cerrarCapa()
+          })
           return
         case 'elegir': {
           const pieza = piezas.find((p) => p.id === accion.piezaId)
@@ -187,7 +232,7 @@ export function CapaPraxis(props: CapaPraxisProps) {
           return
       }
     },
-    [piezas, estado, ctx, poner, mostrarPildora, alAvisarCoachDePieza, alAvisarCoachDeSalud, alAbrirCheckin],
+    [piezas, estado, ctx, poner, mostrarPildora, confirmarEnLaBase, guardado, alAvisarCoachDePieza, alAvisarCoachDeSalud, alAbrirCheckin],
   )
 
   const enviar = useCallback(

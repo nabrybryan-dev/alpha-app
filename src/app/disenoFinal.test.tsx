@@ -36,3 +36,16 @@ describe('el diseño final, encendido solo en la cuenta personal de Bryan', () =
     act(() => undefined)
   })
 })
+
+describe('«Praxis a un toque» en la cuenta personal', () => {
+  it('la cuenta con el diseño final monta la capa y la otra no', async () => {
+    const { CapaDeUnToque } = await import('../features/praxis/unToque/CapaDeUnToque')
+    expect(typeof CapaDeUnToque).toBe('function')
+    const a = renderHook(() => { useOrganizacionVisible(PERSONAL!); return useDisenoFinal() })
+    expect(a.result.current).toBe(true)
+    a.unmount()
+    reiniciarOrganizacionViva()
+    const b = renderHook(() => { useOrganizacionVisible(OTRA); return useDisenoFinal() })
+    expect(b.result.current).toBe(false)
+  })
+})
