@@ -53,6 +53,7 @@ function candidato(parcial: Partial<Candidato>): Candidato {
   return {
     creadorId: 'ig:1',
     usuarioIg: 'creador',
+    origen: 'importador',
     seguidores: 800,
     segmento: 'aliado',
     carril: 'etapa1',
@@ -139,6 +140,35 @@ describe('CreadoresPage', () => {
     pintar()
     await screen.findByText('@creador')
     expect(screen.queryByText('Por decidir · escúchalos con sonido')).not.toBeInTheDocument()
+  })
+
+  it('marca «Landing · PRAXIS» solo a los que llegaron por la landing, con el rango declarado', async () => {
+    estado.candidatos = [
+      candidato({
+        creadorId: 'land:cuenta_de_prueba', usuarioIg: 'cuenta_de_prueba', origen: 'landing-praxis',
+        seguidores: null, carril: 'encuesta', motivos: ['interesado vía PRAXIS de la landing'],
+        metricas: { nicho: 'fitness', ciudad: 'Ciudad', rango_seguidores: '10k_50k', contacto_tipo: 'whatsapp', contacto: '+570000000' },
+      }),
+      candidato({ creadorId: 'ig:2', usuarioIg: 'del_radar', carril: 'encuesta' }),
+    ]
+    pintar()
+    const encuesta = await screen.findByRole('region', { name: 'Encuesta de ingreso (2)' })
+    const deLanding = within(encuesta).getByText('@cuenta_de_prueba').closest('li')!
+    const delRadar = within(encuesta).getByText('@del_radar').closest('li')!
+    expect(within(deLanding).getByText('Landing · PRAXIS')).toBeInTheDocument()
+    expect(within(deLanding).getByText('10 a 50 mil seguidores (declarado)')).toBeInTheDocument()
+    expect(within(delRadar).queryByText('Landing · PRAXIS')).not.toBeInTheDocument()
+    expect(within(delRadar).getByText('800 seguidores')).toBeInTheDocument()
+    expect(screen.getAllByText('Landing · PRAXIS')).toHaveLength(1)
+  })
+
+  it('un candidato de la landing sin rango no rompe la tarjeta: dice «— seguidores»', async () => {
+    estado.candidatos = [
+      candidato({ creadorId: 'land:cuenta_de_prueba', usuarioIg: 'cuenta_de_prueba', origen: 'landing-praxis', seguidores: null, carril: 'encuesta' }),
+    ]
+    pintar()
+    expect(await screen.findByText('— seguidores')).toBeInTheDocument()
+    expect(screen.getByText('Landing · PRAXIS')).toBeInTheDocument()
   })
 
   it('sin creadores no pinta cifras ni embudo vacíos', async () => {

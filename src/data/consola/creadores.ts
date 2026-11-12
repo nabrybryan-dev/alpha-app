@@ -5,8 +5,8 @@ import { modoNube, supabase } from '../supabase'
  * `creadores_revisiones` y `creadores_eventos`.
  *
  * SOLO LECTURA. Las tres tablas las escribe exclusivamente `service_role` (el importador que
- * corre en los equipos de casa, `bola-de-nieve/tablero/subir_creadores.py`); RLS impide que el
- * navegador escriba. Este archivo no ofrece escrituras por la misma razón que
+ * corre en los equipos de casa, `bola-de-nieve/tablero/subir_creadores.py`, y desde la 0178 la
+ * Edge Function `creadores-landing`); RLS impide que el navegador escriba. Este archivo no ofrece escrituras por la misma razón que
  * `cadenaCorridas.ts`: sugerirían un camino que la base bloquea.
  *
  * Las columnas salen de aquí y las pruebas las comparan contra el SQL de la 0090.
@@ -88,10 +88,38 @@ export const NOMBRE_CARRIL: Record<Carril, string> = {
 
 export type Segmento = 'aliado' | 'entrenador' | 'fuera'
 export type Revisor = 'claude' | 'astra' | 'bryan' | 'manuela'
+/** Por dónde entró al tablero: el radar de casa o el PRAXIS de la landing (0178). */
+export type OrigenCandidato = 'importador' | 'landing-praxis'
+
+/**
+ * El origen sale del PREFIJO de `creador_id` (`land:` lo pone solo `creadores_landing_registrar`,
+ * 0178), no de la columna `origen`. A propósito: Vercel publica `main` al hacer push, y si el
+ * select pidiera una columna que la base aún no tiene, fallaría la lectura entera del tablero.
+ * Derivado así, funciona antes y después de aplicar la 0178.
+ */
+export function origenDe(creadorId: string): OrigenCandidato {
+  return creadorId.startsWith('land:') ? 'landing-praxis' : 'importador'
+}
+
+/** Los rangos que pide el PRAXIS de la landing en lugar de un número exacto de seguidores. */
+export const NOMBRE_RANGO_SEGUIDORES: Record<string, string> = {
+  menos_10k: 'menos de 10 mil',
+  '10k_50k': '10 a 50 mil',
+  '50k_200k': '50 a 200 mil',
+  mas_200k: 'más de 200 mil',
+}
+
+/** El rango declarado en la landing, en palabras; `null` si no hay o no es uno conocido. */
+export function rangoSeguidoresDe(metricas: Record<string, unknown>): string | null {
+  const rango = metricas.rango_seguidores
+  return typeof rango === 'string' && Object.hasOwn(NOMBRE_RANGO_SEGUIDORES, rango) ? NOMBRE_RANGO_SEGUIDORES[rango] : null
+}
 
 export interface Candidato {
   creadorId: string
   usuarioIg: string
+  /** Derivado de `creadorId` con `origenDe`; no se lee de la base. */
+  origen: OrigenCandidato
   seguidores: number | null
   segmento: Segmento
   carril: Carril
@@ -165,6 +193,7 @@ export function aCandidato(fila: FilaCandidato): Candidato | null {
   return {
     creadorId: fila.creador_id,
     usuarioIg: fila.usuario_ig,
+    origen: origenDe(fila.creador_id),
     seguidores: fila.seguidores,
     segmento: fila.segmento as Segmento,
     carril: fila.carril as Carril,

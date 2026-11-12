@@ -7,6 +7,7 @@ import {
   eventosDelTablero,
   mediaDimension,
   porCarril,
+  rangoSeguidoresDe,
   resumenS,
   revisionesDe,
   urlHojaCuadros,
@@ -25,7 +26,8 @@ import { criteriosAplicados, escribirFiltros, filtrarCandidatos, leerFiltros, SI
  * Tablero de CREADORES (fase F1 de `PLAN-CENTRALIZACION.md`): SOLO LECTURA.
  *
  * Pinta el embudo de la bola de nieve con los datos que sube el importador de casa
- * (migración 0090). Lo primero que se ve es «Tambaleando», con el motivo exacto, porque es
+ * (migración 0090) y, desde la 0178, los que llegan por el PRAXIS de la landing (etiqueta
+ * «Landing · PRAXIS», derivada del prefijo `land:`). Lo primero que se ve es «Tambaleando», con el motivo exacto, porque es
  * donde hace falta criterio humano; luego lo aprobado para contacto; luego el resto. Los
  * entrenadores-creadores van aparte (segmento de alquiler). No hay botones que escriban:
  * la firma llega en F2.
@@ -130,9 +132,11 @@ function CabeceraEmbudo({
   )
 }
 
-function formatoSeguidores(n: number | null): string {
-  if (n === null) return '—'
-  return n.toLocaleString('es-CO')
+/** El número del radar; si no lo hay (los de la landing), el rango que declaró en el PRAXIS. */
+function textoSeguidores(c: Candidato): string {
+  if (c.seguidores !== null) return `${c.seguidores.toLocaleString('es-CO')} seguidores`
+  const rango = rangoSeguidoresDe(c.metricas)
+  return rango !== null ? `${rango} seguidores (declarado)` : '— seguidores'
 }
 
 function HojaCuadros({ ruta }: { ruta: string | null }) {
@@ -338,9 +342,17 @@ function TarjetaCandidato({
         aria-expanded={abierta}
         className="flex w-full flex-wrap items-baseline justify-between gap-2 text-left"
       >
-        <span className="font-bold text-texto">@{candidato.usuarioIg}</span>
+        <span className="flex flex-wrap items-baseline gap-2">
+          <span className="font-bold text-texto">@{candidato.usuarioIg}</span>
+          {/* Solo los de la landing llevan etiqueta: los del importador son lo de siempre. */}
+          {candidato.origen === 'landing-praxis' && (
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">
+              Landing · PRAXIS
+            </span>
+          )}
+        </span>
         <span className="text-xs text-tenue">
-          {formatoSeguidores(candidato.seguidores)} seguidores
+          {textoSeguidores(candidato)}
           {candidato.notaA !== null ? ` · A ${candidato.notaA.toLocaleString('es-CO')}` : ''}
           {candidato.senalColombia ? ' · Colombia' : ''}
         </span>
