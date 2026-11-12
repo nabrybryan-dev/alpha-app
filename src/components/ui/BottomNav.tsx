@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { PRAXIS_UN_TOQUE_ACTIVO } from '../../features/praxis/unToque/banderas'
+import { BotonPraxisUnToque } from '../../features/praxis/unToque/BotonPraxisUnToque'
 
 function Icono({ children }: { children: ReactNode }) {
   return (
@@ -169,7 +171,10 @@ export function BottomNav({
           frontera que ya vigila `blur-solo-en-superficies-fijas`. Puesto en cada pestaña
           la profundidad se nota donde se toca, que es donde sirve. */}
       <div className="glass glass-blur flex w-full max-w-[24rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
-        {pestanas.map((p) => (
+        {pestanas.map((p) =>
+          PRAXIS_UN_TOQUE_ACTIVO && p.ruta === '/praxis' ? (
+            <BotonPraxisUnToque key={p.ruta} etiqueta={p.etiqueta} />
+          ) : (
           <NavLink
             key={p.ruta}
             to={p.ruta}
@@ -199,7 +204,8 @@ export function BottomNav({
               </>
             )}
           </NavLink>
-        ))}
+          ),
+        )}
       </div>
     </nav>
   )
