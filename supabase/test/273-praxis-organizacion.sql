@@ -70,7 +70,7 @@ begin
   -- 3 · Choque: con la versión vieja no se toca nada.
   r := public.praxis_organizacion_aplicar('{"tipo":"pieza","accion":"ocultar","pieza":"hoy.carteles"}', 0);
   perform pruebas.afirmar(r->>'resultado' = 'choque', 'una version vieja no dio choque');
-  perform pruebas.afirmar(not ('hoy.carteles' = any((select ocultas from public.praxis_organizacion))), 'el choque cambio algo');
+  perform pruebas.afirmar(not exists (select 1 from public.praxis_organizacion where 'hoy.carteles' = any(ocultas)), 'el choque cambio algo');
 
   -- 4 · Deshacer devuelve UN cambio cada vez
   r := public.praxis_organizacion_deshacer();
