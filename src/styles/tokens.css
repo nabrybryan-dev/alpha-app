@@ -4426,6 +4426,25 @@ body.praxis-sala-abierta { overflow:hidden; }
   color: var(--silver-400);
 }
 
+/* ---------- Agujero negro de Praxis en la barra (B1) ----------
+   Los anillos giran 14 s por vuelta, como en la maqueta (`.bn-g`). Con
+   movimiento reducido el icono queda quieto: sigue siendo el mismo dibujo. */
+.agujero-gira {
+  transform-origin: 12px 12px;
+  transform-box: view-box;
+  animation: agujero-gira 14s linear infinite;
+}
+@keyframes agujero-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agujero-gira {
+    animation: none;
+  }
+}
+
 /* ---------- Nutricion: tarjetas con el estandar de la maqueta (C3) ----------
    Solo aspecto. Tarjeta 22, fila de comida 18, pista de macros hundida. */
 .nutri-resumen {

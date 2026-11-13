@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { IconoAgujeroNegro } from './Icono'
 import { useDisenoFinal } from '../../app/organizacionViva'
 import { PRAXIS_UN_TOQUE_ACTIVO } from '../../features/praxis/unToque/banderas'
 import { BotonPraxisUnToque } from '../../features/praxis/unToque/BotonPraxisUnToque'
@@ -94,6 +95,18 @@ const pestanasAsesorado = [
  *
  * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
  */
+function IconoPraxis() {
+  if (import.meta.env.VITE_PRAXIS_ICONO_ACTIVO === 'true') {
+    return <IconoAgujeroNegro className="h-[24px] w-[24px]" />
+  }
+  return (
+    <Icono>
+      <path d="M4 5h16v11H9l-5 4z" />
+      <path d="M9 10h6M12 7.5v5" />
+    </Icono>
+  )
+}
+
 const pestanasStaff = [
   { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
   {
@@ -133,12 +146,9 @@ const pestanasStaff = [
   {
     ruta: '/praxis',
     etiqueta: 'Praxis',
-    icono: (
-      <Icono>
-        <path d="M4 5h16v11H9l-5 4z" />
-        <path d="M9 10h6M12 7.5v5" />
-      </Icono>
-    ),
+    // El agujero negro va detrás de VITE_PRAXIS_ICONO_ACTIVO (apagada por defecto, D13):
+    // se lee al pintar para que la bandera decida sin tocar la ruta ni el nombre.
+    icono: <IconoPraxis />,
   },
   {
     ruta: '/mi-entreno',
