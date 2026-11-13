@@ -4426,6 +4426,113 @@ body.praxis-sala-abierta { overflow:hidden; }
   color: var(--silver-400);
 }
 
+/* C1 — Hoy con anillo: tarjetas a 22 px (maqueta v17, build-v8/1-css.css:120). Solo con la
+   bandera HOY_CON_ANILLO encendida: la clase la pone HoyPage y sin ella esto no aplica. */
+.hoy-con-anillo .rounded-tarjeta,
+.hoy-con-anillo .rounded-bloque {
+  border-radius: 22px;
+}
+
+/* ---------- Agujero negro de Praxis en la barra (B1) ----------
+   Los anillos giran 14 s por vuelta, como en la maqueta (`.bn-g`). Con
+   movimiento reducido el icono queda quieto: sigue siendo el mismo dibujo. */
+.agujero-gira {
+  transform-origin: 12px 12px;
+  transform-box: view-box;
+  animation: agujero-gira 14s linear infinite;
+}
+@keyframes agujero-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agujero-gira {
+    animation: none;
+  }
+}
+
+/* ---------- Nutricion: tarjetas con el estandar de la maqueta (C3) ----------
+   Solo aspecto. Tarjeta 22, fila de comida 18, pista de macros hundida. */
+.nutri-resumen {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  box-shadow: var(--brillo), var(--sombra-card);
+  padding: 16px;
+}
+.nutri-fila-comida {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  box-shadow: var(--brillo);
+}
+.nutri-pista-kcal {
+  height: 8px;
+  border-radius: 9px;
+  background: var(--surface-3);
+  box-shadow: var(--sombra-hundido);
+}
+.nutri-pista-relleno {
+  border-radius: 9px;
+}
+.nutri-tile-macro {
+  border-radius: 18px;
+  background-color: var(--surface-2);
+  background-image: var(--relleno-hundido);
+  box-shadow: var(--sombra-hundido);
+}
+.nutri-chip-margen {
+  border-radius: 99px;
+}
+
+/* ---------- PIEL DE LA MAQUETA 7 («Alpha · Rediseño», validada por Bryan el 13-nov-2026) ---------- */
+/* Solo con `data-piel="maqueta"` en la raíz (`usePielDeLaMaqueta`, cuentas con el diseño final). Sin la marca no aplica. */
+/* Fuente: build-v7/1-css.css: .card 22 opaca --s1 con brillo y sombra (:120), .tile y .comida 18 (:223, :355), .btn3d y .btn2 14 (:86, :108). */
+[data-piel="maqueta"] .tarjeta-base.glass {
+  border-radius: 22px;
+  background: var(--surface-1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--brillo), var(--sombra-card);
+}
+[data-piel="maqueta"] .tarjeta-base.glass-destacada {
+  box-shadow: var(--brillo), var(--sombra-card), var(--halo-rojo);
+}
+[data-piel="maqueta"] .rounded-panel,
+[data-piel="maqueta"] .rounded-bloque {
+  border-radius: 22px;
+}
+[data-piel="maqueta"] .rounded-tarjeta {
+  border-radius: 18px;
+}
+[data-piel="maqueta"] .rounded-boton {
+  border-radius: 14px;
+}
+/* Título de pantalla y rótulo pequeño: build-v7/1-css.css:118 (h1 30 px, sin mayúsculas) y :117 (.kicker gris 13 px). */
+[data-piel="maqueta"] h1.font-display {
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+[data-piel="maqueta"] .kicker {
+  color: var(--tenue);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+/* Semana: los segmentos hechos van en plata, no en rojo; pista de kcal de 10 px. */
+[data-piel="maqueta"] [aria-label$="de la semana hecho"] .bg-accion {
+  background-color: var(--placa);
+}
+[data-piel="maqueta"] .nutri-pista-kcal {
+  height: 10px;
+}
+/* FIN DE LA PIEL DE LA MAQUETA 7 */
+
 /* ---------- LA HOJA DE LA PORTADA DEL SALÓN (maqueta 7, pieza C2) ----------
    Solo la piel de la hoja arrastrable de `PanelInferior`, detrás de
    `SALON_PORTADA_MAQUETA` (apagada): radio 22, relleno alzado, sombra hacia arriba,
@@ -4457,3 +4564,4 @@ body.praxis-sala-abierta { overflow:hidden; }
     transition: none !important;
   }
 }
+

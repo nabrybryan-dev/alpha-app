@@ -263,3 +263,6 @@ jobs:
 
       - name: Nadie con sesion (ni anon) vacia una tabla con TRUNCATE, y la tabla vieja aprobaciones no se escribe desde el navegador
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/273-sin-truncate.sql
+
+      - name: La organizacion de la app de cada persona se guarda solo por la funcion (solo lo libre se esconde, tope de 6, choque entre aparatos, deshacer de a uno), la lee ella y el equipo, y esconder peso avisa al coach sin la frase
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/274-praxis-organizacion.sql

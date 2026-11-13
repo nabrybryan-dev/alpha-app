@@ -23,6 +23,7 @@ import { ComoLlegas } from '../../ruta/ComoLlegas'
 import { tonoDeRecuperacion } from '../../ruta/tonoDeRecuperacion'
 import { BloqueEnCurso } from '../../ruta/BloqueEnCurso'
 import { CalendarioSemana } from '../../ruta/CalendarioSemana'
+import { AnilloDeLaSemanaDeLaHoja } from './AnilloDeLaSemana'
 import { RequisitosNivel } from '../../ruta/RequisitosNivel'
 import { NotasDeLaSemana } from '../../NotasDeLaSemana'
 import { avisoDeSemana } from '../../avisoDeSemana'
@@ -35,6 +36,7 @@ import { RecuadroAntes } from './recuadros/RecuadroAntes'
 import { RecuadroPatron } from './recuadros/RecuadroPatron'
 import { ImplementosDelSalon } from '../implementos/ImplementosDelSalon'
 import type { ImplementosDeSesion } from '../implementos/implementosDeSesion'
+import { useDisenoFinal } from '../../../../app/organizacionViva'
 import { MuroDeCampos } from '../paredes/PanelPared'
 import { MURO_DERECHO } from '../paredes/muros'
 import { hayEncuadre, type ContenidoDePared } from '../paredes/contenidoPared'
@@ -184,7 +186,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     diaElegido = null,
     maqueta,
   } = props
-  const clases = clasesDeLaHoja(maqueta)
+  const clases = clasesDeLaHoja(useDisenoFinal(maqueta))
 
   /** Las sesiones hechas de las programadas. Sube al rótulo del tramo de «La semana». */
   const sesionesDeLaSemana = resumenSemana(semana)
@@ -483,6 +485,7 @@ export function PanelInferior(props: PanelInferiorProps) {
                 </span>
               }
             >
+              <AnilloDeLaSemanaDeLaHoja semana={semana} />
               <CalendarioSemana dias={semana} sesionesFueraDeSemana={sesionesFueraDeLaSemana(microciclo, semana)} />
             </Recuadro>
 

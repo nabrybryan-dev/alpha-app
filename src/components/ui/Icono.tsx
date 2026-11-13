@@ -214,3 +214,21 @@ export function IconoPausa({ className }: IconoProps) {
     </Icono>
   )
 }
+
+/**
+ * Agujero negro de Praxis (maqueta v17, `1h-v9.css`): un núcleo oscuro y dos
+ * anillos inclinados que giran despacio. Los anillos van con `currentColor`, así
+ * que la pestaña activa los pinta de rojo sola. El giro vive en `tokens.css`
+ * (`.agujero-gira`) y se apaga con movimiento reducido.
+ */
+export function IconoAgujeroNegro({ className }: IconoProps) {
+  return (
+    <Icono className={className}>
+      <circle cx="12" cy="12" r="4.6" fill="#05050a" strokeWidth="0.9" opacity="0.9" />
+      <g className="agujero-gira">
+        <ellipse cx="12" cy="12" rx="10" ry="3.9" transform="rotate(-22 12 12)" />
+        <ellipse cx="12" cy="12" rx="7" ry="2.5" transform="rotate(68 12 12)" opacity="0.5" />
+      </g>
+    </Icono>
+  )
+}

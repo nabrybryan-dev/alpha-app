@@ -61,7 +61,25 @@ const VIDA_EXAGERABLE = /quiero morir|quiero morirme|quisiera morir\w*|ganas de 
  * Lo que es literal SIEMPRE, con o sin ancla: decirlo sin rodeos, nombrar el suicidio o un
  * método que no es una muletilla. Nunca se baja a pregunta.
  */
-const VIDA_LITERAL = /hacerme dano|hacerme algo|no quiero vivir|no quiero seguir viviendo|quitarme la vida|suicid|mejor no existir|acabar con mi vida|dormirme y no despertar|quisiera no despertar|colgarme|ahorcarme|me ahorque|por fin me colgue|se (quiere|va a) matar|quiere suicidarse|quitarse la vida/
+const VIDA_LITERAL_BASE = /hacerme dano|hacerme algo|no quiero vivir|no quiero seguir viviendo|quitarme la vida|suicid|mejor no existir|acabar con mi vida|dormirme y no despertar|quisiera no despertar|colgarme|ahorcarme|me ahorque|por fin me colgue|se (quiere|va a) matar|quiere suicidarse|quitarse la vida/
+/**
+ * Lista propuesta; decisión provisional de Bryan (11-nov-2026), PENDIENTE de firma de la profesional de salud mental.
+ * SOLO AÑADE marcas (autolesión e ideación que el 11-nov se vio que se escapaban):
+ *   «me quiero hacer daño», «quiero hacerme daño» (también dictado: «acer daño», «haser daño») y «se quiere hacer daño»;
+ *   «ganas de / quiero / quisiera acabar (o terminar) con todo» y «dejar de existir», «no quiero estar en este mundo».
+ * NO entran «me hice daño en la rodilla» (pasado, es una lesión: la atiende el filtro clínico) ni «me voy a hacer daño con
+ * este peso» (miedo a lesionarse). «acabar con todo» solo es ideación si no sigue un complemento («el agua», «lo que
+ * hay en la nevera», «en el gym»).
+ */
+const NO_COMPLEMENTO = /(?!\s+(el|la|los|las|lo|mi|mis|su|sus|este|esta|esto|ese|esa|eso|en|de|del|con|para|hoy|antes|al|las|un|una)\b)/
+const AUTOLESION_Y_FIN = new RegExp(
+  '\\bme (quiero|quisiera|dan ganas de|dieron ganas de|pienso|estoy pensando en) h?a[cs]er dano\\b|' +
+  '\\b(quiero|quisiera|ganas de|pensando en|pienso en) a?h?a[cs]erme dano\\b|' +
+  '\\b(se|me) (quiere|quiero) (hacer|haser|acer)(se)? dano\\b|\\bme hago dano a proposito\\b|' +
+  '\\b(ganas de|quiero|quisiera|me dan ganas de) (acabar|terminar) con todo\\b' + NO_COMPLEMENTO.source + '|' +
+  '\\bdejar de existir\\b|\\bno quiero estar (mas )?(en este mundo|aqui)\\b',
+)
+const VIDA_LITERAL = new RegExp(VIDA_LITERAL_BASE.source + '|' + AUTOLESION_Y_FIN.source)
 /** Lo pautado: la rutina, un ejercicio, el entreno o la dieta. Lista cerrada. */
 const ANCLA = /\b(burpees?|rutinas?|entreno|entrenos|entrenar|entrenamiento|sentadillas?|pierna|series?|cardio|ejercicios?|sesion|sesiones|gimnasio|gym|dieta|plan|madrugar|pesas|abdominales|zancadas|caminadora|spinning|crossfit|brocoli|pollo|ayuno|tabata|hiit|plancha|planchas|repeticiones|press|peso muerto|bulgaras?)\b/
 /**
@@ -82,7 +100,8 @@ const TOCAN_A_UN_MENOR = /\b(la|lo|le) (toca|toco|tocan|tocaba|manosea|manoseo|m
 const MENOR = /\b(hij[ao]|nin[ao]|sobrin[ao]|menor|\d{1,2} anos)\b/
 /** Señales de un ataque cerebral: la cara o medio cuerpo que se duerme o se tuerce. */
 const ACV = /se me (durmio|adormecio|cayo|torcio|paralizo) (medio lado|la mitad|un lado|el lado|la cara|la boca)|se me torcio la boca/
-const AMBIGUO = /ya no puedo mas|no aguanto mas|no le veo sentido|no veo salida|para que seguir|todo seria mas facil sin mi|desaparecer\b|cansad[ao] de vivir|no vale la pena vivir|mejor sin mi|si (manana )?no aparezco/
+// Añadido 11-nov-2026 (lista propuesta, PENDIENTE de firma de la profesional): «acabar/terminar con todo» sin complemento.
+const AMBIGUO = new RegExp('acabar con todo\\b' + NO_COMPLEMENTO.source + '|terminar con todo\\b' + NO_COMPLEMENTO.source + '|' + /ya no puedo mas|no aguanto mas|no le veo sentido|no veo salida|para que seguir|todo seria mas facil sin mi|desaparecer\b|cansad[ao] de vivir|no vale la pena vivir|mejor sin mi|si (manana )?no aparezco/.source)
 /**
  * «No quiero morirme» y las exageraciones con un complemento inofensivo de lista cerrada
  * («me muero de sueño»). La lista vive en el filtro clínico y la usan los dos lados.
