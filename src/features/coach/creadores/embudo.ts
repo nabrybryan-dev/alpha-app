@@ -4,7 +4,8 @@ import { esCarrilConocido, type Candidato, type Carril, type EventoCarril } from
  * Las cinco cifras del embudo de la bola de nieve (maqueta «Espacios de Alpha», 28-sep),
  * contadas sobre los carriles REALES de `creadores_candidatos`. Pura: no lee nada.
  *
- *   · Candidatos en el tablero: todas las filas que subió el importador. NO es «todo lo que
+ *   · Candidatos en el tablero: todas las filas del tablero, las del importador y, desde la
+ *     0178, las que llegan por el PRAXIS de la landing (`land:`). NO es «todo lo que
  *     el radar evaluó»: el importador deja fuera a los descartados con A < 50 (E-04 de la
  *     revisión de Codex del 28-sep), así que llamarlo «evaluados» prometía un universo
  *     que el tablero no tiene.

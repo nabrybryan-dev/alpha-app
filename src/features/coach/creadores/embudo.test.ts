@@ -6,6 +6,7 @@ const en = (carril: Carril, n = 1): Candidato[] =>
   Array.from({ length: n }, (_, i) => ({
     creadorId: `ig:${carril}-${i}`,
     usuarioIg: `${carril}${i}`,
+    origen: 'importador',
     seguidores: null,
     segmento: carril === 'entrenador' ? 'entrenador' : 'aliado',
     carril,
@@ -92,6 +93,17 @@ describe('embudoDe', () => {
     const [d] = en('descartado')
     expect(embudoDe([d], [evento(d.creadorId, 'mensaje_enviado')]).eventosConCarrilDesconocido).toBe(0)
     expect(embudoDe([d], null).eventosConCarrilDesconocido).toBeNull()
+  })
+
+  it('un candidato de la landing (land:, sin seguidores) cuenta en el tablero como cualquier otro', () => {
+    const [deLanding] = en('encuesta')
+    const landing: Candidato = { ...deLanding, creadorId: 'land:cuenta_de_prueba', usuarioIg: 'cuenta_de_prueba', origen: 'landing-praxis' }
+    const e = embudoDe([landing, ...en('etapa1')], [evento('land:cuenta_de_prueba', 'encuesta')])
+    expect(e.enTablero).toBe(2)
+    expect(e.eventosConCarrilDesconocido).toBe(0)
+    // Hoy `encuesta` cuenta como contactado (la regla del embudo no mira el origen). Queda escrito
+    // aquí para que cambiarlo sea una decisión, no un efecto colateral.
+    expect(e.contactosRegistrados).toBe(1)
   })
 
   it('sin historia legible, «contactados» es desconocido, no el estado de hoy disfrazado', () => {

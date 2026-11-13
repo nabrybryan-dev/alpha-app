@@ -2,16 +2,35 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Candidato, EventoCarril, RevisionReel } from '../../../data/consola/creadores'
+import type { ContactoCreador } from '../../../data/consola/creadoresContactos'
 
 const estado = {
   candidatos: [] as Candidato[],
   revisiones: [] as RevisionReel[],
   eventos: [] as EventoCarril[],
+  contactos: [] as ContactoCreador[],
   fallaEventos: false,
   fallaCandidatos: false,
   fallaRevisiones: false,
+  fallaContactos: false,
+  contactosPedidos: [] as string[],
   llamadas: 0,
 }
+
+vi.mock('../../../data/consola/creadoresContactos', async (original) => {
+  const real = await original<typeof import('../../../data/consola/creadoresContactos')>()
+  return {
+    ...real,
+    contactosDe: (creadorId: string) => {
+      estado.contactosPedidos.push(creadorId)
+      return Promise.resolve(
+        estado.fallaContactos
+          ? { ok: false, error: 'relation "public.creadores_contactos" does not exist' }
+          : { ok: true, datos: estado.contactos.filter((c) => c.creadorId === creadorId) },
+      )
+    },
+  }
+})
 
 vi.mock('../../../data/consola/creadores', async (original) => {
   const real = await original<typeof import('../../../data/consola/creadores')>()
@@ -53,6 +72,7 @@ function candidato(parcial: Partial<Candidato>): Candidato {
   return {
     creadorId: 'ig:1',
     usuarioIg: 'creador',
+    origen: 'importador',
     seguidores: 800,
     segmento: 'aliado',
     carril: 'etapa1',
@@ -80,9 +100,12 @@ beforeEach(() => {
   estado.candidatos = []
   estado.revisiones = []
   estado.eventos = []
+  estado.contactos = []
   estado.fallaEventos = false
   estado.fallaCandidatos = false
   estado.fallaRevisiones = false
+  estado.fallaContactos = false
+  estado.contactosPedidos = []
   estado.llamadas = 0
 })
 
@@ -139,6 +162,62 @@ describe('CreadoresPage', () => {
     pintar()
     await screen.findByText('@creador')
     expect(screen.queryByText('Por decidir · escúchalos con sonido')).not.toBeInTheDocument()
+  })
+
+  it('marca «Landing · PRAXIS» solo a los que llegaron por la landing, con el rango declarado', async () => {
+    estado.candidatos = [
+      candidato({
+        creadorId: 'land:cuenta_de_prueba', usuarioIg: 'cuenta_de_prueba', origen: 'landing-praxis',
+        seguidores: null, carril: 'encuesta', motivos: ['interesado vía PRAXIS de la landing'],
+        metricas: { nicho: 'fitness', ciudad: 'Ciudad', rango_seguidores: '10k_50k', ya_crea_contenido: true },
+      }),
+      candidato({ creadorId: 'ig:2', usuarioIg: 'del_radar', carril: 'encuesta' }),
+    ]
+    pintar()
+    const encuesta = await screen.findByRole('region', { name: 'Encuesta de ingreso (2)' })
+    const deLanding = within(encuesta).getByText('@cuenta_de_prueba').closest('li')!
+    const delRadar = within(encuesta).getByText('@del_radar').closest('li')!
+    expect(within(deLanding).getByText('Landing · PRAXIS')).toBeInTheDocument()
+    expect(within(deLanding).getByText('10 a 50 mil seguidores (declarado)')).toBeInTheDocument()
+    expect(within(delRadar).queryByText('Landing · PRAXIS')).not.toBeInTheDocument()
+    expect(within(delRadar).getByText('800 seguidores')).toBeInTheDocument()
+    expect(screen.getAllByText('Landing · PRAXIS')).toHaveLength(1)
+  })
+
+  it('un candidato de la landing sin rango no rompe la tarjeta: dice «— seguidores»', async () => {
+    estado.candidatos = [
+      candidato({ creadorId: 'land:cuenta_de_prueba', usuarioIg: 'cuenta_de_prueba', origen: 'landing-praxis', seguidores: null, carril: 'encuesta' }),
+    ]
+    pintar()
+    expect(await screen.findByText('— seguidores')).toBeInTheDocument()
+    expect(screen.getByText('Landing · PRAXIS')).toBeInTheDocument()
+  })
+
+  it('al abrir un candidato muestra su contacto más reciente (y no lo pide antes de abrir)', async () => {
+    estado.candidatos = [candidato({ creadorId: 'ig:910000001', usuarioIg: 'radar_prueba', carril: 'tambaleando' })]
+    estado.contactos = [
+      { id: 'k1', creadorId: 'ig:910000001', tipo: 'correo', valor: 'nuevo@ejemplo.test', recibidoEn: '2026-11-11T10:00:00Z' },
+      { id: 'k0', creadorId: 'ig:910000001', tipo: 'whatsapp', valor: '+570000000', recibidoEn: '2026-11-10T10:00:00Z' },
+    ]
+    pintar()
+    const boton = await screen.findByRole('button', { name: /@radar_prueba/ })
+    expect(estado.contactosPedidos).toEqual([])
+    fireEvent.click(boton)
+    expect(await screen.findByText('Correo · nuevo@ejemplo.test')).toBeInTheDocument()
+    expect(screen.getByText(/^Contacto ·/)).toBeInTheDocument()
+    expect(screen.queryByText('WhatsApp · +570000000')).not.toBeInTheDocument()
+    expect(estado.contactosPedidos).toEqual(['ig:910000001'])
+  })
+
+  it('sin contacto, o si la tabla aún no existe (0178 sin aplicar), el detalle abre sin línea de contacto', async () => {
+    estado.candidatos = [candidato({ carril: 'etapa2' })]
+    estado.fallaContactos = true
+    pintar()
+    fireEvent.click(await screen.findByRole('button', { name: /@creador/ }))
+    expect(await screen.findByText('Sin revisión de video todavía.')).toBeInTheDocument()
+    expect(screen.queryByText(/^Contacto ·/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/WhatsApp ·|Correo ·/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('sin creadores no pinta cifras ni embudo vacíos', async () => {

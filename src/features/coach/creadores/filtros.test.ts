@@ -4,7 +4,7 @@ import { criteriosAplicados, filtrarCandidatos, leerFiltros, SIN_FILTROS } from 
 
 function c(parcial: Partial<Candidato>): Candidato {
   return {
-    creadorId: 'ig:1', usuarioIg: 'cuenta_a', seguidores: 1, segmento: 'aliado', carril: 'etapa1', motivos: [],
+    creadorId: 'ig:1', usuarioIg: 'cuenta_a', origen: 'importador', seguidores: 1, segmento: 'aliado', carril: 'etapa1', motivos: [],
     notaA: null, versionRubrica: null, metricas: {}, senalColombia: null,
     fechaDato: '2026-09-28T00:00:00Z', fechaRecepcion: '2026-09-28T00:00:00Z', actualizadoEn: '2026-09-28T00:00:00Z',
     ...parcial,
@@ -24,6 +24,11 @@ describe('filtrarCandidatos', () => {
   it('busca por cuenta sin importar mayúsculas ni la arroba', () => {
     const r = filtrarCandidatos(todos, { ...SIN_FILTROS, q: ' @FIT_' })
     expect(r.map((x) => x.creadorId)).toEqual(['ig:1', 'ig:3'])
+  })
+  it('encuentra a un candidato de la landing (land:) por su cuenta, igual que a los del radar', () => {
+    const conLanding = [...todos, c({ creadorId: 'land:cuenta_de_prueba', usuarioIg: 'cuenta_de_prueba', origen: 'landing-praxis', seguidores: null, carril: 'encuesta' })]
+    expect(filtrarCandidatos(conLanding, { ...SIN_FILTROS, q: '@cuenta_de' }).map((x) => x.creadorId)).toEqual(['land:cuenta_de_prueba'])
+    expect(filtrarCandidatos(conLanding, { ...SIN_FILTROS, carril: 'encuesta' }).map((x) => x.creadorId)).toEqual(['land:cuenta_de_prueba'])
   })
   it('filtra por carril', () => {
     expect(filtrarCandidatos(todos, { ...SIN_FILTROS, carril: 'etapa1' }).map((x) => x.creadorId)).toEqual(['ig:2'])

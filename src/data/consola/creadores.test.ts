@@ -11,7 +11,9 @@ import {
   eventosDelTablero,
   COLUMNAS_CREADORES_EVENTOS,
   mediaDimension,
+  origenDe,
   porCarril,
+  rangoSeguidoresDe,
   resumenS,
   revisionesDe,
   vueltasDeRevision,
@@ -325,6 +327,52 @@ describe('aCandidato', () => {
   it('descarta un carril o un segmento fuera de vocabulario en vez de disfrazarlo', () => {
     expect(aCandidato({ ...filaBase, carril: 'inventado' })).toBeNull()
     expect(aCandidato({ ...filaBase, segmento: 'vip' })).toBeNull()
+  })
+  it('una fila del importador sale con origen importador', () => {
+    expect(aCandidato(filaBase)?.origen).toBe('importador')
+  })
+  it('una fila de la landing (land:, sin seguidores, con las métricas del PRAXIS) se acomoda sin perder nada', () => {
+    // Lo que escribe la 0178: sin el contacto, que va a creadores_contactos.
+    const metricas = { nicho: 'fitness', ciudad: 'Ciudad', rango_seguidores: '10k_50k', ya_crea_contenido: true }
+    const c = aCandidato({
+      ...filaBase, creador_id: 'land:cuenta_de_prueba', usuario_ig: 'cuenta_de_prueba', seguidores: null,
+      carril: 'encuesta', motivos: ['interesado vía PRAXIS de la landing'], nota_a: null, version_rubrica: null,
+      metricas, senal_colombia: null,
+    })
+    expect(c).not.toBeNull()
+    expect(c?.origen).toBe('landing-praxis')
+    expect(c?.seguidores).toBeNull()
+    expect(c?.notaA).toBeNull()
+    expect(c?.metricas).toEqual(metricas)
+  })
+})
+
+describe('origenDe: sale del prefijo, no de una columna (funciona antes y después de la 0178)', () => {
+  it('land: es la landing; ig: y cualquier otra cosa, el importador', () => {
+    expect(origenDe('land:cuenta_de_prueba')).toBe('landing-praxis')
+    expect(origenDe('ig:900000001')).toBe('importador')
+    expect(origenDe('')).toBe('importador')
+    expect(origenDe('landing:x')).toBe('importador')
+    expect(origenDe('LAND:x')).toBe('importador')
+  })
+  it('el select del tablero NO pide la columna origen: sin la 0178 aplicada, pedirla tumbaría la lectura', () => {
+    expect(COLUMNAS_CREADORES_CANDIDATOS).not.toContain('origen')
+  })
+})
+
+describe('rangoSeguidoresDe', () => {
+  it('pone en palabras los cuatro rangos de la landing', () => {
+    expect(rangoSeguidoresDe({ rango_seguidores: 'menos_10k' })).toBe('menos de 10 mil')
+    expect(rangoSeguidoresDe({ rango_seguidores: '10k_50k' })).toBe('10 a 50 mil')
+    expect(rangoSeguidoresDe({ rango_seguidores: '50k_200k' })).toBe('50 a 200 mil')
+    expect(rangoSeguidoresDe({ rango_seguidores: 'mas_200k' })).toBe('más de 200 mil')
+  })
+  it('sin rango, con uno desconocido o con una clave heredada de Object, null', () => {
+    expect(rangoSeguidoresDe({})).toBeNull()
+    expect(rangoSeguidoresDe({ rango_seguidores: null })).toBeNull()
+    expect(rangoSeguidoresDe({ rango_seguidores: 'un_millon' })).toBeNull()
+    expect(rangoSeguidoresDe({ rango_seguidores: 'toString' })).toBeNull()
+    expect(rangoSeguidoresDe({ seguidores: 800 })).toBeNull()
   })
 })
 

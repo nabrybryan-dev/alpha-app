@@ -3742,6 +3742,76 @@ select '0177 - nadie con sesion vacia una tabla ni escribe la tabla vieja aproba
             else 'SI' end
 
 union all
+-- La 0178: el tablero de creadores acepta candidatos de la landing. Antes de aplicarla dice NO:
+-- no existe la columna origen y los checks no conocen 'land:' ni 'landing'.
+select '0178 - creadores desde la landing: esquema', 'creadores_candidatos.origen (default importador); el check de creador_id acepta land:; el de actor de creadores_eventos acepta landing',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'creadores_candidatos'
+                                and column_name = 'origen' and is_nullable = 'NO'
+                                and column_default like '%importador%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.creadores_candidatos'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%creador_id%'
+                                and pg_get_constraintdef(oid) like '%ig:%'
+                                and pg_get_constraintdef(oid) like '%land:%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.creadores_candidatos'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%origen%'
+                                and pg_get_constraintdef(oid) like '%landing-praxis%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.creadores_eventos'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%actor%'
+                                and pg_get_constraintdef(oid) like '%importador%'
+                                and pg_get_constraintdef(oid) like '%''landing''%') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0178: los contactos, con el molde de las otras tres tablas del tablero.
+select '0178 - creadores desde la landing: creadores_contactos', 'con RLS y una sola política, que lee con puede_ver_creadores(); anon sin select; authenticated solo select; service_role escribe',
+       case when to_regclass('public.creadores_contactos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.creadores_contactos')) then 'NO'
+            when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'creadores_contactos') <> 1 then 'NO'
+            when not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'creadores_contactos'
+                              and cmd = 'SELECT' and qual like '%puede_ver_creadores%') then 'NO'
+            when has_table_privilege('anon', 'public.creadores_contactos', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.creadores_contactos', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.creadores_contactos', 'insert')
+              or has_table_privilege('authenticated', 'public.creadores_contactos', 'update')
+              or has_table_privilege('authenticated', 'public.creadores_contactos', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.creadores_contactos', 'insert') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0178: la única puerta de escritura del camino de la landing la ejecuta solo service_role,
+-- y es la versión que guarda el contacto en creadores_contactos (no en metricas).
+select '0178 - creadores desde la landing: creadores_landing_registrar', 'existe, security definer con search_path fijo, escribe en creadores_contactos; anon y authenticated sin execute; service_role con execute',
+       case when to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)') is null then 'NO'
+            when exists (select 1 from pg_proc
+                          where oid = to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)')
+                            and (not prosecdef or not exists (select 1 from unnest(coalesce(proconfig, '{}')) c where c like 'search_path=%'))) then 'NO'
+            when (select prosrc from pg_proc
+                   where oid = to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)'))
+                 not like '%insert into public.creadores_contactos%' then 'NO'
+            when has_function_privilege('anon', 'public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)', 'execute')
+              or has_function_privilege('authenticated', 'public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0178: no_contactar (declina / exclusión) — «se guarda solo lo mínimo y no se vuelve a
+-- contactar». Columna aditiva, default false; la RPC la respeta sin crear SQL libre nuevo.
+select '0178 - creadores desde la landing: no_contactar', 'columna aditiva not null default false; la RPC con 9 argumentos (incluye p_declina) sigue siendo la única con EXECUTE',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'creadores_candidatos'
+                                and column_name = 'no_contactar' and is_nullable = 'NO'
+                                and column_default = 'false') then 'NO'
+            when to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)') is null then 'NO'
+            when (select prosrc from pg_proc
+                   where oid = to_regprocedure('public.creadores_landing_registrar(text,text,text,text,boolean,text,text,boolean,boolean)'))
+                 not like '%no_contactar%' then 'NO'
+            else 'SI' end
+
+union all
 select '0179 - organizacion de la app por persona', 'dos tablas con RLS, sin escritura directa; aplicar/deshacer solo con sesion; anon no lee',
        case when to_regclass('public.praxis_organizacion') is null or to_regclass('public.praxis_organizacion_cambios') is null then 'NO'
             when not (select bool_and(relrowsecurity) from pg_class where oid in (to_regclass('public.praxis_organizacion'),to_regclass('public.praxis_organizacion_cambios'))) then 'NO'
