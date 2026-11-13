@@ -44,6 +44,7 @@ import { TiraSemana } from './TiraSemana'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { VistaSemana } from './VistaSemana'
 import { resumenDeSemana } from '../../domain/nutricion/semanaResumen'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 /**
  * El diario del día: lo que el asesorado se comió, contra lo que le tocaba.
@@ -473,29 +474,35 @@ export default function DiarioDia() {
         </Link>
       )}
 
-      <TiraSemana
-        fecha={fecha}
-        hoy={hoyIso()}
-        conRegistro={conRegistro}
-        onElegir={setFecha}
-        onSemana={() => setVerSemana(true)}
-      />
+      <PiezaOrganizable id="nutricion.tira-semana">
+        <TiraSemana
+          fecha={fecha}
+          hoy={hoyIso()}
+          conRegistro={conRegistro}
+          onElegir={setFecha}
+          onSemana={() => setVerSemana(true)}
+        />
+      </PiezaOrganizable>
 
-      <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+      <PiezaOrganizable id="nutricion.resumen">
+        <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+      </PiezaOrganizable>
 
-      <RecetasCarousel
-        recetas={RECETAS}
-        kcalRestantes={
-          visibilidad.verContadorKcal
-            ? Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))
-            : undefined
-        }
-        verKcal={visibilidad.verContadorKcal}
-        registro={registroDeRecetas}
-        cocinadas={distintas(probadas)}
-        racha={rachaDeRecetas(probadas, fecha).actual}
-        cocinadasHoy={recetasDeHoy}
-      />
+      <PiezaOrganizable id="nutricion.recetas">
+        <RecetasCarousel
+          recetas={RECETAS}
+          kcalRestantes={
+            visibilidad.verContadorKcal
+              ? Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))
+              : undefined
+          }
+          verKcal={visibilidad.verContadorKcal}
+          registro={registroDeRecetas}
+          cocinadas={distintas(probadas)}
+          racha={rachaDeRecetas(probadas, fecha).actual}
+          cocinadasHoy={recetasDeHoy}
+        />
+      </PiezaOrganizable>
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
@@ -522,28 +529,36 @@ export default function DiarioDia() {
         </div>
       </section>
 
-      <PanelMicros total={total} condiciones={condiciones} nombresDelDia={nombresDelDia} />
+      <PiezaOrganizable id="nutricion.micros">
+        <PanelMicros total={total} condiciones={condiciones} nombresDelDia={nombresDelDia} />
+      </PiezaOrganizable>
 
-      <PanelCalibracion
-        pruebas={pruebas}
-        diasPesando={diasPesando}
-        verKcal={visibilidad.verContadorKcal}
-        onRegistrar={({ alimentoId, estimados, reales }) =>
-          db.calibracion.registrar({
-            usuarioId: usuario.id,
-            fecha: hoyIso(),
-            alimentoId,
-            gramosEstimados: estimados,
-            gramosReales: reales,
-          })
-        }
-      />
+      <PiezaOrganizable id="nutricion.calibracion">
+        <PanelCalibracion
+          pruebas={pruebas}
+          diasPesando={diasPesando}
+          verKcal={visibilidad.verContadorKcal}
+          onRegistrar={({ alimentoId, estimados, reales }) =>
+            db.calibracion.registrar({
+              usuarioId: usuario.id,
+              fecha: hoyIso(),
+              alimentoId,
+              gramosEstimados: estimados,
+              gramosReales: reales,
+            })
+          }
+        />
+      </PiezaOrganizable>
 
       {/* El agua y la adherencia son hechos del DÍA, igual que las comidas, así
           que viven aquí. Estaban en la vista del plan, que ahora es solo lo que
           el coach pautó -algo que se lee, no donde se registra-. */}
-      <Hidratacion usuarioId={usuario.id} />
-      <AdherenciaDia usuarioId={usuario.id} />
+      <PiezaOrganizable id="nutricion.agua">
+        <Hidratacion usuarioId={usuario.id} />
+      </PiezaOrganizable>
+      <PiezaOrganizable id="nutricion.adherencia">
+        <AdherenciaDia usuarioId={usuario.id} />
+      </PiezaOrganizable>
 
       {/* El plan completo, a un toque desde donde se registra. En la maqueta es
           una fila al pie; la ruta de siempre se conserva. */}

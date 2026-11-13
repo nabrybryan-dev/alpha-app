@@ -1,4 +1,5 @@
 import type { RegistroComida } from '../../domain/types'
+import { claseTarjeta } from './tarjetasNuevas'
 
 /**
  * Una comida del día en el diario.
@@ -47,7 +48,7 @@ export function FilaComida({ comida, kcal, resumen, verKcal, onAbrir }: FilaComi
       // todo su contenido son <span> anidados, y un lector de pantalla anuncia
       // cuatro botones indistinguibles.
       aria-label={`${NOMBRES[comida.comida]}, ${estado}`}
-      className="press flex w-full items-center gap-3 rounded-2xl border border-linea bg-surface-1 p-3 text-left transition-colors hover:border-accion/40"
+      className={`press flex w-full items-center gap-3 ${claseTarjeta('nutri-fila-comida', 'rounded-2xl border border-linea bg-surface-1')} p-3 text-left transition-colors hover:border-accion/40`}
     >
       {/* La hora solo se pinta cuando hay algo registrado: la de una comida
           vacía era una promesa de la app, no un dato de lo que pasó. */}

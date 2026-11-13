@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BottomNav } from './BottomNav'
 
 function etiquetas(espacios?: 'asesorado' | 'staff') {
@@ -56,5 +58,53 @@ describe('BottomNav', () => {
     expect(screen.queryByRole('link', { name: 'Estrategias' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Empresa' })).toHaveAttribute('href', '/empresa')
+  })
+})
+
+describe('BottomNav: agujero negro de Praxis', () => {
+  const tokens = readFileSync(join(__dirname, '../../styles/tokens.css'), 'utf8').replace(/\r\n/g, '\n')
+
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('con la bandera apagada (por defecto) Praxis conserva su icono de siempre', () => {
+    vi.stubEnv('VITE_PRAXIS_ICONO_ACTIVO', '')
+    render(
+      <MemoryRouter>
+        <BottomNav espacios="staff" />
+      </MemoryRouter>,
+    )
+    const praxis = screen.getByRole('link', { name: 'Praxis' })
+    expect(praxis).toHaveAttribute('href', '/praxis')
+    expect(praxis.querySelector('.agujero-gira')).toBeNull()
+    expect(praxis.querySelectorAll('ellipse')).toHaveLength(0)
+  })
+
+  it('con VITE_PRAXIS_ICONO_ACTIVO=true (staff) pinta el agujero negro y sigue siendo enlace con nombre escrito', () => {
+    vi.stubEnv('VITE_PRAXIS_ICONO_ACTIVO', 'true')
+    render(
+      <MemoryRouter>
+        <BottomNav espacios="staff" />
+      </MemoryRouter>,
+    )
+    const praxis = screen.getByRole('link', { name: 'Praxis' })
+    expect(praxis).toHaveAttribute('href', '/praxis')
+    expect(praxis.querySelector('svg .agujero-gira')).not.toBeNull()
+    expect(praxis.querySelectorAll('ellipse')).toHaveLength(2)
+  })
+
+  it('el asesorado no ve la pestaña ni el agujero negro', () => {
+    render(
+      <MemoryRouter>
+        <BottomNav />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Praxis' })).not.toBeInTheDocument()
+    expect(document.querySelector('.agujero-gira')).toBeNull()
+  })
+
+  it('el giro existe y con movimiento reducido se apaga', () => {
+    expect(tokens).toMatch(/\.agujero-gira\s*\{[^}]*animation:\s*agujero-gira 14s linear infinite/)
+    const reducido = /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.agujero-gira\s*\{\s*animation:\s*none;/
+    expect(tokens).toMatch(reducido)
   })
 })
