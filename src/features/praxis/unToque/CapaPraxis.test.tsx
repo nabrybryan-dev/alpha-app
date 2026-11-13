@@ -176,3 +176,38 @@ describe('CapaPraxis', () => {
     expect(await screen.findByText(P.charlaSinRespuesta)).toBeInTheDocument()
   })
 })
+
+describe('CapaPraxis: aviso real de salud (D09)', () => {
+  it('con escritor que acepta: llama con el tipo, dice «listo» y NO navega', async () => {
+    const alAvisarCoachDeSalud = vi.fn().mockResolvedValue({ ok: true })
+    const { navegar } = montar({ alAvisarCoachDeSalud })
+    act(() => abrirCapa())
+    const u = await escribir('Me duele la rodilla al bajar en sentadilla')
+    await u.click(await screen.findByRole('button', { name: A.saludAvisar }))
+    expect(alAvisarCoachDeSalud).toHaveBeenCalledWith('salud')
+    expect(await screen.findByText(P.avisoSaludHecho)).toBeInTheDocument()
+    expect(navegar).not.toHaveBeenCalled()
+  })
+
+  it('con escritor que falla: NO dice «listo», dice la verdad y ofrece el chat', async () => {
+    const alAvisarCoachDeSalud = vi.fn().mockResolvedValue({ ok: false, motivo: 'no_disponible' })
+    const { navegar } = montar({ alAvisarCoachDeSalud })
+    act(() => abrirCapa())
+    const u = await escribir('Me duele la rodilla al bajar en sentadilla')
+    await u.click(await screen.findByRole('button', { name: A.saludAvisar }))
+    expect(await screen.findByText(P.avisoSaludNoPude)).toBeInTheDocument()
+    expect(screen.queryByText(P.avisoSaludHecho)).toBeNull()
+    await u.click(screen.getByRole('button', { name: P.avisoSaludAlChat }))
+    expect(navegar).toHaveBeenCalledWith('/chat')
+  })
+
+  it('si el escritor revienta, tampoco finge', async () => {
+    const alAvisarCoachDeSalud = vi.fn().mockRejectedValue(new Error('red'))
+    montar({ alAvisarCoachDeSalud })
+    act(() => abrirCapa())
+    const u = await escribir('Me duele la rodilla al bajar en sentadilla')
+    await u.click(await screen.findByRole('button', { name: A.saludAvisar }))
+    expect(await screen.findByText(P.avisoSaludNoPude)).toBeInTheDocument()
+    expect(screen.queryByText(P.avisoSaludHecho)).toBeNull()
+  })
+})

@@ -1,5 +1,6 @@
 import { DE_SALUD } from '../domain/praxis/ordenes/ordenesDeVoz'
 import { leerPedidoDeOrganizacion, limpiarFrase, type VerboDeOrganizacion } from '../domain/praxis/organizacion/pedido'
+import { nivelDeMarca, type NivelAviso } from '../domain/praxis/aviso'
 import { derivarPorRiesgo, filtroDeRiesgo } from '../domain/praxis/riesgo'
 import { TEXTOS_APROBADOS as A, TEXTOS_PENDIENTES as P } from '../features/praxis/unToque/textos'
 import type { PerfilAcceso } from './rutas'
@@ -50,7 +51,9 @@ export type AccionDeTarjeta =
   | { t: 'elegir'; verbo: VerboDeOrganizacion; piezaId: string }
   | { t: 'dejar'; mensaje: string }
   | { t: 'avisar_coach_pieza'; piezaId: string }
-  | { t: 'avisar_coach_salud' }
+  /** `nivel`: el TIPO de señal (nunca la frase). Es lo único que sale del teléfono hacia el aviso al coach. */
+  | { t: 'avisar_coach_salud'; nivel: NivelAviso }
+  | { t: 'abrir_chat' }
   | { t: 'abrir_checkin' }
   | { t: 'quitar_ultimo' }
 
@@ -203,7 +206,7 @@ function turnoDeSalud(frase: string): TurnoDePraxis {
       texto: A.saludTitulo,
       sub: A.saludSub,
       botones: [
-        { etiqueta: A.saludAvisar, accion: { t: 'avisar_coach_salud' } },
+        { etiqueta: A.saludAvisar, accion: { t: 'avisar_coach_salud', nivel: marca ? nivelDeMarca(marca) : 'salud' } },
         { etiqueta: A.saludCheckin, accion: { t: 'abrir_checkin' } },
       ],
     },

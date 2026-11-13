@@ -9,14 +9,16 @@ import { fijarOrganizacionViva, useOrganizacionVisible } from '../../../app/orga
 import { deshacerUltimoCambioDeOrganizacion, guardarCambioDeOrganizacion, leerOrganizacion } from '../../../data/praxis/organizacion'
 import { organizarEncendidoPara, praxisDePruebaPara } from '../../../domain/praxis/rapidezLocal'
 import { CapaPraxis, type PuertoDeGuardado } from './CapaPraxis'
+import { avisoRealActivo, manejadorDeAvisoDeSalud } from './avisoReal'
 
 /**
  * La capa conectada a la sesión: saca el perfil de quien está dentro y la monta SOLO si esa persona puede ver
  * Praxis (`puedeVerPraxis`, la misma guarda de la ruta `/praxis`). Un asesorado no la recibe mientras
  * `PRAXIS_ABIERTA_A_ASESORADOS` sea `false`.
  *
- * Los dos avisos al coach NO escriben nada nuevo: «Avisar a mi coach» lleva al chat que la app ya tiene, y el aviso
- * por pieza no se ofrece (no existe todavía su camino de escritura; ver la descripción del PR).
+ * «Avisar a mi coach»: con `VITE_PRAXIS_AVISO_REAL` apagada (por defecto) lleva al chat que la app ya tiene; encendida (solo
+ * tras aplicar la 0108) deja UNA fila de aviso con el tipo de señal, sin la frase (`avisoReal.ts`). El aviso por pieza
+ * no se ofrece (su nivel no cabe en la 0108).
  */
 export function CapaPraxisConectada() {
   const { usuario } = useSesion()
@@ -56,7 +58,7 @@ export function CapaPraxisConectada() {
       guardado={guardado}
       pantallaActual={buscarRuta(pathname)?.patron ?? pathname}
       navegar={navegar}
-      alAvisarCoachDeSalud={() => navegar('/chat')}
+      alAvisarCoachDeSalud={manejadorDeAvisoDeSalud({ activo: avisoRealActivo(), usuarioId: usuario.id, navegar })}
       alAbrirCheckin={() => navegar('/bienestar')}
     />
   )

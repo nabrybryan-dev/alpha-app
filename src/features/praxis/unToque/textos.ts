@@ -169,6 +169,10 @@ export const TEXTOS_PENDIENTES = {
   avisoCoachNo: 'No, gracias', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
   avisoCoachHecho: 'Aviso dejado para tu coach. No cambié nada.', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
   avisoCoachNoHice: 'Listo, no hice nada.', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
+  avisoSaludHecho: 'Listo: dejé el aviso para tu coach.', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
+  avisoSaludNoPude: 'No pude dejar el aviso ahora. Escríbele a tu coach por el chat.', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
+  avisoSaludFalloEtiqueta: 'Aviso sin enviar', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
+  avisoSaludAlChat: 'Escribirle por el chat', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
   sinSoporte: 'Esa orden todavía no la sé hacer desde aquí. No toqué nada.', // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO
   // — píldora —
   pildoraTraje: (pieza: string) => `Te traje ${pieza}`, // TEXTO PENDIENTE DE APROBACIÓN DEL DUEÑO

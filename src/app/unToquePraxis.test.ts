@@ -135,3 +135,20 @@ describe('resolverTurno: la charla detrás de la segunda bandera', () => {
     expect(esPreguntaDeConocimiento('Muéstrame el agua')).toBe(false)
   })
 })
+
+describe('resolverTurno: el aviso de salud lleva el TIPO de señal, nunca la frase (D09)', () => {
+  const accionDeAvisar = (frase: string) => resolverTurno(frase, ctx()).tarjeta?.botones.find((b) => b.etiqueta === A.saludAvisar)?.accion
+  it.each([
+    ['Me duele la rodilla al bajar en sentadilla', 'salud'],
+    ['me quiero morir', 'vida'],
+    ['mi esposo me pegó anoche', 'pareja'],
+    ['le pegan a mi hijo en el colegio', 'nino'],
+    ['no aguanto más', 'cuidado'],
+  ])('«%s» -> nivel %s', (frase, nivel) => {
+    expect(accionDeAvisar(frase)).toEqual({ t: 'avisar_coach_salud', nivel })
+  })
+  it('la tarjeta no contiene la frase', () => {
+    const t = resolverTurno('me duele el codo zzfrase-ficticia', ctx())
+    expect(JSON.stringify(t.tarjeta)).not.toContain('zzfrase')
+  })
+})

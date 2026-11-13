@@ -18,6 +18,8 @@ import {
   type ContextoDelTurno,
   type TurnoDePraxis,
 } from '../../../app/unToquePraxis'
+import type { ResultadoAviso } from '../../../data/praxis/avisoAlCoach'
+import type { NivelAviso } from '../../../domain/praxis/aviso'
 import { movimientoReducido } from '../../../components/ui/movimientoReducido'
 import { PRAXIS_UN_TOQUE_CHARLA } from './banderas'
 import { EsquemaDeOrden } from './EsquemaDeOrden'
@@ -71,8 +73,12 @@ export interface CapaPraxisProps {
   charlaActiva?: boolean
   /** Camino para dejarle al coach el aviso «te sobra esta parte» (sin la frase). Sin él, no se ofrece. */
   alAvisarCoachDePieza?: (piezaId: string) => void
-  /** «Avisar a mi coach» de la tarjeta de salud. No escribe nada propio: lleva al camino que la app ya tiene. */
-  alAvisarCoachDeSalud: () => void
+  /**
+   * «Avisar a mi coach» de la tarjeta de salud. Recibe el TIPO de señal, nunca la frase. Si devuelve una promesa de
+   * `ResultadoAviso` (aviso real, D09), la capa solo dice «listo» con `ok`; si no devuelve nada (camino de siempre: lleva
+   * al chat), cierra la capa y ya.
+   */
+  alAvisarCoachDeSalud: (nivel: NivelAviso) => void | Promise<ResultadoAviso>
   alAbrirCheckin: () => void
 }
 
@@ -219,9 +225,34 @@ export function CapaPraxis(props: CapaPraxisProps) {
           alAvisarCoachDePieza?.(accion.piezaId)
           poner({ k: 'px', texto: P.avisoCoachHecho })
           return
-        case 'avisar_coach_salud':
+        case 'avisar_coach_salud': {
+          const r = alAvisarCoachDeSalud(accion.nivel)
+          if (!r) {
+            cerrarCapa()
+            return
+          }
+          setOcupado(true)
+          void Promise.resolve(r)
+            .catch(() => ({ ok: false }) as const)
+            .then((res) => {
+              setOcupado(false)
+              if (res.ok) {
+                poner({ k: 'px', texto: P.avisoSaludHecho })
+                return
+              }
+              poner({
+                k: 'turno',
+                turno: {
+                  pasos: [],
+                  tarjeta: { estilo: 'neutra', etiqueta: P.avisoSaludFalloEtiqueta, texto: P.avisoSaludNoPude, botones: [{ etiqueta: P.avisoSaludAlChat, accion: { t: 'abrir_chat' } }] },
+                },
+              })
+            })
+          return
+        }
+        case 'abrir_chat':
           cerrarCapa()
-          alAvisarCoachDeSalud()
+          navegar('/chat')
           return
         case 'abrir_checkin':
           cerrarCapa()
@@ -232,7 +263,7 @@ export function CapaPraxis(props: CapaPraxisProps) {
           return
       }
     },
-    [piezas, estado, ctx, poner, mostrarPildora, confirmarEnLaBase, guardado, alAvisarCoachDePieza, alAvisarCoachDeSalud, alAbrirCheckin],
+    [piezas, estado, ctx, poner, mostrarPildora, confirmarEnLaBase, guardado, alAvisarCoachDePieza, alAvisarCoachDeSalud, alAbrirCheckin, navegar],
   )
 
   const enviar = useCallback(
