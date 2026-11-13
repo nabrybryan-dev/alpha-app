@@ -4426,6 +4426,67 @@ body.praxis-sala-abierta { overflow:hidden; }
   color: var(--silver-400);
 }
 
+/* C1 — Hoy con anillo: tarjetas a 22 px (maqueta v17, build-v8/1-css.css:120). Solo con la
+   bandera HOY_CON_ANILLO encendida: la clase la pone HoyPage y sin ella esto no aplica. */
+.hoy-con-anillo .rounded-tarjeta,
+.hoy-con-anillo .rounded-bloque {
+  border-radius: 22px;
+}
+
+/* ---------- Agujero negro de Praxis en la barra (B1) ----------
+   Los anillos giran 14 s por vuelta, como en la maqueta (`.bn-g`). Con
+   movimiento reducido el icono queda quieto: sigue siendo el mismo dibujo. */
+.agujero-gira {
+  transform-origin: 12px 12px;
+  transform-box: view-box;
+  animation: agujero-gira 14s linear infinite;
+}
+@keyframes agujero-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agujero-gira {
+    animation: none;
+  }
+}
+
+/* ---------- Nutricion: tarjetas con el estandar de la maqueta (C3) ----------
+   Solo aspecto. Tarjeta 22, fila de comida 18, pista de macros hundida. */
+.nutri-resumen {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  box-shadow: var(--brillo), var(--sombra-card);
+  padding: 16px;
+}
+.nutri-fila-comida {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  box-shadow: var(--brillo);
+}
+.nutri-pista-kcal {
+  height: 8px;
+  border-radius: 9px;
+  background: var(--surface-3);
+  box-shadow: var(--sombra-hundido);
+}
+.nutri-pista-relleno {
+  border-radius: 9px;
+}
+.nutri-tile-macro {
+  border-radius: 18px;
+  background-color: var(--surface-2);
+  background-image: var(--relleno-hundido);
+  box-shadow: var(--sombra-hundido);
+}
+.nutri-chip-margen {
+  border-radius: 99px;
+}
+
 /* ---------- LA HOJA DE LA PORTADA DEL SALÓN (maqueta 7, pieza C2) ----------
    Solo la piel de la hoja arrastrable de `PanelInferior`, detrás de
    `SALON_PORTADA_MAQUETA` (apagada): radio 22, relleno alzado, sombra hacia arriba,

@@ -300,6 +300,24 @@ describe('praxis-charla: respuesta provisional (segunda bandera PRAXIS_CHARLA_PR
     }
   })
 
+  it('D12: bandera APAGADA y salud en la frase: al coach, sin hueco y sin DeepSeek (la revisión de salud no depende de la bandera)', async () => {
+    const frases = [
+      'tengo un pinchazo en el codo cuando hago dominadas',
+      'agujetas fuertes en el cuello y hombro, es grave?',
+      'tomo medicacion para la tension, puedo entrenar piernas?',
+      'me salio una hinchazon en la rodilla despues de sentadilla',
+    ]
+    for (const provisional of [undefined, '', '0', 'true']) {
+      for (const frase of frases) {
+        const { d, llamadas } = montar({ piezas: [], provisional, textoProvisional: LIMPIA })
+        const j = await (await manejar(pedir(frase), d)).json()
+        expect(j.salida, frase).toBe('coach')
+        expect(j.hueco, frase).toBeUndefined()
+        expect(aDeepseek(llamadas), frase).toEqual([])
+      }
+    }
+  })
+
   it('bandera puesta y el lector dice riesgo: NO se llama a DeepSeek y no hay hueco', async () => {
     const { d, llamadas } = montar({ piezas: [], provisional: '1', textoProvisional: LIMPIA, lector: '{"nivel":"ALTO","cita":"x"}' })
     const j = await (await manejar(pedir(FRASE), d)).json()

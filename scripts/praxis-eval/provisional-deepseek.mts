@@ -1,8 +1,8 @@
 /**
  * Mide el filtro de salida de la respuesta provisional con salidas REALES de DeepSeek.
- *   npx vite-node scripts/praxis-eval/provisional-deepseek.mts -- <A|B|A2|C> [--solo-filtrar] [--tope N]
+ *   npx vite-node scripts/praxis-eval/provisional-deepseek.mts -- <A|B|A2|C|D> [--solo-filtrar] [--tope N]
  * Lee examen-<X>.json (A2 usa examen-A.json) y escribe salidas-<X>.json (fuera del repo). A2 = el examen A con el vocabulario
- * ampliado, la salud en la frase y las rotundas (11-nov). C es el examen LIMPIO: se corre UNA sola vez (se niega si ya existe salidas-C.json). Con --solo-filtrar no llama a DeepSeek: reusa la
+ * ampliado, la salud en la frase y las rotundas (11-nov). C y D son examenes LIMPIOS (D: 12-nov, salud de poblaciones sensibles, a ciegas): se corren UNA sola vez (se niega si ya existe salidas-C.json). Con --solo-filtrar no llama a DeepSeek: reusa la
  * salida cruda de salidas-<X>.json y vuelve a decidir (sirve para afinar sin gastar).
  * El lector de riesgo (Anthropic) NO se llama: se simula «sin riesgo». Los filtros locales de salud de la frase (filtro de la app
  * + lexico de la charla, `saludAntesDeDeepseek`) SI se aplican, como en la funcion: la frase con sintoma va al coach sin llamar a DeepSeek.
@@ -22,7 +22,7 @@ const examen = args[0]
 const soloFiltrar = args.includes('--solo-filtrar')
 const iTope = args.indexOf('--tope')
 const TOPE = iTope >= 0 ? Number(args[iTope + 1]) : 90000
-if (!['A', 'B', 'A2', 'C'].includes(examen ?? '') || !Number.isFinite(TOPE)) throw new Error('uso: <A|B|A2|C> [--solo-filtrar] [--tope N]')
+if (!['A', 'B', 'A2', 'C', 'D'].includes(examen ?? '') || !Number.isFinite(TOPE)) throw new Error('uso: <A|B|A2|C|D> [--solo-filtrar] [--tope N]')
 const archivoExamen = examen === 'A2' ? 'A' : examen
 
 interface Pregunta { id: string; pregunta: string; trampa: string }
@@ -31,11 +31,12 @@ interface Salida {
   decision: 'provisional' | 'al_coach'; motivo: string | null; tokens: number; error?: string
 }
 const preguntas = JSON.parse(readFileSync(`${DIR}/examen-${archivoExamen}.json`, 'utf8')) as Pregunta[]
-const ruta = `${DIR}/salidas-${examen}.json`
+const ruta = `${DIR}/salidas-${examen}${examen === 'D' && soloFiltrar ? '-solo-filtrar' : ''}.json`
+const rutaD = `${DIR}/salidas-D.json` // D es el examen limpio a ciegas: se corre UNA vez; el modo --solo-filtrar escribe aparte
 const previas: Salida[] = soloFiltrar && existsSync(ruta) ? JSON.parse(readFileSync(ruta, 'utf8')) : []
 const VOCAB: ReadonlySet<string> = new Set(VOCABULARIO_CHARLA)
 const clave = process.env.DEEPSEEK_API_KEY
-if (examen === 'C' && !soloFiltrar && existsSync(ruta)) throw new Error('el examen C ya se corrio: es el limpio, no se repite')
+if ((examen === 'C' || examen === 'D') && !soloFiltrar && existsSync(rutaD.replace('salidas-D', `salidas-${examen}`))) throw new Error(`el examen ${examen} ya se corrio: es el limpio, no se repite`)
 if (!soloFiltrar && !clave) throw new Error('falta DEEPSEEK_API_KEY')
 
 const salidas: Salida[] = []
@@ -93,6 +94,6 @@ console.log(`examen ${examen}: ${salidas.length} preguntas, tokens esta corrida 
 console.log('decision', por((s) => s.decision))
 console.log('motivo', por((s) => s.motivo ?? 'pasa'))
 console.log('trampa x decision', por((s) => `${s.trampa}:${s.decision}`))
-if ((examen === 'B' || examen === 'C') && !soloFiltrar) {
+if ((examen === 'B' || examen === 'C' || examen === 'D') && !soloFiltrar) {
   writeFileSync(`${DIR}/salidas-${examen}-pasaron.json`, JSON.stringify(salidas.filter((s) => s.decision === 'provisional').map((s) => ({ id: s.id, pregunta: s.pregunta, salida: s.salida_cruda })), null, 2))
 }
