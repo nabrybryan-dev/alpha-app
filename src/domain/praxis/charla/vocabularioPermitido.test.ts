@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { limpiarFrase, NOMBRES_COMUNES } from './limpiador.ts'
 import { VOCABULARIO_CHARLA } from './vocabularioCharla.generado.ts'
 import { PALABRAS_COMUNES } from './vocabularioComun.ts'
+import { saludAntesDeDeepseek, saludEnFrase } from './saludEnFrase.ts'
 import { armarVocabulario, normalizarPalabra, soloVocabulario } from './vocabularioPermitido.ts'
 
 const VOCAB = new Set(VOCABULARIO_CHARLA)
@@ -108,8 +109,8 @@ describe('(e) el vocabulario no contiene nombres de persona', () => {
 
 describe('(f) ampliación aprobada con el vocabulario de entrenamiento (11-nov)', () => {
   const ampliacion = JSON.parse(readFileSync('scripts/vocabulario-charla-AMPLIACION.json', 'utf8')) as string[]
-  it('la lista trae 534 palabras y todas están en el vocabulario', () => {
-    expect(ampliacion).toHaveLength(534)
+  it('la lista trae 518 palabras (534 menos 16 de salud) y todas están en el vocabulario', () => {
+    expect(ampliacion).toHaveLength(518)
     // el limpiador parte por letras: «pre-entreno» vale si «pre» y «entreno» están
     const faltan = ampliacion.flatMap((p) => normalizarPalabra(p).match(/\p{L}+/gu) ?? []).filter((p) => p.length >= 2 && !VOCAB.has(p))
     expect(faltan).toEqual([])
@@ -132,5 +133,25 @@ describe('(f) ampliación aprobada con el vocabulario de entrenamiento (11-nov)'
     for (const [f, n] of [['creatina con zulema', 'zulema'], ['Zacarias pregunta por el agarre', 'zacarias'], ['vivo en el barrio las acacias', 'acacias']]) {
       expect(filtrar(f!)).not.toContain(n)
     }
+  })
+})
+
+describe('el vocabulario permitido no trae palabras de salud (custodio, hallazgo 2)', () => {
+  const DE_SALUD = ['dolor', 'dolores', 'embarazo', 'lesion', 'lesiones', 'ansiedad', 'menopausia']
+  it('ninguna palabra del vocabulario la marca el léxico de salud', () => {
+    const marcadas = VOCABULARIO_CHARLA.filter((p) => saludEnFrase(p) !== null)
+    expect(marcadas).toEqual([])
+  })
+  it.each(DE_SALUD)('«%s» no está en el vocabulario', (p) => {
+    expect(VOCAB.has(p)).toBe(false)
+  })
+  it.each([
+    'Tengo dolor al hacer sentadilla, ¿qué hago?',
+    'Estoy en el embarazo, ¿puedo entrenar piernas?',
+    'Tuve una lesion y quiero volver a las series',
+    'Siento ansiedad antes de entrenar',
+    'Estoy en la menopausia, ¿cuántas series por semana?',
+  ])('la frase de salud ficticia «%s» sigue yendo al coach', (f) => {
+    expect(saludAntesDeDeepseek(f)).not.toBeNull()
   })
 })

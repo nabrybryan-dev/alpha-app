@@ -44,7 +44,7 @@ describe('decidirProvisional', () => {
     expect(r.excluirEntrenamiento).toBe(true)
   })
   it('el rótulo es una constante única', () => {
-    expect(ROTULO_PROVISIONAL).toBe('Respuesta provisional, sin revisar. Tu coach puede verla.')
+    expect(ROTULO_PROVISIONAL).toBe('Respuesta provisional, sin revisar. Confírmala con tu coach.')
   })
   it('salida con cifra, autor, prescripción o salud: al coach, sin texto del modelo', () => {
     for (const mala of ['Suele ser un 40 % más.', 'Según Schoenfeld 2016.', 'Haz 4 series de 8 con 60 kg.', 'Puede ser una lesión.']) {
@@ -59,5 +59,11 @@ describe('decidirProvisional', () => {
   it('constancia de exclusión: la provisional lleva excluirEntrenamiento:true y origen provisional', () => {
     const r = decidirProvisional('El descanso ayuda a recuperar entre sesiones.', FRASE)
     expect(r).toMatchObject({ tipo: 'provisional', excluirEntrenamiento: true, origen: 'provisional' })
+  })
+})
+
+describe('rótulo provisional (custodio, hallazgo 3)', () => {
+  it('no promete que el coach vea la respuesta: nada la guarda ni se la muestra', () => {
+    expect(ROTULO_PROVISIONAL).not.toMatch(/puede verla|la ve |te la revisa|avis/i)
   })
 })

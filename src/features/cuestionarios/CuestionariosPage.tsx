@@ -8,6 +8,7 @@ import { db, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Cuestionario } from '../../domain/types'
 import { ResponderCuestionario } from './ResponderCuestionario'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 export default function CuestionariosPage() {
   const { usuario } = useSesion()
@@ -49,15 +50,17 @@ export default function CuestionariosPage() {
       </section>
 
       {respondidos.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <p className="kicker">Respondidos</p>
-          {respondidos.map((q) => (
-            <Card key={q.id} className="flex items-center justify-between gap-3 opacity-75">
-              <h3 className="font-display text-base text-texto">{q.titulo}</h3>
-              <Badge tono="verde">✓ Enviado</Badge>
-            </Card>
-          ))}
-        </section>
+        <PiezaOrganizable id="cuestionarios.enviados">
+          <section className="flex flex-col gap-2">
+            <p className="kicker">Respondidos</p>
+            {respondidos.map((q) => (
+              <Card key={q.id} className="flex items-center justify-between gap-3 opacity-75">
+                <h3 className="font-display text-base text-texto">{q.titulo}</h3>
+                <Badge tono="verde">✓ Enviado</Badge>
+              </Card>
+            ))}
+          </section>
+        </PiezaOrganizable>
       )}
 
       <Sheet abierto={abierto !== undefined} titulo={abierto?.titulo ?? ''} onCerrar={() => setAbierto(undefined)}>

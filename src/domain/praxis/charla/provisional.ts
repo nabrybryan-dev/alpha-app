@@ -13,7 +13,7 @@ import { soloVocabulario } from './vocabularioPermitido.ts'
  */
 
 // TEXTO PENDIENTE DE APROBACION DEL DUENO (selector)
-export const ROTULO_PROVISIONAL = 'Respuesta provisional, sin revisar. Tu coach puede verla.'
+export const ROTULO_PROVISIONAL = 'Respuesta provisional, sin revisar. Confírmala con tu coach.'
 
 export const MAX_TOKENS_PROVISIONAL = 200
 

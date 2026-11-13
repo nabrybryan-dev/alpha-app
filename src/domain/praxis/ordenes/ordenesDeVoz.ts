@@ -59,7 +59,7 @@ const AMBIGUOS: readonly (readonly [RegExp, readonly IdDeRegion[]])[] = [
   [/\b(brazo|brazos)\b/, ['bic', 'tri', 'ante']],
 ]
 
-const DE_SALUD = /\b(duele|duelen|dolor|dolores|molesta|molestan|lesion|lesione|mareo|mareado|mareada)\b/
+export const DE_SALUD = /\b(duele|duelen|dolor|dolores|molesta|molestan|lesion|lesione|mareo|mareado|mareada)\b/
 const NEGADA = /\b(no|nunca|tampoco)\s+(me\s+|lo\s+|la\s+)?(muestres|ensenes|abras|abre|quiero|vayas|pongas|mires)\b/
 const PIDE_MOVIMIENTO = /\b(movimiento|como se hace|como se hacen|como lo hago|demuestra|demuestrame)\b/
 
