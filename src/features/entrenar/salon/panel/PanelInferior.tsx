@@ -23,6 +23,7 @@ import { ComoLlegas } from '../../ruta/ComoLlegas'
 import { tonoDeRecuperacion } from '../../ruta/tonoDeRecuperacion'
 import { BloqueEnCurso } from '../../ruta/BloqueEnCurso'
 import { CalendarioSemana } from '../../ruta/CalendarioSemana'
+import { AnilloDeLaSemanaDeLaHoja } from './AnilloDeLaSemana'
 import { RequisitosNivel } from '../../ruta/RequisitosNivel'
 import { NotasDeLaSemana } from '../../NotasDeLaSemana'
 import { avisoDeSemana } from '../../avisoDeSemana'
@@ -484,6 +485,7 @@ export function PanelInferior(props: PanelInferiorProps) {
                 </span>
               }
             >
+              <AnilloDeLaSemanaDeLaHoja semana={semana} />
               <CalendarioSemana dias={semana} sesionesFueraDeSemana={sesionesFueraDeLaSemana(microciclo, semana)} />
             </Recuadro>
 
