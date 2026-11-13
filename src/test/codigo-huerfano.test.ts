@@ -51,6 +51,11 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   'src/domain/praxis/charla/memoria.ts':
     'Qué se guarda de cada turno en la memoria de la charla (0166, 7-nov-2026); lo consume la Edge Function ' +
     'praxis-registro (memoria.ts, con PRAXIS_GUARDAR_CHARLA=1), no la app: el teléfono solo manda charla_id y turno.',
+  'src/domain/praxis/charla/vocabularioPermitido.ts':
+    'Limpiador por vocabulario permitido de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function praxis-charla (APAGADA, sin desplegar), no la app.',
+  'src/domain/praxis/charla/salidaCharla.ts':
+    'Decisión de salida que falla cerrado y respaldo sin modelo de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function ' +
+    'praxis-charla (APAGADA, sin desplegar), no la app.',
   'src/domain/praxis/consultas/portero.ts':
     'Consultas del equipo contestadas con una ficha (Bryan, 25-oct-2026); lo consume la Edge Function praxis-registro, no la app.',
 
@@ -130,6 +135,11 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Charla con DeepSeek (11-nov-2026): las usa la Edge Function praxis-charla, que queda fuera de src/ y APAGADA, sin desplegar.
+  'src/domain/praxis/charla/pedidoCharla.ts#armarPedidoDeepseek': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
+  'src/domain/praxis/charla/pedidoCharla.ts#CAMPOS_DEL_ENVIO': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
+  'src/domain/praxis/charla/pedidoCharla.ts#URL_DEEPSEEK': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
+  'src/domain/praxis/charla/pedidoCharla.ts#validarRespuestaCharla': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
   // Segunda capa de la organización por voz (11-nov-2026): la leen el script de medición y las pruebas; la Edge
   // Function que consultaría al modelo no existe todavía (saldo de Anthropic en cero y fase O2b sin abrir).
   'src/domain/praxis/organizacion/lectorModelo.ts#promptDeOrganizacion':
