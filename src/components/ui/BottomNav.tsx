@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { IconoAgujeroNegro } from './Icono'
+import { useDisenoFinal } from '../../app/organizacionViva'
+import { PRAXIS_UN_TOQUE_ACTIVO } from '../../features/praxis/unToque/banderas'
+import { BotonPraxisUnToque } from '../../features/praxis/unToque/BotonPraxisUnToque'
 
 function Icono({ children }: { children: ReactNode }) {
   return (
@@ -171,7 +174,11 @@ export function BottomNav({
   espacios = 'asesorado',
   organizacion,
 }: { espacios?: EspaciosNav; organizacion?: OrganizacionDeLaBarra } = {}) {
-  const base = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+  // «Praxis a un toque»: la bandera global, o la cuenta con el diseño final (la personal de Bryan).
+  const disenoFinal = useDisenoFinal()
+  const unToque = disenoFinal || PRAXIS_UN_TOQUE_ACTIVO
+  // Un asesorado puro de prueba (Bryan) ve el botón de Praxis a un toque en el centro de su barra; cualquier otro asesorado, no.
+  const base = espacios === 'staff' ? pestanasStaff : disenoFinal ? conPraxisAlCentro(pestanasAsesorado) : pestanasAsesorado
   const pestanas = organizacion ? organizarPestanas(base, organizacion) : base
   return (
     <nav
@@ -187,7 +194,10 @@ export function BottomNav({
           frontera que ya vigila `blur-solo-en-superficies-fijas`. Puesto en cada pestaña
           la profundidad se nota donde se toca, que es donde sirve. */}
       <div className="glass glass-blur flex w-full max-w-[24rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
-        {pestanas.map((p) => (
+        {pestanas.map((p) =>
+          unToque && p.ruta === '/praxis' ? (
+            <BotonPraxisUnToque key={p.ruta} etiqueta={p.etiqueta} />
+          ) : (
           <NavLink
             key={p.ruta}
             to={p.ruta}
@@ -217,7 +227,8 @@ export function BottomNav({
               </>
             )}
           </NavLink>
-        ))}
+          ),
+        )}
       </div>
     </nav>
   )
@@ -233,4 +244,11 @@ function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], o
   }
   const ordenadas = visibles.map((p, i) => ({ p, c: clave(p, i), i })).sort((a, b) => a.c - b.c || a.i - b.i).map((e) => e.p)
   return primera ? [primera, ...ordenadas] : ordenadas
+}
+
+/** La pestaña de Praxis del equipo, puesta en el centro de la barra de asesorado (solo para la cuenta de prueba). */
+function conPraxisAlCentro<T extends { ruta: string }>(pestanas: readonly T[]): T[] {
+  const praxis = pestanasStaff.find((p) => p.ruta === '/praxis') as unknown as T
+  const medio = Math.floor(pestanas.length / 2)
+  return [...pestanas.slice(0, medio), praxis, ...pestanas.slice(medio)]
 }

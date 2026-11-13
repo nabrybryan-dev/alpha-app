@@ -33,3 +33,11 @@ export function organizarEncendidoPara(usuarioId: string, global: boolean = PRAX
 export const CUENTAS_CON_DISENO_FINAL: ReadonlySet<string> = new Set(['87f3c420-f2fb-4b5f-986c-95535bbac9dd'])
 
 export const disenoFinalEncendidoPara = (usuarioId: string | null): boolean => usuarioId !== null && CUENTAS_CON_DISENO_FINAL.has(usuarioId)
+
+/**
+ * Praxis de PRUEBA para una cuenta que es asesorado puro (orden de Bryan, 12-nov: ver la app «tal cual como la ve un
+ * asesorado» y aun así probar Praxis). La puerta general NO cambia: `PRAXIS_ABIERTA_A_ASESORADOS` sigue en `false` y los
+ * asesorados de verdad siguen sin entrar. Solo las cuentas de `CUENTAS_CON_DISENO_FINAL` ven el botón de Praxis a un toque
+ * en la barra de asesorado y su capa (que desvía la salud al coach antes de todo y no llama a ningún modelo).
+ */
+export const praxisDePruebaPara = (usuarioId: string | null): boolean => disenoFinalEncendidoPara(usuarioId)
