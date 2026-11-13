@@ -50,6 +50,7 @@ import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import { suenoMedio } from '../../domain/miDia'
 import { NotasDeLaSemana } from '../entrenar/NotasDeLaSemana'
 import { ChequeoDeHoy } from './miDia/ChequeoDeHoy'
+import { ChequeoDeHoyConPiel } from './miDia/ChequeoDeHoyConPiel'
 import { EntradaMiPlan } from '../plan/EntradaMiPlan'
 import { MedidasYPeso } from './miDia/MedidasYPeso'
 import { TuSemana } from './miDia/TuSemana'
@@ -331,7 +332,7 @@ export default function HoyPage() {
   // sigue viva como detalle: el propio formulario lleva su entrada.
   const checkinDelAsesorado = (
     <div className="entrada entrada-2">
-      <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
+      <ChequeoDeHoyConPiel usuarioId={usuario.id} hoy={hoy} />
     </div>
   )
 
