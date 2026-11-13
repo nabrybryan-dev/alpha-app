@@ -11,6 +11,7 @@ import {
   type RespuestasTarjetaVida,
 } from '../../domain/tarjetaVida'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
+import { AvisoDelDomingo } from './AvisoDelDomingo'
 
 /**
  * LA TARJETA SEMANAL DE ESTILO DE VIDA: 7 PREGUNTAS, DEL AGENTE DE ESTILO DE VIDA.
@@ -61,7 +62,8 @@ export function TarjetaVidaCard({ usuarioId }: { usuarioId: string }) {
       </Card>
     )
   }
-  if (!debeMostrarTarjeta(hoy, semanasRespondidas)) return null
+  // Fuera de su día, con el diseño final, se anuncia (maqueta 7); para las demás cuentas, nada.
+  if (!debeMostrarTarjeta(hoy, semanasRespondidas)) return <AvisoDelDomingo hoy={hoy} />
 
   const responder = (id: IdPreguntaVida, valor: number) => {
     setRespuestas((prev) => ({ ...prev, [id]: valor }))
