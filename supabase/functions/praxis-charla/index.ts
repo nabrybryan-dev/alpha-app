@@ -29,7 +29,9 @@
 // caracteres, H4 la búsqueda de piezas y DeepSeek reciben la frase limpia, H9 sin secreto PRAXIS_CHARLA_NOMBRES.
 // PRAXIS_CHARLA_NOMBRES YA NO SE LEE en esta función (comprobado: ninguna referencia a esa variable en praxis-charla); no hace falta
 // crearlo. El vocabulario sale de `vocabularioCharla.generado.ts` (scripts/generar-vocabulario-charla.mts); si cambian las piezas, regenerar.
-// Pendiente: H3/H6 abogado, H5 provisional (respuesta del modelo sin filtro ni rótulo; espera decisiones del dueño).
+// Pendiente: H3/H6 abogado. H5 provisional: rama construida APAGADA tras una segunda bandera `PRAXIS_CHARLA_PROVISIONAL=1` (sin ella, la frase fija);
+// sin pieza, DeepSeek con prompt de conocimiento general -> filtro de salida -> rótulo (TEXTO PENDIENTE DE APROBACION DEL DUENO) o al coach.
+// Siempre devuelve `hueco` ({temaClave, frase limpia}) para que quien llama lo encole; aquí no se escribe en ninguna tabla.
 // Pendiente antes de encender (no hecho aquí): revisión del abogado por la transferencia a un proveedor extranjero, saldo del
 // lector de riesgo, desplegar con la CLI. El nombre `deepseek-flash` lo dio el dueño: no se comprobó contra la documentación
 // del proveedor. La búsqueda de piezas manda la frase LIMPIA al servicio de vectores propio (el mismo de
@@ -47,6 +49,9 @@ import {
   type PiezaDeLaBiblioteca,
   type RespuestaCharla,
 } from '../../../src/domain/praxis/charla/pedidoCharla.ts'
+import { normalizarHueco, type Hueco } from '../../../src/domain/praxis/charla/hueco.ts'
+import { armarPedidoProvisional, decidirProvisional, tieneContenido } from '../../../src/domain/praxis/charla/provisional.ts'
+import { saludAntesDeDeepseek } from '../../../src/domain/praxis/charla/saludEnFrase.ts'
 import { conTope, decidirSalida, lecturaDesdeNivel, respaldoSinModelo, type LecturaDeRiesgo } from '../../../src/domain/praxis/charla/salidaCharla.ts'
 import { excedeLimite } from '../praxis-registro/cupo.ts'
 import { CORS, json } from '../praxis-registro/http.ts'
@@ -64,6 +69,8 @@ export interface Entorno {
   ANTHROPIC_API_KEY: string | undefined
   PORTERO_URL: string | undefined
   PORTERO_CLAVE: string | undefined
+  /** Segunda bandera: solo '1' enciende la respuesta provisional sin pieza. Por defecto apagada (se conserva la frase fija). */
+  PRAXIS_CHARLA_PROVISIONAL: string | undefined
 }
 export interface Dependencias {
   entorno: Entorno
@@ -182,6 +189,57 @@ async function preguntarADeepseek(d: Dependencias, clave: string, fraseLimpia: s
 
 const registrar = (datos: Record<string, unknown>) => console.log('praxis-charla:', JSON.stringify(datos)) // nunca la frase
 
+/** Respuesta provisional sin pieza: DeepSeek con conocimiento general. Devuelve el texto o null si el proveedor no contesta bien. */
+async function preguntarProvisional(d: Dependencias, clave: string, fraseLimpia: string): Promise<string | null> {
+  const r = await d.fetch(URL_DEEPSEEK, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${clave}`, 'content-type': 'application/json' },
+    signal: AbortSignal.timeout(TOPE_DEEPSEEK_MS),
+    body: JSON.stringify(armarPedidoProvisional(fraseLimpia)),
+  })
+  if (!r.ok) return null
+  const cuerpo = (await r.json()) as { choices?: { message?: { content?: unknown }; finish_reason?: unknown }[] }
+  if (cuerpo.choices?.[0]?.finish_reason === 'length') return null // texto cortado a mitad: no se muestra
+  const c = cuerpo.choices?.[0]?.message?.content
+  return typeof c === 'string' ? c : null
+}
+
+/** Sin piezas aprobadas. Con la segunda bandera: respuesta provisional o al coach; sin ella, la frase fija de siempre. Siempre lleva el hueco. */
+async function responderSinPiezas(d: Dependencias, frase: string, limpia: ResultadoLimpieza, hueco: Hueco): Promise<Response> {
+  // Salud en la FRASE (11-nov; 12-nov D12: corre SIEMPRE, con la bandera encendida o apagada): filtro local de la app + léxico de la
+  // charla, con la frase cruda, ANTES de devolver el hueco y ANTES de llamar a DeepSeek.
+  // Sin hueco: la frase de un síntoma no se guarda como pregunta pendiente.
+  const salud = saludAntesDeDeepseek(frase)
+  if (salud) {
+    registrar({ largo: frase.length, salida: 'coach', motivo: `provisional_${salud}`, campos: [] })
+    return json({ salida: 'coach', motivo: `provisional_${salud}` })
+  }
+  if (d.entorno.PRAXIS_CHARLA_PROVISIONAL !== '1') {
+    registrar({ largo: frase.length, salida: 'respuesta', origen: 'respaldo', motivo: 'sin_piezas', campos: [] })
+    return json({ salida: 'respuesta', ...respaldoSinModelo([]), hueco })
+  }
+  const clave = d.entorno.DEEPSEEK_API_KEY
+  let motivo: string
+  let salioFrase = false
+  if (!clave) motivo = 'sin_clave'
+  else if (!tieneContenido(limpia.texto)) motivo = 'frase_vacia'
+  else {
+    salioFrase = true
+    const r = await conTope(() => preguntarProvisional(d, clave, limpia.texto), TOPE_DEEPSEEK_MS)
+    if (!r.ok) motivo = r.motivo === 'tarda' ? 'deepseek_tarda' : 'deepseek_falla'
+    else {
+      const dec = decidirProvisional(r.valor, limpia.texto)
+      if (dec.tipo === 'provisional') {
+        registrar({ largo: frase.length, salida: 'respuesta', origen: 'provisional', campos: ['frase'], tapado: limpia.tipos, piezas: 0 })
+        return json({ salida: 'respuesta', respuesta: dec.texto, piezas_usadas: [], piezas: [], origen: dec.origen, excluirEntrenamiento: dec.excluirEntrenamiento, hueco })
+      }
+      motivo = dec.motivo
+    }
+  }
+  registrar({ largo: frase.length, salida: 'coach', motivo: `provisional_${motivo}`, campos: salioFrase ? ['frase'] : [] })
+  return json({ salida: 'coach', motivo: `provisional_${motivo}`, hueco })
+}
+
 /** Puertas 1 y 2: autenticación, frase y límite por persona. Devuelve la respuesta de rechazo o la frase y el token. */
 async function puertasPrevias(req: Request, d: Dependencias): Promise<Response | { frase: string; token: string }> {
   let cuerpo: { frase?: unknown }
@@ -263,10 +321,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
 
   // 6. piezas aprobadas, buscadas con la frase limpia
   const piezas = await buscarPiezas(d, token, limpia.texto)
-  if (piezas.length === 0) {
-    registrar({ largo: frase.length, salida: 'respuesta', origen: 'respaldo', motivo: 'sin_piezas', campos: [] })
-    return json({ salida: 'respuesta', ...respaldoSinModelo([]) })
-  }
+  if (piezas.length === 0) return responderSinPiezas(d, frase, limpia, normalizarHueco(limpia.texto))
   return responderConDeepseek(d, frase, limpia, piezas)
 }
 
@@ -282,6 +337,7 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
         PORTERO_URL: entorno('PORTERO_URL'),
         PORTERO_CLAVE: entorno('PORTERO_CLAVE'),
+        PRAXIS_CHARLA_PROVISIONAL: entorno('PRAXIS_CHARLA_PROVISIONAL'),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),

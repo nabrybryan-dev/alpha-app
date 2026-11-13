@@ -78,9 +78,14 @@ const palabrasDe = (texto: string): string[] => (texto.match(/\p{L}+/gu) ?? []).
 
 /**
  * Arma el vocabulario: palabras de los campos de las piezas + palabras comunes, SIN las que sean nombre de persona
- * (`nombres`), ordenado y sin repetidos. De una letra solo entran las que ya están en `comunes` (a, y, o, e, u).
+ * (`nombres`) + la ampliación aprobada (`ampliacion`, también sin nombres), ordenado y sin repetidos. De una letra solo entran las que ya están en `comunes` (a, y, o, e, u).
  */
-export function armarVocabulario(piezas: readonly PiezaParaVocabulario[], comunes: readonly string[], nombres: readonly string[]): string[] {
+export function armarVocabulario(
+  piezas: readonly PiezaParaVocabulario[],
+  comunes: readonly string[],
+  nombres: readonly string[],
+  ampliacion: readonly string[] = [],
+): string[] {
   const conjunto = new Set<string>()
   for (const pieza of piezas) {
     for (const campo of CAMPOS_DE_PIEZA) {
@@ -90,6 +95,7 @@ export function armarVocabulario(piezas: readonly PiezaParaVocabulario[], comune
     }
   }
   for (const c of comunes) for (const p of palabrasDe(c)) conjunto.add(p)
+  for (const a of ampliacion) for (const p of palabrasDe(a)) if (p.length >= 2) conjunto.add(p) // lista aprobada del dueño (11-nov)
   for (const n of nombres) for (const p of palabrasDe(n)) conjunto.delete(p)
   return [...conjunto].sort()
 }

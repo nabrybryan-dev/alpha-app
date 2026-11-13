@@ -22,7 +22,7 @@ describe('textos de Praxis a un toque', () => {
     expect(A.saludSub).toBe('Si sientes que es urgente, no esperes al coach: acude a un servicio de salud.')
     expect([A.saludAvisar, A.saludCheckin]).toEqual(['Avisar a mi coach', 'Abrir mi check-in'])
     expect(A.noEntendi).toBe('¿Qué quisiste decir? Puedo traerte una parte de la app, ocultarla, moverla o buscarte una ficha.')
-    expect(A.rotuloProvisional).toBe('Respuesta provisional, sin revisar. Tu coach puede verla.')
+    expect(A.rotuloProvisional).toBe('Respuesta provisional, sin revisar. Confírmala con tu coach.')
   })
 
   it('cada línea del grupo pendiente lleva la marca de «texto pendiente de aprobación»', () => {

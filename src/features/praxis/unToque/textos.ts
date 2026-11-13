@@ -47,7 +47,7 @@ export const TEXTOS_APROBADOS = {
   /** 12. No entendí. */
   noEntendi: '¿Qué quisiste decir? Puedo traerte una parte de la app, ocultarla, moverla o buscarte una ficha.',
   /** 13. Rótulo de la respuesta provisional (el código de #480 lo trae como ROTULO_PROVISIONAL; ya coincide). */
-  rotuloProvisional: 'Respuesta provisional, sin revisar. Tu coach puede verla.',
+  rotuloProvisional: 'Respuesta provisional, sin revisar. Confírmala con tu coach.',
 } as const
 
 /** La marca exacta con que se señala cada texto sin aprobar; `textos.test.ts` la cuenta. */

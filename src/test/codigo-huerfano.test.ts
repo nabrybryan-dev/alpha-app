@@ -51,8 +51,11 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   'src/domain/praxis/charla/memoria.ts':
     'Qué se guarda de cada turno en la memoria de la charla (0166, 7-nov-2026); lo consume la Edge Function ' +
     'praxis-registro (memoria.ts, con PRAXIS_GUARDAR_CHARLA=1), no la app: el teléfono solo manda charla_id y turno.',
-  'src/domain/praxis/charla/vocabularioPermitido.ts':
-    'Limpiador por vocabulario permitido de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function praxis-charla (APAGADA, sin desplegar), no la app.',
+  'src/domain/praxis/charla/provisional.ts':
+    'Respuesta provisional sin pieza (parte A del diseño del 11-nov-2026): prompt, pedido a DeepSeek y decisión con rótulo; lo consume la Edge Function ' +
+    'praxis-charla tras la bandera PRAXIS_CHARLA_PROVISIONAL (APAGADA, sin desplegar), no la app. El rótulo espera la aprobación del dueño.',
+  'src/domain/praxis/charla/hueco.ts':
+    'Hueco normalizado (tema + frase limpia) que praxis-charla devuelve para que quien llama lo encole (11-nov-2026, APAGADA, sin desplegar); la tabla de huecos aún no existe.',
   'src/domain/praxis/charla/salidaCharla.ts':
     'Decisión de salida que falla cerrado y respaldo sin modelo de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function ' +
     'praxis-charla (APAGADA, sin desplegar), no la app.',
@@ -136,6 +139,7 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
   // Charla con DeepSeek (11-nov-2026): las usa la Edge Function praxis-charla, que queda fuera de src/ y APAGADA, sin desplegar.
+  'src/domain/praxis/charla/vocabularioPermitido.ts#armarVocabulario': 'Lo usa scripts/generar-vocabulario-charla.mts, fuera de src/.',
   'src/domain/praxis/charla/pedidoCharla.ts#armarPedidoDeepseek': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
   'src/domain/praxis/charla/pedidoCharla.ts#CAMPOS_DEL_ENVIO': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
   'src/domain/praxis/charla/pedidoCharla.ts#URL_DEEPSEEK': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
