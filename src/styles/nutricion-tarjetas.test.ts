@@ -42,6 +42,7 @@ describe('tarjetas de Nutricion al estandar de la maqueta', () => {
   })
   it('los componentes usan esas clases', () => {
     const resumen = src('ResumenDia.tsx')
+    // Los nombres viven en los componentes, detras de la bandera (ver tarjetasNuevasBandera.test.tsx).
     for (const c of ['nutri-resumen', 'nutri-pista-kcal', 'nutri-tile-macro', 'nutri-chip-margen'])
       expect(resumen).toContain(c)
     expect(src('FilaComida.tsx')).toContain('nutri-fila-comida')
