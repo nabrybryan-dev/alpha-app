@@ -301,6 +301,11 @@ function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], o
 /** La pestaña de Praxis del equipo, puesta en el centro de la barra de asesorado (solo para la cuenta de prueba). */
 function conPraxisAlCentro<T extends { ruta: string }>(pestanas: readonly T[]): T[] {
   const praxis = pestanasStaff.find((p) => p.ruta === '/praxis') as unknown as T
-  const medio = Math.floor(pestanas.length / 2)
-  return [...pestanas.slice(0, medio), praxis, ...pestanas.slice(medio)]
+  // Orden de los dos diseños validados (Bryan, 13-nov-2026): Hoy, Entrenar, Praxis, Nutrición, Semana. Progreso
+  // no va en esta barra (se entra desde Hoy), así Praxis queda en el centro exacto.
+  const enOrden = ORDEN_DE_LA_MAQUETA.flatMap((ruta) => pestanas.filter((p) => p.ruta === ruta))
+  const medio = Math.floor(enOrden.length / 2)
+  return [...enOrden.slice(0, medio), praxis, ...enOrden.slice(medio)]
 }
+
+const ORDEN_DE_LA_MAQUETA = ['/', '/entrenar', '/nutricion', '/semana'] as const

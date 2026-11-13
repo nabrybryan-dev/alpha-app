@@ -29,7 +29,9 @@ describe('Praxis de prueba en la barra de un asesorado', () => {
     expect(e).toContain('Praxis')
     expect(e[0]).toBe('Hoy')
     expect(e.indexOf('Praxis')).toBe(2)
-    expect(e).toEqual(['Hoy', 'Entrenar', 'Praxis', 'Semana', 'Nutrición', 'Progreso'])
+    // Orden de los diseños validados (Bryan, 13-nov): cuatro pestañas y Praxis en el centro exacto. Progreso sale
+    // de la barra de esta cuenta; se sigue entrando desde Hoy.
+    expect(e).toEqual(['Hoy', 'Entrenar', 'Praxis', 'Nutrición', 'Semana'])
     expect(screen.getByRole('button', { name: /praxis/i })).toBeInTheDocument()
   })
 
