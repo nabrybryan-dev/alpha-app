@@ -11,6 +11,7 @@ import {
   puedeVerCreadores,
   puedeVerEstrategias,
 } from './accesoPanel'
+import { CapaDeUnToque } from '../features/praxis/unToque/CapaDeUnToque'
 import { buscarRuta } from './rutas'
 import { useSesion } from './SessionProvider'
 
@@ -131,6 +132,7 @@ export function AsesoradoLayout() {
         <Outlet />
       </main>
       {esCoach ? barraDelStaff() : <BottomNav espacios={espaciosDe(usuario.rol)} organizacion={organizacion} />}
+      <CapaDeUnToque />
     </div>
   )
 }
@@ -249,6 +251,7 @@ export function CoachLayout() {
       ) : (
         <BottomNav espacios={espaciosDe(usuario.rol)} />
       )}
+      <CapaDeUnToque />
     </div>
   )
 }
