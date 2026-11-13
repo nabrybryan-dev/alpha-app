@@ -206,16 +206,17 @@ async function preguntarProvisional(d: Dependencias, clave: string, fraseLimpia:
 
 /** Sin piezas aprobadas. Con la segunda bandera: respuesta provisional o al coach; sin ella, la frase fija de siempre. Siempre lleva el hueco. */
 async function responderSinPiezas(d: Dependencias, frase: string, limpia: ResultadoLimpieza, hueco: Hueco): Promise<Response> {
-  if (d.entorno.PRAXIS_CHARLA_PROVISIONAL !== '1') {
-    registrar({ largo: frase.length, salida: 'respuesta', origen: 'respaldo', motivo: 'sin_piezas', campos: [] })
-    return json({ salida: 'respuesta', ...respaldoSinModelo([]), hueco })
-  }
-  // Salud en la FRASE (11-nov): filtro local de la app + léxico de la charla, con la frase cruda y ANTES de llamar a DeepSeek.
+  // Salud en la FRASE (11-nov; 12-nov D12: corre SIEMPRE, con la bandera encendida o apagada): filtro local de la app + léxico de la
+  // charla, con la frase cruda, ANTES de devolver el hueco y ANTES de llamar a DeepSeek.
   // Sin hueco: la frase de un síntoma no se guarda como pregunta pendiente.
   const salud = saludAntesDeDeepseek(frase)
   if (salud) {
     registrar({ largo: frase.length, salida: 'coach', motivo: `provisional_${salud}`, campos: [] })
     return json({ salida: 'coach', motivo: `provisional_${salud}` })
+  }
+  if (d.entorno.PRAXIS_CHARLA_PROVISIONAL !== '1') {
+    registrar({ largo: frase.length, salida: 'respuesta', origen: 'respaldo', motivo: 'sin_piezas', campos: [] })
+    return json({ salida: 'respuesta', ...respaldoSinModelo([]), hueco })
   }
   const clave = d.entorno.DEEPSEEK_API_KEY
   let motivo: string
