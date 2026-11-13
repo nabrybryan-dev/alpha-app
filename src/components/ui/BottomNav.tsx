@@ -180,6 +180,7 @@ export function BottomNav({
   // Un asesorado puro de prueba (Bryan) ve el botón de Praxis a un toque en el centro de su barra; cualquier otro asesorado, no.
   const base = espacios === 'staff' ? pestanasStaff : disenoFinal ? conPraxisAlCentro(pestanasAsesorado) : pestanasAsesorado
   const pestanas = organizacion ? organizarPestanas(base, organizacion) : base
+  if (disenoFinal) return <BarraDeLaMaqueta pestanas={pestanas} />
   return (
     <nav
       aria-label="Navegación principal"
@@ -234,6 +235,57 @@ export function BottomNav({
   )
 }
 
+/**
+ * La barra de los dos diseños validados por Bryan (13-nov-2026), solo para las cuentas con el diseño final:
+ * de borde a borde, de vidrio con línea arriba, pestaña activa en color de texto con una raya roja de 34×3
+ * («Alpha · Rediseño», `.nav`), y Praxis como agujero negro que sobresale al centro («Praxis a un toque», `.hoyo`).
+ * El vidrio va en la barra y ningún `transform` la toca: es la frontera de `blur-solo-en-superficies-fijas`.
+ */
+function BarraDeLaMaqueta({ pestanas }: { pestanas: readonly { ruta: string; etiqueta: string; icono: ReactNode }[] }) {
+  return (
+    <nav
+      aria-label="Navegación principal"
+      data-piel="maqueta"
+      className="glass-blur fixed inset-x-0 bottom-0 flex items-stretch border-t border-[color:var(--hairline)] bg-[var(--glass-bg)]"
+      style={{
+        zIndex: 'var(--z-nav)',
+        height: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
+    >
+      {pestanas.map((p) =>
+        p.ruta === '/praxis' ? (
+          <BotonPraxisUnToque key={p.ruta} etiqueta={p.etiqueta} piel="maqueta" />
+        ) : (
+          <NavLink
+            key={p.ruta}
+            to={p.ruta}
+            end={p.ruta === '/'}
+            viewTransition
+            className={({ isActive }) =>
+              `relative flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-[3px] text-[11px] font-bold [&>svg]:h-[25px] [&>svg]:w-[25px] [&>svg]:[stroke-width:1.9] ${
+                isActive ? 'text-texto' : 'text-tenue'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span data-raya aria-hidden="true" className="absolute -top-px h-[3px] w-[34px] rounded-b-[4px] bg-rojo" />
+                )}
+                {p.icono}
+                <span className="max-w-full truncate">{p.etiqueta}</span>
+              </>
+            )}
+          </NavLink>
+        ),
+      )}
+    </nav>
+  )
+}
+
 /** Hoy se queda primero; las demás pestañas se esconden o se corren según lo guardado. Sin lógica de negocio: solo ordena. */
 function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], org: OrganizacionDeLaBarra): T[] {
   const [primera, ...resto] = pestanas
@@ -249,6 +301,11 @@ function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], o
 /** La pestaña de Praxis del equipo, puesta en el centro de la barra de asesorado (solo para la cuenta de prueba). */
 function conPraxisAlCentro<T extends { ruta: string }>(pestanas: readonly T[]): T[] {
   const praxis = pestanasStaff.find((p) => p.ruta === '/praxis') as unknown as T
-  const medio = Math.floor(pestanas.length / 2)
-  return [...pestanas.slice(0, medio), praxis, ...pestanas.slice(medio)]
+  // Orden de los dos diseños validados (Bryan, 13-nov-2026): Hoy, Entrenar, Praxis, Nutrición, Semana. Progreso
+  // no va en esta barra (se entra desde Hoy), así Praxis queda en el centro exacto.
+  const enOrden = ORDEN_DE_LA_MAQUETA.flatMap((ruta) => pestanas.filter((p) => p.ruta === ruta))
+  const medio = Math.floor(enOrden.length / 2)
+  return [...enOrden.slice(0, medio), praxis, ...enOrden.slice(medio)]
 }
+
+const ORDEN_DE_LA_MAQUETA = ['/', '/entrenar', '/nutricion', '/semana'] as const
