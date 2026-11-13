@@ -1,5 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { IconoAgujeroNegro } from './Icono'
+import { useDisenoFinal } from '../../app/organizacionViva'
+import { PRAXIS_UN_TOQUE_ACTIVO } from '../../features/praxis/unToque/banderas'
+import { BotonPraxisUnToque } from '../../features/praxis/unToque/BotonPraxisUnToque'
 
 function Icono({ children }: { children: ReactNode }) {
   return (
@@ -91,6 +95,18 @@ const pestanasAsesorado = [
  *
  * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
  */
+function IconoPraxis() {
+  if (import.meta.env.VITE_PRAXIS_ICONO_ACTIVO === 'true') {
+    return <IconoAgujeroNegro className="h-[24px] w-[24px]" />
+  }
+  return (
+    <Icono>
+      <path d="M4 5h16v11H9l-5 4z" />
+      <path d="M9 10h6M12 7.5v5" />
+    </Icono>
+  )
+}
+
 const pestanasStaff = [
   { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
   {
@@ -130,12 +146,9 @@ const pestanasStaff = [
   {
     ruta: '/praxis',
     etiqueta: 'Praxis',
-    icono: (
-      <Icono>
-        <path d="M4 5h16v11H9l-5 4z" />
-        <path d="M9 10h6M12 7.5v5" />
-      </Icono>
-    ),
+    // El agujero negro va detrás de VITE_PRAXIS_ICONO_ACTIVO (apagada por defecto, D13):
+    // se lee al pintar para que la bandera decida sin tocar la ruta ni el nombre.
+    icono: <IconoPraxis />,
   },
   {
     ruta: '/mi-entreno',
@@ -151,10 +164,22 @@ const pestanasStaff = [
 
 export type EspaciosNav = 'asesorado' | 'staff'
 
+/** Lo que la persona escondió o movió (ids `pantalla:<ruta>`). Hoy (`/`) se queda primero siempre. */
+export interface OrganizacionDeLaBarra {
+  ocultas: ReadonlySet<string>
+  movidas: Readonly<Record<string, number>>
+}
+
 export function BottomNav({
   espacios = 'asesorado',
-}: { espacios?: EspaciosNav } = {}) {
-  const pestanas = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+  organizacion,
+}: { espacios?: EspaciosNav; organizacion?: OrganizacionDeLaBarra } = {}) {
+  // «Praxis a un toque»: la bandera global, o la cuenta con el diseño final (la personal de Bryan).
+  const disenoFinal = useDisenoFinal()
+  const unToque = disenoFinal || PRAXIS_UN_TOQUE_ACTIVO
+  // Un asesorado puro de prueba (Bryan) ve el botón de Praxis a un toque en el centro de su barra; cualquier otro asesorado, no.
+  const base = espacios === 'staff' ? pestanasStaff : disenoFinal ? conPraxisAlCentro(pestanasAsesorado) : pestanasAsesorado
+  const pestanas = organizacion ? organizarPestanas(base, organizacion) : base
   return (
     <nav
       aria-label="Navegación principal"
@@ -169,7 +194,10 @@ export function BottomNav({
           frontera que ya vigila `blur-solo-en-superficies-fijas`. Puesto en cada pestaña
           la profundidad se nota donde se toca, que es donde sirve. */}
       <div className="glass glass-blur flex w-full max-w-[24rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
-        {pestanas.map((p) => (
+        {pestanas.map((p) =>
+          unToque && p.ruta === '/praxis' ? (
+            <BotonPraxisUnToque key={p.ruta} etiqueta={p.etiqueta} />
+          ) : (
           <NavLink
             key={p.ruta}
             to={p.ruta}
@@ -199,8 +227,28 @@ export function BottomNav({
               </>
             )}
           </NavLink>
-        ))}
+          ),
+        )}
       </div>
     </nav>
   )
+}
+
+/** Hoy se queda primero; las demás pestañas se esconden o se corren según lo guardado. Sin lógica de negocio: solo ordena. */
+function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], org: OrganizacionDeLaBarra): T[] {
+  const [primera, ...resto] = pestanas
+  const visibles = resto.filter((p) => !org.ocultas.has(`pantalla:${p.ruta}`))
+  const clave = (p: T, i: number) => {
+    const k = Math.trunc(org.movidas[`pantalla:${p.ruta}`] ?? 0)
+    return k === 0 ? i : i + k + (k < 0 ? -0.5 : 0.5)
+  }
+  const ordenadas = visibles.map((p, i) => ({ p, c: clave(p, i), i })).sort((a, b) => a.c - b.c || a.i - b.i).map((e) => e.p)
+  return primera ? [primera, ...ordenadas] : ordenadas
+}
+
+/** La pestaña de Praxis del equipo, puesta en el centro de la barra de asesorado (solo para la cuenta de prueba). */
+function conPraxisAlCentro<T extends { ruta: string }>(pestanas: readonly T[]): T[] {
+  const praxis = pestanasStaff.find((p) => p.ruta === '/praxis') as unknown as T
+  const medio = Math.floor(pestanas.length / 2)
+  return [...pestanas.slice(0, medio), praxis, ...pestanas.slice(medio)]
 }

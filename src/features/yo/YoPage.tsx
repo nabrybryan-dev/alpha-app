@@ -3,6 +3,7 @@ import { useSesion } from '../../app/SessionProvider'
 import { BuzonComentarios } from '../entrenar/miEntreno/BuzonComentarios'
 import { AvisosYo } from './AvisosYo'
 import { CambiarClave } from './CambiarClave'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 /**
  * YO (decisión de Bryan, 28-oct; H-01, H-03 y H-06 del inventario): lo que la persona controla de su cuenta —los avisos del
@@ -20,7 +21,9 @@ export default function YoPage() {
         <p className="text-sm text-tenue">Tus avisos, tus comentarios sobre la app y tu clave.</p>
       </header>
       <AvisosYo usuarioId={usuario.id} />
-      <BuzonComentarios />
+      <PiezaOrganizable id="yo.buzon">
+        <BuzonComentarios />
+      </PiezaOrganizable>
       <CambiarClave />
       {esNube && <Link to="/yo/derechos" className="glass rounded-2xl p-4 text-accion">Tus datos y derechos →</Link>}
     </div>

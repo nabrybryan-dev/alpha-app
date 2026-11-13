@@ -26,6 +26,7 @@ import { esDeLaCadena } from '../preguntas/preguntasDeLaCadena'
 import { PreguntaDelCoach } from '../hoy/PreguntaDelCoach'
 import { TarjetaDeLaSemana } from '../hoy/TarjetaDeLaSemana'
 import { Boton3D } from '../../components/ui/Boton3D'
+import { PiezaOrganizable } from '../../app/PiezaOrganizable'
 
 /**
  * SEMANA, la bandeja de la semana (paso 6 del rediseño).
@@ -96,66 +97,72 @@ export default function SemanaPage() {
         </p>
       </header>
 
-      <section
-        aria-label="Resumen de la semana"
-        data-bloque="resumen"
-        className="entrada entrada-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
-      >
-        <div className="flex items-end justify-between gap-3">
-          <p className="cifras font-display text-3xl leading-none text-texto">
-            {cuenta.hechas}
-            <span className="text-base text-tenue"> / {cuenta.total}</span>
-          </p>
-          <p className="text-right text-sm text-tenue">{cuenta.texto}</p>
-        </div>
-        {cuenta.total > 0 && (
-          <div
-            className="mt-3 flex gap-1"
-            role="img"
-            aria-label={`${cuenta.pct} % de la semana hecho`}
-          >
-            {cuenta.segmentos.map((hecho, i) => (
-              <span
-                key={i}
-                className={`h-1.5 flex-1 rounded-full ${hecho ? 'bg-accion' : 'bg-linea'}`}
-                aria-hidden="true"
-              />
-            ))}
+      <PiezaOrganizable id="semana.resumen">
+        <section
+          aria-label="Resumen de la semana"
+          data-bloque="resumen"
+          className="entrada entrada-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
+        >
+          <div className="flex items-end justify-between gap-3">
+            <p className="cifras font-display text-3xl leading-none text-texto">
+              {cuenta.hechas}
+              <span className="text-base text-tenue"> / {cuenta.total}</span>
+            </p>
+            <p className="text-right text-sm text-tenue">{cuenta.texto}</p>
           </div>
-        )}
-        <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div>
-            <dt className="text-xs text-tenue">Sesiones</dt>
-            <dd className="cifras text-sm font-bold text-texto">
-              {cumplimiento.completadas} de {cumplimiento.programadas}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-tenue">Check-ins</dt>
-            <dd className="cifras text-sm font-bold text-texto">{resumen.checkinsDeLaSemana} de 7</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-tenue">Cuestionarios</dt>
-            <dd className="cifras text-sm font-bold text-texto">{pendientes.length} por hacer</dd>
-          </div>
-        </dl>
-        {microciclo && semanaEsAdelantada(microciclo, hoy) && (
-          <p className="mt-3 text-xs text-tenue">Tu semana {microciclo.numero} empieza el {microciclo.fechaInicio}.</p>
-        )}
-        {microciclo && semanaEsVencida(microciclo, hoy) && (
-          <p className="mt-3 text-xs text-tenue">Tu semana terminó; el coach prepara la siguiente.</p>
-        )}
-      </section>
+          {cuenta.total > 0 && (
+            <div
+              className="mt-3 flex gap-1"
+              role="img"
+              aria-label={`${cuenta.pct} % de la semana hecho`}
+            >
+              {cuenta.segmentos.map((hecho, i) => (
+                <span
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full ${hecho ? 'bg-accion' : 'bg-linea'}`}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          )}
+          <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <dt className="text-xs text-tenue">Sesiones</dt>
+              <dd className="cifras text-sm font-bold text-texto">
+                {cumplimiento.completadas} de {cumplimiento.programadas}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-tenue">Check-ins</dt>
+              <dd className="cifras text-sm font-bold text-texto">{resumen.checkinsDeLaSemana} de 7</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-tenue">Cuestionarios</dt>
+              <dd className="cifras text-sm font-bold text-texto">{pendientes.length} por hacer</dd>
+            </div>
+          </dl>
+          {microciclo && semanaEsAdelantada(microciclo, hoy) && (
+            <p className="mt-3 text-xs text-tenue">Tu semana {microciclo.numero} empieza el {microciclo.fechaInicio}.</p>
+          )}
+          {microciclo && semanaEsVencida(microciclo, hoy) && (
+            <p className="mt-3 text-xs text-tenue">Tu semana terminó; el coach prepara la siguiente.</p>
+          )}
+        </section>
+      </PiezaOrganizable>
 
-      <CabeceraSemanal>
-        <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
-        {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
-      </CabeceraSemanal>
+      <PiezaOrganizable id="semana.revision">
+        <CabeceraSemanal>
+          <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
+          {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
+        </CabeceraSemanal>
+      </PiezaOrganizable>
 
       {notas.length > 0 && (
-        <section aria-label="Notas de la semana" className="entrada entrada-3">
-          <NotasDeLaSemana notas={notas} />
-        </section>
+        <PiezaOrganizable id="semana.notas">
+          <section aria-label="Notas de la semana" className="entrada entrada-3">
+            <NotasDeLaSemana notas={notas} />
+          </section>
+        </PiezaOrganizable>
       )}
 
       <section
@@ -188,10 +195,14 @@ export default function SemanaPage() {
         <Link to="/cuestionarios" className="text-xs font-semibold text-texto underline underline-offset-2">
           Ver todos mis cuestionarios
         </Link>
-        <TarjetaVidaCard usuarioId={usuario.id} />
+        <PiezaOrganizable id="semana.vida">
+          <TarjetaVidaCard usuarioId={usuario.id} />
+        </PiezaOrganizable>
       </section>
 
-      <MensajesVidaBandeja usuarioId={usuario.id} />
+      <PiezaOrganizable id="semana.mensajes-vida">
+        <MensajesVidaBandeja usuarioId={usuario.id} />
+      </PiezaOrganizable>
 
       <section
         aria-label="Chat con tu equipo"
@@ -211,21 +222,23 @@ export default function SemanaPage() {
       </section>
 
       {microciclo && dias && (
-        <section aria-label="Tu semana, día por día" className="entrada entrada-5">
-          <p className="kicker mb-2">Día por día</p>
-          <ul className="grid grid-cols-7 gap-1">
-            {dias.map((dia) => (
-              <li key={dia.fechaIso} className="rounded-lg border border-linea p-1 text-center">
-                <span className="block text-[10px] uppercase tracking-wide text-tenue">
-                  {dia.abreviatura}
-                </span>
-                <span className="mt-1 block text-xs font-bold text-texto">
-                  {dia.sesionId === undefined ? '—' : dia.estado === 'completada' ? '✓' : '·'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <PiezaOrganizable id="semana.dias">
+          <section aria-label="Tu semana, día por día" className="entrada entrada-5">
+            <p className="kicker mb-2">Día por día</p>
+            <ul className="grid grid-cols-7 gap-1">
+              {dias.map((dia) => (
+                <li key={dia.fechaIso} className="rounded-lg border border-linea p-1 text-center">
+                  <span className="block text-[10px] uppercase tracking-wide text-tenue">
+                    {dia.abreviatura}
+                  </span>
+                  <span className="mt-1 block text-xs font-bold text-texto">
+                    {dia.sesionId === undefined ? '—' : dia.estado === 'completada' ? '✓' : '·'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </PiezaOrganizable>
       )}
 
       <Sheet abierto={abierto !== undefined} titulo={abierto?.titulo ?? ''} onCerrar={() => setAbierto(undefined)}>

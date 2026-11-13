@@ -43,7 +43,7 @@ function esCandidato(r: RutaApp): boolean {
 /** Todos los destinos posibles, sin mirar quién pregunta. Derivado de `RUTAS`, en su orden. */
 export const PATRONES_DESTINO: readonly string[] = RUTAS.filter(esCandidato).map((r) => r.patron)
 
-function esEquipo(p: PerfilAcceso): boolean {
+export function esEquipo(p: PerfilAcceso): boolean {
   return p.rol !== 'asesorado' || p.capacidades.has('puesto_de_coach')
 }
 

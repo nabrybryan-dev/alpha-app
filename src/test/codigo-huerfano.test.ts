@@ -146,6 +146,10 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/praxis/charla/pedidoCharla.ts#CAMPOS_DEL_ENVIO': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
   'src/domain/praxis/charla/pedidoCharla.ts#URL_DEEPSEEK': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
   'src/domain/praxis/charla/pedidoCharla.ts#validarRespuestaCharla': 'Lo usa la Edge Function praxis-charla (apagada, sin desplegar).',
+  // Segunda capa de la organización por voz (11-nov-2026): la leen el script de medición y las pruebas; la Edge
+  // Function que consultaría al modelo no existe todavía (saldo de Anthropic en cero y fase O2b sin abrir).
+  'src/domain/praxis/organizacion/lectorModelo.ts#promptDeOrganizacion':
+    'Prompt del menú cerrado; lo usa scripts/praxis-eval/organizacion-modelo.mts. Apagado, fase O2b: el cliente deja el prompt al servidor; solo se usa en la medición.',
   // Sello del laboratorio (paso 5 N3): el componente solo pinta; ninguna pantalla monta datos del laboratorio
   // mientras LABORATORIO_VISIBLE sea falso (hoja firmada y revision legal P8 no existen).
   'src/domain/praxis/laboratorio/sello.ts#filtrarDibujables':
