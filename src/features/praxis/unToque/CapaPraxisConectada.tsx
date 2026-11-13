@@ -7,7 +7,7 @@ import { puedeVerPraxis } from '../../../domain/praxis/acceso'
 import { usePuestoCoach } from '../../coach/consola/usePuestoCoach'
 import { fijarOrganizacionViva, useOrganizacionVisible } from '../../../app/organizacionViva'
 import { deshacerUltimoCambioDeOrganizacion, guardarCambioDeOrganizacion, leerOrganizacion } from '../../../data/praxis/organizacion'
-import { organizarEncendidoPara } from '../../../domain/praxis/rapidezLocal'
+import { organizarEncendidoPara, praxisDePruebaPara } from '../../../domain/praxis/rapidezLocal'
 import { CapaPraxis, type PuertoDeGuardado } from './CapaPraxis'
 
 /**
@@ -48,7 +48,8 @@ export function CapaPraxisConectada() {
     }
   }, [encendido, usuario.id, organizacion.ocultas])
   if (usuario.rol === 'asesorado' && cargando) return null
-  if (!puedeVerPraxis(usuario.rol, undefined, esCoach)) return null
+  // La puerta de siempre, más la excepción de prueba por cuenta (asesorado puro de Bryan); la bandera general sigue cerrada.
+  if (!puedeVerPraxis(usuario.rol, undefined, esCoach) && !praxisDePruebaPara(usuario.id)) return null
   return (
     <CapaPraxis
       perfil={perfil}

@@ -164,9 +164,11 @@ export function BottomNav({
   espacios = 'asesorado',
   organizacion,
 }: { espacios?: EspaciosNav; organizacion?: OrganizacionDeLaBarra } = {}) {
-  const base = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
   // «Praxis a un toque»: la bandera global, o la cuenta con el diseño final (la personal de Bryan).
-  const unToque = useDisenoFinal() || PRAXIS_UN_TOQUE_ACTIVO
+  const disenoFinal = useDisenoFinal()
+  const unToque = disenoFinal || PRAXIS_UN_TOQUE_ACTIVO
+  // Un asesorado puro de prueba (Bryan) ve el botón de Praxis a un toque en el centro de su barra; cualquier otro asesorado, no.
+  const base = espacios === 'staff' ? pestanasStaff : disenoFinal ? conPraxisAlCentro(pestanasAsesorado) : pestanasAsesorado
   const pestanas = organizacion ? organizarPestanas(base, organizacion) : base
   return (
     <nav
@@ -232,4 +234,11 @@ function organizarPestanas<T extends { ruta: string }>(pestanas: readonly T[], o
   }
   const ordenadas = visibles.map((p, i) => ({ p, c: clave(p, i), i })).sort((a, b) => a.c - b.c || a.i - b.i).map((e) => e.p)
   return primera ? [primera, ...ordenadas] : ordenadas
+}
+
+/** La pestaña de Praxis del equipo, puesta en el centro de la barra de asesorado (solo para la cuenta de prueba). */
+function conPraxisAlCentro<T extends { ruta: string }>(pestanas: readonly T[]): T[] {
+  const praxis = pestanasStaff.find((p) => p.ruta === '/praxis') as unknown as T
+  const medio = Math.floor(pestanas.length / 2)
+  return [...pestanas.slice(0, medio), praxis, ...pestanas.slice(medio)]
 }
