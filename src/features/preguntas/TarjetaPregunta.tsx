@@ -82,7 +82,8 @@ export function TarjetaPregunta({ pregunta, onResponder }: TarjetaPreguntaProps)
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+    // `pregunta-del-dia`: marca para la piel de la maqueta 7 (opciones altas con relieve); sin `data-piel` no cambia nada.
+    <section className="pregunta-del-dia flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
       <header>
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
           Tu coach te pregunta
@@ -119,7 +120,7 @@ export function TarjetaPregunta({ pregunta, onResponder }: TarjetaPreguntaProps)
           )}
 
           {p.tipo === 'escala_1_5' && (
-            <div className="flex gap-2">
+            <div className="escala-1-5 flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <Chip
                   key={n}

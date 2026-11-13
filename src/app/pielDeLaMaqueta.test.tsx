@@ -71,4 +71,11 @@ describe('los estilos de la maqueta cuelgan de la marca', () => {
     expect(bloque).toMatch(/de la semana hecho"\] \.bg-accion\s*\{[^}]*var\(--placa\)/)
     expect(bloque).toMatch(/\.nutri-pista-kcal\s*\{[^}]*height:\s*10px/)
   })
+
+  it('pregunta del día: opciones de 48 px con relieve y la elegida con contorno plata', () => {
+    expect(bloque).toMatch(/\.pregunta-del-dia button\[aria-pressed\]\s*\{[^}]*min-height:\s*48px[^}]*border-radius:\s*14px/)
+    expect(bloque).toMatch(/\.pregunta-del-dia button\[aria-pressed="true"\]\s*\{[^}]*outline:\s*2px solid var\(--placa\)/)
+    const tarjeta = readFileSync(resolve(__dirname, '../features/preguntas/TarjetaPregunta.tsx'), 'utf8')
+    expect(tarjeta).toContain('className="pregunta-del-dia ')
+  })
 })
