@@ -4487,6 +4487,52 @@ body.praxis-sala-abierta { overflow:hidden; }
   border-radius: 99px;
 }
 
+/* ---------- PIEL DE LA MAQUETA 7 («Alpha · Rediseño», validada por Bryan el 13-nov-2026) ---------- */
+/* Solo con `data-piel="maqueta"` en la raíz (`usePielDeLaMaqueta`, cuentas con el diseño final). Sin la marca no aplica. */
+/* Fuente: build-v7/1-css.css: .card 22 opaca --s1 con brillo y sombra (:120), .tile y .comida 18 (:223, :355), .btn3d y .btn2 14 (:86, :108). */
+[data-piel="maqueta"] .tarjeta-base.glass {
+  border-radius: 22px;
+  background: var(--surface-1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--brillo), var(--sombra-card);
+}
+[data-piel="maqueta"] .tarjeta-base.glass-destacada {
+  box-shadow: var(--brillo), var(--sombra-card), var(--halo-rojo);
+}
+[data-piel="maqueta"] .rounded-panel,
+[data-piel="maqueta"] .rounded-bloque {
+  border-radius: 22px;
+}
+[data-piel="maqueta"] .rounded-tarjeta {
+  border-radius: 18px;
+}
+[data-piel="maqueta"] .rounded-boton {
+  border-radius: 14px;
+}
+/* Título de pantalla y rótulo pequeño: build-v7/1-css.css:118 (h1 30 px, sin mayúsculas) y :117 (.kicker gris 13 px). */
+[data-piel="maqueta"] h1.font-display {
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+[data-piel="maqueta"] .kicker {
+  color: var(--tenue);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+/* Semana: los segmentos hechos van en plata, no en rojo; pista de kcal de 10 px. */
+[data-piel="maqueta"] [aria-label$="de la semana hecho"] .bg-accion {
+  background-color: var(--placa);
+}
+[data-piel="maqueta"] .nutri-pista-kcal {
+  height: 10px;
+}
+/* FIN DE LA PIEL DE LA MAQUETA 7 */
+
 /* ---------- LA HOJA DE LA PORTADA DEL SALÓN (maqueta 7, pieza C2) ----------
    Solo la piel de la hoja arrastrable de `PanelInferior`, detrás de
    `SALON_PORTADA_MAQUETA` (apagada): radio 22, relleno alzado, sombra hacia arriba,
@@ -4518,3 +4564,4 @@ body.praxis-sala-abierta { overflow:hidden; }
     transition: none !important;
   }
 }
+

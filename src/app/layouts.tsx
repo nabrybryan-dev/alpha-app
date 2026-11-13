@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { useOrganizacionVisible } from './organizacionViva'
+import { usePielDeLaMaqueta } from './pielDeLaMaqueta'
 import { TopBar } from '../components/ui/TopBar'
 import { db } from '../data/dbInstance'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
@@ -107,6 +108,8 @@ export function AsesoradoLayout() {
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   // Lo que la persona escondió o movió hablando con Praxis (0179); solo con la prueba encendida, si no, nada cambia.
   const organizacion = useOrganizacionVisible(usuario.id)
+  // La piel de la maqueta 7 en toda la app, solo para las cuentas con el diseño final (13-nov).
+  usePielDeLaMaqueta()
 
   // El recordatorio de las 6 pm del check-in ya no se dispara aquí: sale del servidor (Edge Function `avisos-plan`), así
   // llega aunque la app esté cerrada. Se enciende en «Yo» (decisión de Bryan, 28-oct).

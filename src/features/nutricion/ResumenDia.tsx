@@ -2,7 +2,7 @@ import { Cifra3D } from '../../components/ui/Cifra3D'
 import type { Macros } from '../../domain/types'
 import type { TotalDia } from '../../domain/nutricion/dia'
 import type { Visibilidad } from '../../domain/nutricion/visibilidad'
-import { claseTarjeta } from './tarjetasNuevas'
+import { claseTarjeta, useTarjetasNuevas } from './tarjetasNuevas'
 
 /**
  * La tarjeta de arriba del diario: cuánto lleva, cuánto le falta y con cuánta
@@ -47,11 +47,12 @@ const MACROS = [
 const pct = (valor: number, tope: number) => (tope > 0 ? Math.min(100, (valor / tope) * 100) : 0)
 
 export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaProps) {
+  const nuevas = useTarjetasNuevas()
   const kcal = Math.round(total.porDia.kcal ?? 0)
   const restan = meta.kcal - kcal
 
   return (
-    <section className={`relieve ${claseTarjeta('nutri-resumen', 'rounded-3xl border border-linea bg-surface-1 p-4')}`}>
+    <section className={`relieve ${claseTarjeta('nutri-resumen', 'rounded-3xl border border-linea bg-surface-1 p-4', nuevas)}`}>
       <h2 className="font-display text-sm text-texto">Lo que llevas hoy</h2>
 
       {visibilidad.verContadorKcal && (
@@ -74,7 +75,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             </div>
           </div>
           <div
-            className={`${claseTarjeta('nutri-pista-kcal', 'h-2 rounded-full bg-surface-3')} mt-2 overflow-hidden`}
+            className={`${claseTarjeta('nutri-pista-kcal', 'h-2 rounded-full bg-surface-3', nuevas)} mt-2 overflow-hidden`}
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
@@ -82,7 +83,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             aria-label="Progreso de calorías del día"
           >
             <div
-              className={`${claseTarjeta('nutri-pista-relleno', 'rounded-full')} h-full origin-left bg-logrado`}
+              className={`${claseTarjeta('nutri-pista-relleno', 'rounded-full', nuevas)} h-full origin-left bg-logrado`}
               style={{
                 transform: `scaleX(${(pct(kcal, meta.kcal) / 100).toFixed(3)})`,
                 transition: 'transform var(--dur-informativo) var(--muelle-informativo)',
@@ -100,7 +101,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             return (
               <div
                 key={macro.clave}
-                className={`${claseTarjeta('nutri-tile-macro', 'rounded-2xl border border-linea bg-surface-2')} px-2 py-2 text-center`}
+                className={`${claseTarjeta('nutri-tile-macro', 'rounded-2xl border border-linea bg-surface-2', nuevas)} px-2 py-2 text-center`}
               >
                 <span className={macro.color}>
                   <Cifra3D
@@ -132,7 +133,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
           visibilidad.verContadorKcal || visibilidad.verObjetivoCalorico ? 'mt-3' : ''
         }`}
       >
-        <span className={`${claseTarjeta('nutri-chip-margen', 'rounded-full')} border border-linea bg-surface-2 px-2.5 py-1 text-xs font-semibold text-texto`}>
+        <span className={`${claseTarjeta('nutri-chip-margen', 'rounded-full', nuevas)} border border-linea bg-surface-2 px-2.5 py-1 text-xs font-semibold text-texto`}>
           ±{total.margenPct} %
         </span>
         <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">

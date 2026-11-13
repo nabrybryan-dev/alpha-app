@@ -5,6 +5,8 @@ import type { RegistroComida } from '../../domain/types'
 import { VISIBILIDAD_POR_DEFECTO } from '../../domain/nutricion/visibilidad'
 import { ResumenDia } from './ResumenDia'
 import { FilaComida } from './FilaComida'
+import { reiniciarOrganizacionViva, useOrganizacionVisible } from '../../app/organizacionViva'
+import { CUENTAS_CON_DISENO_FINAL } from '../../domain/praxis/rapidezLocal'
 
 /**
  * Las tarjetas nuevas de Nutricion (PR 431) quedan detras de una bandera de build,
@@ -37,7 +39,32 @@ const pintar = () =>
   ).container.innerHTML
 
 describe('bandera de las tarjetas nuevas de Nutricion', () => {
-  afterEach(() => vi.unstubAllEnvs())
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    reiniciarOrganizacionViva()
+  })
+
+  it('con la bandera apagada, la cuenta con el diseño final ve las tarjetas nuevas (13-nov) y otra cuenta no', () => {
+    vi.stubEnv('VITE_NUTRI_TARJETAS_ACTIVO', '')
+    const conSesion = (usuarioId: string) => {
+      function Sesion() {
+        useOrganizacionVisible(usuarioId)
+        return null
+      }
+      return render(
+        <>
+          <Sesion />
+          <ResumenDia total={TOTAL} meta={META} visibilidad={VISIBILIDAD_POR_DEFECTO} />
+          <FilaComida comida={COMIDA} kcal={0} resumen="" verKcal onAbrir={() => {}} />
+        </>,
+      )
+    }
+    const propia = conSesion([...CUENTAS_CON_DISENO_FINAL][0]!)
+    for (const c of ['nutri-resumen', 'nutri-tile-macro', 'nutri-fila-comida']) expect(propia.container.innerHTML).toContain(c)
+    propia.unmount()
+    reiniciarOrganizacionViva()
+    expect(conSesion('00000000-0000-0000-0000-0000000000cc').container.innerHTML).not.toContain('nutri-')
+  })
 
   it('apagada (por defecto) no aparece ninguna clase nutri-', () => {
     vi.stubEnv('VITE_NUTRI_TARJETAS_ACTIVO', '')
