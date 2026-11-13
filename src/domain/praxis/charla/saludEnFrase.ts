@@ -15,6 +15,7 @@ import { filtroDeRiesgo, sinTildes } from '../riesgo.ts'
 const LEXICO: readonly (readonly [string, RegExp])[] = [
   ['pinchazo', /\bpinchazos?\b|\bpinch(?:a|o|an|ando)\b/],
   ['punzada', /\bpunzadas?\b|\bpunz(?:a|an|ando)\b/],
+  ['ansiedad', /\bansiedad\b|\bansios[oa]s?\b/],
   ['molestia', /\bmolestias?\b|\bmolest(?:a|an|ando)\b/],
   ['dolor', /\bdolor(?:es)?\b|\bdoloros\w*|\bduel(?:e|en|a|an|ia|ian)\b|\bdoliendo\b/],
   ['tiron', /\btirones?\b|\btiron\b/],

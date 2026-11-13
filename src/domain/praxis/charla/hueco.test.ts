@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { MAX_FRASE_HUECO, normalizarHueco } from './hueco.ts'
 import { limpiarFrase } from './limpiador.ts'
@@ -29,13 +30,22 @@ describe('normalizarHueco', () => {
     expect(Object.keys(normalizarHueco('¿cuántas series?')).sort()).toEqual(['frase', 'temaClave'])
   })
   it('ninguna salida contiene el nombre sembrado, por el camino real de la función', () => {
-    const sembrados = ['Zulema', 'Ofelia', 'Karin', 'Lina']
-    const h = normalizarHueco(limpia('Soy Zulema y entreno con mi esposa Ofelia, Karin y Lina. ¿cuántas series por semana para el pecho?'))
+    const sembrados = ['Zulema', 'Ofelia', 'Eustaquia', 'Berenice']
+    const h = normalizarHueco(limpia('Soy Zulema y entreno con mi esposa Ofelia, Eustaquia y Berenice. ¿cuántas series por semana para el pecho?'))
     const salida = JSON.stringify(h).toLowerCase()
     for (const n of sembrados) expect(salida).not.toContain(n.toLowerCase())
   })
   it('las marcas del limpiador y […] no entran en la clave', () => {
     const h = normalizarHueco('[NOMBRE] […] series [PESO] semana')
     expect(h.temaClave).toBe('semana series')
+  })
+})
+
+describe('nombres de las pruebas (custodio, hallazgo 4)', () => {
+  it('ninguna prueba de la charla usa nombres de pila de asesoradas reales', () => {
+    const reales = new RegExp(String.raw`\b(` + ['kar' + 'in', 'li' + 'na'].join('|') + String.raw`)\b`, 'i')
+    const dir = 'src/domain/praxis/charla/'
+    const usan = readdirSync(dir).filter((f) => f.endsWith('.test.ts') && reales.test(readFileSync(dir + f, 'utf8')))
+    expect(usan).toEqual([])
   })
 })
