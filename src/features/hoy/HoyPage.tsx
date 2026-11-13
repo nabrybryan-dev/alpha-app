@@ -28,6 +28,8 @@ import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
+import { AnilloDeHoy } from './AnilloDeHoy'
+import { hoyConAnillo, marcoDeHoy } from './reglasDelAnillo'
 import { useOrganizacionVisible } from '../../app/organizacionViva'
 import { aplicarOrganizacion, type OrganizacionVisible } from '../../domain/praxis/organizacion/aplicarOrganizacion'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
@@ -491,6 +493,8 @@ export default function HoyPage() {
   // staff conserva el tema claro de main (`data-theme="light"`, más abajo) hasta el paso 9.
   const marco = '-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5'
 
+  const conAnillo = hoyConAnillo(esStaff)
+
   if (esStaff) {
     // «Mi día» del staff (maqueta «Espacios de Alpha», 28-sep): igual que antes de las bandas.
     return (
@@ -534,7 +538,7 @@ export default function HoyPage() {
 
   // El asesorado, en tres bandas: 0 (solo si aplica) · Hoy · La semana · El resto.
   return (
-    <div className={marco}>
+    <div className={marcoDeHoy(marco, conAnillo)}>
       {encabezado}
 
       {/* Banda 0: lo que se dice antes que nada. Sin nada que decir, no ocupa sitio. */}
@@ -545,6 +549,7 @@ export default function HoyPage() {
       {/* Banda 1: lo de hoy. La sesión primero (04 §1.2: estaba en el puesto 9 de 19); la
           pregunta del día va justo detrás porque es de dolor. */}
       <section aria-label="Lo de hoy" className="flex flex-col gap-4">
+        <AnilloDeHoy visible={conAnillo} />
         {segunOrganizacion(organizacion, [
           ['hoy.sesion', tarjetaSesion],
           ['hoy.carteles', carteles],
