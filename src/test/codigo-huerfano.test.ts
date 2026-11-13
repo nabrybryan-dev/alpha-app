@@ -54,8 +54,9 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   'src/domain/praxis/charla/provisional.ts':
     'Respuesta provisional sin pieza (parte A del diseño del 11-nov-2026): prompt, pedido a DeepSeek y decisión con rótulo; lo consume la Edge Function ' +
     'praxis-charla tras la bandera PRAXIS_CHARLA_PROVISIONAL (APAGADA, sin desplegar), no la app. El rótulo espera la aprobación del dueño.',
-  'src/domain/praxis/charla/hueco.ts':
-    'Hueco normalizado (tema + frase limpia) que praxis-charla devuelve para que quien llama lo encole (11-nov-2026, APAGADA, sin desplegar); la tabla de huecos aún no existe.',
+  'src/domain/praxis/huecos/registrarHueco.ts':
+    'Upsert puro del hueco para la cola praxis_huecos (migración 0180, NO aplicada; 12-nov-2026): lo consume la Edge Function praxis-charla tras la bandera ' +
+    'PRAXIS_HUECOS_ENCOLAR (APAGADA, sin desplegar), no la app.',
   'src/domain/praxis/charla/salidaCharla.ts':
     'Decisión de salida que falla cerrado y respaldo sin modelo de la charla con DeepSeek (11-nov-2026); lo consume la Edge Function ' +
     'praxis-charla (APAGADA, sin desplegar), no la app.',

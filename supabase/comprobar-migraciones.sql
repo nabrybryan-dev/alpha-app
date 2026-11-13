@@ -3824,4 +3824,16 @@ select '0179 - organizacion de la app por persona', 'dos tablas con RLS, sin esc
             when not public.praxis_organizacion_es_ocultable('progreso.medidas') or public.praxis_organizacion_es_ocultable('hoy.sesion') then 'NO'
             else 'SI' end
 
+union all
+select '0180 - cola de huecos de Praxis', 'praxis_huecos con RLS, tema unico, sin columna de persona, authenticated solo lee, anon nada',
+       case when to_regclass('public.praxis_huecos') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_huecos')) then 'NO'
+            when exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'praxis_huecos'
+                          and column_name ~* '(user|usuario|persona|correo|email|nombre)') then 'NO'
+            when has_table_privilege('anon', 'public.praxis_huecos', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_huecos', 'insert')
+              or has_table_privilege('authenticated', 'public.praxis_huecos', 'update')
+              or has_table_privilege('authenticated', 'public.praxis_huecos', 'delete') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;
