@@ -4531,6 +4531,34 @@ body.praxis-sala-abierta { overflow:hidden; }
 [data-piel="maqueta"] .nutri-pista-kcal {
   height: 10px;
 }
+/* Pregunta del día: opciones de 48 px con relieve, una debajo de otra; la elegida con contorno plata (build-v7/1-css.css:198-203). */
+[data-piel="maqueta"] .pregunta-del-dia fieldset > div {
+  display: grid;
+  gap: 8px;
+}
+[data-piel="maqueta"] .pregunta-del-dia fieldset > div.escala-1-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+[data-piel="maqueta"] .pregunta-del-dia button[aria-pressed] {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background-color: var(--surface-3);
+  background-image: var(--relleno-alzado);
+  box-shadow: 0 2px 0 var(--canto), var(--sombra-alzado);
+  color: var(--texto);
+  font-weight: 700;
+  text-align: left;
+}
+[data-piel="maqueta"] .pregunta-del-dia button[aria-pressed="true"] {
+  background-color: var(--surface-1);
+  outline: 2px solid var(--placa);
+  outline-offset: -2px;
+}
 /* FIN DE LA PIEL DE LA MAQUETA 7 */
 
 /* ---------- LA HOJA DE LA PORTADA DEL SALÓN (maqueta 7, pieza C2) ----------
